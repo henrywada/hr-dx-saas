@@ -1,0 +1,3448 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: pnpm-lock.yaml, package-lock.json, yarn.lock, **/*.svg
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+app/
+  auth/
+    actions.ts
+  dashboard/
+    doctor/
+      page.tsx
+    employees/
+      add/
+        page.tsx
+      actions.ts
+      page.tsx
+    page.tsx
+  design-system/
+    page.tsx
+  login/
+    page.tsx
+  favicon.ico
+  globals.css
+  layout.tsx
+  page.tsx
+components/
+  ui/
+    avatar.tsx
+    badge.tsx
+    button.tsx
+    card.tsx
+    dropdown-menu.tsx
+    input.tsx
+    label.tsx
+    select.tsx
+    sheet.tsx
+    table.tsx
+lib/
+  utils.ts
+supabase/
+  migrations/
+    20240101000001_init_schema.sql
+    20251230182400_create_initial_schema.sql
+    20251231123037_init_schema_v1.sql
+  .gitignore
+  config.toml
+  seed.sql
+utils/
+  supabase/
+    client.ts
+    middleware.ts
+    server.ts
+  roles.ts
+.gitignore
+components.json
+eslint.config.mjs
+middleware.ts
+next.config.ts
+package.json
+postcss.config.mjs
+README.md
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/dashboard/doctor/page.tsx">
+export default function DoctorDashboard() {
+    return (
+        <div className="p-8">
+            <h1 className="text-2xl font-bold mb-4">産業医ダッシュボード</h1>
+            <p>このページは産業医専用のトップページです。（現在開発中）</p>
+        </div>
+    );
+}
+</file>
+
+<file path="app/auth/actions.ts">
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
+
+export async function login(formData: FormData) {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    // 1. Supabase Authでログイン
+    const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
+
+    if (error) {
+        // 認証エラー（パスワード間違いなど）
+        return redirect("/login?error=" + encodeURIComponent("メールアドレスまたはパスワードが間違っています。"));
+    }
+
+    if (!data.user) {
+        return redirect("/login?error=" + encodeURIComponent("認証に失敗しました。"));
+    }
+
+    // 2. ログインユーザーの Role (役職) を取得
+    const { data: employee, error: empError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+    if (empError || !employee) {
+        // データ不整合などのエラー時
+        return redirect("/login?error=" + encodeURIComponent("ユーザー情報の取得に失敗しました。管理者にお問い合わせください。"));
+    }
+
+    revalidatePath("/", "layout");
+
+    // 3. 仕様書に基づく画面遷移の分岐
+    // role='doctor' (産業医) の場合 - DB定義およびutils/roles.tsの実装に準拠
+    if (employee.role === "doctor") {
+        redirect("/dashboard/doctor"); // 産業医専用TOP
+    }
+
+    // それ以外 (employee, hr, hr_manager, bossなど) は 人事DX TOPへ
+    redirect("/dashboard");
+}
+
+export async function signup(formData: FormData) {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { error } = await supabase.auth.signUp({
+        email,
+        password,
+    });
+
+    if (error) {
+        return redirect("/login?error=" + encodeURIComponent("登録処理中にエラーが発生しました: " + error.message));
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
+}
+
+export async function logout() {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    revalidatePath("/", "layout");
+    redirect("/login");
+}
+</file>
+
+<file path="app/dashboard/employees/add/page.tsx">
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { createEmployee } from "../actions";
+import Link from "next/link";
+
+export default async function AddEmployeePage() {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return redirect("/login");
+    }
+
+    // Get tenant_id to fetch divisions
+    const { data: currentEmployee } = await supabase
+        .from("employees")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+    if (!currentEmployee?.tenant_id) {
+        return <div>Error: No tenant found.</div>;
+    }
+
+    // Fetch divisions for the specific tenant
+    const { data: divisions } = await supabase
+        .from("divisions")
+        .select("id, name")
+        .eq("tenant_id", currentEmployee.tenant_id);
+
+    return (
+        <div className="flex-1 p-8 pt-6">
+            <div className="mx-auto max-w-2xl space-y-6 py-10">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-3xl font-bold tracking-tight">新規社員登録</h2>
+                </div>
+
+                <Card className="shadow-md rounded-lg">
+                    <CardHeader>
+                        <CardTitle>社員情報</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form action={createEmployee} className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">氏名 <span className="text-red-500">*</span></Label>
+                                <Input id="name" name="name" placeholder="John Doe" required />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="email">メールアドレス <span className="text-red-500">*</span></Label>
+                                <Input id="email" name="email" type="email" placeholder="john@example.com" required />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="division">部署 <span className="text-red-500">*</span></Label>
+                                    <Select name="division_id" required>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="部署を選択してください" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {divisions?.map((div) => (
+                                                <SelectItem key={div.id} value={div.id}>
+                                                    {div.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">役職 <span className="text-red-500">*</span></Label>
+                                    <Select name="role" required defaultValue="member">
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="役職を選択してください" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="member">Member</SelectItem>
+                                            <SelectItem value="boss">Boss</SelectItem>
+                                            <SelectItem value="manager">Manager</SelectItem>
+                                            <SelectItem value="hr">HR</SelectItem>
+                                            <SelectItem value="hr_manager">HR Manager</SelectItem>
+                                            <SelectItem value="developer">Developer</SelectItem>
+                                            <SelectItem value="company_nurse">Company Nurse</SelectItem>
+                                            <SelectItem value="doctor">Doctor</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-4">
+                                <Button variant="outline" asChild>
+                                    <Link href="/dashboard/employees">キャンセル</Link>
+                                </Button>
+                                <Button type="submit">登録する</Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="app/dashboard/employees/actions.ts">
+'use server';
+
+import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+export async function createEmployee(formData: FormData) {
+    const supabase = await createClient();
+
+    // 1. Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return redirect("/login");
+    }
+
+    // 2. Get tenant_id from current user's profile
+    const { data: currentEmployee } = await supabase
+        .from("employees")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+    if (!currentEmployee?.tenant_id) {
+        throw new Error("Current user does not belong to a tenant.");
+    }
+
+    // 3. Extract form data
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const division_id = formData.get("division_id") as string;
+    const role = formData.get("role") as string;
+
+    // 4. Insert new employee
+    // Note: In a real Supabase Auth setup, creating an 'employee' record usually requires
+    // a corresponding 'auth.users' record if there is a FK constraint.
+    // Since we don't have the Service Role key exposed here to create an Auth user,
+    // we will attempt the insert. If the DB requires a valid Auth ID for the 'id' column,
+    // this might fail unless we generate a UUID that happens to exist (impossible) 
+    // or if the implementation ignores the FK for now (unlikely given previous instructions).
+    // However, typical flow is: Invite User (Auth) -> Trigger -> Create Employee.
+    // We will proceed with the requested INSERT.
+
+    const { error } = await supabase
+        .from("employees")
+        .insert({
+            tenant_id: currentEmployee.tenant_id,
+            name,
+            email,
+            division_id: division_id || null,
+            role,
+            is_contracted_person: false,
+            // We do NOT set 'id' here, letting Postgres generate it (gen_random_uuid).
+            // Warning: This will fail if 'id' references auth.users(id) and the UUID doesn't exist there.
+        });
+
+    if (error) {
+        console.error("Error creating employee:", error);
+        // We might want to return this error to the UI, 
+        // but for now we'll throw to be caught by Next.js error boundary or see in logs.
+        throw new Error(`Failed to create employee: ${error.message}`);
+    }
+
+    revalidatePath("/dashboard/employees");
+    redirect("/dashboard/employees");
+}
+</file>
+
+<file path="app/dashboard/employees/page.tsx">
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { getRoleLabel } from "@/utils/roles";
+
+export const dynamic = 'force-dynamic';
+
+export default async function EmployeesPage() {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return redirect("/login");
+    }
+
+    // 1. Get the current user's tenant_id and details
+    const { data: currentUserEmployee } = await supabase
+        .from("employees")
+        .select("tenant_id, role, name, tenants(name)")
+        .eq("id", user.id)
+        .single();
+
+    if (!currentUserEmployee?.tenant_id) {
+        // Handle case where user has no tenant (maybe redirect to onboarding or show empty state)
+        return <div className="p-8">No tenant information found for this user.</div>;
+    }
+
+    // 2. Fetch all employees for this tenant
+    const { data: employees } = await supabase
+        .from("employees")
+        .select("*, divisions(name)")
+        .eq("tenant_id", currentUserEmployee.tenant_id)
+        .order("name", { ascending: true });
+
+    const employeeName = currentUserEmployee.name || user.email;
+    // Handle Supabase relation potentially returning an array
+    const tenantData = currentUserEmployee.tenants;
+    const tenantName = Array.isArray(tenantData) ? tenantData[0]?.name : (tenantData as any)?.name || "";
+    const roleLabel = getRoleLabel(currentUserEmployee.role);
+
+    return (
+        <div className="flex-1 space-y-4 p-8 pt-6">
+            <div className="flex items-center justify-between space-y-2">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">従業員管理</h2>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <span className="font-medium text-foreground">{tenantName}</span>
+                        {tenantName && <span>/</span>}
+                        <span>{employeeName}</span>
+                        <Badge variant="secondary" className="text-xs">
+                            {roleLabel}
+                        </Badge>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button asChild>
+                        <Link href="/dashboard/employees/add">
+                            <Plus className="mr-2 h-4 w-4" /> 社員を追加
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+
+            <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[250px]">氏名</TableHead>
+                                <TableHead>メールアドレス</TableHead>
+                                <TableHead>部署</TableHead>
+                                <TableHead>役職</TableHead>
+                                <TableHead>ステータス</TableHead>
+                                <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {employees?.map((employee: any) => (
+                                <TableRow key={employee.id}>
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-9 w-9">
+                                                <AvatarImage src="/placeholder-avatar.jpg" alt={employee.name} />
+                                                <AvatarFallback>{employee.name?.slice(0, 2).toUpperCase() || "EM"}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col">
+                                                <span>{employee.name || "Unknown"}</span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{employee.email}</TableCell>
+                                    <TableCell>
+                                        {employee.divisions?.name ? (
+                                            <Badge variant="outline">{employee.divisions.name}</Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary" className="capitalize">
+                                            {getRoleLabel(employee.role)}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="sm">
+                                            Edit
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {!employees || employees.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        No employees found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+</file>
+
+<file path="app/dashboard/page.tsx">
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { logout } from "@/app/auth/actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Bell,
+    Home,
+    Layout,
+    LogOut,
+    Plus,
+    Settings,
+    Users,
+    Workflow,
+    Search,
+} from "lucide-react";
+
+export default async function DashboardPage() {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return redirect("/login");
+    }
+
+    // Fetch Employee and Tenant Data
+    const { data: employee } = await supabase
+        .from("employees")
+        .select("*, tenants(*)")
+        .eq("id", user.id)
+        .single();
+
+    const tenantName = employee?.tenants?.name || "Unknown Organization";
+    const employeeName = employee?.name || user.email || "Guest";
+
+    // Dummy Data for KPIs
+    const kpiData = [
+        {
+            title: "Created Workflows",
+            value: "12",
+            icon: Layout,
+            color: "text-blue-600",
+        },
+        {
+            title: "Monthly Executions",
+            value: "145",
+            icon: Workflow,
+            color: "text-green-600",
+        },
+        {
+            title: "Team Members",
+            value: "3",
+            icon: Users,
+            color: "text-purple-600",
+        },
+    ];
+
+    // Dummy Data for Recent Projects
+    const recentWorkflows = [
+        {
+            name: "Onboarding Automation",
+            status: "Active",
+            lastUpdated: "2024-04-01",
+        },
+        {
+            name: "Email Campaign Sequence",
+            status: "Draft",
+            lastUpdated: "2024-03-28",
+        },
+        {
+            name: "Data Sync: CRM to sheet",
+            status: "Active",
+            lastUpdated: "2024-03-25",
+        },
+        {
+            name: "Monthly Report Generation",
+            status: "Active",
+            lastUpdated: "2024-03-20",
+        },
+        {
+            name: "Lead Scoring Logic",
+            status: "Draft",
+            lastUpdated: "2024-03-15",
+        },
+    ];
+
+    return (
+        <div className="flex h-screen w-full bg-gray-50">
+            {/* Sidebar */}
+            <aside className="hidden w-64 flex-col border-r bg-white md:flex">
+                <div className="flex h-16 items-center border-b px-6">
+                    <span className="text-xl font-bold tracking-tight text-primary">
+                        SaaS App
+                    </span>
+                </div>
+                <nav className="flex-1 space-y-1 p-4">
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-primary"
+                    >
+                        <Home className="h-4 w-4" />
+                        Home
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
+                    >
+                        <Workflow className="h-4 w-4" />
+                        Workflows
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
+                    >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                    </Button>
+                </nav>
+            </aside>
+
+            {/* Main Content Area */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+                {/* Header */}
+                <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+                    <div className="flex items-center gap-4 md:hidden">
+                        {/* Mobile Menu Trigger could go here */}
+                        <span className="font-bold text-primary">SaaS App</span>
+                    </div>
+                    <div className="flex flex-1 items-center justify-end gap-4">
+                        <div className="mr-2 hidden flex-col items-end md:flex">
+                            <span className="text-sm font-medium text-foreground">{employeeName}</span>
+                            <span className="text-xs text-muted-foreground">{tenantName}</span>
+                        </div>
+                        <Button variant="ghost" size="icon" className="relative text-muted-foreground">
+                            <Bell className="h-5 w-5" />
+                            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src="/placeholder-avatar.jpg" alt="@user" />
+                                        <AvatarFallback className="bg-primary/10 text-primary">
+                                            {employeeName.slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{employeeName}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem>
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    <span>Settings</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <form action={logout} className="w-full cursor-pointer">
+                                        <button type="submit" className="flex w-full items-center">
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            <span>Log out</span>
+                                        </button>
+                                    </form>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </header>
+
+                {/* Dashboard Content */}
+                <main className="flex-1 overflow-y-auto p-8">
+                    <div className="mx-auto max-w-6xl space-y-8">
+                        {/* Welcome Section */}
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                                    Hello, {employeeName}
+                                </h1>
+                                <p className="text-muted-foreground">
+                                    Here's what's happening with your projects today at {tenantName}.
+                                </p>
+                            </div>
+                            <Button size="lg" className="gap-2 shadow-md">
+                                <Plus className="h-5 w-5" />
+                                New Workflow
+                            </Button>
+                        </div>
+
+                        {/* KPI Cards */}
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {kpiData.map((kpi, index) => (
+                                <Card key={index} className="shadow-sm transition-shadow hover:shadow-md">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                                            {kpi.title}
+                                        </CardTitle>
+                                        <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-foreground">
+                                            {kpi.value}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Recent Workflows */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                                    Recent Workflows
+                                </h2>
+                                <Button variant="outline" size="sm">
+                                    View All
+                                </Button>
+                            </div>
+                            <Card className="shadow-sm">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Project Name</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Last Updated</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {recentWorkflows.map((workflow, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="font-medium text-foreground">
+                                                    {workflow.name}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${workflow.status === "Active"
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-gray-100 text-gray-800"
+                                                            }`}
+                                                    >
+                                                        {workflow.status}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {workflow.lastUpdated}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="sm">
+                                                        ...
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Card>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="app/design-system/page.tsx">
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default function DesignSystemPage() {
+    return (
+        <div className="min-h-screen bg-background p-10 space-y-10">
+            <div className="space-y-4">
+                <h1 className="text-3xl font-bold text-foreground">Design System Verification</h1>
+                <p className="text-muted-foreground">Clean & Minimal BtoB SaaS Theme</p>
+            </div>
+
+            <section className="space-y-4">
+                <h2 className="text-2xl font-semibold text-foreground">Buttons</h2>
+                <div className="flex flex-wrap gap-4">
+                    <Button variant="default">Primary Action</Button>
+                    <Button variant="secondary">Secondary Action</Button>
+                    <Button variant="outline">Outline Action</Button>
+                    <Button variant="ghost">Ghost Action</Button>
+                    <Button variant="destructive">Destructive Action</Button>
+                </div>
+            </section>
+
+            <section className="space-y-4">
+                <h2 className="text-2xl font-semibold text-foreground">Cards</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Standard Card (Shadow SM)</CardTitle>
+                            <CardDescription>Default card style for lists and content.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p>This card uses the default shadow-sm token for a subtle depth effect.</p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button className="w-full">Action</Button>
+                        </CardFooter>
+                    </Card>
+
+                    <Card className="shadow-md">
+                        <CardHeader>
+                            <CardTitle>Elevated Card (Shadow MD)</CardTitle>
+                            <CardDescription>For highlighted content or modals.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p>This card uses shadow-md for a more pronounced floating effect.</p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="secondary" className="w-full">Secondary</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </section>
+
+            <section className="space-y-4">
+                <h2 className="text-2xl font-semibold text-foreground">Color Palette</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                        <div className="h-20 w-full rounded-md bg-primary shadow-sm flex items-center justify-center text-primary-foreground font-medium">Primary</div>
+                        <p className="text-sm font-medium">Orange #F27134</p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="h-20 w-full rounded-md bg-accent shadow-sm flex items-center justify-center text-accent-foreground font-medium">Accent</div>
+                        <p className="text-sm font-medium">Yellow #E1B12C</p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="h-20 w-full rounded-md bg-muted shadow-sm flex items-center justify-center text-muted-foreground font-medium">Muted</div>
+                        <p className="text-sm font-medium">Light Gray</p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="h-20 w-full rounded-md bg-card border shadow-sm flex items-center justify-center text-card-foreground font-medium">Card Surface</div>
+                        <p className="text-sm font-medium">White</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+</file>
+
+<file path="app/login/page.tsx">
+"use client";
+
+import { login, signup } from "@/app/auth/actions";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
+
+function LoginForm() {
+    const searchParams = useSearchParams();
+    const error = searchParams.get("error");
+
+    return (
+        <Card className="w-[350px] shadow-lg">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
+                <CardDescription className="text-center">
+                    IDとパスワードを入力してください
+                </CardDescription>
+            </CardHeader>
+            <form>
+                {/* pb-6 を追加して、下のボタンエリアとの間隔を広げました */}
+                <CardContent className="grid gap-4 pb-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">ログインID (メールアドレス)</Label>
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            required
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">パスワード</Label>
+                        </div>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                        />
+                    </div>
+
+                    {/* 仕様書「パスワードを忘れたらここ」へのリンク */}
+                    <div className="text-right">
+                        <Link
+                            href="/forgot-password"
+                            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
+                        >
+                            パスワードを忘れたらここ
+                        </Link>
+                    </div>
+
+                    {/* エラーメッセージ表示エリア */}
+                    {error && (
+                        <p className="text-sm text-red-500 font-medium text-center bg-red-50 p-2 rounded border border-red-100">
+                            {decodeURIComponent(error)}
+                        </p>
+                    )}
+                </CardContent>
+
+                {/* ボタンエリア: pt-2 を追加してさらに微調整 */}
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    {/* Primaryカラー（オレンジ）のボタン */}
+                    <Button formAction={login} className="w-full font-bold">
+                        ログイン
+                    </Button>
+
+                    <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
+                        新規登録 (開発用)
+                    </Button>
+                </CardFooter>
+            </form>
+        </Card>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+            <Suspense>
+                <LoginForm />
+            </Suspense>
+        </div>
+    )
+}
+</file>
+
+<file path="app/globals.css">
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  --radius: 0.625rem;
+  
+  /* Base */
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 20%);
+  
+  /* Card */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 20%);
+  
+  /* Popover */
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 20%);
+  
+  /* Primary (Orange #F27134) */
+  --primary: hsl(19 88% 57%);
+  --primary-foreground: hsl(0 0% 100%);
+  
+  /* Secondary */
+  --secondary: hsl(0 0% 96%);
+  --secondary-foreground: hsl(0 0% 20%);
+  
+  /* Muted */
+  --muted: hsl(0 0% 96%);
+  --muted-foreground: hsl(0 0% 40%);
+  
+  /* Accent (Yellow #E1B12C) */
+  --accent: hsl(44 76% 53%);
+  --accent-foreground: hsl(0 0% 100%);
+  
+  /* Destructive */
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  
+  /* Border & Input */
+  --border: hsl(0 0% 90%);
+  --input: hsl(0 0% 90%);
+  --ring: hsl(19 88% 57%); /* Linking ring to primary */
+  
+  /* Charts (Preserving structure but adapting if needed, keeping defaults for now as not specified) */
+  --chart-1: hsl(12 76% 61%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+  
+  /* Sidebar (Matching light mode) */
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+  /* Base - Dark Mode (Inverse of Light) */
+  --background: hsl(0 0% 10%);
+  --foreground: hsl(0 0% 98%);
+  
+  /* Card */
+  --card: hsl(0 0% 12%);
+  --card-foreground: hsl(0 0% 98%);
+  
+  /* Popover */
+  --popover: hsl(0 0% 12%);
+  --popover-foreground: hsl(0 0% 98%);
+  
+  /* Primary */
+  --primary: hsl(19 88% 57%);
+  --primary-foreground: hsl(0 0% 100%);
+  
+  /* Secondary */
+  --secondary: hsl(0 0% 16%);
+  --secondary-foreground: hsl(0 0% 98%);
+  
+  /* Muted */
+  --muted: hsl(0 0% 16%);
+  --muted-foreground: hsl(0 0% 64%);
+  
+  /* Accent */
+  --accent: hsl(44 76% 53%);
+  --accent-foreground: hsl(0 0% 100%);
+  
+  /* Destructive */
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+  
+  /* Border & Input */
+  --border: hsl(0 0% 20%);
+  --input: hsl(0 0% 20%);
+  --ring: hsl(19 88% 57%);
+  
+  /* Charts */
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+  
+  /* Sidebar */
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+</file>
+
+<file path="app/layout.tsx">
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className={`${inter.variable} antialiased`}>
+        {children}
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="app/page.tsx">
+import Image from "next/image";
+
+export default function Home() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <Image
+          className="dark:invert"
+          src="/next.svg"
+          alt="Next.js logo"
+          width={100}
+          height={20}
+          priority
+        />
+        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
+          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
+            To get started, edit the page.tsx file.
+          </h1>
+          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Looking for a starting point or more instructions? Head over to{" "}
+            <a
+              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Templates
+            </a>{" "}
+            or the{" "}
+            <a
+              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Learning
+            </a>{" "}
+            center.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+          <a
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
+            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Image
+              className="dark:invert"
+              src="/vercel.svg"
+              alt="Vercel logomark"
+              width={16}
+              height={16}
+            />
+            Deploy Now
+          </a>
+          <a
+            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
+            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Documentation
+          </a>
+        </div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="components/ui/avatar.tsx">
+"use client"
+
+import * as React from "react"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
+
+import { cn } from "@/lib/utils"
+
+function Avatar({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Root>) {
+  return (
+    <AvatarPrimitive.Root
+      data-slot="avatar"
+      className={cn(
+        "relative flex size-8 shrink-0 overflow-hidden rounded-full",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AvatarImage({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  return (
+    <AvatarPrimitive.Image
+      data-slot="avatar-image"
+      className={cn("aspect-square size-full", className)}
+      {...props}
+    />
+  )
+}
+
+function AvatarFallback({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+  return (
+    <AvatarPrimitive.Fallback
+      data-slot="avatar-fallback"
+      className={cn(
+        "bg-muted flex size-full items-center justify-center rounded-full",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Avatar, AvatarImage, AvatarFallback }
+</file>
+
+<file path="components/ui/badge.tsx">
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const badgeVariants = cva(
+    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    {
+        variants: {
+            variant: {
+                default:
+                    "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+                secondary:
+                    "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                destructive:
+                    "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+                outline: "text-foreground",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+        },
+    }
+)
+
+export interface BadgeProps
+    extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> { }
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+    return (
+        <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    )
+}
+
+export { Badge, badgeVariants }
+</file>
+
+<file path="components/ui/button.tsx">
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+    {
+        variants: {
+            variant: {
+                default: "bg-primary text-primary-foreground hover:bg-primary/90",
+                destructive:
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                outline:
+                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                secondary:
+                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                ghost: "hover:bg-accent hover:text-accent-foreground",
+                link: "text-primary underline-offset-4 hover:underline",
+            },
+            size: {
+                default: "h-10 px-4 py-2",
+                sm: "h-9 rounded-md px-3",
+                lg: "h-11 rounded-md px-8",
+                icon: "h-10 w-10",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+            size: "default",
+        },
+    }
+)
+
+export interface ButtonProps
+    extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+    asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+    ({ className, variant, size, asChild = false, ...props }, ref) => {
+        const Comp = asChild ? Slot : "button"
+        return (
+            <Comp
+                className={cn(buttonVariants({ variant, size, className }))}
+                ref={ref}
+                {...props}
+            />
+        )
+    }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+</file>
+
+<file path="components/ui/card.tsx">
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Card({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card"
+      className={cn(
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-header"
+      className={cn(
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-title"
+      className={cn("leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-action"
+      className={cn(
+        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-content"
+      className={cn("px-6", className)}
+      {...props}
+    />
+  )
+}
+
+function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-footer"
+      className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
+}
+</file>
+
+<file path="components/ui/dropdown-menu.tsx">
+"use client"
+
+import * as React from "react"
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
+import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function DropdownMenu({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+}
+
+function DropdownMenuPortal({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
+  return (
+    <DropdownMenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />
+  )
+}
+
+function DropdownMenuTrigger({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+  return (
+    <DropdownMenuPrimitive.Trigger
+      data-slot="dropdown-menu-trigger"
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuContent({
+  className,
+  sideOffset = 4,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        data-slot="dropdown-menu-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+          className
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  )
+}
+
+function DropdownMenuGroup({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Group>) {
+  return (
+    <DropdownMenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
+  )
+}
+
+function DropdownMenuItem({
+  className,
+  inset,
+  variant = "default",
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+  inset?: boolean
+  variant?: "default" | "destructive"
+}) {
+  return (
+    <DropdownMenuPrimitive.Item
+      data-slot="dropdown-menu-item"
+      data-inset={inset}
+      data-variant={variant}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuCheckboxItem({
+  className,
+  children,
+  checked,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      checked={checked}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.CheckboxItem>
+  )
+}
+
+function DropdownMenuRadioGroup({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
+  return (
+    <DropdownMenuPrimitive.RadioGroup
+      data-slot="dropdown-menu-radio-group"
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuRadioItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+  return (
+    <DropdownMenuPrimitive.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <CircleIcon className="size-2 fill-current" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.RadioItem>
+  )
+}
+
+function DropdownMenuLabel({
+  className,
+  inset,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+  inset?: boolean
+}) {
+  return (
+    <DropdownMenuPrimitive.Label
+      data-slot="dropdown-menu-label"
+      data-inset={inset}
+      className={cn(
+        "px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+  return (
+    <DropdownMenuPrimitive.Separator
+      data-slot="dropdown-menu-separator"
+      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuShortcut({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="dropdown-menu-shortcut"
+      className={cn(
+        "text-muted-foreground ml-auto text-xs tracking-widest",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuSub({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
+  return <DropdownMenuPrimitive.Sub data-slot="dropdown-menu-sub" {...props} />
+}
+
+function DropdownMenuSubTrigger({
+  className,
+  inset,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+  inset?: boolean
+}) {
+  return (
+    <DropdownMenuPrimitive.SubTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      data-inset={inset}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRightIcon className="ml-auto size-4" />
+    </DropdownMenuPrimitive.SubTrigger>
+  )
+}
+
+function DropdownMenuSubContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  return (
+    <DropdownMenuPrimitive.SubContent
+      data-slot="dropdown-menu-sub-content"
+      className={cn(
+        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  DropdownMenu,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+}
+</file>
+
+<file path="components/ui/input.tsx">
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+export interface InputProps
+    extends React.InputHTMLAttributes<HTMLInputElement> { }
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+    ({ className, type, ...props }, ref) => {
+        return (
+            <input
+                type={type}
+                className={cn(
+                    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    className
+                )}
+                ref={ref}
+                {...props}
+            />
+        )
+    }
+)
+Input.displayName = "Input"
+
+export { Input }
+</file>
+
+<file path="components/ui/label.tsx">
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const labelVariants = cva(
+    "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+)
+
+const Label = React.forwardRef<
+    React.ElementRef<typeof LabelPrimitive.Root>,
+    React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
+    VariantProps<typeof labelVariants>
+>(({ className, ...props }, ref) => (
+    <LabelPrimitive.Root
+        ref={ref}
+        className={cn(labelVariants(), className)}
+        {...props}
+    />
+))
+Label.displayName = LabelPrimitive.Root.displayName
+
+export { Label }
+</file>
+
+<file path="components/ui/select.tsx">
+"use client"
+
+import * as React from "react"
+import * as SelectPrimitive from "@radix-ui/react-select"
+import { Check, ChevronDown, ChevronUp } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+const Select = SelectPrimitive.Root
+
+const SelectGroup = SelectPrimitive.Group
+
+const SelectValue = SelectPrimitive.Value
+
+const SelectTrigger = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Trigger>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+    <SelectPrimitive.Trigger
+        ref={ref}
+        className={cn(
+            "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+            className
+        )}
+        {...props}
+    >
+        {children}
+        <SelectPrimitive.Icon asChild>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+        </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+))
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+
+const SelectScrollUpButton = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+>(({ className, ...props }, ref) => (
+    <SelectPrimitive.ScrollUpButton
+        ref={ref}
+        className={cn(
+            "flex cursor-default items-center justify-center py-1",
+            className
+        )}
+        {...props}
+    >
+        <ChevronUp className="h-4 w-4" />
+    </SelectPrimitive.ScrollUpButton>
+))
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
+
+const SelectScrollDownButton = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+>(({ className, ...props }, ref) => (
+    <SelectPrimitive.ScrollDownButton
+        ref={ref}
+        className={cn(
+            "flex cursor-default items-center justify-center py-1",
+            className
+        )}
+        {...props}
+    >
+        <ChevronDown className="h-4 w-4" />
+    </SelectPrimitive.ScrollDownButton>
+))
+SelectScrollDownButton.displayName =
+    SelectPrimitive.ScrollDownButton.displayName
+
+const SelectContent = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Content>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => (
+    <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+            ref={ref}
+            className={cn(
+                "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+                position === "popper" &&
+                "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+                className
+            )}
+            position={position}
+            {...props}
+        >
+            <SelectScrollUpButton />
+            <SelectPrimitive.Viewport
+                className={cn(
+                    "p-1",
+                    position === "popper" &&
+                    "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+                )}
+            >
+                {children}
+            </SelectPrimitive.Viewport>
+            <SelectScrollDownButton />
+        </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+))
+SelectContent.displayName = SelectPrimitive.Content.displayName
+
+const SelectLabel = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Label>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+    <SelectPrimitive.Label
+        ref={ref}
+        className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold", className)}
+        {...props}
+    />
+))
+SelectLabel.displayName = SelectPrimitive.Label.displayName
+
+const SelectItem = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Item>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
+>(({ className, children, ...props }, ref) => (
+    <SelectPrimitive.Item
+        ref={ref}
+        className={cn(
+            "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+            className
+        )}
+        {...props}
+    >
+        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+            <SelectPrimitive.ItemIndicator>
+                <Check className="h-4 w-4" />
+            </SelectPrimitive.ItemIndicator>
+        </span>
+
+        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+))
+SelectItem.displayName = SelectPrimitive.Item.displayName
+
+const SelectSeparator = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Separator>,
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+    <SelectPrimitive.Separator
+        ref={ref}
+        className={cn("-mx-1 my-1 h-px bg-muted", className)}
+        {...props}
+    />
+))
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName
+
+export {
+    Select,
+    SelectGroup,
+    SelectValue,
+    SelectTrigger,
+    SelectContent,
+    SelectLabel,
+    SelectItem,
+    SelectSeparator,
+    SelectScrollUpButton,
+    SelectScrollDownButton,
+}
+</file>
+
+<file path="components/ui/sheet.tsx">
+"use client"
+
+import * as React from "react"
+import * as SheetPrimitive from "@radix-ui/react-dialog"
+import { XIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+}
+
+function SheetTrigger({
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
+  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
+}
+
+function SheetClose({
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Close>) {
+  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
+}
+
+function SheetPortal({
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Portal>) {
+  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
+}
+
+function SheetOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+  return (
+    <SheetPrimitive.Overlay
+      data-slot="sheet-overlay"
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function SheetContent({
+  className,
+  children,
+  side = "right",
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Content> & {
+  side?: "top" | "right" | "bottom" | "left"
+}) {
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        data-slot="sheet-content"
+        className={cn(
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          side === "right" &&
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+          side === "left" &&
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+          side === "top" &&
+            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
+          side === "bottom" &&
+            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+          <XIcon className="size-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  )
+}
+
+function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-header"
+      className={cn("flex flex-col gap-1.5 p-4", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-footer"
+      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Title>) {
+  return (
+    <SheetPrimitive.Title
+      data-slot="sheet-title"
+      className={cn("text-foreground font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Description>) {
+  return (
+    <SheetPrimitive.Description
+      data-slot="sheet-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+}
+</file>
+
+<file path="components/ui/table.tsx">
+"use client"
+
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Table({ className, ...props }: React.ComponentProps<"table">) {
+  return (
+    <div
+      data-slot="table-container"
+      className="relative w-full overflow-x-auto"
+    >
+      <table
+        data-slot="table"
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
+  )
+}
+
+function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b", className)}
+      {...props}
+    />
+  )
+}
+
+function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props}
+    />
+  )
+}
+
+function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+  return (
+    <tfoot
+      data-slot="table-footer"
+      className={cn(
+        "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+  return (
+    <th
+      data-slot="table-head"
+      className={cn(
+        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+  return (
+    <td
+      data-slot="table-cell"
+      className={cn(
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCaption({
+  className,
+  ...props
+}: React.ComponentProps<"caption">) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn("text-muted-foreground mt-4 text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+}
+</file>
+
+<file path="lib/utils.ts">
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+</file>
+
+<file path="supabase/migrations/20240101000001_init_schema.sql">
+-- Create organizations table
+create table "public"."organizations" (
+  "id" uuid not null default gen_random_uuid(),
+  "name" text not null,
+  "created_at" timestamp with time zone not null default timezone('utc'::text, now()),
+  constraint "organizations_pkey" primary key ("id")
+);
+
+-- Create profiles table
+create table "public"."profiles" (
+  "id" uuid not null,
+  "organization_id" uuid,
+  "created_at" timestamp with time zone not null default timezone('utc'::text, now()),
+  constraint "profiles_pkey" primary key ("id"),
+  constraint "profiles_id_fkey" foreign key ("id") references "auth"."users"("id") on delete cascade,
+  constraint "profiles_organization_id_fkey" foreign key ("organization_id") references "public"."organizations"("id") on delete set null
+);
+
+-- Enable RLS
+alter table "public"."organizations" enable row level security;
+alter table "public"."profiles" enable row level security;
+
+-- RLS Policies
+
+-- Profiles: Users can view/edit their own profile
+create policy "Users can view own profile"
+on "public"."profiles"
+as permissive
+for select
+to public
+using ((auth.uid() = id));
+
+create policy "Users can update own profile"
+on "public"."profiles"
+as permissive
+for update
+to public
+using ((auth.uid() = id));
+
+create policy "Users can insert own profile"
+on "public"."profiles"
+as permissive
+for insert
+to public
+with check ((auth.uid() = id));
+
+-- Organizations: Users can view their own organization
+create policy "Users can view own organization"
+on "public"."organizations"
+as permissive
+for select
+to public
+using ((id in (select profiles.organization_id from profiles where profiles.id = auth.uid())));
+</file>
+
+<file path="supabase/migrations/20251230182400_create_initial_schema.sql">
+-- Create tenants table
+CREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    contract_date DATE,
+    paid_amount INTEGER DEFAULT 0,
+    employee_count INTEGER DEFAULT 0,
+    expired_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create divisions table
+CREATE TABLE divisions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    name TEXT NOT NULL
+);
+
+-- Create employees table
+CREATE TABLE employees (
+    id UUID PRIMARY KEY REFERENCES auth.users(id),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    division_id UUID REFERENCES divisions(id),
+    name TEXT,
+    email TEXT,
+    role TEXT DEFAULT 'member' CHECK (role IN ('member', 'hr', 'hr_manager', 'doctor', 'company_nurse', 'boss', 'developer')),
+    is_contracted_person BOOLEAN DEFAULT false,
+    contracted_date DATE
+);
+
+-- Create services table
+CREATE TABLE services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    category TEXT,
+    description TEXT
+);
+
+-- Create tenant_services table
+CREATE TABLE tenant_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    service_id UUID NOT NULL REFERENCES services(id),
+    start_date DATE DEFAULT CURRENT_DATE,
+    status TEXT DEFAULT 'active'
+);
+
+-- Enable RLS on all tables
+ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE divisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tenant_services ENABLE ROW LEVEL SECURITY;
+</file>
+
+<file path="supabase/migrations/20251231123037_init_schema_v1.sql">
+revoke delete on table "public"."divisions" from "anon";
+
+revoke insert on table "public"."divisions" from "anon";
+
+revoke references on table "public"."divisions" from "anon";
+
+revoke select on table "public"."divisions" from "anon";
+
+revoke trigger on table "public"."divisions" from "anon";
+
+revoke truncate on table "public"."divisions" from "anon";
+
+revoke update on table "public"."divisions" from "anon";
+
+revoke delete on table "public"."divisions" from "authenticated";
+
+revoke insert on table "public"."divisions" from "authenticated";
+
+revoke references on table "public"."divisions" from "authenticated";
+
+revoke select on table "public"."divisions" from "authenticated";
+
+revoke trigger on table "public"."divisions" from "authenticated";
+
+revoke truncate on table "public"."divisions" from "authenticated";
+
+revoke update on table "public"."divisions" from "authenticated";
+
+revoke delete on table "public"."divisions" from "service_role";
+
+revoke insert on table "public"."divisions" from "service_role";
+
+revoke references on table "public"."divisions" from "service_role";
+
+revoke select on table "public"."divisions" from "service_role";
+
+revoke trigger on table "public"."divisions" from "service_role";
+
+revoke truncate on table "public"."divisions" from "service_role";
+
+revoke update on table "public"."divisions" from "service_role";
+
+revoke delete on table "public"."employees" from "anon";
+
+revoke insert on table "public"."employees" from "anon";
+
+revoke references on table "public"."employees" from "anon";
+
+revoke select on table "public"."employees" from "anon";
+
+revoke trigger on table "public"."employees" from "anon";
+
+revoke truncate on table "public"."employees" from "anon";
+
+revoke update on table "public"."employees" from "anon";
+
+revoke delete on table "public"."employees" from "authenticated";
+
+revoke insert on table "public"."employees" from "authenticated";
+
+revoke references on table "public"."employees" from "authenticated";
+
+revoke select on table "public"."employees" from "authenticated";
+
+revoke trigger on table "public"."employees" from "authenticated";
+
+revoke truncate on table "public"."employees" from "authenticated";
+
+revoke update on table "public"."employees" from "authenticated";
+
+revoke delete on table "public"."employees" from "service_role";
+
+revoke insert on table "public"."employees" from "service_role";
+
+revoke references on table "public"."employees" from "service_role";
+
+revoke select on table "public"."employees" from "service_role";
+
+revoke trigger on table "public"."employees" from "service_role";
+
+revoke truncate on table "public"."employees" from "service_role";
+
+revoke update on table "public"."employees" from "service_role";
+
+revoke delete on table "public"."services" from "anon";
+
+revoke insert on table "public"."services" from "anon";
+
+revoke references on table "public"."services" from "anon";
+
+revoke select on table "public"."services" from "anon";
+
+revoke trigger on table "public"."services" from "anon";
+
+revoke truncate on table "public"."services" from "anon";
+
+revoke update on table "public"."services" from "anon";
+
+revoke delete on table "public"."services" from "authenticated";
+
+revoke insert on table "public"."services" from "authenticated";
+
+revoke references on table "public"."services" from "authenticated";
+
+revoke select on table "public"."services" from "authenticated";
+
+revoke trigger on table "public"."services" from "authenticated";
+
+revoke truncate on table "public"."services" from "authenticated";
+
+revoke update on table "public"."services" from "authenticated";
+
+revoke delete on table "public"."services" from "service_role";
+
+revoke insert on table "public"."services" from "service_role";
+
+revoke references on table "public"."services" from "service_role";
+
+revoke select on table "public"."services" from "service_role";
+
+revoke trigger on table "public"."services" from "service_role";
+
+revoke truncate on table "public"."services" from "service_role";
+
+revoke update on table "public"."services" from "service_role";
+
+revoke delete on table "public"."tenant_services" from "anon";
+
+revoke insert on table "public"."tenant_services" from "anon";
+
+revoke references on table "public"."tenant_services" from "anon";
+
+revoke select on table "public"."tenant_services" from "anon";
+
+revoke trigger on table "public"."tenant_services" from "anon";
+
+revoke truncate on table "public"."tenant_services" from "anon";
+
+revoke update on table "public"."tenant_services" from "anon";
+
+revoke delete on table "public"."tenant_services" from "authenticated";
+
+revoke insert on table "public"."tenant_services" from "authenticated";
+
+revoke references on table "public"."tenant_services" from "authenticated";
+
+revoke select on table "public"."tenant_services" from "authenticated";
+
+revoke trigger on table "public"."tenant_services" from "authenticated";
+
+revoke truncate on table "public"."tenant_services" from "authenticated";
+
+revoke update on table "public"."tenant_services" from "authenticated";
+
+revoke delete on table "public"."tenant_services" from "service_role";
+
+revoke insert on table "public"."tenant_services" from "service_role";
+
+revoke references on table "public"."tenant_services" from "service_role";
+
+revoke select on table "public"."tenant_services" from "service_role";
+
+revoke trigger on table "public"."tenant_services" from "service_role";
+
+revoke truncate on table "public"."tenant_services" from "service_role";
+
+revoke update on table "public"."tenant_services" from "service_role";
+
+revoke delete on table "public"."tenants" from "anon";
+
+revoke insert on table "public"."tenants" from "anon";
+
+revoke references on table "public"."tenants" from "anon";
+
+revoke select on table "public"."tenants" from "anon";
+
+revoke trigger on table "public"."tenants" from "anon";
+
+revoke truncate on table "public"."tenants" from "anon";
+
+revoke update on table "public"."tenants" from "anon";
+
+revoke delete on table "public"."tenants" from "authenticated";
+
+revoke insert on table "public"."tenants" from "authenticated";
+
+revoke references on table "public"."tenants" from "authenticated";
+
+revoke select on table "public"."tenants" from "authenticated";
+
+revoke trigger on table "public"."tenants" from "authenticated";
+
+revoke truncate on table "public"."tenants" from "authenticated";
+
+revoke update on table "public"."tenants" from "authenticated";
+
+revoke delete on table "public"."tenants" from "service_role";
+
+revoke insert on table "public"."tenants" from "service_role";
+
+revoke references on table "public"."tenants" from "service_role";
+
+revoke select on table "public"."tenants" from "service_role";
+
+revoke trigger on table "public"."tenants" from "service_role";
+
+revoke truncate on table "public"."tenants" from "service_role";
+
+revoke update on table "public"."tenants" from "service_role";
+
+alter table "public"."divisions" drop constraint "divisions_tenant_id_fkey";
+
+alter table "public"."employees" drop constraint "employees_division_id_fkey";
+
+alter table "public"."employees" drop constraint "employees_id_fkey";
+
+alter table "public"."employees" drop constraint "employees_role_check";
+
+alter table "public"."employees" drop constraint "employees_tenant_id_fkey";
+
+alter table "public"."tenant_services" drop constraint "tenant_services_service_id_fkey";
+
+alter table "public"."tenant_services" drop constraint "tenant_services_tenant_id_fkey";
+
+alter table "public"."divisions" drop constraint "divisions_pkey";
+
+alter table "public"."employees" drop constraint "employees_pkey";
+
+alter table "public"."services" drop constraint "services_pkey";
+
+alter table "public"."tenant_services" drop constraint "tenant_services_pkey";
+
+alter table "public"."tenants" drop constraint "tenants_pkey";
+
+drop index if exists "public"."divisions_pkey";
+
+drop index if exists "public"."employees_pkey";
+
+drop index if exists "public"."services_pkey";
+
+drop index if exists "public"."tenant_services_pkey";
+
+drop index if exists "public"."tenants_pkey";
+
+drop table "public"."divisions";
+
+drop table "public"."employees";
+
+drop table "public"."services";
+
+drop table "public"."tenant_services";
+
+drop table "public"."tenants";
+</file>
+
+<file path="supabase/.gitignore">
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+</file>
+
+<file path="supabase/config.toml">
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
+project_id = "saas-app"
+
+[api]
+enabled = true
+# Port to use for the API URL.
+port = 54321
+# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
+# endpoints. `public` and `graphql_public` schemas are included by default.
+schemas = ["public", "graphql_public"]
+# Extra schemas to add to the search_path of every request.
+extra_search_path = ["public", "extensions"]
+# The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
+# for accidental or malicious requests.
+max_rows = 1000
+
+[api.tls]
+# Enable HTTPS endpoints locally using a self-signed certificate.
+enabled = false
+# Paths to self-signed certificate pair.
+# cert_path = "../certs/my-cert.pem"
+# key_path = "../certs/my-key.pem"
+
+[db]
+# Port to use for the local database URL.
+port = 54322
+# Port used by db diff command to initialize the shadow database.
+shadow_port = 54320
+# The database major version to use. This has to be the same as your remote database's. Run `SHOW
+# server_version;` on the remote database to check.
+major_version = 17
+
+[db.pooler]
+enabled = false
+# Port to use for the local connection pooler.
+port = 54329
+# Specifies when a server connection can be reused by other clients.
+# Configure one of the supported pooler modes: `transaction`, `session`.
+pool_mode = "transaction"
+# How many server connections to allow per user/database pair.
+default_pool_size = 20
+# Maximum number of client connections allowed.
+max_client_conn = 100
+
+# [db.vault]
+# secret_key = "env(SECRET_VALUE)"
+
+[db.migrations]
+# If disabled, migrations will be skipped during a db push or reset.
+enabled = true
+# Specifies an ordered list of schema files that describe your database.
+# Supports glob patterns relative to supabase directory: "./schemas/*.sql"
+schema_paths = []
+
+[db.seed]
+# If enabled, seeds the database after migrations during a db reset.
+enabled = true
+# Specifies an ordered list of seed files to load during db reset.
+# Supports glob patterns relative to supabase directory: "./seeds/*.sql"
+sql_paths = ["./seed.sql"]
+
+[db.network_restrictions]
+# Enable management of network restrictions.
+enabled = false
+# List of IPv4 CIDR blocks allowed to connect to the database.
+# Defaults to allow all IPv4 connections. Set empty array to block all IPs.
+allowed_cidrs = ["0.0.0.0/0"]
+# List of IPv6 CIDR blocks allowed to connect to the database.
+# Defaults to allow all IPv6 connections. Set empty array to block all IPs.
+allowed_cidrs_v6 = ["::/0"]
+
+[realtime]
+enabled = true
+# Bind realtime via either IPv4 or IPv6. (default: IPv4)
+# ip_version = "IPv6"
+# The maximum length in bytes of HTTP request headers. (default: 4096)
+# max_header_length = 4096
+
+[studio]
+enabled = true
+# Port to use for Supabase Studio.
+port = 54323
+# External URL of the API server that frontend connects to.
+api_url = "http://127.0.0.1"
+# OpenAI API Key to use for Supabase AI in the Supabase Studio.
+openai_api_key = "env(OPENAI_API_KEY)"
+
+# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
+# are monitored, and you can view the emails that would have been sent from the web interface.
+[inbucket]
+enabled = true
+# Port to use for the email testing server web interface.
+port = 54324
+# Uncomment to expose additional ports for testing user applications that send emails.
+# smtp_port = 54325
+# pop3_port = 54326
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+[storage]
+enabled = true
+# The maximum file size allowed (e.g. "5MB", "500KB").
+file_size_limit = "50MiB"
+
+# Uncomment to configure local storage buckets
+# [storage.buckets.images]
+# public = false
+# file_size_limit = "50MiB"
+# allowed_mime_types = ["image/png", "image/jpeg"]
+# objects_path = "./images"
+
+# Allow connections via S3 compatible clients
+[storage.s3_protocol]
+enabled = true
+
+# Image transformation API is available to Supabase Pro plan.
+# [storage.image_transformation]
+# enabled = true
+
+# Store analytical data in S3 for running ETL jobs over Iceberg Catalog
+# This feature is only available on the hosted platform.
+[storage.analytics]
+enabled = false
+max_namespaces = 5
+max_tables = 10
+max_catalogs = 2
+
+# Analytics Buckets is available to Supabase Pro plan.
+# [storage.analytics.buckets.my-warehouse]
+
+# Store vector embeddings in S3 for large and durable datasets
+# This feature is only available on the hosted platform.
+[storage.vector]
+enabled = false
+max_buckets = 10
+max_indexes = 5
+
+# Vector Buckets is available to Supabase Pro plan.
+# [storage.vector.buckets.documents-openai]
+
+[auth]
+enabled = true
+# The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
+# in emails.
+site_url = "http://127.0.0.1:3000"
+# A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
+jwt_expiry = 3600
+# JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
+# jwt_issuer = ""
+# Path to JWT signing key. DO NOT commit your signing keys file to git.
+# signing_keys_path = "./signing_keys.json"
+# If disabled, the refresh token will never expire.
+enable_refresh_token_rotation = true
+# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
+# Requires enable_refresh_token_rotation = true.
+refresh_token_reuse_interval = 10
+# Allow/disallow new user signups to your project.
+enable_signup = true
+# Allow/disallow anonymous sign-ins to your project.
+enable_anonymous_sign_ins = false
+# Allow/disallow testing manual linking of accounts
+enable_manual_linking = false
+# Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
+minimum_password_length = 6
+# Passwords that do not meet the following requirements will be rejected as weak. Supported values
+# are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
+password_requirements = ""
+
+[auth.rate_limit]
+# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
+email_sent = 2
+# Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
+sms_sent = 30
+# Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
+anonymous_users = 30
+# Number of sessions that can be refreshed in a 5 minute interval per IP address.
+token_refresh = 150
+# Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
+sign_in_sign_ups = 30
+# Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
+token_verifications = 30
+# Number of Web3 logins that can be made in a 5 minute interval per IP address.
+web3 = 30
+
+# Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
+# [auth.captcha]
+# enabled = true
+# provider = "hcaptcha"
+# secret = ""
+
+[auth.email]
+# Allow/disallow new user signups via email to your project.
+enable_signup = true
+# If enabled, a user will be required to confirm any email change on both the old, and new email
+# addresses. If disabled, only the new email is required to confirm.
+double_confirm_changes = true
+# If enabled, users need to confirm their email address before signing in.
+enable_confirmations = false
+# If enabled, users will need to reauthenticate or have logged in recently to change their password.
+secure_password_change = false
+# Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
+max_frequency = "1s"
+# Number of characters used in the email OTP.
+otp_length = 6
+# Number of seconds before the email OTP expires (defaults to 1 hour).
+otp_expiry = 3600
+
+# Use a production-ready SMTP server
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.sendgrid.net"
+# port = 587
+# user = "apikey"
+# pass = "env(SENDGRID_API_KEY)"
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+# Uncomment to customize email template
+# [auth.email.template.invite]
+# subject = "You have been invited"
+# content_path = "./supabase/templates/invite.html"
+
+# Uncomment to customize notification email template
+# [auth.email.notification.password_changed]
+# enabled = true
+# subject = "Your password has been changed"
+# content_path = "./templates/password_changed_notification.html"
+
+[auth.sms]
+# Allow/disallow new user signups via SMS to your project.
+enable_signup = false
+# If enabled, users need to confirm their phone number before signing in.
+enable_confirmations = false
+# Template for sending OTP to users
+template = "Your code is {{ .Code }}"
+# Controls the minimum amount of time that must pass before sending another sms otp.
+max_frequency = "5s"
+
+# Use pre-defined map of phone number to OTP for testing.
+# [auth.sms.test_otp]
+# 4152127777 = "123456"
+
+# Configure logged in session timeouts.
+# [auth.sessions]
+# Force log out after the specified duration.
+# timebox = "24h"
+# Force log out if the user has been inactive longer than the specified duration.
+# inactivity_timeout = "8h"
+
+# This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
+# [auth.hook.before_user_created]
+# enabled = true
+# uri = "pg-functions://postgres/auth/before-user-created-hook"
+
+# This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
+# [auth.hook.custom_access_token]
+# enabled = true
+# uri = "pg-functions://<database>/<schema>/<hook_name>"
+
+# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+[auth.sms.twilio]
+enabled = false
+account_sid = ""
+message_service_sid = ""
+# DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
+# Multi-factor-authentication is available to Supabase Pro plan.
+[auth.mfa]
+# Control how many MFA factors can be enrolled at once per user.
+max_enrolled_factors = 10
+
+# Control MFA via App Authenticator (TOTP)
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+# Configure MFA via Phone Messaging
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+otp_length = 6
+template = "Your code is {{ .Code }}"
+max_frequency = "5s"
+
+# Configure MFA via WebAuthn
+# [auth.mfa.web_authn]
+# enroll_enabled = true
+# verify_enabled = true
+
+# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
+# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
+# `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+[auth.external.apple]
+enabled = false
+client_id = ""
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+# Overrides the default auth redirectUrl.
+redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+url = ""
+# If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
+skip_nonce_check = false
+# If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
+email_optional = false
+
+# Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
+# You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
+[auth.web3.solana]
+enabled = false
+
+# Use Firebase Auth as a third-party provider alongside Supabase Auth.
+[auth.third_party.firebase]
+enabled = false
+# project_id = "my-firebase-project"
+
+# Use Auth0 as a third-party provider alongside Supabase Auth.
+[auth.third_party.auth0]
+enabled = false
+# tenant = "my-auth0-tenant"
+# tenant_region = "us"
+
+# Use AWS Cognito (Amplify) as a third-party provider alongside Supabase Auth.
+[auth.third_party.aws_cognito]
+enabled = false
+# user_pool_id = "my-user-pool-id"
+# user_pool_region = "us-east-1"
+
+# Use Clerk as a third-party provider alongside Supabase Auth.
+[auth.third_party.clerk]
+enabled = false
+# Obtain from https://clerk.com/setup/supabase
+# domain = "example.clerk.accounts.dev"
+
+# OAuth server configuration
+[auth.oauth_server]
+# Enable OAuth server functionality
+enabled = false
+# Path for OAuth consent flow UI
+authorization_url_path = "/oauth/consent"
+# Allow dynamic client registration
+allow_dynamic_registration = false
+
+[edge_runtime]
+enabled = true
+# Supported request policies: `oneshot`, `per_worker`.
+# `per_worker` (default) — enables hot reload during local development.
+# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+policy = "per_worker"
+# Port to attach the Chrome inspector for debugging edge functions.
+inspector_port = 8083
+# The Deno major version to use.
+deno_version = 2
+
+# [edge_runtime.secrets]
+# secret_key = "env(SECRET_VALUE)"
+
+[analytics]
+enabled = true
+port = 54327
+# Configure one of the supported backends: `postgres`, `bigquery`.
+backend = "postgres"
+
+# Experimental features may be deprecated any time
+[experimental]
+# Configures Postgres storage engine to use OrioleDB (S3)
+orioledb_version = ""
+# Configures S3 bucket URL, eg. <bucket_name>.s3-<region>.amazonaws.com
+s3_host = "env(S3_HOST)"
+# Configures S3 bucket region, eg. us-east-1
+s3_region = "env(S3_REGION)"
+# Configures AWS_ACCESS_KEY_ID for S3 bucket
+s3_access_key = "env(S3_ACCESS_KEY)"
+# Configures AWS_SECRET_ACCESS_KEY for S3 bucket
+s3_secret_key = "env(S3_SECRET_KEY)"
+</file>
+
+<file path="supabase/seed.sql">
+-- Insert Tenant
+INSERT INTO tenants (id, name, created_at)
+VALUES ('11111111-1111-1111-1111-111111111111', 'Demo Corp', now())
+ON CONFLICT DO NOTHING;
+
+-- Insert Division
+INSERT INTO divisions (id, tenant_id, name)
+VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Sales Dept')
+ON CONFLICT DO NOTHING;
+
+-- Insert Service
+INSERT INTO services (id, name, category, description)
+VALUES ('33333333-3333-3333-3333-333333333333', 'HR Guardian', 'Risk Management', 'HR Risk Management Service')
+ON CONFLICT DO NOTHING;
+
+-- Insert Tenant Service
+INSERT INTO tenant_services (tenant_id, service_id, status)
+VALUES (
+    '11111111-1111-1111-1111-111111111111',
+    '33333333-3333-3333-3333-333333333333',
+    'active'
+)
+ON CONFLICT DO NOTHING;
+
+-- Note: Employees are not seeded here because they require a valid auth.users ID.
+-- Please see walkthrough.md for the SQL to link your user.
+</file>
+
+<file path="utils/supabase/client.ts">
+import { createBrowserClient } from "@supabase/ssr";
+
+export function createClient() {
+    return createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+}
+</file>
+
+<file path="utils/supabase/middleware.ts">
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function updateSession(request: NextRequest) {
+    let supabaseResponse = NextResponse.next({
+        request,
+    });
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        request.cookies.set(name, value)
+                    );
+                    supabaseResponse = NextResponse.next({
+                        request,
+                    });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options)
+                    );
+                },
+            },
+        }
+    );
+
+    // IMPORTANT: Avoid writing any logic between createServerClient and
+    // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+    // issues with users being randomly logged out.
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (
+        !user &&
+        !request.nextUrl.pathname.startsWith("/login") &&
+        !request.nextUrl.pathname.startsWith("/auth")
+    ) {
+        // no user, potentially respond by redirecting the user to the login page
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+}
+</file>
+
+<file path="utils/supabase/server.ts">
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  );
+}
+</file>
+
+<file path="utils/roles.ts">
+export const ROLES = {
+    MEMBER: "member",
+    HR: "hr",
+    HR_MANAGER: "hr_manager",
+    DOCTOR: "doctor",
+    COMPANY_NURSE: "company_nurse",
+    BOSS: "boss",
+    DEVELOPER: "developer",
+} as const;
+
+export type Role = (typeof ROLES)[keyof typeof ROLES];
+
+export const ROLE_LABELS: Record<Role, string> = {
+    [ROLES.MEMBER]: "従業員",
+    [ROLES.HR]: "人事",
+    [ROLES.HR_MANAGER]: "人事マネージャー",
+    [ROLES.DOCTOR]: "産業医",
+    [ROLES.COMPANY_NURSE]: "保健師",
+    [ROLES.BOSS]: "上司",
+    [ROLES.DEVELOPER]: "開発者",
+};
+
+export const getRoleLabel = (role: string | null | undefined): string => {
+    if (!role) return "";
+    // Check if role is a valid Role, otherwise return the original string or empty
+    const label = ROLE_LABELS[role as Role];
+    return label || role;
+};
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="components.json">
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "app/globals.css",
+    "baseColor": "zinc",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {}
+}
+</file>
+
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="middleware.ts">
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/utils/supabase/middleware";
+
+export async function middleware(request: NextRequest) {
+    return await updateSession(request);
+}
+
+export const config = {
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         * Feel free to modify this pattern to include more paths.
+         */
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    ],
+};
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="package.json">
+{
+  "name": "saas-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.89.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "stripe": "^20.1.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+</file>
+
+</files>

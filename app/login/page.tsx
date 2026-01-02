@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense } from "react";
 
 function LoginForm() {
@@ -20,45 +21,66 @@ function LoginForm() {
     const error = searchParams.get("error");
 
     return (
-        <Card className="w-[350px]">
-            <CardHeader>
-                <CardTitle>Authentication</CardTitle>
-                <CardDescription>
-                    Login or create a new account to get started.
+        <Card className="w-[350px] shadow-lg">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
+                <CardDescription className="text-center">
+                    IDとパスワードを入力してください
                 </CardDescription>
             </CardHeader>
             <form>
-                <CardContent>
-                    <div className="grid w-full items-center gap-4">
-                        <div className="flex flex-col space-y-1.5">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                required
-                            />
-                        </div>
-                        <div className="flex flex-col space-y-1.5">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                            />
-                        </div>
+                {/* pb-6 を追加して、下のボタンエリアとの間隔を広げました */}
+                <CardContent className="grid gap-4 pb-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">ログインID (メールアドレス)</Label>
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            required
+                        />
                     </div>
+                    <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">パスワード</Label>
+                        </div>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                        />
+                    </div>
+
+                    {/* 仕様書「パスワードを忘れたらここ」へのリンク */}
+                    <div className="text-right">
+                        <Link
+                            href="/forgot-password"
+                            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
+                        >
+                            パスワードを忘れたらここ
+                        </Link>
+                    </div>
+
+                    {/* エラーメッセージ表示エリア */}
                     {error && (
-                        <p className="text-sm text-red-500 mt-4">{error}</p>
+                        <p className="text-sm text-red-500 font-medium text-center bg-red-50 p-2 rounded border border-red-100">
+                            {decodeURIComponent(error)}
+                        </p>
                     )}
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                    <Button formAction={login} variant="outline">
-                        Login
+
+                {/* ボタンエリア: pt-2 を追加してさらに微調整 */}
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    {/* Primaryカラー（オレンジ）のボタン */}
+                    <Button formAction={login} className="w-full font-bold">
+                        ログイン
                     </Button>
-                    <Button formAction={signup}>Sign Up</Button>
+
+                    <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
+                        新規登録 (開発用)
+                    </Button>
                 </CardFooter>
             </form>
         </Card>
@@ -67,7 +89,7 @@ function LoginForm() {
 
 export default function LoginPage() {
     return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-screen items-center justify-center bg-gray-50">
             <Suspense>
                 <LoginForm />
             </Suspense>

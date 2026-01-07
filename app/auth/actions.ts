@@ -40,13 +40,8 @@ export async function login(prevState: { error: string } | null, formData: FormD
     revalidatePath("/", "layout");
 
     // 3. 仕様書に基づく画面遷移の分岐
-    // role='company_doctor' (産業医) の場合
-    if (employee.role === "company_doctor") {
-        redirect("/dashboard/doctor");
-    }
-
-    // それ以外 (employee, hr, hr_manager, bossなど) は 人事DX TOPへ
-    redirect("/dashboard");
+    // ポータル画面へ一律遷移 (権限による分岐はポータル側で制御、またはポータルからの動線で制御)
+    redirect("/portal");
 }
 
 export async function signup(formData: FormData) {
@@ -65,7 +60,7 @@ export async function signup(formData: FormData) {
     }
 
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    redirect("/portal");
 }
 
 export async function logout() {

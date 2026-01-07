@@ -8,8 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { AddEmployeeDialog } from "./add-employee-dialog";
 
 export default async function EmployeesPage() {
     const supabase = await createClient();
@@ -39,10 +38,7 @@ export default async function EmployeesPage() {
         <div className="container mx-auto py-10 px-4 md:px-0">
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold tracking-tight">社員名簿</h1>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    社員を追加
-                </Button>
+                <AddEmployeeDialog />
             </div>
 
             <div className="rounded-md border bg-white shadow-sm overflow-hidden">

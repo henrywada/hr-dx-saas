@@ -52,6 +52,11 @@ app/
         page.tsx
       actions.ts
       page.tsx
+    team-building/
+      offer-validator/
+        page.tsx
+      page.tsx
+    layout.tsx
     page.tsx
   design-system/
     page.tsx
@@ -103,6 +108,608 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
+<file path="app/dashboard/team-building/offer-validator/page.tsx">
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Loader2, ArrowLeft, Search, TrendingUp, CheckCircle2, AlertTriangle, AlertCircle } from "lucide-react";
+
+// 環境変数、または直接Webhook URLを指定（本番では環境変数推奨）
+// テスト用に直接URLを指定します
+const N8N_WEBHOOK_URL = "https://wada007.n8n-wsk.com/webhook-test/offer-validator";
+
+export default function OfferValidatorPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
+
+  const handleDiagnose = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    const formData = new FormData(e.currentTarget);
+    
+    // フォームデータの収集
+    const payload = {
+      role: formData.get("role"),
+      location: formData.get("location"),
+      level: formData.get("level"), // Selectの値はname属性で取得できない場合があるため注意が必要だが、ShadcnのSelectは隠しinputを持たないため、state管理か別途取得が必要。今回は簡易化のためFormDataから取得を試みるが、Shadcn Selectの場合はControlled Componentにするのが一般的。
+      // ※Shadcn UIのSelectは標準のform送信に含まれない場合があるため、Stateで管理します（後述の修正参照）
+      salary_min: Number(formData.get("salary_min")),
+      salary_max: Number(formData.get("salary_max")),
+      features: selectedTags, // Stateから取得
+    };
+
+    try {
+      // n8n WebhookへのPOST送信
+      // ※URLが空の場合はエラーにするか、デモ用にフォールバックする
+      const targetUrl = N8N_WEBHOOK_URL || "https://primary-production-4321.up.railway.app/webhook/offer-validator-mock"; // 仮のモックURL（自前で用意するか、エラーにする）
+
+      if (!N8N_WEBHOOK_URL) {
+         console.warn("Webhook URL not set. Using Mock Response for demo.");
+         // デモ用: 実際のFetchをスキップしてモックデータを返す（動作確認用）
+         await new Promise(resolve => setTimeout(resolve, 2500));
+         setResult({
+            score: "B",
+            market_avg_min: 450,
+            market_avg_max: 600,
+            advice: "提示額はエリア平均よりやや低めです。都内通勤圏の競合（平均550万〜）に人材が流れるリスクがあります。「リモート可」などの待遇を追加するか、上限を550万まで引き上げることを推奨します。",
+            competitor_trend: "近隣の競合他社は「週2リモート」を標準化しつつあります。"
+         });
+         setLoading(false);
+         return;
+      }
+
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`診断に失敗しました: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setResult(data);
+
+    } catch (err) {
+      console.error(err);
+      setError("診断中にエラーが発生しました。しばらく経ってから再度お試しください。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // SelectとTagsのためのState管理
+  const [level, setLevel] = useState("middle");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+       {/* ナビゲーション */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard/team-building" className="hover:text-primary transition-colors flex items-center gap-1">
+          <ArrowLeft className="h-3 w-3" />
+          Back to Team Building
+        </Link>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-blue-600" />
+            <h1 className="text-3xl font-bold tracking-tight">Offer Validator</h1>
+        </div>
+        <p className="text-muted-foreground">
+          市場相場と照合し、あなたのオファーが「勝てる条件」か診断します。
+        </p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
+        {/* 左側：入力フォーム */}
+        <Card className="shadow-md h-fit">
+          <CardHeader>
+            <CardTitle>求人条件を入力</CardTitle>
+            <CardDescription>
+              診断したい職種と条件を入力してください。
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleDiagnose}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">職種名 <span className="text-red-500">*</span></Label>
+                <Input id="role" name="role" placeholder="例: フロントエンドエンジニア" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">勤務地 (市区町村) <span className="text-red-500">*</span></Label>
+                <Input id="location" name="location" placeholder="例: 神奈川県座間市" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="level">想定レベル</Label>
+                <Select value={level} onValueChange={setLevel} name="level">
+                  <SelectTrigger>
+                    <SelectValue placeholder="レベルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="junior">Junior (実務未経験〜3年)</SelectItem>
+                    <SelectItem value="middle">Middle (3年〜リーダー候補)</SelectItem>
+                    <SelectItem value="senior">Senior (マネージャークラス)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="salary_min">年収下限 (万円)</Label>
+                  <Input id="salary_min" name="salary_min" type="number" placeholder="400" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="salary_max">年収上限 (万円)</Label>
+                  <Input id="salary_max" name="salary_max" type="number" placeholder="600" required />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>特徴・タグ (任意)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["リモート可", "フレックス", "副業可", "退職金あり", "未経験可"].map((tag) => (
+                    <div 
+                        key={tag} 
+                        onClick={() => toggleTag(tag)}
+                        className={`flex items-center space-x-2 rounded-md border p-2 text-sm cursor-pointer transition-colors ${
+                            selectedTags.includes(tag) ? "bg-blue-50 border-blue-200 text-blue-700" : "hover:bg-accent"
+                        }`}
+                    >
+                        <div className={`h-4 w-4 rounded border flex items-center justify-center ${
+                            selectedTags.includes(tag) ? "bg-primary border-primary" : "border-gray-300"
+                        }`}>
+                            {selectedTags.includes(tag) && <CheckCircle2 className="h-3 w-3 text-white" />}
+                        </div>
+                        <label className="cursor-pointer select-none">{tag}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    市場データを分析中...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    この条件で診断する
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* 右側：診断結果エリア */}
+        <div className="space-y-4">
+           {/* 初期表示：メリットの訴求 */}
+           {!result && !loading && !error && (
+             <Card className="bg-blue-50/50 border-blue-100 h-full">
+               <CardHeader>
+                 <CardTitle className="text-lg text-blue-800">Why Validate?</CardTitle>
+               </CardHeader>
+               <CardContent className="text-sm text-blue-700 space-y-4">
+                 <p>求職者の<span className="font-bold">8割</span>は、まず「給与」と「勤務地」でフィルタリングします。</p>
+                 <p>相場より低いオファーは、どれだけ熱いスカウト文面を送っても開封されません。</p>
+                 <div className="pt-2 border-t border-blue-200">
+                    <p className="font-semibold mb-1">AIがチェックするポイント:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                        <li>近隣エリアの平均年収</li>
+                        <li>競合他社の待遇トレンド</li>
+                        <li>職種ごとの需給バランス</li>
+                    </ul>
+                 </div>
+               </CardContent>
+             </Card>
+           )}
+
+           {/* エラー表示 */}
+           {error && (
+             <Card className="border-red-200 bg-red-50">
+                <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2 text-red-700">
+                        <AlertCircle className="h-5 w-5" />
+                        <CardTitle className="text-base">エラーが発生しました</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="text-sm text-red-600">
+                    {error}
+                </CardContent>
+             </Card>
+           )}
+
+           {/* ローディング表示 */}
+           {loading && (
+             <Card className="h-full">
+                <CardHeader>
+                    <div className="h-6 w-1/2 bg-gray-100 rounded animate-pulse"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <div className="h-4 w-full bg-gray-100 rounded animate-pulse"></div>
+                        <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse"></div>
+                    </div>
+                    <div className="h-32 w-full bg-gray-50 rounded animate-pulse border border-gray-100"></div>
+                </CardContent>
+             </Card>
+           )}
+
+           {/* 診断結果表示 */}
+           {result && (
+             <Card className={`border-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+                 result.score === 'A' ? 'border-green-500 bg-green-50/30' : 
+                 result.score === 'B' ? 'border-yellow-400 bg-yellow-50/30' : 
+                 'border-red-500 bg-red-50/30'
+             }`}>
+                <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                        <CardTitle>診断結果</CardTitle>
+                        {result.score === 'A' && <CheckCircle2 className="h-8 w-8 text-green-600" />}
+                        {result.score === 'B' && <AlertTriangle className="h-8 w-8 text-yellow-600" />}
+                        {result.score === 'C' && <AlertTriangle className="h-8 w-8 text-red-600" />}
+                    </div>
+                    <div className="mt-2">
+                        <span className="text-sm text-muted-foreground font-medium">判定スコア:</span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                            <span className={`text-5xl font-extrabold ${
+                                result.score === 'A' ? 'text-green-600' : 
+                                result.score === 'B' ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                                {result.score}
+                            </span>
+                            <span className="text-lg font-medium text-muted-foreground">
+                                {result.score === 'A' ? 'Competitive' : result.score === 'B' ? 'Warning' : 'Critical'}
+                            </span>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-2">
+                    <div className="p-3 bg-white/50 rounded-lg border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">エリア平均相場</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold text-foreground">
+                                {result.market_avg_min}-{result.market_avg_max}
+                            </span>
+                            <span className="text-sm text-muted-foreground">万円</span>
+                        </div>
+                    </div>
+                    
+                    <div className="text-sm leading-relaxed text-foreground/90">
+                        <p className="font-bold mb-1 flex items-center gap-1">
+                            💡 AI Advice
+                        </p>
+                        {result.advice}
+                    </div>
+
+                     <div className="text-xs text-muted-foreground pt-2 border-t">
+                        <span className="font-semibold">Trend:</span> {result.competitor_trend}
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button variant="outline" className="w-full bg-white hover:bg-gray-50" onClick={() => setResult(null)}>
+                        条件を修正して再診断
+                    </Button>
+                </CardFooter>
+             </Card>
+           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/dashboard/team-building/page.tsx">
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Circle, ArrowRight, TrendingUp, Mail, Users } from "lucide-react";
+
+export default function TeamBuildingPage() {
+  return (
+    <div className="mx-auto max-w-5xl space-y-8">
+      {/* Navigation Header */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-primary transition-colors">
+          Home
+        </Link>
+        <span>/</span>
+        <span className="font-medium text-foreground">Team Building</span>
+      </div>
+
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Team Building</h1>
+        <p className="text-muted-foreground">
+          診断から採用、定着まで。組織を強くするための3つのステップ。
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+        {/* Card 1: Offer Validator (Diagnosis) */}
+        <Link href="/dashboard/team-building/offer-validator" className="group block h-full">
+          <Card className="h-full border-2 transition-all duration-200 hover:border-primary/50 hover:shadow-md cursor-pointer relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+            <CardHeader>
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  Step 1: 診断
+                </Badge>
+                {/* Status Icon Example */}
+                <Circle className="h-5 w-5 text-gray-300" />
+              </div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Offer Validator
+              </CardTitle>
+              <CardDescription className="text-base font-medium text-foreground mt-2">
+                「その年収提示、負け戦になっていませんか？」
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                職種と地域を入力するだけで、AIがリアルタイムの求人相場を分析。
+                あなたの提示条件がライバル企業と比較して「勝てるオファー」かどうかを数秒で判定します。
+              </p>
+              <div className="mt-6 flex items-center text-sm font-medium text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
+                診断を開始する <ArrowRight className="ml-1 h-4 w-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 2: First Recruiter (Attack) */}
+        <Link href="/dashboard/team-building/first-recruiter" className="group block h-full">
+          <Card className="h-full border-2 transition-all duration-200 hover:border-primary/50 hover:shadow-md cursor-pointer relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
+            <CardHeader>
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                  Step 2: 獲得
+                </Badge>
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              </div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Mail className="h-5 w-5 text-orange-600" />
+                First Recruiter
+              </CardTitle>
+              <CardDescription className="text-base font-medium text-foreground mt-2">
+                「欲しい人材に、"刺さる"手紙を。」
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                候補者の経歴書をコピペするだけ。AIがその人の強みと自社の魅力を結びつけ、
+                思わず返信したくなる「1to1のスカウト文面」をあなたに代わって執筆します。
+              </p>
+              <div className="mt-6 flex items-center text-sm font-medium text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
+                スカウトを作成する <ArrowRight className="ml-1 h-4 w-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 3: Staff Booster (Reinforce) */}
+        <Link href="/dashboard/team-building/staff-booster" className="group block h-full">
+          <Card className="h-full border-2 transition-all duration-200 hover:border-primary/50 hover:shadow-md cursor-pointer relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
+            <CardHeader>
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Step 3: 増強
+                </Badge>
+                <Circle className="h-5 w-5 text-gray-300" />
+              </div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-600" />
+                Staff Booster
+              </CardTitle>
+              <CardDescription className="text-base font-medium text-foreground mt-2">
+                「社員の仕事を減らし、仲間を増やそう。」
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                忙しい社員の「日程調整」や「メール作成」をAIが代行し、業務負荷を軽減。
+                生まれた余裕とAIのサポートで、心理的負担ゼロの「自然なリファラル紹介」を実現します。
+              </p>
+              <div className="mt-6 flex items-center text-sm font-medium text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
+                業務代行・紹介依頼へ <ArrowRight className="ml-1 h-4 w-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/dashboard/layout.tsx">
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Bell,
+  Home,
+  LogOut,
+  Settings,
+  Users,
+  Workflow,
+  Briefcase, // Team Building用に追加
+} from "lucide-react";
+import Link from "next/link";
+import { logout } from "@/app/auth/actions";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect("/login");
+  }
+
+  // 社員データとテナントデータを取得
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("*, tenants(*)")
+    .eq("id", user.id)
+    .single();
+
+  const tenantName = employee?.tenants?.name || "Unknown Organization";
+  const employeeName = employee?.name || user.email || "Guest";
+
+  return (
+    <div className="flex h-screen w-full bg-gray-50">
+      {/* サイドバー (PC表示時のみ) */}
+      <aside className="hidden w-64 flex-col border-r bg-white md:flex">
+        <div className="flex h-16 items-center border-b px-6">
+          <Link href="/dashboard" className="text-xl font-bold tracking-tight text-primary">
+            HR-DX SaaS
+          </Link>
+        </div>
+        <nav className="flex-1 space-y-1 p-4">
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
+            <Link href="/dashboard">
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+          </Button>
+          
+          {/* 今回追加する Team Building メニュー */}
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
+            <Link href="/dashboard/team-building">
+              <Briefcase className="h-4 w-4" />
+              Team Building
+            </Link>
+          </Button>
+
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
+            <Link href="/dashboard/employees">
+              <Users className="h-4 w-4" />
+              Employees
+            </Link>
+          </Button>
+
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary">
+            <Workflow className="h-4 w-4" />
+            Workflows
+          </Button>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary">
+            <Settings className="h-4 w-4" />
+            Settings
+          </Button>
+        </nav>
+      </aside>
+
+      {/* メインコンテンツエリア */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* ヘッダー */}
+        <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+          <div className="flex items-center gap-4 md:hidden">
+             {/* モバイル用メニューなどは一旦省略 */}
+             <span className="font-bold text-primary">HR-DX SaaS</span>
+          </div>
+          <div className="flex flex-1 items-center justify-end gap-4">
+            <div className="mr-2 hidden flex-col items-end md:flex">
+              <span className="text-sm font-medium text-foreground">{employeeName}</span>
+              <span className="text-xs text-muted-foreground">{tenantName}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground">
+              <Bell className="h-5 w-5" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src="/placeholder-avatar.jpg" alt="@user" />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {employeeName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{employeeName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <form action={logout} className="w-full cursor-pointer">
+                        <button type="submit" className="flex w-full items-center">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </button>
+                    </form>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* ページごとのコンテンツがここに入ります */}
+        <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="app/dashboard/doctor/page.tsx">
 export default function DoctorDashboard() {
     return (
@@ -111,85 +718,6 @@ export default function DoctorDashboard() {
             <p>このページは産業医専用のトップページです。（現在開発中）</p>
         </div>
     );
-}
-</file>
-
-<file path="app/auth/actions.ts">
-"use server";
-
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
-
-export async function login(formData: FormData) {
-    const supabase = await createClient();
-
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    // 1. Supabase Authでログイン
-    const { error, data } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    });
-
-    if (error) {
-        // 認証エラー（パスワード間違いなど）
-        return redirect("/login?error=" + encodeURIComponent("メールアドレスまたはパスワードが間違っています。"));
-    }
-
-    if (!data.user) {
-        return redirect("/login?error=" + encodeURIComponent("認証に失敗しました。"));
-    }
-
-    // 2. ログインユーザーの Role (役職) を取得
-    const { data: employee, error: empError } = await supabase
-        .from("employees")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-
-    if (empError || !employee) {
-        // データ不整合などのエラー時
-        return redirect("/login?error=" + encodeURIComponent("ユーザー情報の取得に失敗しました。管理者にお問い合わせください。"));
-    }
-
-    revalidatePath("/", "layout");
-
-    // 3. 仕様書に基づく画面遷移の分岐
-    // role='doctor' (産業医) の場合 - DB定義およびutils/roles.tsの実装に準拠
-    if (employee.role === "doctor") {
-        redirect("/dashboard/doctor"); // 産業医専用TOP
-    }
-
-    // それ以外 (employee, hr, hr_manager, bossなど) は 人事DX TOPへ
-    redirect("/dashboard");
-}
-
-export async function signup(formData: FormData) {
-    const supabase = await createClient();
-
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    const { error } = await supabase.auth.signUp({
-        email,
-        password,
-    });
-
-    if (error) {
-        return redirect("/login?error=" + encodeURIComponent("登録処理中にエラーが発生しました: " + error.message));
-    }
-
-    revalidatePath("/", "layout");
-    redirect("/dashboard");
-}
-
-export async function logout() {
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    revalidatePath("/", "layout");
-    redirect("/login");
 }
 </file>
 
@@ -531,293 +1059,174 @@ export default async function EmployeesPage() {
 <file path="app/dashboard/page.tsx">
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { logout } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Bell,
-    Home,
-    Layout,
-    LogOut,
-    Plus,
-    Settings,
-    Users,
-    Workflow,
-    Search,
+  Layout,
+  Plus,
+  Users,
+  Workflow,
 } from "lucide-react";
 
 export default async function DashboardPage() {
-    const supabase = await createClient();
+  const supabase = await createClient();
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-        return redirect("/login");
-    }
+  if (!user) {
+    return redirect("/login");
+  }
 
-    // Fetch Employee and Tenant Data
-    const { data: employee } = await supabase
-        .from("employees")
-        .select("*, tenants(*)")
-        .eq("id", user.id)
-        .single();
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("*, tenants(*)")
+    .eq("id", user.id)
+    .single();
 
-    const tenantName = employee?.tenants?.name || "Unknown Organization";
-    const employeeName = employee?.name || user.email || "Guest";
+  const tenantName = employee?.tenants?.name || "Unknown Organization";
+  const employeeName = employee?.name || user.email || "Guest";
 
-    // Dummy Data for KPIs
-    const kpiData = [
-        {
-            title: "Created Workflows",
-            value: "12",
-            icon: Layout,
-            color: "text-blue-600",
-        },
-        {
-            title: "Monthly Executions",
-            value: "145",
-            icon: Workflow,
-            color: "text-green-600",
-        },
-        {
-            title: "Team Members",
-            value: "3",
-            icon: Users,
-            color: "text-purple-600",
-        },
-    ];
+  // KPIデータのダミー
+  const kpiData = [
+    {
+      title: "Created Workflows",
+      value: "12",
+      icon: Layout,
+      color: "text-blue-600",
+    },
+    {
+      title: "Monthly Executions",
+      value: "145",
+      icon: Workflow,
+      color: "text-green-600",
+    },
+    {
+      title: "Team Members",
+      value: "3",
+      icon: Users,
+      color: "text-purple-600",
+    },
+  ];
 
-    // Dummy Data for Recent Projects
-    const recentWorkflows = [
-        {
-            name: "Onboarding Automation",
-            status: "Active",
-            lastUpdated: "2024-04-01",
-        },
-        {
-            name: "Email Campaign Sequence",
-            status: "Draft",
-            lastUpdated: "2024-03-28",
-        },
-        {
-            name: "Data Sync: CRM to sheet",
-            status: "Active",
-            lastUpdated: "2024-03-25",
-        },
-        {
-            name: "Monthly Report Generation",
-            status: "Active",
-            lastUpdated: "2024-03-20",
-        },
-        {
-            name: "Lead Scoring Logic",
-            status: "Draft",
-            lastUpdated: "2024-03-15",
-        },
-    ];
+  // 最近のプロジェクトデータのダミー
+  const recentWorkflows = [
+    {
+      name: "Onboarding Automation",
+      status: "Active",
+      lastUpdated: "2024-04-01",
+    },
+    {
+      name: "Email Campaign Sequence",
+      status: "Draft",
+      lastUpdated: "2024-03-28",
+    },
+    {
+      name: "Data Sync: CRM to sheet",
+      status: "Active",
+      lastUpdated: "2024-03-25",
+    },
+  ];
 
-    return (
-        <div className="flex h-screen w-full bg-gray-50">
-            {/* Sidebar */}
-            <aside className="hidden w-64 flex-col border-r bg-white md:flex">
-                <div className="flex h-16 items-center border-b px-6">
-                    <span className="text-xl font-bold tracking-tight text-primary">
-                        SaaS App
-                    </span>
-                </div>
-                <nav className="flex-1 space-y-1 p-4">
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-primary"
-                    >
-                        <Home className="h-4 w-4" />
-                        Home
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
-                    >
-                        <Workflow className="h-4 w-4" />
-                        Workflows
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
-                    >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                    </Button>
-                </nav>
-            </aside>
-
-            {/* Main Content Area */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-                {/* Header */}
-                <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
-                    <div className="flex items-center gap-4 md:hidden">
-                        {/* Mobile Menu Trigger could go here */}
-                        <span className="font-bold text-primary">SaaS App</span>
-                    </div>
-                    <div className="flex flex-1 items-center justify-end gap-4">
-                        <div className="mr-2 hidden flex-col items-end md:flex">
-                            <span className="text-sm font-medium text-foreground">{employeeName}</span>
-                            <span className="text-xs text-muted-foreground">{tenantName}</span>
-                        </div>
-                        <Button variant="ghost" size="icon" className="relative text-muted-foreground">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
-                        </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                    <Avatar className="h-9 w-9">
-                                        <AvatarImage src="/placeholder-avatar.jpg" alt="@user" />
-                                        <AvatarFallback className="bg-primary/10 text-primary">
-                                            {employeeName.slice(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{employeeName}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            {user.email}
-                                        </p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    <span>Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <form action={logout} className="w-full cursor-pointer">
-                                        <button type="submit" className="flex w-full items-center">
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            <span>Log out</span>
-                                        </button>
-                                    </form>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </header>
-
-                {/* Dashboard Content */}
-                <main className="flex-1 overflow-y-auto p-8">
-                    <div className="mx-auto max-w-6xl space-y-8">
-                        {/* Welcome Section */}
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                                    Hello, {employeeName}
-                                </h1>
-                                <p className="text-muted-foreground">
-                                    Here's what's happening with your projects today at {tenantName}.
-                                </p>
-                            </div>
-                            <Button size="lg" className="gap-2 shadow-md">
-                                <Plus className="h-5 w-5" />
-                                New Workflow
-                            </Button>
-                        </div>
-
-                        {/* KPI Cards */}
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {kpiData.map((kpi, index) => (
-                                <Card key={index} className="shadow-sm transition-shadow hover:shadow-md">
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                                            {kpi.title}
-                                        </CardTitle>
-                                        <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="text-2xl font-bold text-foreground">
-                                            {kpi.value}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-
-                        {/* Recent Workflows */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                                    Recent Workflows
-                                </h2>
-                                <Button variant="outline" size="sm">
-                                    View All
-                                </Button>
-                            </div>
-                            <Card className="shadow-sm">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Project Name</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Last Updated</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {recentWorkflows.map((workflow, index) => (
-                                            <TableRow key={index}>
-                                                <TableCell className="font-medium text-foreground">
-                                                    {workflow.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${workflow.status === "Active"
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-gray-100 text-gray-800"
-                                                            }`}
-                                                    >
-                                                        {workflow.status}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {workflow.lastUpdated}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="sm">
-                                                        ...
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </Card>
-                        </div>
-                    </div>
-                </main>
-            </div>
+  return (
+    <div className="mx-auto max-w-6xl space-y-8">
+      {/* Welcome Section */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Hello, {employeeName}
+          </h1>
+          <p className="text-muted-foreground">
+            Here's what's happening with your projects today at {tenantName}.
+          </p>
         </div>
-    );
+        <Button size="lg" className="gap-2 shadow-md">
+          <Plus className="h-5 w-5" />
+          New Workflow
+        </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {kpiData.map((kpi, index) => (
+          <Card key={index} className="shadow-sm transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {kpi.title}
+              </CardTitle>
+              <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {kpi.value}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent Workflows */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Recent Workflows
+          </h2>
+          <Button variant="outline" size="sm">
+            View All
+          </Button>
+        </div>
+        <Card className="shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentWorkflows.map((workflow, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium text-foreground">
+                    {workflow.name}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        workflow.status === "Active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {workflow.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {workflow.lastUpdated}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">
+                      ...
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+    </div>
+  );
 }
 </file>
 
@@ -898,107 +1307,6 @@ export default function DesignSystemPage() {
             </section>
         </div>
     );
-}
-</file>
-
-<file path="app/login/page.tsx">
-"use client";
-
-import { login, signup } from "@/app/auth/actions";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Suspense } from "react";
-
-function LoginForm() {
-    const searchParams = useSearchParams();
-    const error = searchParams.get("error");
-
-    return (
-        <Card className="w-[350px] shadow-lg">
-            <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
-                <CardDescription className="text-center">
-                    IDとパスワードを入力してください
-                </CardDescription>
-            </CardHeader>
-            <form>
-                {/* pb-6 を追加して、下のボタンエリアとの間隔を広げました */}
-                <CardContent className="grid gap-4 pb-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">ログインID (メールアドレス)</Label>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="name@example.com"
-                            required
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="password">パスワード</Label>
-                        </div>
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                        />
-                    </div>
-
-                    {/* 仕様書「パスワードを忘れたらここ」へのリンク */}
-                    <div className="text-right">
-                        <Link
-                            href="/forgot-password"
-                            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
-                        >
-                            パスワードを忘れたらここ
-                        </Link>
-                    </div>
-
-                    {/* エラーメッセージ表示エリア */}
-                    {error && (
-                        <p className="text-sm text-red-500 font-medium text-center bg-red-50 p-2 rounded border border-red-100">
-                            {decodeURIComponent(error)}
-                        </p>
-                    )}
-                </CardContent>
-
-                {/* ボタンエリア: pt-2 を追加してさらに微調整 */}
-                <CardFooter className="flex flex-col gap-3 pt-2">
-                    {/* Primaryカラー（オレンジ）のボタン */}
-                    <Button formAction={login} className="w-full font-bold">
-                        ログイン
-                    </Button>
-
-                    <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
-                        新規登録 (開発用)
-                    </Button>
-                </CardFooter>
-            </form>
-        </Card>
-    );
-}
-
-export default function LoginPage() {
-    return (
-        <div className="flex h-screen items-center justify-center bg-gray-50">
-            <Suspense>
-                <LoginForm />
-            </Suspense>
-        </div>
-    )
 }
 </file>
 
@@ -1201,74 +1509,6 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  );
-}
-</file>
-
-<file path="app/page.tsx">
-import Image from "next/image";
-
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
   );
 }
 </file>
@@ -3442,6 +3682,284 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
     "**/*.mts"
   ],
   "exclude": ["node_modules"]
+}
+</file>
+
+<file path="app/auth/actions.ts">
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
+
+export async function login(formData: FormData) {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    // 1. Supabase Authでログイン
+    const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
+
+    if (error) {
+        // 認証エラー
+        return redirect("/login?error=" + encodeURIComponent("メールアドレスまたはパスワードが間違っています。"));
+    }
+
+    if (!data.user) {
+        return redirect("/login?error=" + encodeURIComponent("認証に失敗しました。"));
+    }
+
+    // 2. ログインユーザーの Role (役職) を取得
+    const { data: employee, error: empError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+    if (empError || !employee) {
+        // データ不整合などのエラー時
+        return redirect("/login?error=" + encodeURIComponent("ユーザー情報の取得に失敗しました。管理者にお問い合わせください。"));
+    }
+
+    revalidatePath("/", "layout");
+
+    // 3. 仕様書に基づく画面遷移の分岐
+    // role='company_doctor' (産業医) の場合
+    if (employee.role === "company_doctor") {
+        redirect("/dashboard/doctor");
+    }
+
+    // それ以外 (employee, hr, hr_manager, bossなど) は 人事DX TOPへ
+    redirect("/dashboard");
+}
+
+export async function signup(formData: FormData) {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { error } = await supabase.auth.signUp({
+        email,
+        password,
+    });
+
+    if (error) {
+        return redirect("/login?error=" + encodeURIComponent("登録処理中にエラーが発生しました: " + error.message));
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
+}
+
+export async function logout() {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    revalidatePath("/", "layout");
+    redirect("/login");
+}
+</file>
+
+<file path="app/login/page.tsx">
+"use client";
+
+import { login, signup } from "@/app/auth/actions";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
+
+function LoginForm() {
+    const searchParams = useSearchParams();
+    const error = searchParams.get("error");
+
+    return (
+        <Card className="w-[350px] shadow-lg">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
+                <CardDescription className="text-center">
+                    IDとパスワードを入力してください
+                </CardDescription>
+            </CardHeader>
+            <form>
+                {/* pb-6 を追加して、下のボタンエリアとの間隔を広げました */}
+                <CardContent className="grid gap-4 pb-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">ログインID (メールアドレス)</Label>
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            required
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">パスワード</Label>
+                        </div>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                        />
+                    </div>
+
+                    {/* 仕様書「パスワードを忘れたらここ」へのリンク */}
+                    <div className="text-right">
+                        <Link
+                            href="/forgot-password"
+                            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
+                        >
+                            パスワードを忘れたらここ
+                        </Link>
+                    </div>
+
+                    {/* エラーメッセージ表示エリア */}
+                    {error && (
+                        <p className="text-sm text-red-500 font-medium text-center bg-red-50 p-2 rounded border border-red-100">
+                            {decodeURIComponent(error)}
+                        </p>
+                    )}
+                </CardContent>
+
+                {/* ボタンエリア: pt-2 を追加してさらに微調整 */}
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    {/* Primaryカラー（オレンジ）のボタン */}
+                    <Button formAction={login} className="w-full font-bold">
+                        ログイン
+                    </Button>
+
+                    <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
+                        新規登録 (開発用)
+                    </Button>
+                </CardFooter>
+            </form>
+        </Card>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+            <Suspense>
+                <LoginForm />
+            </Suspense>
+        </div>
+    )
+}
+</file>
+
+<file path="app/page.tsx">
+"use client";
+
+import { login, signup } from "@/app/auth/actions";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  return (
+    <Card className="w-[350px] shadow-lg">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
+        <CardDescription className="text-center">
+          IDとパスワードを入力してください
+        </CardDescription>
+      </CardHeader>
+      <form>
+        <CardContent className="grid gap-4 pb-8">
+          <div className="grid gap-2">
+            <Label htmlFor="email">ログインID (メールアドレス)</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">パスワード</Label>
+            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+            />
+          </div>
+
+          <div className="text-right">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
+            >
+              パスワードを忘れたらここ
+            </Link>
+          </div>
+
+          {error && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600 font-medium text-center">
+                {decodeURIComponent(error)}
+              </p>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex flex-col gap-3">
+          <Button formAction={login} className="w-full font-bold text-base h-11">
+            ログイン
+          </Button>
+
+          <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
+            新規登録 (開発用)
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-gray-50">
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </div>
+  )
 }
 </file>
 

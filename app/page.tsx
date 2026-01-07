@@ -12,13 +12,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
+import { useActionState, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 function LoginForm() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
+  const [state, formAction, isPending] = useActionState(login, null);
 
   return (
     <Card className="w-[350px] shadow-lg">
@@ -28,7 +27,7 @@ function LoginForm() {
           IDとパスワードを入力してください
         </CardDescription>
       </CardHeader>
-      <form>
+      <form action={formAction}>
         <CardContent className="grid gap-4 pb-8">
           <div className="grid gap-2">
             <Label htmlFor="email">ログインID (メールアドレス)</Label>
@@ -61,21 +60,28 @@ function LoginForm() {
             </Link>
           </div>
 
-          {error && (
+          {state?.error && (
             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600 font-medium text-center">
-                {decodeURIComponent(error)}
+                {state.error}
               </p>
             </div>
           )}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3">
-          <Button formAction={login} className="w-full font-bold text-base h-11">
-            ログイン
+          <Button className="w-full font-bold text-base h-11" disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ログイン中...
+              </>
+            ) : (
+              "ログイン"
+            )}
           </Button>
 
-          <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground">
+          <Button formAction={signup} variant="ghost" className="w-full text-xs text-muted-foreground" disabled={isPending}>
             新規登録 (開発用)
           </Button>
         </CardFooter>

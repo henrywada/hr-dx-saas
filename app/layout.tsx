@@ -18,7 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // 変更後 (これを追加)
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased`}>
         {children}
       </body>

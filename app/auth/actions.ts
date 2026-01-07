@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
-export async function login(formData: FormData) {
+export async function login(prevState: { error: string } | null, formData: FormData) {
     const supabase = await createClient();
 
     const email = formData.get("email") as string;
@@ -18,11 +18,11 @@ export async function login(formData: FormData) {
 
     if (error) {
         // 認証エラー
-        return redirect("/login?error=" + encodeURIComponent("メールアドレスまたはパスワードが間違っています。"));
+        return { error: "メールアドレスまたはパスワードが間違っています。" };
     }
 
     if (!data.user) {
-        return redirect("/login?error=" + encodeURIComponent("認証に失敗しました。"));
+        return { error: "認証に失敗しました。" };
     }
 
     // 2. ログインユーザーの Role (役職) を取得
@@ -34,7 +34,7 @@ export async function login(formData: FormData) {
 
     if (empError || !employee) {
         // データ不整合などのエラー時
-        return redirect("/login?error=" + encodeURIComponent("ユーザー情報の取得に失敗しました。管理者にお問い合わせください。"));
+        return { error: "ユーザー情報の取得に失敗しました。管理者にお問い合わせください。" };
     }
 
     revalidatePath("/", "layout");

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Briefcase, Zap, Settings, LogOut } from "lucide-react";
+import { Users, Heart, Briefcase, Zap, Settings, LogOut, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/auth/actions";
@@ -45,6 +45,7 @@ export default async function PortalPage() {
             icon: Heart,
             color: "text-rose-600",
             borderColor: "border-l-rose-500",
+            hoverBorderColor: "hover:border-rose-500",
             badgeVariant: "bg-rose-50 text-rose-600 hover:bg-rose-50 border-none",
         },
         {
@@ -54,6 +55,7 @@ export default async function PortalPage() {
             icon: Briefcase,
             color: "text-blue-600",
             borderColor: "border-l-blue-500",
+            hoverBorderColor: "hover:border-blue-500",
             badgeVariant: "bg-blue-50 text-blue-600 hover:bg-blue-50 border-none",
         },
         {
@@ -63,6 +65,7 @@ export default async function PortalPage() {
             icon: Users,
             color: "text-green-600",
             borderColor: "border-l-green-500",
+            hoverBorderColor: "hover:border-green-500",
             badgeVariant: "bg-green-50 text-green-600 hover:bg-green-50 border-none",
         },
         {
@@ -72,6 +75,7 @@ export default async function PortalPage() {
             icon: Zap,
             color: "text-orange-600",
             borderColor: "border-l-orange-500",
+            hoverBorderColor: "hover:border-orange-500",
             badgeVariant: "bg-orange-50 text-orange-600 hover:bg-orange-50 border-none",
         },
     ];
@@ -125,9 +129,13 @@ export default async function PortalPage() {
                             key={service.title}
                             className={cn(
                                 "group relative shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-white overflow-hidden",
-                                // Border fix: Use border-solid explicitly and remove top/right/bottom width, keep left width
+                                // Border styles: default left border, hover full border
                                 "border-0 border-l-4 border-solid",
-                                service.borderColor
+                                // On hover, keep left border width (and color if not overridden), and add border to other sides
+                                // Note: hover:border adds border-width: 1px to all sides.
+                                "hover:border",
+                                service.borderColor,
+                                service.hoverBorderColor
                             )}
                         >
                             <CardHeader className="pb-3 md:pb-4 space-y-4">
@@ -154,6 +162,14 @@ export default async function PortalPage() {
                                 <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                                     {service.description}
                                 </CardDescription>
+
+                                {/* Reveal Text */}
+                                <div className={cn(
+                                    "mt-4 flex items-center font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                                    service.color
+                                )}>
+                                    サービスへ移動 <ArrowRight className="ml-2 h-4 w-4" />
+                                </div>
                             </CardContent>
                         </Card>
                     ))}

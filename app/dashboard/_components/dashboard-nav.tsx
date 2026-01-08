@@ -6,6 +6,7 @@ import {
     Workflow,
     Settings,
     Briefcase,
+    ArrowLeft,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -48,6 +49,15 @@ export function DashboardNav({ className, onLinkClick }: DashboardNavProps) {
                 <Link href="/dashboard/settings">
                     <Settings className="h-4 w-4" />
                     Settings
+                </Link>
+            </Button>
+
+            <div className="my-2 border-t" />
+
+            <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild onClick={onLinkClick}>
+                <Link href="/portal">
+                    <ArrowLeft className="h-4 w-4" />
+                    ポータルへ戻る
                 </Link>
             </Button>
         </nav>

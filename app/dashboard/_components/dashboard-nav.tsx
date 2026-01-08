@@ -27,7 +27,7 @@ export function DashboardNav({ className, onLinkClick }: DashboardNavProps) {
             <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild onClick={onLinkClick}>
                 <Link href="/dashboard/team-building">
                     <Briefcase className="h-4 w-4" />
-                    Team Building
+                    チームビルディング
                 </Link>
             </Button>
 

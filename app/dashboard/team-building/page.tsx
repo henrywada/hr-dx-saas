@@ -1,9 +1,28 @@
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, ArrowRight, TrendingUp, Mail, Users } from "lucide-react";
+import { CheckCircle2, Circle, ArrowRight, TrendingUp, Mail, Users, Building2, User } from "lucide-react";
 
-export default function TeamBuildingPage() {
+export default async function TeamBuildingPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // 社員データとテナントデータを取得
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("*, tenants(name)")
+    .eq("id", user.id)
+    .single();
+
+  const tenantName = employee?.tenants?.name || "Unknown Company";
+  const userName = employee?.name || user.email || "Unknown User";
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Navigation Header */}
@@ -15,14 +34,18 @@ export default function TeamBuildingPage() {
         <span className="font-medium text-foreground">Team Building</span>
       </div>
 
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Team Building</h1>
-        <p className="text-muted-foreground">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">チームビルディング 【Team Building】</h1>
+        <div className="flex items-center gap-4 text-muted-foreground mt-2 text-sm">
+          <div className="flex items-center gap-1"><Building2 className="h-4 w-4" /> {tenantName}</div>
+          <div className="flex items-center gap-1"><User className="h-4 w-4" /> {userName}</div>
+        </div>
+        <p className="text-muted-foreground mt-4">
           診断から採用、定着まで。組織を強くするための3つのステップ。
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1">
         {/* Card 1: Offer Validator (Diagnosis) */}
         <Link href="/dashboard/team-building/offer-validator" className="group block h-full">
           <Card className="h-full border-2 transition-all duration-200 hover:border-primary/50 hover:shadow-md cursor-pointer relative overflow-hidden">

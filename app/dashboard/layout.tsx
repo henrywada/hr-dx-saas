@@ -12,15 +12,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Bell,
-  Home,
   LogOut,
-  Settings,
-  Users,
-  Workflow,
-  Briefcase, // Team Building用に追加
+  Menu,
 } from "lucide-react";
+import { Russo_One } from "next/font/google";
 import Link from "next/link";
 import { logout } from "@/app/auth/actions";
+import { DashboardNav } from "./_components/dashboard-nav";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });
 
 export default async function DashboardLayout({
   children,
@@ -49,42 +50,11 @@ export default async function DashboardLayout({
       {/* サイドバー (PC表示時のみ) */}
       <aside className="hidden w-64 flex-col border-r bg-white md:flex">
         <div className="flex h-16 items-center border-b px-6">
-          <Link href="/dashboard" className="text-xl font-bold tracking-tight text-primary">
-            HR-DX SaaS
+          <Link href="/dashboard" className={`${logoFont.className} text-2xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>
+            HR-dx
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 p-4">
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
-            <Link href="/dashboard">
-              <Home className="h-4 w-4" />
-              Home
-            </Link>
-          </Button>
-          
-          {/* 今回追加する Team Building メニュー */}
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
-            <Link href="/dashboard/team-building">
-              <Briefcase className="h-4 w-4" />
-              Team Building
-            </Link>
-          </Button>
-
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary" asChild>
-            <Link href="/dashboard/employees">
-              <Users className="h-4 w-4" />
-              Employees
-            </Link>
-          </Button>
-
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary">
-            <Workflow className="h-4 w-4" />
-            Workflows
-          </Button>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-primary">
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        </nav>
+        <DashboardNav className="flex-1" />
       </aside>
 
       {/* メインコンテンツエリア */}
@@ -92,8 +62,32 @@ export default async function DashboardLayout({
         {/* ヘッダー */}
         <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4 md:hidden">
-             {/* モバイル用メニューなどは一旦省略 */}
-             <span className="font-bold text-primary">HR-DX SaaS</span>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Open sidebar</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64">
+                <div className="flex h-16 items-center border-b px-6">
+                  <Link href="/dashboard" className={`${logoFont.className} text-2xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>
+                    HR-dx
+                  </Link>
+                </div>
+                {/* Note: In client component for SheetContent we might need to handle closing on click.
+                        Common pattern: passing a close function or just relying on link navigation.
+                        Since DashboardNav contains Links, navigation will happen but Sheet might stay open?
+                        Actually in Next.js App Router, full page reload doesn't happen so Sheet stays open
+                        unless we programmatically close it.
+                        However, this is a Server Component layout. 
+                        To make the Sheet close on navigation, we ideally need a Client Component wrapper.
+                        For now, standard usage is acceptable. The user closes it by tapping outside or on X.
+                    */}
+                <DashboardNav />
+              </SheetContent>
+            </Sheet>
+            <span className={`${logoFont.className} text-2xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>HR-dx</span>
           </div>
           <div className="flex flex-1 items-center justify-end gap-4">
             <div className="mr-2 hidden flex-col items-end md:flex">
@@ -123,12 +117,12 @@ export default async function DashboardLayout({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <form action={logout} className="w-full cursor-pointer">
-                        <button type="submit" className="flex w-full items-center">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Log out</span>
-                        </button>
-                    </form>
+                  <form action={logout} className="w-full cursor-pointer">
+                    <button type="submit" className="flex w-full items-center">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </button>
+                  </form>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -136,7 +130,7 @@ export default async function DashboardLayout({
         </header>
 
         {/* ページごとのコンテンツがここに入ります */}
-        <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-2 md:p-6 bg-gray-50">
           {children}
         </main>
       </div>

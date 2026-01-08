@@ -9,10 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Briefcase, Zap, Settings, LogOut } from "lucide-react";
+import { Users, Heart, Briefcase, Zap, Settings, LogOut, ArrowRight, Building2, User } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/auth/actions";
+
+import { Russo_One } from "next/font/google";
+
+const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });
 
 export default async function PortalPage() {
     const supabase = await createClient();
@@ -27,51 +31,57 @@ export default async function PortalPage() {
         redirect("/login");
     }
 
-    // 2. 権限チェック (employeesテーブルからRoleを取得)
+    // 2. 権限チェック (employeesテーブルからRoleとTenant情報を取得)
     const { data: employee, error: empError } = await supabase
         .from("employees")
-        .select("role")
+        .select("*, tenants(name)")
         .eq("id", user.id)
         .single();
 
     const isAdminOrManager = employee && employee.role !== "employee";
+    const companyName = employee?.tenants?.name || "Unknown Company";
+    const userName = employee?.name || user.email || "Unknown User";
 
     // カードデータ定義
     const services = [
         {
-            title: "Well-Being",
+            title: "健康経営",
             description: "労務リスク検知・メンタルヘルス Agent。従業員の心身の状態を継続的にモニタリングし、早期のアラート発信やケアプランの提案を行います。",
-            badge: "Step 1: メンタルヘルス",
+            badge: "Well-Being",
             icon: Heart,
             color: "text-rose-600",
             borderColor: "border-l-rose-500",
+            hoverBorderColor: "hover:border-rose-500",
             badgeVariant: "bg-rose-50 text-rose-600 hover:bg-rose-50 border-none",
         },
         {
-            title: "Work Support",
+            title: "業務支援",
             description: "入社オンボーディング & SOP化 Agent。煩雑な入社手続きの自動化や、業務プロセスの標準化・マニュアル化を支援します。",
-            badge: "Step 2: 業務支援",
+            badge: "Work Support",
             icon: Briefcase,
             color: "text-blue-600",
             borderColor: "border-l-blue-500",
+            hoverBorderColor: "hover:border-blue-500",
             badgeVariant: "bg-blue-50 text-blue-600 hover:bg-blue-50 border-none",
         },
         {
-            title: "Team Building",
+            title: "組織強化",
             description: "採用スカウト特化型 Agent。組織のカルチャーにマッチした人材の発掘から、チーム編成の最適化までをサポートします。",
-            badge: "Step 3: 組織強化",
+            badge: "Team Building",
             icon: Users,
             color: "text-green-600",
             borderColor: "border-l-green-500",
+            hoverBorderColor: "hover:border-green-500",
             badgeVariant: "bg-green-50 text-green-600 hover:bg-green-50 border-none",
         },
         {
-            title: "Work Efficiency",
+            title: "生産性向上",
             description: "業務効率化 Agent。日常の定型業務をAIが代行・効率化し、従業員がより創造的な業務に集中できる環境を整えます。",
-            badge: "Step 4: 生産性向上",
+            badge: "Work Efficiency",
             icon: Zap,
             color: "text-orange-600",
             borderColor: "border-l-orange-500",
+            hoverBorderColor: "hover:border-orange-500",
             badgeVariant: "bg-orange-50 text-orange-600 hover:bg-orange-50 border-none",
         },
     ];
@@ -82,8 +92,8 @@ export default async function PortalPage() {
             <header className="bg-white border-b sticky top-0 z-10 w-full shadow-sm">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <div>
-                        <span className="text-2xl font-bold text-orange-500 tracking-tight">
-                            HR-DX SaaS
+                        <span className={`${logoFont.className} text-3xl md:text-4xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>
+                            HR-dx
                         </span>
                     </div>
 
@@ -117,6 +127,19 @@ export default async function PortalPage() {
                     <p className="text-muted-foreground mt-2 text-lg">
                         組織を強くするための統合プラットフォーム
                     </p>
+
+                    {/* User Info Display */}
+                    <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-4">
+                        <div className="flex items-center gap-1">
+                            <Building2 className="h-4 w-4" />
+                            <span>{companyName}</span>
+                        </div>
+                        <div className="text-gray-300">|</div>
+                        <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            <span>{userName}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
@@ -125,9 +148,13 @@ export default async function PortalPage() {
                             key={service.title}
                             className={cn(
                                 "group relative shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-white overflow-hidden",
-                                // Border fix: Use border-solid explicitly and remove top/right/bottom width, keep left width
+                                // Border styles: default left border, hover full border
                                 "border-0 border-l-4 border-solid",
-                                service.borderColor
+                                // On hover, keep left border width (and color if not overridden), and add border to other sides
+                                // Note: hover:border adds border-width: 1px to all sides.
+                                "hover:border",
+                                service.borderColor,
+                                service.hoverBorderColor
                             )}
                         >
                             <CardHeader className="pb-3 md:pb-4 space-y-4">
@@ -154,6 +181,14 @@ export default async function PortalPage() {
                                 <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                                     {service.description}
                                 </CardDescription>
+
+                                {/* Reveal Text */}
+                                <div className={cn(
+                                    "mt-4 flex items-center font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                                    service.color
+                                )}>
+                                    サービスへ移動 <ArrowRight className="ml-2 h-4 w-4" />
+                                </div>
                             </CardContent>
                         </Card>
                     ))}

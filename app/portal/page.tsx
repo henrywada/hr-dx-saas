@@ -65,7 +65,7 @@ export default async function PortalPage() {
             badgeVariant: "bg-blue-50 text-blue-600 hover:bg-blue-50 border-none",
         },
         {
-            title: "組織強化",
+            title: "チームビルディング",
             description: "採用スカウト特化型 Agent。組織のカルチャーにマッチした人材の発掘から、チーム編成の最適化までをサポートします。",
             badge: "Team Building",
             icon: Users,

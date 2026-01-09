@@ -107,7 +107,7 @@ export default async function TeamBuildingPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">チームビルディング 【Team Building】</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">人事・採用支援</h1>
         <div className="flex items-center gap-4 text-muted-foreground mt-2 text-sm">
           <div className="flex items-center gap-1"><Building2 className="h-4 w-4" /> {tenantName}</div>
           <div className="flex items-center gap-1"><User className="h-4 w-4" /> {userName}</div>
@@ -117,7 +117,7 @@ export default async function TeamBuildingPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 grid-cols-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {steps.map((step) => {
           const colors = getColorClasses(step.color);
           const Icon = step.icon;

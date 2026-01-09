@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
     console.log("[SerpApi] Context retrieved. Length:", marketContext.length)
 
     // 5. Gemini API 呼び出し (v1beta / gemini-1.5-flash)
-    // 【重要】URL構築を修正済み
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`
+   // 変更後（これに書き換えてください）
+const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
     
     const prompt = `
       あなたはプロの人事コンサルタントAIです。以下の求人オファーの妥当性を診断してください。

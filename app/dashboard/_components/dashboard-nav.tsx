@@ -40,7 +40,7 @@ export function DashboardNav({ className, onLinkClick }: DashboardNavProps) {
         },
         {
             title: "人事・採用支援",
-            url: "/dashboard/referral",
+            url: "/dashboard/team-building",
             icon: UserPlus,
         },
         {
@@ -88,11 +88,7 @@ export function DashboardNav({ className, onLinkClick }: DashboardNavProps) {
             url: "/dashboard/security",
             icon: ShieldCheck,
         },
-        {
-            title: "チームビルディング",
-            url: "/dashboard/team-building",
-            icon: Briefcase,
-        },
+
         {
             title: "Employees",
             url: "/dashboard/employees",

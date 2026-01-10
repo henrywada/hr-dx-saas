@@ -29,6 +29,7 @@ interface DiagnosisResult {
   market_avg_max: number;
   advice: string;
   competitor_trend: string;
+  effective_media?: { name: string; url: string }[];
 }
 
 export default function OfferValidatorPage() {
@@ -56,13 +57,25 @@ export default function OfferValidatorPage() {
     };
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-offer', {
-        body: payload
+      // const { data, error } = await supabase.functions.invoke('analyze-offer', {
+      //   body: payload
+      //  });
+      // --- 修正後（以下に書き換えてください） ---
+      const response = await fetch('/api/analyze-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (error) {
-        throw new Error(error.message || '診断に失敗しました');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '診断に失敗しました');
       }
+
+      // --- 修正はここまで ---
 
       setResult(data);
 
@@ -92,14 +105,14 @@ export default function OfferValidatorPage() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/dashboard/team-building" className="hover:text-primary transition-colors flex items-center gap-1">
           <ArrowLeft className="h-3 w-3" />
-          Back to Team Building
+          Back to 人事・採用支援
         </Link>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-blue-600" />
-          <h1 className="text-3xl font-bold tracking-tight">Offer Validator</h1>
+          <h1 className="text-3xl font-bold tracking-tight">オファー妥当性診断</h1>
         </div>
         <p className="text-muted-foreground">
           市場相場と照合し、あなたのオファーが「勝てる条件」か診断します。
@@ -247,8 +260,8 @@ export default function OfferValidatorPage() {
           {/* 診断結果表示 */}
           {result && (
             <Card className={`border-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.score === 'A' ? 'border-green-500 bg-green-50/30' :
-                result.score === 'B' ? 'border-yellow-400 bg-yellow-50/30' :
-                  'border-red-500 bg-red-50/30'
+              result.score === 'B' ? 'border-yellow-400 bg-yellow-50/30' :
+                'border-red-500 bg-red-50/30'
               }`}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -261,7 +274,7 @@ export default function OfferValidatorPage() {
                   <span className="text-sm text-muted-foreground font-medium">判定スコア:</span>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className={`text-5xl font-extrabold ${result.score === 'A' ? 'text-green-600' :
-                        result.score === 'B' ? 'text-yellow-600' : 'text-red-600'
+                      result.score === 'B' ? 'text-yellow-600' : 'text-red-600'
                       }`}>
                       {result.score}
                     </span>
@@ -288,6 +301,28 @@ export default function OfferValidatorPage() {
                   </p>
                   {result.advice}
                 </div>
+
+                {result.effective_media && result.effective_media.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="text-sm font-bold text-foreground">📱 推奨チャネル Top 5</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.effective_media.map((media, i) => (
+                        <a
+                          key={i}
+                          href={media.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20 hover:underline overflow-hidden whitespace-nowrap"
+                        >
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                            {i + 1}
+                          </span>
+                          {media.name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="text-xs text-muted-foreground pt-2 border-t">
                   <span className="font-semibold">Trend:</span> {result.competitor_trend}

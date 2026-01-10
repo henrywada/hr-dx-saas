@@ -77,7 +77,8 @@ const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemin
         "market_avg_min": 数値(万円),
         "market_avg_max": 数値(万円),
         "advice": "具体的なアドバイス(100文字以内)",
-        "competitor_trend": "競合の傾向(一言)"
+        "competitor_trend": "競合の傾向(一言)",
+        "effective_media": ["媒体1", "媒体2", "媒体3", "媒体4", "媒体5"]
       }
     `
 
@@ -118,7 +119,8 @@ const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemin
             market_avg_min: 0,
             market_avg_max: 0,
             advice: "AIからの回答形式が不正でしたが、処理は完了しました。",
-            competitor_trend: "不明"
+            competitor_trend: "不明",
+            effective_media: []
         }
     }
 

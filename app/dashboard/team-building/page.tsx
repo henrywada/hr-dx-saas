@@ -29,7 +29,7 @@ export default async function TeamBuildingPage() {
       step: 'Offer Validator', // 旧: Step 1: 診断
       title: 'オファー妥当性診断', // 旧: Offer Validator
       description: '「その年収提示、負け戦になっていませんか？」',
-      detail: '職種と地域を入力するだけで、AIがリアルタイムの求人相場を分析。あなたの提示条件がライバル企業と比較して「勝てるオファー」かどうかを数秒で判定します。',
+      detail: '「職種・エリア・年収」を入力するだけで、AIが最新の市場相場と照合し、オファーの競争力を分析。提示条件の「妥当性判定」に加え、具体的な改善アドバイスと、ターゲット獲得に最も効果的な「推奨求人メディアTOP5」まで提案します。',
       status: 'ready',
       href: '/dashboard/team-building/offer-validator',
       color: 'blue',
@@ -103,7 +103,7 @@ export default async function TeamBuildingPage() {
           Home
         </Link>
         <span>/</span>
-        <span className="font-medium text-foreground">Team Building</span>
+        <span className="font-medium text-foreground">人事・採用支援</span>
       </div>
 
       <div className="mb-8">

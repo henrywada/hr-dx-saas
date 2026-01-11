@@ -96,64 +96,66 @@ export default async function TeamBuildingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      {/* Navigation Header */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-primary transition-colors">
-          Home
-        </Link>
-        <span>/</span>
-        <span className="font-medium text-foreground">人事・採用支援</span>
-      </div>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">人事・採用支援</h1>
-        <div className="flex items-center gap-4 text-muted-foreground mt-2 text-sm">
-          <div className="flex items-center gap-1"><Building2 className="h-4 w-4" /> {tenantName}</div>
-          <div className="flex items-center gap-1"><User className="h-4 w-4" /> {userName}</div>
+    <div className="flex-1 space-y-8 p-8 pt-6">
+      <div className="mx-auto max-w-6xl space-y-8">
+        {/* Navigation Header */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-primary transition-colors">
+            Home
+          </Link>
+          <span>/</span>
+          <span className="font-medium text-foreground">人事・採用支援</span>
         </div>
-        <p className="text-muted-foreground mt-4">
-          診断から採用、定着まで。組織を強くするための3つのステップ。
-        </p>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {steps.map((step) => {
-          const colors = getColorClasses(step.color);
-          const Icon = step.icon;
-          const StatusIcon = step.statusIcon;
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">人事・採用支援</h1>
+          <div className="flex items-center gap-4 text-muted-foreground mt-2 text-sm">
+            <div className="flex items-center gap-1"><Building2 className="h-4 w-4" /> {tenantName}</div>
+            <div className="flex items-center gap-1"><User className="h-4 w-4" /> {userName}</div>
+          </div>
+          <p className="text-muted-foreground mt-4">
+            診断から採用、定着まで。組織を強くするための3つのステップ。
+          </p>
+        </div>
 
-          return (
-            <Link key={step.id} href={step.href} className="group block h-full">
-              <Card className={`h-full border-2 transition-all duration-200 hover:shadow-md cursor-pointer relative overflow-hidden ${colors.hoverBorder}`}>
-                <div className={`absolute top-0 left-0 w-1 h-full ${colors.bar}`} />
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge variant="outline" className={colors.badge}>
-                      {step.step}
-                    </Badge>
-                    <StatusIcon className={`h-5 w-5 ${step.status === 'completed' ? 'text-green-500' : 'text-gray-300'}`} />
-                  </div>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <Icon className={`h-5 w-5 ${colors.icon}`} />
-                    {step.title}
-                  </CardTitle>
-                  <CardDescription className="text-base font-medium text-foreground mt-2">
-                    {step.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {step.detail}
-                  </p>
-                  <div className="mt-6 flex items-center text-sm font-medium text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
-                    詳細を見る <ArrowRight className="ml-1 h-4 w-4" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {steps.map((step) => {
+            const colors = getColorClasses(step.color);
+            const Icon = step.icon;
+            const StatusIcon = step.statusIcon;
+
+            return (
+              <Link key={step.id} href={step.href} className="group block h-full">
+                <Card className={`h-full border-2 transition-all duration-200 hover:shadow-md cursor-pointer relative overflow-hidden ${colors.hoverBorder}`}>
+                  <div className={`absolute top-0 left-0 w-1 h-full ${colors.bar}`} />
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="outline" className={colors.badge}>
+                        {step.step}
+                      </Badge>
+                      <StatusIcon className={`h-5 w-5 ${step.status === 'completed' ? 'text-green-500' : 'text-gray-300'}`} />
+                    </div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Icon className={`h-5 w-5 ${colors.icon}`} />
+                      {step.title}
+                    </CardTitle>
+                    <CardDescription className="text-base font-medium text-foreground mt-2">
+                      {step.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {step.detail}
+                    </p>
+                    <div className="mt-6 flex items-center text-sm font-medium text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
+                      詳細を見る <ArrowRight className="ml-1 h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

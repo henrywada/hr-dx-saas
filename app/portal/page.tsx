@@ -147,7 +147,7 @@ export default async function PortalPage() {
                         <Card
                             key={service.title}
                             className={cn(
-                                "group relative shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-white overflow-hidden",
+                                "group relative shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden",
                                 // Border styles: default left border, hover full border
                                 "border-0 border-l-4 border-solid",
                                 // On hover, keep left border width (and color if not overridden), and add border to other sides
@@ -157,15 +157,8 @@ export default async function PortalPage() {
                                 service.hoverBorderColor
                             )}
                         >
-                            <CardHeader className="pb-3 md:pb-4 space-y-4">
-                                <Badge
-                                    className={cn(
-                                        "rounded-full px-3 py-1 text-xs font-medium w-fit shadow-none",
-                                        service.badgeVariant
-                                    )}
-                                >
-                                    {service.badge}
-                                </Badge>
+                            <CardHeader className="pb-1">
+
 
                                 <div className="flex items-start justify-between">
                                     <CardTitle className="text-xl font-bold text-gray-900">
@@ -177,18 +170,36 @@ export default async function PortalPage() {
                                 </div>
                             </CardHeader>
 
-                            <CardContent>
+                            <CardContent className="pt-0">
                                 <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                                     {service.description}
                                 </CardDescription>
 
                                 {/* Reveal Text */}
-                                <div className={cn(
-                                    "mt-4 flex items-center font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                                    service.color
-                                )}>
-                                    サービスへ移動 <ArrowRight className="ml-2 h-4 w-4" />
-                                </div>
+                                {service.title === "健康経営" && (
+                                    <div className="mt-4 flex items-center gap-3">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
+                                            asChild
+                                        >
+                                            <Link href="#">
+                                                パルスサーベイ
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
+                                            asChild
+                                        >
+                                            <Link href="#">
+                                                ストレスチェック
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     ))}

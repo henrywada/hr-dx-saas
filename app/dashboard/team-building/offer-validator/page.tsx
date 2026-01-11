@@ -165,7 +165,7 @@ export default function OfferValidatorPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 pb-6">
                 <Label>特徴・タグ (任意)</Label>
                 <div className="flex flex-wrap gap-2">
                   {["リモート可", "フレックス", "副業可", "退職金あり", "未経験可"].map((tag) => (

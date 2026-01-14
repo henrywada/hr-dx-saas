@@ -111,9 +111,9 @@ export default function WellBeingPage() {
                                 <span className="sr-only">View details</span>
                             </Link>
 
-                            {/* Bottom decoration line */}
+                            {/* Left decoration line */}
                             <div className={cn(
-                                "absolute bottom-0 left-0 h-1 w-full",
+                                "absolute top-0 left-0 w-1 h-full",
                                 step.color === 'blue' && "bg-blue-500",
                                 step.color === 'orange' && "bg-orange-500",
                                 step.color === 'emerald' && "bg-emerald-500"

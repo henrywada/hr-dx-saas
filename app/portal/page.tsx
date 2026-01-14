@@ -8,12 +8,10 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Briefcase, Zap, Settings, LogOut, ArrowRight, Building2, User } from "lucide-react";
+import { Users, Heart, Briefcase, Zap, Settings, LogOut, Building2, User } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/auth/actions";
-
 import { Russo_One } from "next/font/google";
 
 const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });
@@ -32,14 +30,31 @@ export default async function PortalPage() {
     }
 
     // 2. 権限チェック (employeesテーブルからRoleとTenant情報を取得)
+    // 内部結合を使ってテナント情報を確実に取得します
     const { data: employee, error: empError } = await supabase
         .from("employees")
-        .select("*, tenants(name)")
+        .select(`
+            *,
+            tenants (
+                name
+            )
+        `)
         .eq("id", user.id)
         .single();
 
-    const isAdminOrManager = employee && employee.role !== "employee";
-    const companyName = employee?.tenants?.name || "Unknown Company";
+    // ★デバッグ用: エラーがあればターミナルに表示
+    if (empError) {
+        console.error("Portal Data Fetch Error:", empError);
+    }
+
+    // 会社名の取得（データ構造のゆらぎを吸収）
+    // @ts-ignore: 型定義の自動生成状況によっては tenants が配列に見える場合があるため無視
+    const tenantData = employee?.tenants;
+    const companyName = Array.isArray(tenantData)
+        ? tenantData[0]?.name
+        : tenantData?.name || "登録中の会社";
+
+    const isAdminOrManager = employee && (employee.role === "admin" || employee.role === "manager");
     const userName = employee?.name || user.email || "Unknown User";
 
     // カードデータ定義
@@ -105,9 +120,10 @@ export default async function PortalPage() {
                             </Button>
                         </form>
 
+                        {/* 管理画面へのボタン: adminまたはmanagerのみ表示 */}
                         {isAdminOrManager && (
                             <Button asChild variant="default" size="sm" className="gap-2 h-9 bg-gray-900 hover:bg-gray-800 text-white">
-                                <Link href="/dashboard/employees">
+                                <Link href="/dashboard/divisions">
                                     <Settings className="h-4 w-4" />
                                     管理画面へ
                                 </Link>
@@ -132,7 +148,7 @@ export default async function PortalPage() {
                     <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-4">
                         <div className="flex items-center gap-1">
                             <Building2 className="h-4 w-4" />
-                            <span>{companyName}</span>
+                            <span className="font-medium text-gray-700">{companyName}</span>
                         </div>
                         <div className="text-gray-300">|</div>
                         <div className="flex items-center gap-1">
@@ -148,18 +164,13 @@ export default async function PortalPage() {
                             key={service.title}
                             className={cn(
                                 "group relative shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden",
-                                // Border styles: default left border, hover full border
                                 "border-0 border-l-4 border-solid",
-                                // On hover, keep left border width (and color if not overridden), and add border to other sides
-                                // Note: hover:border adds border-width: 1px to all sides.
                                 "hover:border",
                                 service.borderColor,
                                 service.hoverBorderColor
                             )}
                         >
                             <CardHeader className="pb-1">
-
-
                                 <div className="flex items-start justify-between">
                                     <CardTitle className="text-xl font-bold text-gray-900">
                                         {service.title}
@@ -175,7 +186,6 @@ export default async function PortalPage() {
                                     {service.description}
                                 </CardDescription>
 
-                                {/* Reveal Text */}
                                 {service.title === "健康経営" && (
                                     <div className="mt-4 flex items-center gap-3">
                                         <Button

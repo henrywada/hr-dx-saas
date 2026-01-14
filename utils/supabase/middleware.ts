@@ -37,10 +37,12 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
+    // ログインしていない場合のアクセス制御
     if (
         !user &&
         !request.nextUrl.pathname.startsWith("/login") &&
-        !request.nextUrl.pathname.startsWith("/auth")
+        !request.nextUrl.pathname.startsWith("/auth") &&
+        !request.nextUrl.pathname.startsWith("/signup") // ★ここを追加しました！
     ) {
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone();

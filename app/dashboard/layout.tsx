@@ -18,7 +18,6 @@ import {
 import { Russo_One } from "next/font/google";
 import Link from "next/link";
 import { logout } from "@/app/auth/actions";
-import { DashboardNav } from "./_components/dashboard-nav";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });

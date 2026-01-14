@@ -1,11 +1,18 @@
 'use server';
 
 import { createClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin"; // 追加
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { Division } from "./types";
 
-// 部署一覧取得 (読み込みは通常権限でOK)
+// ★追加: ここで「やり取りするデータの形」を定義します
+export type State = {
+  error?: string;
+  message?: string;
+  success?: boolean;
+};
+
+// 部署一覧取得
 export async function getDivisions(): Promise<Division[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -21,19 +28,15 @@ export async function getDivisions(): Promise<Division[]> {
   return data as Division[];
 }
 
-// 部署の作成・更新 (書き込みは管理者権限で行う)
-export async function upsertDivision(prevState: any, formData: FormData) {
-  const supabase = await createClient(); // 認証チェック用
-  const adminSupabase = createAdminClient(); // 書き込み用（RLSバイパス）
+// ★修正: 引数の型を any から State に変更し、戻り値の型も合わせます
+export async function upsertDivision(prevState: State, formData: FormData): Promise<State> {
+  const supabase = await createClient(); 
+  const adminSupabase = createAdminClient(); 
 
   // 1. 認証とテナントID取得
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証されていません。" };
 
-  /* 
-     Schema changed: 'profiles' -> 'employees', 'organizations' -> 'tenants'.
-     'employees' table now has 'tenant_id'.
-  */
   const { data: employee } = await supabase
     .from("employees")
     .select("tenant_id")
@@ -53,7 +56,7 @@ export async function upsertDivision(prevState: any, formData: FormData) {
   // 3. 階層(layer)の計算
   let layer = 1;
   if (parent_id) {
-    const { data: parent } = await adminSupabase // 親参照も念のためAdminで
+    const { data: parent } = await adminSupabase
       .from("divisions")
       .select("layer")
       .eq("id", parent_id)
@@ -84,14 +87,14 @@ export async function upsertDivision(prevState: any, formData: FormData) {
   }
 
   revalidatePath("/dashboard/divisions");
+  // 成功時は success: true を返す
   return { success: true, message: "保存しました。" };
 }
 
-// 部署の削除 (書き込みは管理者権限で行う)
+// 部署の削除
 export async function deleteDivision(id: string) {
-  const adminSupabase = createAdminClient(); // 書き込み用
+  const adminSupabase = createAdminClient(); 
   
-  // 子部署が存在するかチェック
   const { count } = await adminSupabase
     .from("divisions")
     .select("*", { count: 'exact', head: true })

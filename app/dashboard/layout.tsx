@@ -53,7 +53,6 @@ export default async function DashboardLayout({
             HR-dx
           </Link>
         </div>
-        <DashboardNav className="flex-1" />
       </aside>
 
       {/* メインコンテンツエリア */}
@@ -83,7 +82,7 @@ export default async function DashboardLayout({
                         To make the Sheet close on navigation, we ideally need a Client Component wrapper.
                         For now, standard usage is acceptable. The user closes it by tapping outside or on X.
                     */}
-                <DashboardNav />
+
               </SheetContent>
             </Sheet>
             <span className={`${logoFont.className} text-2xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>HR-dx</span>

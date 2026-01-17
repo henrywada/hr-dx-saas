@@ -29,22 +29,28 @@ export async function updateSession(request: NextRequest) {
         }
     );
 
-    // IMPORTANT: Avoid writing any logic between createServerClient and
-    // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-    // issues with users being randomly logged out.
-
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // ログインしていない場合のアクセス制御
+    // 現在のパス
+    const path = request.nextUrl.pathname;
+
+    // ▼▼▼ アクセス許可リスト（ログイン不要でアクセスできるパス） ▼▼▼
+    const publicPaths = [
+        "/login",
+        "/auth",
+        "/signup",
+        "/first-login",
+        "/forgot-password",
+        "/developer/companies/add" // ★ここが会社登録画面
+    ];
+
+    // ユーザーがおらず、かつ「許可リスト」のいずれでも始まらないパスへのアクセスならリダイレクト
     if (
         !user &&
-        !request.nextUrl.pathname.startsWith("/login") &&
-        !request.nextUrl.pathname.startsWith("/auth") &&
-        !request.nextUrl.pathname.startsWith("/signup") // ★ここを追加しました！
+        !publicPaths.some(publicPath => path.startsWith(publicPath))
     ) {
-        // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         return NextResponse.redirect(url);

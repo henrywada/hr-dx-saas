@@ -9,13 +9,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Plus, UserPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { getRoleLabel } from "@/utils/roles";
+import { DivisionSelector } from "./_components/division-selector"; // 追加
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ export default async function EmployeesPage() {
         return redirect("/login");
     }
 
-    // 1. Get the current user's tenant_id and details
+    // 1. 自分の情報を取得
     const { data: currentUserEmployee } = await supabase
         .from("employees")
         .select("tenant_id, role, name, tenants(name)")
@@ -38,19 +38,25 @@ export default async function EmployeesPage() {
         .single();
 
     if (!currentUserEmployee?.tenant_id) {
-        // Handle case where user has no tenant (maybe redirect to onboarding or show empty state)
-        return <div className="p-8">No tenant information found for this user.</div>;
+        return <div className="p-8">テナント情報が見つかりません。</div>;
     }
 
-    // 2. Fetch all employees for this tenant
+    // 2. 従業員一覧を取得 (division_id も含める)
     const { data: employees } = await supabase
         .from("employees")
-        .select("*, divisions(name)")
+        .select("*, divisions(id, name)") // divisionsを結合して現在の部署名も取得可能
         .eq("tenant_id", currentUserEmployee.tenant_id)
         .order("name", { ascending: true });
 
+    // 3. ▼追加: 部署の選択肢一覧を取得 (階層順にソート)
+    const { data: divisions } = await supabase
+        .from("divisions")
+        .select("id, name, layer")
+        .eq("tenant_id", currentUserEmployee.tenant_id)
+        .order("layer", { ascending: true })
+        .order("name", { ascending: true });
+
     const employeeName = currentUserEmployee.name || user.email;
-    // Handle Supabase relation potentially returning an array
     const tenantData = currentUserEmployee.tenants;
     const tenantName = Array.isArray(tenantData) ? tenantData[0]?.name : (tenantData as any)?.name || "";
     const roleLabel = getRoleLabel(currentUserEmployee.role);
@@ -71,8 +77,8 @@ export default async function EmployeesPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                     <Button asChild>
-                        <Link href="/dashboard/employees/add">
-                            <Plus className="mr-2 h-4 w-4" /> 社員を追加
+                        <Link href="/dashboard/settings/employees">
+                            <UserPlus className="mr-2 h-4 w-4" /> 従業員を追加
                         </Link>
                     </Button>
                 </div>
@@ -85,9 +91,8 @@ export default async function EmployeesPage() {
                             <TableRow>
                                 <TableHead className="w-[250px]">氏名</TableHead>
                                 <TableHead>メールアドレス</TableHead>
-                                <TableHead>部署</TableHead>
+                                <TableHead>所属 (Division)</TableHead>
                                 <TableHead>役職</TableHead>
-                                <TableHead>ステータス</TableHead>
                                 <TableHead className="text-right">操作</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -106,32 +111,32 @@ export default async function EmployeesPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>{employee.email}</TableCell>
+
+                                    {/* ▼▼ 変更: 所属選択プルダウンを表示 ▼▼ */}
                                     <TableCell>
-                                        {employee.divisions?.name ? (
-                                            <Badge variant="outline">{employee.divisions.name}</Badge>
-                                        ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                        )}
+                                        <DivisionSelector
+                                            employeeId={employee.id}
+                                            currentDivisionId={employee.division_id}
+                                            divisions={divisions || []}
+                                        />
                                     </TableCell>
+
                                     <TableCell>
                                         <Badge variant="secondary" className="capitalize">
                                             {getRoleLabel(employee.role)}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>
-                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                                    </TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="sm">
-                                            Edit
+                                            詳細
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {!employees || employees.length === 0 && (
+                            {(!employees || employees.length === 0) && (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
-                                        No employees found.
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        従業員が登録されていません。
                                     </TableCell>
                                 </TableRow>
                             )}

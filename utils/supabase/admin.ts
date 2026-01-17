@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 export function createAdminClient() {
-  // Service Role Keyが存在しない場合のフォールバック（開発環境用）
-  // 注意: 本番環境では必ずSUPABASE_SERVICE_ROLE_KEYを設定してください
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  // フォールバック（|| ...）を削除し、必ずService Role Keyを使うように変更
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not defined");
+  }
 
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +15,7 @@ export function createAdminClient() {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
-      }
+      },
     }
   );
 }

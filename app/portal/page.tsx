@@ -29,32 +29,34 @@ export default async function PortalPage() {
         redirect("/login");
     }
 
-    // 2. 権限チェック (employeesテーブルからRoleとTenant情報を取得)
-    // 内部結合を使ってテナント情報を確実に取得します
+    // 2. 権限チェック
     const { data: employee, error: empError } = await supabase
         .from("employees")
         .select(`
-            *,
-            tenants (
-                name
-            )
-        `)
+      *,
+      tenants (
+        name
+      )
+    `)
         .eq("id", user.id)
         .single();
 
-    // ★デバッグ用: エラーがあればターミナルに表示
     if (empError) {
         console.error("Portal Data Fetch Error:", empError);
     }
 
-    // 会社名の取得（データ構造のゆらぎを吸収）
-    // @ts-ignore: 型定義の自動生成状況によっては tenants が配列に見える場合があるため無視
+    // 会社名の取得
+    // @ts-ignore
     const tenantData = employee?.tenants;
     const companyName = Array.isArray(tenantData)
         ? tenantData[0]?.name
         : tenantData?.name || "登録中の会社";
 
-    const isAdminOrManager = employee && (employee.role === "admin" || employee.role === "manager");
+    // ★修正ポイント1: 'developer' (SaaS管理者) も管理画面ボタンを表示できるようにする
+    // admin, manager, developer のいずれかならOKとする
+    const canAccessDashboard = employee && ["admin", "manager", "developer"].includes(employee.role);
+
+    // ★修正ポイント2: ユーザー名が取得できない場合のフォールバックを強化
     const userName = employee?.name || user.email || "Unknown User";
 
     // カードデータ定義
@@ -120,10 +122,10 @@ export default async function PortalPage() {
                             </Button>
                         </form>
 
-                        {/* 管理画面へのボタン: adminまたはmanagerのみ表示 */}
-                        {isAdminOrManager && (
+                        {/* ★修正ポイント: canAccessDashboard フラグを使用 */}
+                        {canAccessDashboard && (
                             <Button asChild variant="default" size="sm" className="gap-2 h-9 bg-gray-900 hover:bg-gray-800 text-white">
-                                <Link href="/dashboard/divisions">
+                                <Link href="/dashboard">
                                     <Settings className="h-4 w-4" />
                                     管理画面へ
                                 </Link>
@@ -135,85 +137,92 @@ export default async function PortalPage() {
 
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
-                {/* Title Section */}
-                <div className="mb-10 text-center md:text-left">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                        人事DX ポータル
-                    </h1>
-                    <p className="text-muted-foreground mt-2 text-lg">
-                        組織を強くするための統合プラットフォーム
-                    </p>
 
-                    {/* User Info Display */}
-                    <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-4">
-                        <div className="flex items-center gap-1">
-                            <Building2 className="h-4 w-4" />
-                            <span className="font-medium text-gray-700">{companyName}</span>
-                        </div>
-                        <div className="text-gray-300">|</div>
-                        <div className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            <span>{userName}</span>
+                <div className="max-w-6xl mx-auto">
+
+                    {/* Title Section */}
+                    <div className="mb-10 text-center md:text-left">
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                            人事DX ポータル
+                        </h1>
+                        <p className="text-muted-foreground mt-2 text-lg">
+                            組織を強くするための統合プラットフォーム
+                        </p>
+
+                        {/* User Info Display */}
+                        <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-4">
+                            <div className="flex items-center gap-1">
+                                <Building2 className="h-4 w-4" />
+                                <span className="font-medium text-gray-700">{companyName}</span>
+                            </div>
+                            <div className="text-gray-300">|</div>
+                            <div className="flex items-center gap-1">
+                                <User className="h-4 w-4" />
+                                <span>{userName}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-                    {services.map((service) => (
-                        <Card
-                            key={service.title}
-                            className={cn(
-                                "group relative shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden",
-                                "border-0 border-l-4 border-solid",
-                                "hover:border",
-                                service.borderColor,
-                                service.hoverBorderColor
-                            )}
-                        >
-                            <CardHeader className="pb-1">
-                                <div className="flex items-start justify-between">
-                                    <CardTitle className="text-xl font-bold text-gray-900">
-                                        {service.title}
-                                    </CardTitle>
-                                    <div className={cn("p-2 rounded-lg bg-gray-50 group-hover:bg-gray-100 transition-colors", service.color)}>
-                                        <service.icon className="h-6 w-6" />
-                                    </div>
-                                </div>
-                            </CardHeader>
-
-                            <CardContent className="pt-0">
-                                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                                    {service.description}
-                                </CardDescription>
-
-                                {service.title === "健康経営" && (
-                                    <div className="mt-4 flex items-center gap-3">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
-                                            asChild
-                                        >
-                                            <Link href="#">
-                                                パルスサーベイ
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
-                                            asChild
-                                        >
-                                            <Link href="#">
-                                                ストレスチェック
-                                            </Link>
-                                        </Button>
-                                    </div>
+                    {/* Service Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {services.map((service) => (
+                            <Card
+                                key={service.title}
+                                className={cn(
+                                    "group relative shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden",
+                                    "border-0 border-l-4 border-solid",
+                                    "hover:border",
+                                    service.borderColor,
+                                    service.hoverBorderColor
                                 )}
-                            </CardContent>
-                        </Card>
-                    ))}
+                            >
+                                <CardHeader className="pb-1">
+                                    <div className="flex items-start justify-between">
+                                        <CardTitle className="text-xl font-bold text-gray-900">
+                                            {service.title}
+                                        </CardTitle>
+                                        <div className={cn("p-2 rounded-lg bg-gray-50 group-hover:bg-gray-100 transition-colors", service.color)}>
+                                            <service.icon className="h-6 w-6" />
+                                        </div>
+                                    </div>
+                                </CardHeader>
+
+                                <CardContent className="pt-0">
+                                    <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                        {service.description}
+                                    </CardDescription>
+
+                                    {service.title === "健康経営" && (
+                                        <div className="mt-4 flex items-center gap-3">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
+                                                asChild
+                                            >
+                                                <Link href="#">
+                                                    パルスサーベイ
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
+                                                asChild
+                                            >
+                                                <Link href="#">
+                                                    ストレスチェック
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
                 </div>
+
             </main>
         </div>
     );

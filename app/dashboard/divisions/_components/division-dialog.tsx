@@ -26,7 +26,7 @@ import { Plus, Pencil, Loader2 } from "lucide-react";
 
 interface DivisionDialogProps {
     division?: Division; // 編集時はデータを渡す
-    parentCandidates: Division[]; // 親部署の候補リスト
+    parentCandidates: Division[]; // 親部署の候補リスト（全部署データ）
     trigger?: React.ReactNode; // トリガーボタンをカスタマイズする場合
 }
 
@@ -40,12 +40,15 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
     const [open, setOpen] = useState(false);
     const [state, formAction, isPending] = useActionState(upsertDivision, initialState);
 
-    // 編集時の初期値
+    // 編集モードかどうか
     const isEdit = !!division;
 
-    // 自分自身とその子孫を親部署として選択できないようにフィルタリング
+    // 親部署候補のフィルタリング
+    // 1. 自分自身は選べない
+    // 2. (高度な実装では) 自分の子孫も選べないようにすべきだが、まずは簡易的に自分を除外
     const validParents = parentCandidates.filter(d => d.id !== division?.id);
 
+    // 成功したらダイアログを閉じる
     useEffect(() => {
         if (state?.success) {
             setOpen(false);
@@ -61,7 +64,7 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                             <Pencil className="h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button className="gap-2">
+                        <Button className="gap-2 bg-orange-600 hover:bg-orange-700">
                             <Plus className="h-4 w-4" /> 部署を追加
                         </Button>
                     )
@@ -71,10 +74,11 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                 <DialogHeader>
                     <DialogTitle>{isEdit ? "部署を編集" : "新規部署登録"}</DialogTitle>
                     <DialogDescription>
-                        組織の階層構造を定義します。
+                        組織の階層構造を定義します。ストレスチェック等の分析単位となります。
                     </DialogDescription>
                 </DialogHeader>
                 <form action={formAction}>
+                    {/* 編集時はIDを送信 */}
                     {isEdit && <input type="hidden" name="id" value={division.id} />}
 
                     <div className="grid gap-4 py-4">
@@ -86,7 +90,7 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                                 defaultValue={division?.name}
                                 className="col-span-3"
                                 required
-                                placeholder="例: 営業本部"
+                                placeholder="例： 営業本部"
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -95,7 +99,7 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                                 id="code"
                                 name="code"
                                 defaultValue={division?.code || ""}
-                                placeholder="例: SALES_HQ"
+                                placeholder="例： SALES_HQ"
                                 className="col-span-3"
                             />
                         </div>
@@ -111,7 +115,7 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                                         {validParents.map((d) => (
                                             <SelectItem key={d.id} value={d.id}>
                                                 {/* 階層を見やすくインデント */}
-                                                {"\u00A0\u00A0".repeat(d.layer - 1)} {d.name}
+                                                {"\u00A0\u00A0".repeat((d.layer || 1) - 1)} {d.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -127,7 +131,7 @@ export function DivisionDialog({ division, parentCandidates, trigger }: Division
                     )}
 
                     <DialogFooter>
-                        <Button type="submit" disabled={isPending}>
+                        <Button type="submit" disabled={isPending} className="bg-orange-600 hover:bg-orange-700">
                             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             保存
                         </Button>

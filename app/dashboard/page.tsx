@@ -1,171 +1,141 @@
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Layout,
-  Plus,
+  FileText,
+  Activity,
   Users,
-  Workflow,
+  MoreHorizontal,
+  Building2, // 会社アイコン
+  User       // ユーザーアイコン
 } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let userName = "ゲスト";
+  let tenantName = "未所属";
 
-  if (!user) {
-    return redirect("/login");
+  if (user) {
+    userName = user.email || "ゲスト";
+    try {
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("name, tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      if (employee) {
+        if (employee.name) userName = employee.name;
+        if (employee.tenant_id) {
+          const { data: tenant } = await supabase
+            .from("tenants")
+            .select("name")
+            .eq("id", employee.tenant_id)
+            .single();
+          if (tenant?.name) tenantName = tenant.name;
+        }
+      }
+    } catch (error) {
+      // エラー時は無視
+    }
   }
 
-  const { data: employee } = await supabase
-    .from("employees")
-    .select("*, tenants(*)")
-    .eq("id", user.id)
-    .single();
-
-  const tenantName = employee?.tenants?.name || "Unknown Organization";
-  const employeeName = employee?.name || user.email || "Guest";
-
-  // KPIデータのダミー
-  const kpiData = [
-    {
-      title: "Created Workflows",
-      value: "12",
-      icon: Layout,
-      color: "text-blue-600",
-    },
-    {
-      title: "Monthly Executions",
-      value: "145",
-      icon: Workflow,
-      color: "text-green-600",
-    },
-    {
-      title: "Team Members",
-      value: "3",
-      icon: Users,
-      color: "text-purple-600",
-    },
-  ];
-
-  // 最近のプロジェクトデータのダミー
-  const recentWorkflows = [
-    {
-      name: "Onboarding Automation",
-      status: "Active",
-      lastUpdated: "2024-04-01",
-    },
-    {
-      name: "Email Campaign Sequence",
-      status: "Draft",
-      lastUpdated: "2024-03-28",
-    },
-    {
-      name: "Data Sync: CRM to sheet",
-      status: "Active",
-      lastUpdated: "2024-03-25",
-    },
-  ];
-
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      {/* Welcome Section */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Hello, {employeeName}
-          </h1>
-          <p className="text-muted-foreground">
-            Here's what's happening with your projects today at {tenantName}.
-          </p>
+    <div className="flex-1 space-y-8">
+
+      {/* ▼▼ 修正エリア：会社名・ユーザー名表示 ▼▼ */}
+      {/* 横並び(flex)、アイコン付き、通常フォント、下線削除 */}
+      <div className="flex items-center gap-4 text-gray-600">
+
+        {/* 会社名 */}
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-medium">{tenantName}</span>
         </div>
-        <Button size="lg" className="gap-2 shadow-md">
-          <Plus className="h-5 w-5" />
-          New Workflow
-        </Button>
+
+        {/* 区切り（パイプ） */}
+        <span className="text-gray-300">|</span>
+
+        {/* ユーザー名 */}
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-medium">{userName}</span>
+        </div>
+
+      </div>
+      {/* ▲▲ 修正エリア終了 ▲▲ */}
+
+
+      {/* カードエリア */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-white text-card-foreground shadow-sm">
+          <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <h3 className="tracking-tight text-sm font-medium text-gray-500">Created Workflows</h3>
+            <FileText className="h-4 w-4 text-blue-500" />
+          </div>
+          <div className="p-6 pt-0"><div className="text-2xl font-bold">12</div></div>
+        </div>
+
+        <div className="rounded-xl border bg-white text-card-foreground shadow-sm">
+          <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <h3 className="tracking-tight text-sm font-medium text-gray-500">Monthly Executions</h3>
+            <Activity className="h-4 w-4 text-green-500" />
+          </div>
+          <div className="p-6 pt-0"><div className="text-2xl font-bold">145</div></div>
+        </div>
+
+        <div className="rounded-xl border bg-white text-card-foreground shadow-sm">
+          <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <h3 className="tracking-tight text-sm font-medium text-gray-500">Team Members</h3>
+            <Users className="h-4 w-4 text-purple-500" />
+          </div>
+          <div className="p-6 pt-0"><div className="text-2xl font-bold">3</div></div>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {kpiData.map((kpi, index) => (
-          <Card key={index} className="shadow-sm transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {kpi.title}
-              </CardTitle>
-              <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {kpi.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Recent Workflows */}
+      {/* テーブルエリア */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Recent Workflows
-          </h2>
-          <Button variant="outline" size="sm">
+          <h2 className="text-xl font-bold tracking-tight">Recent Workflows</h2>
+          <button className="text-sm text-gray-500 hover:text-gray-900 border px-3 py-1 rounded bg-white">
             View All
-          </Button>
+          </button>
         </div>
-        <Card className="shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentWorkflows.map((workflow, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium text-foreground">
-                    {workflow.name}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        workflow.status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {workflow.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {workflow.lastUpdated}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      ...
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+
+        <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-500 font-medium">
+              <tr>
+                <th className="px-4 py-3">Project Name</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Last Updated</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-medium">Onboarding Automation</td>
+                <td className="px-4 py-3"><span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Active</span></td>
+                <td className="px-4 py-3 text-gray-500">2024-04-01</td>
+                <td className="px-4 py-3 text-right"><button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="h-4 w-4" /></button></td>
+              </tr>
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-medium">Email Campaign Sequence</td>
+                <td className="px-4 py-3"><span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">Draft</span></td>
+                <td className="px-4 py-3 text-gray-500">2024-03-28</td>
+                <td className="px-4 py-3 text-right"><button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="h-4 w-4" /></button></td>
+              </tr>
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-medium">Data Sync: CRM to sheet</td>
+                <td className="px-4 py-3"><span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Active</span></td>
+                <td className="px-4 py-3 text-gray-500">2024-03-25</td>
+                <td className="px-4 py-3 text-right"><button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="h-4 w-4" /></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
     </div>
   );
 }

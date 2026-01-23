@@ -122,15 +122,7 @@ export default function FirstLoginPage() {
                                 <p className="text-xs text-muted-foreground">メールに届いた6桁の数字を入力してください。</p>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="fullName">氏名</Label>
-                                <Input
-                                    id="fullName"
-                                    name="fullName"
-                                    placeholder="山田 太郎"
-                                    required
-                                />
-                            </div>
+
 
                             <div className="space-y-2">
                                 <Label htmlFor="password">新しいパスワード</Label>

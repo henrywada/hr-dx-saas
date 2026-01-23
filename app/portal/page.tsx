@@ -54,7 +54,7 @@ export default async function PortalPage() {
 
     // ★修正ポイント1: 'developer' (SaaS管理者) も管理画面ボタンを表示できるようにする
     // admin, manager, developer のいずれかならOKとする
-    const canAccessDashboard = employee && ["admin", "manager", "developer"].includes(employee.role);
+    const canAccessDashboard = employee && ["admin", "manager", "developer"].includes(employee.app_role);
 
     // ★修正ポイント2: ユーザー名が取得できない場合のフォールバックを強化
     const userName = employee?.name || user.email || "Unknown User";
@@ -131,6 +131,13 @@ export default async function PortalPage() {
                                 </Link>
                             </Button>
                         )}
+
+                        <Button asChild variant="ghost" size="sm" className="gap-2 h-9">
+                            <Link href="/portal/settings">
+                                <Settings className="h-4 w-4" />
+                                アカウント設定
+                            </Link>
+                        </Button>
                     </div>
                 </div>
             </header>

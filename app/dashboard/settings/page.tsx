@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings } from "lucide-react";
+import PasswordUpdateForm from "@/components/auth/password-update-form";
 
 export default function SettingsPage() {
     return (
@@ -10,18 +11,20 @@ export default function SettingsPage() {
                     アカウントとシステムの基本設定を管理します。
                 </p>
             </div>
+
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Settings className="h-5 w-5 text-muted-foreground" />
-                        <CardTitle>設定メニューを選択してください</CardTitle>
+                        <CardTitle>パスワード設定</CardTitle>
                     </div>
+                    <CardDescription>
+                        ログイン用のパスワードを設定・変更します。<br />
+                        招待メールからログインした方は、こちらでパスワードを設定してください。
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <CardDescription>
-                        左側のメニューから設定項目を選択してください。<br />
-                        現在は『部署・組織構成』が利用可能です。
-                    </CardDescription>
+                    <PasswordUpdateForm />
                 </CardContent>
             </Card>
         </div>

@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Building2, Users, UserPlus, ShieldCheck, Briefcase } from "lucide-react";
+import { UserPlus } from "lucide-react";
+import TokenHandler from "./_components/token-handler";
 
 export default async function LoginPage({
     searchParams,
@@ -19,6 +20,7 @@ export default async function LoginPage({
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+            <TokenHandler />
             <div className="flex flex-col gap-6 w-full max-w-md">
 
                 {/* 1. メインログインフォーム */}
@@ -68,7 +70,7 @@ export default async function LoginPage({
 
                         <div className="mt-6 flex flex-col gap-4 text-center text-sm">
                             <Link
-                                href="/forgot-password"
+                                href="/auth/forgot-password"
                                 className="text-gray-500 hover:text-gray-800 hover:underline transition-colors"
                             >
                                 パスワードを忘れた方はこちら
@@ -94,38 +96,7 @@ export default async function LoginPage({
                     </CardContent>
                 </Card>
 
-                {/* 2. 開発・動作確認用メニュー */}
-                <Card className="w-full shadow-sm border-dashed border-2 bg-gray-50/50">
-                    <CardHeader className="py-4">
-                        <CardTitle className="text-sm font-semibold text-gray-500 flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4" />
-                            開発者・管理者用メニュー
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-4 grid grid-cols-2 gap-3">
-                        {/* 開発者用: 会社登録 */}
-                        <Button variant="secondary" className="h-auto py-3 flex flex-col gap-1 bg-white hover:bg-gray-100 border col-span-2" asChild>
-                            <Link href="/developer/companies/add">
-                                <Briefcase className="h-5 w-5 text-purple-600" />
-                                <span className="text-xs font-medium">【開発者用】会社登録<br />(Register Company)</span>
-                            </Link>
-                        </Button>
 
-                        {/* 管理者用ショートカット */}
-                        <Button variant="secondary" className="h-auto py-3 flex flex-col gap-1 bg-white hover:bg-gray-100 border" asChild>
-                            <Link href="/dashboard/divisions">
-                                <Building2 className="h-5 w-5 text-blue-600" />
-                                <span className="text-xs font-medium">所属の登録<br />(Divisions)</span>
-                            </Link>
-                        </Button>
-                        <Button variant="secondary" className="h-auto py-3 flex flex-col gap-1 bg-white hover:bg-gray-100 border" asChild>
-                            <Link href="/dashboard/employees">
-                                <Users className="h-5 w-5 text-green-600" />
-                                <span className="text-xs font-medium">従業員管理<br />(Employees)</span>
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
 
             </div>
         </div>

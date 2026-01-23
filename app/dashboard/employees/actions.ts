@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 
 export async function createEmployee(prevState: any, formData: FormData) {
     const supabase = await createClient();
+    const adminSupabase = createAdminClient();
     
     // 1. 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
@@ -18,7 +19,11 @@ export async function createEmployee(prevState: any, formData: FormData) {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const role = formData.get("role") as string;
-    // division_id もフォームから来る場合があるが、まずは基本情報を登録
+    const divisionId = formData.get("division_id") as string; // フォームから部署IDを取得
+
+    if (!name || !email || !role) {
+        return { error: "必須項目が入力されていません。" };
+    }
     
     // 3. テナントID取得 (操作ユーザーの所属から)
     const { data: operator } = await supabase
@@ -29,20 +34,61 @@ export async function createEmployee(prevState: any, formData: FormData) {
         
     if (!operator?.tenant_id) return { error: "所属テナント不明" };
 
-    // 4. DB登録 (employeesテーブル)
-    // ※ idはAuthユーザー作成後に紐付けるのが一般的ですが、
-    // 簡易実装として、まずはemployeesテーブルにレコードを作る処理とします。
-    // Authユーザー作成が含まれていない場合は、別途対応が必要ですが、
-    // まずはエラーを消すために DB insert を試みます。
-    // もし employees.id が uuid references auth.users なら、
-    // 本来は admin.createUser が先ですが、ここでは簡易的にinsertを試みます。
-    // エラーになる場合は { error: "システム管理者に連絡してください" } を返します。
+    try {
+        // 4. Authユーザーの作成（招待メール送信）
+        // リダイレクトURLの決定
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const siteUrl = isDevelopment 
+            ? 'http://localhost:3000' 
+            : (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000');
+        
+        // 招待メールのリンク先: パスワード設定画面やポータルなど。
+        // ここでは開発環境の挙動を安定させるため、会社登録時と同様の形式を採用します。
+        // 必要に応じて ?next=/portal 等を追加してください。
+        const redirectUrl = `${siteUrl}/auth/callback?next=/portal`;
 
-    /* 重要: ここでは一旦、エラーを返さずにコンパイルを通すためのスタブ（枠組み）でも構いませんが、
-      可能であれば有効な実装にしてください。
-    */
-    
-    return { success: true, message: "処理を受け付けました" };
+        const { data: authUser, error: authError } = await adminSupabase.auth.admin.inviteUserByEmail(
+            email,
+            {
+                data: {
+                    tenant_id: operator.tenant_id
+                },
+                redirectTo: redirectUrl
+            }
+        );
+
+        if (authError) {
+            console.error("Invite Error:", authError);
+            return { error: "招待メールの送信に失敗しました: " + authError.message };
+        }
+        
+        if (!authUser.user) throw new Error("ユーザーが作成されませんでした");
+
+        // 5. DB登録 (employeesテーブル)
+        const { error: insertError } = await adminSupabase
+            .from("employees")
+            .insert({
+                id: authUser.user.id, // AuthユーザーIDと紐付け
+                tenant_id: operator.tenant_id,
+                name: name,
+                // email: email, // メールアドレスはAuth側で管理するため、employeesテーブルにemailカラムがあるか要確認。なければコメントアウト
+                role: role,
+                division_id: divisionId || null
+            });
+
+        if (insertError) {
+            console.error("DB Insert Error:", insertError);
+            // 補償トランザクション（Authユーザー削除など）が必要な場合もあるが、まずはエラー通知
+            return { error: "従業員データの作成に失敗しました: " + insertError.message };
+        }
+
+    } catch (e: any) {
+        console.error(e);
+        return { error: e.message };
+    }
+
+    revalidatePath("/dashboard/employees");
+    return { success: true, message: "招待メールを送信しました" };
 }
 
 // ▼▼ 追加: 所属部署の更新機能 ▼▼

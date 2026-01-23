@@ -22,7 +22,8 @@ export async function sendOtp(formData: FormData): Promise<State> {
     const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-            shouldCreateUser: false, 
+            shouldCreateUser: false,
+            emailRedirectTo: 'http://localhost:3000/signup',
         },
     });
 
@@ -45,20 +46,52 @@ export async function verifyAndRegister(formData: FormData): Promise<State> {
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
 
-    if (!otp || !password || !fullName) {
-        return { error: "すべての項目を入力してください。" };
-    }
+    // A. OTP検証またはセッション確認
+    let session = null;
+    let verifyError = null;
 
-    // A. OTP検証 (これでセッションが確立されます)
-    const { data: { session }, error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email',
-    });
+    // 既にログイン済み（リンク踏破など）かチェック
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (verifyError || !session) {
-        console.error("OTP Verify Error:", verifyError);
-        return { error: "認証コードが正しくないか、有効期限が切れています。" };
+    if (user) {
+        // ログイン済みならOTP検証はスキップ
+        session = { user }; // 簡易的なセッションオブジェクト
+    } else {
+        // 未ログインなら、複数のTypeを試行するロジックを実行
+        if (!otp) return { error: "認証コードを入力してください。" }; // OTP必須
+
+        // 1. まず 'invite' (招待) で試行
+        // ※ リンクを踏まずにコード入力する場合、招待状態であれば type: 'invite' が正解
+        const { data: d1, error: e1 } = await supabase.auth.verifyOtp({
+            email, token: otp, type: 'invite',
+        });
+        if (!e1 && d1.session) {
+            session = d1.session;
+        } else {
+            // 2. 失敗したら 'signup' (新規登録) で試行
+            // ※ 自分自身で登録フローを開始した場合はこちら
+            const { data: d2, error: e2 } = await supabase.auth.verifyOtp({
+                email, token: otp, type: 'signup',
+            });
+            if (!e2 && d2.session) {
+                session = d2.session;
+            } else {
+                // 3. それでもだめなら 'email' (マジックリンク/ログイン) で試行
+                const { data: d3, error: e3 } = await supabase.auth.verifyOtp({
+                    email, token: otp, type: 'email',
+                });
+                if (!e3 && d3.session) {
+                    session = d3.session;
+                } else {
+                    verifyError = e1 || e2 || e3;
+                }
+            }
+        }
+
+        if (!session) {
+            console.error("OTP Verify Error (All types failed)");
+            return { error: "認証コードが正しくないか、有効期限が切れています。" };
+        }
     }
 
     // B. パスワードの設定 (ログイン中なので自分のパスワードを更新できる)
@@ -130,5 +163,77 @@ export async function verifyAndRegister(formData: FormData): Promise<State> {
 
     // 成功したらリダイレクト（クライアント側でハンドリングするためここでは行わない、またはredirectを投げる）
     // Server Actions内でredirectするとtry-catchでキャッチできないことがあるため、成功フラグを返すパターンにします。
+    return { success: true };
+}
+
+// 3. (Magic Link用) 認証済みユーザーの登録完了処理
+// OTP検証を行わず、パスワード設定とプロフィール登録のみを行う
+export async function completeRegistration(formData: FormData): Promise<State> {
+    const supabase = await createClient();
+    
+    // 現在のセッションを確認
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+        return { error: "ログインセッションが見つかりません。招待メールのリンクから再度アクセスしてください。" };
+    }
+
+    const email = user.email || formData.get("email") as string;
+    const password = formData.get("password") as string;
+    // fullNameは必須ではない形に変更（初期値: emailのアカウント名 or 'Employee'）
+    let fullName = formData.get("fullName") as string;
+
+    if (!password) {
+        return { error: "パスワードを入力してください。" };
+    }
+
+    if (!fullName) {
+         fullName = email ? email.split('@')[0] : 'Employee';
+    }
+
+    // A. パスワードの設定
+    const { error: passwordError } = await supabase.auth.updateUser({
+        password: password
+    });
+
+    if (passwordError) {
+        return { error: "パスワードの設定に失敗しました: " + passwordError.message };
+    }
+
+    // B. 従業員テーブルへの登録
+    let tenantId = user.user_metadata?.tenant_id;
+
+    if (!tenantId) {
+        // フォールバック
+        const { data: existingEmp } = await supabase
+            .from("employees")
+            .select("tenant_id")
+            .eq("id", user.id)
+            .single();
+        
+        if (existingEmp) {
+            tenantId = existingEmp.tenant_id;
+        } else {
+            // デモ用
+             const { data: demoTenant } = await supabase.from("tenants").select("id").limit(1).single();
+             tenantId = demoTenant?.id;
+        }
+    }
+
+    const { error: dbError } = await supabase
+        .from("employees")
+        .upsert({
+            id: user.id,
+            tenant_id: tenantId,
+            name: fullName,
+            email: email, 
+            role: 'member',
+        });
+
+    if (dbError) {
+        console.error("DB Register Error:", dbError);
+        return { error: "従業員情報の登録に失敗しました。" };
+    }
+
     return { success: true };
 }

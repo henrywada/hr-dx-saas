@@ -52,9 +52,8 @@ export default async function PortalPage() {
         ? tenantData[0]?.name
         : tenantData?.name || "登録中の会社";
 
-    // ★修正ポイント1: 'developer' (SaaS管理者) も管理画面ボタンを表示できるようにする
-    // admin, manager, developer のいずれかならOKとする
-    const canAccessDashboard = employee && ["admin", "manager", "developer"].includes(employee.app_role);
+    // ★修正ポイント1: 'employee' 以外なら管理画面ボタンを表示する
+    const canAccessDashboard = employee && employee.app_role !== "employee";
 
     // ★修正ポイント2: ユーザー名が取得できない場合のフォールバックを強化
     const userName = employee?.name || user.email || "Unknown User";

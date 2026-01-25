@@ -26,6 +26,21 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // 3. ユーザーのロールを取得
+  let userRole = "";
+  try {
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("app_role")
+      .eq("id", user.id)
+      .single();
+    if (employee?.app_role) {
+      userRole = employee.app_role;
+    }
+  } catch (error) {
+    // ロール取得失敗時は通常ユーザー扱い（設定メニュー非表示など）
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* 1. ヘッダー */}
@@ -48,8 +63,8 @@ export default async function DashboardLayout({
         {/* 左サイドバー */}
         <aside className="hidden w-64 flex-col border-r bg-gray-50/50 md:flex">
           <div className="flex-1 overflow-y-auto py-4">
-            {/* ユーザーのメールアドレスをメニューに渡す */}
-            <DashboardNav className="px-4" email={user.email} />
+            {/* ユーザーのメールアドレスとロールをメニューに渡す */}
+            <DashboardNav className="px-4" email={user.email} role={userRole} />
           </div>
         </aside>
 

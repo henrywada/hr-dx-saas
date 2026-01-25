@@ -20,13 +20,13 @@ export async function login(formData: FormData) {
     email,
     password,
   });
-  // ... (エラーチェック)
-
-  // adminSupabaseを使って、管理者しかできない「ユーザー一覧の取得」を試みます
-
-  // ... (以下、元のemployees取得処理へ)
 
   if (error) {
+    console.error(">>> [Auth Error]", {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+    });
     return redirect(
       "/login?error=" +
         encodeURIComponent("メールアドレスまたはパスワードが間違っています。") +

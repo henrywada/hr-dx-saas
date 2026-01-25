@@ -15,7 +15,10 @@ import {
     ShieldAlert, // アイコン追加推奨
 } from "lucide-react";
 
-// メニュー項目のデータ（ここはそのまま）
+// 許可されるロール定義
+const SETTINGS_ALLOWED_ROLES = ["hr_manager", "hr", "developer", "test"];
+
+// メニュー項目のデータ
 const items = [
     {
         title: "Home",
@@ -51,14 +54,15 @@ const items = [
         title: "設定（Settings）",
         href: "/dashboard/settings",
         icon: Settings,
+        allowedRoles: SETTINGS_ALLOWED_ROLES, // ★ロール制限を追加
     },
     // ★重要：管理者メニュー
     {
         title: "【SaaS開発者用】",
         href: "/developer/companies",
-        icon: ShieldAlert, // Zapから変更すると分かりやすいです
+        icon: ShieldAlert, 
         separator: true,
-        adminOnly: true, // ★目印（フラグ）をつけます
+        adminOnly: true, 
     },
     {
         title: "ポータルへ戻る",
@@ -68,25 +72,38 @@ const items = [
     },
 ];
 
-// 型定義に email を追加
+// 型定義に email と role を追加
 interface DashboardNavProps {
     className?: string;
     setOpen?: (open: boolean) => void;
-    email?: string; // ★追加
+    email?: string;
+    role?: string; // ★追加
 }
 
 // 管理者のメールアドレス（layout.tsxと同じものにする）
 const ALLOWED_ADMIN_EMAIL = "wada007@gmail.com";
 
-export function DashboardNav({ className, setOpen, email }: DashboardNavProps) {
+export function DashboardNav({ className, setOpen, email, role }: DashboardNavProps) {
     const pathname = usePathname();
 
-    // ★フィルタリング処理：管理者以外なら adminOnly の項目を除外
+    // ★フィルタリング処理
     const filteredItems = items.filter((item) => {
-        // @ts-ignore (adminOnlyプロパティが型定義にないので一時的に無視、またはanyにする)
+        // 1. 管理者限定メニューのチェック
+        // @ts-ignore
         if (item.adminOnly) {
             return email === ALLOWED_ADMIN_EMAIL;
         }
+
+        // 2. ロール制限のあるメニューのチェック
+        // @ts-ignore
+        if (item.allowedRoles) {
+            // roleが無い、または許可リストに含まれていない場合は非表示
+            // @ts-ignore
+            if (!role || !item.allowedRoles.includes(role)) {
+                return false;
+            }
+        }
+
         return true;
     });
 
@@ -96,7 +113,6 @@ export function DashboardNav({ className, setOpen, email }: DashboardNavProps) {
 
     return (
         <nav className={cn("grid items-start gap-1 py-2", className)}>
-            {/* ★ items.map ではなく filteredItems.map を使う */}
             {filteredItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;

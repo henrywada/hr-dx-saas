@@ -4,9 +4,25 @@ import {
   Activity,
   Users,
   MoreHorizontal,
-  Building2, // 会社アイコン
-  User       // ユーザーアイコン
+  Building2,
+  User,
+  Settings
 } from "lucide-react";
+import Link from "next/link";
+
+const ROLE_MAP: Record<string, string> = {
+  employee: "従業員",
+  hr_manager: "人事マネージャー",
+  hr: "人事",
+  boss: "上司",
+  company_doctor: "産業医",
+  company_nurse: "保健師",
+  hsc: "安全衛生委員",
+  developer: "開発者",
+  test: "system tester",
+};
+
+const SETTINGS_ALLOWED_ROLES = ["hr_manager", "hr", "developer", "test"];
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -14,18 +30,20 @@ export default async function DashboardPage() {
 
   let userName = "ゲスト";
   let tenantName = "未所属";
+  let userRole = "";
 
   if (user) {
     userName = user.email || "ゲスト";
     try {
       const { data: employee } = await supabase
         .from("employees")
-        .select("name, tenant_id")
+        .select("name, tenant_id, app_role")
         .eq("id", user.id)
         .single();
 
       if (employee) {
         if (employee.name) userName = employee.name;
+        if (employee.app_role) userRole = employee.app_role;
         if (employee.tenant_id) {
           const { data: tenant } = await supabase
             .from("tenants")
@@ -43,25 +61,43 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 space-y-8">
 
-      {/* ▼▼ 修正エリア：会社名・ユーザー名表示 ▼▼ */}
-      {/* 横並び(flex)、アイコン付き、通常フォント、下線削除 */}
-      <div className="flex items-center gap-4 text-gray-600">
+      {/* ▼▼ 修正エリア：会社名・ユーザー名表示・設定ボタン ▼▼ */}
+      <div className="flex items-center justify-between text-gray-600">
+        <div className="flex items-center gap-4">
+          
+          {/* 会社名 */}
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium">{tenantName}</span>
+          </div>
 
-        {/* 会社名 */}
-        <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium">{tenantName}</span>
+          {/* 区切り */}
+          <span className="text-gray-300">|</span>
+
+          {/* ユーザー名 + ロール */}
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-gray-500" />
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-medium">{userName}</span>
+              {userRole && (
+                <span className="text-xs text-gray-500">
+                  【 {ROLE_MAP[userRole] || userRole} 】
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* 区切り（パイプ） */}
-        <span className="text-gray-300">|</span>
-
-        {/* ユーザー名 */}
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium">{userName}</span>
-        </div>
-
+        {/* 設定ボタン (権限がある場合のみ) */}
+        {SETTINGS_ALLOWED_ROLES.includes(userRole) && (
+          <Link 
+            href="/dashboard/settings" 
+            className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm"
+          >
+            <Settings className="h-4 w-4" />
+            <span>設定 (Settings)</span>
+          </Link>
+        )}
       </div>
       {/* ▲▲ 修正エリア終了 ▲▲ */}
 

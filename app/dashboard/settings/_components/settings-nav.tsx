@@ -7,7 +7,6 @@ import {
     Settings,
     Building2,
     UserPlus,
-    LayoutDashboard,
 } from "lucide-react"
 
 const items = [
@@ -26,12 +25,6 @@ const items = [
         href: "/dashboard/settings/employees",
         icon: UserPlus,
     },
-    {
-        title: "管理TOPへ戻る",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-        separator: true,
-    },
 ]
 
 export function SettingsNav() {
@@ -44,8 +37,6 @@ export function SettingsNav() {
 
                 return (
                     <div key={index}>
-                        {item.separator && <div className="my-2 border-t border-gray-200" />}
-
                         <Link
                             href={item.href}
                             className={cn(

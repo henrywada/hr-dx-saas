@@ -2,8 +2,11 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { EmployeeManager } from "./_components/employee-manager";
 
+import { createAdminClient } from "@/utils/supabase/admin";
+
 export default async function EmployeesPage() {
     const supabase = await createClient();
+    const adminSupabase = createAdminClient();
 
     const {
         data: { user },
@@ -38,9 +41,25 @@ export default async function EmployeesPage() {
             .order("name", { ascending: true })
     ]);
 
+    // Authユーザー一覧を取得してメールアドレスを結合
+    const { data: { users }, error: usersError } = await adminSupabase.auth.admin.listUsers();
+    
+    if (usersError) {
+        console.error("Failed to fetch auth users:", usersError);
+    }
+
+    const employeesWithEmail = (employeesResult.data || []).map(emp => {
+        const authUser = users?.find(u => u.id === emp.id);
+        return {
+            ...emp,
+            email: authUser?.email || emp.email || "メール不明", // Authのメールを優先、なければDBのメール、それもなければエラー表示
+            last_sign_in_at: authUser?.last_sign_in_at || null,
+        };
+    });
+
     return (
         <EmployeeManager
-            employees={employeesResult.data || []}
+            employees={employeesWithEmail}
             divisions={divisionsResult.data || []}
         />
     );

@@ -9,6 +9,7 @@ import { DashboardNav } from "./_components/dashboard-nav";
 
 import { Russo_One } from "next/font/google";
 import Link from "next/link";
+import { VersionFooter } from "@/components/version-footer";
 
 const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });
 
@@ -72,6 +73,7 @@ export default async function DashboardLayout({
         <main className="flex-1 overflow-y-auto bg-white p-6 md:p-8">
           <div className="mx-auto w-full max-w-full">
             {children}
+            <VersionFooter />
           </div>
         </main>
       </div>

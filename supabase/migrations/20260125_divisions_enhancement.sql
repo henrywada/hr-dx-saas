@@ -24,8 +24,9 @@ END $$;
 COMMENT ON COLUMN divisions.layer IS 'レイヤーの深さ (1～10)';
 
 -- 3. code列のユニーク制約（tenant_id毎）
-CREATE UNIQUE INDEX IF NOT EXISTS idx_divisions_tenant_code 
-ON divisions(tenant_id, code);
+-- CREATE UNIQUE INDEX IF NOT EXISTS idx_divisions_tenant_code 
+-- ON divisions(tenant_id, code);
+
 
 COMMENT ON COLUMN divisions.code IS '部署コード（テナント内で一意）';
 

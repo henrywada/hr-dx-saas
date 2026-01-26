@@ -2,7 +2,7 @@
 import { deleteEmployee } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Edit, Trash2, Building2, Mail, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Edit, Trash2, Building2, Mail, Plus, ChevronDown, ChevronRight, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { EmployeeDialog } from "./employee-dialog";
 
@@ -21,6 +21,7 @@ type Employee = {
     app_role: string;
     division_id: string | null;
     created_at: string;
+    last_sign_in_at: string | null;
 };
 
 interface EmployeeManagerProps {
@@ -186,11 +187,24 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                                 className="flex items-center justify-between gap-4 p-2 hover:bg-gray-50 rounded transition-all"
                             >
                                 <div className="flex items-center gap-6 flex-1 min-w-0">
-                                    <div className="w-40 text-sm truncate">
-                                        {emp.name}
-                                    </div>
-                                    <div className="flex-1 text-xs text-gray-500 truncate">
-                                        {emp.email}
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        {emp.last_sign_in_at ? (
+                                            <div title={`最終アクセス: ${new Date(emp.last_sign_in_at).toLocaleDateString()}`}>
+                                                <UserCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                                            </div>
+                                        ) : (
+                                            <div title="未アクセス">
+                                                <Users className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                                            </div>
+                                        )}
+                                        <div className="text-sm truncate">
+                                            {emp.name}
+                                            {emp.email && (
+                                                <span className="ml-2 text-xs text-gray-500">
+                                                    ({emp.email})
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="w-32 text-xs text-gray-600 text-right">
                                         {ROLE_LABELS[emp.app_role] || emp.app_role}
@@ -235,6 +249,8 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
         );
     };
 
+    const unaccessedCount = employees.filter(e => !e.last_sign_in_at).length;
+
     return (
         <div className="space-y-6">
             {/* ヘッダー */}
@@ -248,6 +264,11 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                             </CardTitle>
                             <CardDescription>
                                 {employees.length}名の従業員が登録されています
+                                {unaccessedCount > 0 && (
+                                    <span className="ml-2 text-gray-500">
+                                        （うち未アクセス：<span className="text-red-500 font-medium">{unaccessedCount}名</span>）
+                                    </span>
+                                )}
                             </CardDescription>
                         </div>
                         <EmployeeDialog
@@ -291,11 +312,24 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                                                 className="flex items-center justify-between gap-4 p-2 hover:bg-gray-50 rounded transition-all"
                                             >
                                                 <div className="flex items-center gap-6 flex-1 min-w-0">
-                                                    <div className="w-40 text-sm truncate">
-                                                        {emp.name}
-                                                    </div>
-                                                    <div className="flex-1 text-xs text-gray-500 truncate">
-                                                        {emp.email}
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                        {emp.last_sign_in_at ? (
+                                                            <div title={`最終アクセス: ${new Date(emp.last_sign_in_at).toLocaleDateString()}`}>
+                                                                <UserCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                                                            </div>
+                                                        ) : (
+                                                            <div title="未アクセス">
+                                                                <Users className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                                                            </div>
+                                                        )}
+                                                        <div className="text-sm truncate">
+                                                            {emp.name}
+                                                            {emp.email && (
+                                                                <span className="ml-2 text-xs text-gray-500">
+                                                                    ({emp.email})
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="w-32 text-xs text-gray-600 text-right">
                                                         {ROLE_LABELS[emp.app_role] || emp.app_role}

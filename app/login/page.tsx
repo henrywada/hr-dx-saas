@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
 import TokenHandler from "./_components/token-handler";
+import { VersionFooter } from "@/components/version-footer";
 
 export default async function LoginPage({
     searchParams,
@@ -75,29 +75,13 @@ export default async function LoginPage({
                             >
                                 パスワードを忘れた方はこちら
                             </Link>
-
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-background px-2 text-muted-foreground">または</span>
-                                </div>
-                            </div>
-
-                            {/* 従業員用：アカウント有効化リンク */}
-                            <Button asChild variant="outline" className="w-full border-orange-200 text-orange-700 hover:bg-orange-50">
-                                <Link href="/signup">
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    アカウント新規登録（招待された方）
-                                </Link>
-                            </Button>
                         </div>
                     </CardContent>
                 </Card>
 
 
 
+                <VersionFooter />
             </div>
         </div>
     );

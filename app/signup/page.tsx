@@ -79,14 +79,14 @@ export default function Signup() {
             if (updateError) {
                 if (updateError.message.includes("different from the old password")) {
                     console.log("重複エラーを無視して進行します")
-                    router.push('/portal')
+                    router.push('/login')
                     return
                 }
                 throw updateError
             }
 
-            // 3. 成功したらポータルへ
-            router.push('/portal')
+            // 3. 成功したらログイン画面へ
+            router.push('/login')
 
         } catch (err: any) {
             console.error(err)

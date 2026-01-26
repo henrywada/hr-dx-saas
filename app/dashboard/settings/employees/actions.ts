@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { createEmployeeUser } from "@/utils/employee";
 
 export async function createEmployee(prevState: any, formData: FormData) {
     const supabase = await createClient();
@@ -34,72 +35,15 @@ export async function createEmployee(prevState: any, formData: FormData) {
         : (divisionId || null);
 
     try {
-        const generatePassword = () => {
-            const chars =
-                "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-            let password = "";
-            for (let i = 0; i < 12; i++) {
-                password += chars.charAt(
-                    Math.floor(Math.random() * chars.length),
-                );
-            }
-            return password;
-        };
-
-        const tempPassword = generatePassword();
-
-        const { data: authUser, error: authError } = await adminSupabase.auth
-            .admin.createUser({
-                email: email,
-                password: tempPassword,
-                email_confirm: true,
-                user_metadata: {
-                    tenant_id: operator.tenant_id,
-                },
-            });
-
-        if (authError) {
-            console.error("Create User Error:", authError);
-            return {
-                error: "ユーザーの作成に失敗しました: " + authError.message,
-            };
-        }
-
-        if (!authUser.user) throw new Error("ユーザーが作成されませんでした");
-
-        const { error: insertError } = await adminSupabase
-            .from("employees")
-            .insert({
-                id: authUser.user.id,
-                tenant_id: operator.tenant_id,
-                name: name,
-                app_role: role,
-                division_id: finalDivisionId,
-            });
-
-        if (insertError) {
-            console.error("DB Insert Error:", insertError);
-            return {
-                error: "従業員データの作成に失敗しました: " +
-                    insertError.message,
-            };
-        }
-
-        const isDevelopment = process.env.NODE_ENV === "development";
-        const siteUrl = isDevelopment
-            ? "http://localhost:3000"
-            : (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
-
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        // 従業員の作成
+        await createEmployeeUser(
+            adminSupabase,
             email,
-            {
-                redirectTo: `${siteUrl}/auth/update-password`,
-            },
+            name,
+            operator.tenant_id,
+            role,
+            finalDivisionId,
         );
-
-        if (resetError) {
-            console.error("Reset Password Email Error:", resetError);
-        }
     } catch (e: any) {
         console.error(e);
         return { error: e.message };
@@ -108,7 +52,7 @@ export async function createEmployee(prevState: any, formData: FormData) {
     revalidatePath("/dashboard/settings/employees");
     return {
         success: true,
-        message: "従業員を登録し、パスワード設定メールを送信しました。",
+        message: "従業員を登録し、招待メールを送信しました。",
     };
 }
 

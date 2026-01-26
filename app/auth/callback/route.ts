@@ -4,7 +4,11 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/portal";
+  const type = requestUrl.searchParams.get("type");
+
+  // 招待リンクの場合は /signup へ、それ以外は /portal へ
+  const defaultNext = type === "invite" ? "/signup" : "/portal";
+  const next = requestUrl.searchParams.get("next") ?? defaultNext;
 
   if (code) {
     const supabase = await createClient();

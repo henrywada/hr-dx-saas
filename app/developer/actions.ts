@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { redirect } from "next/navigation";
+import { createEmployeeUser } from "@/utils/employee";
 
 export type State = {
     error?: string;
@@ -65,39 +66,15 @@ export async function registerCompany(
             });
         }
 
-        // 4. Authユーザーの作成（招待メール送信）
-        const { data: authUser, error: authError } = await adminSupabase.auth
-            .admin.inviteUserByEmail(
-                adminEmail,
-                {
-                    data: {
-                        tenant_id: tenant.id,
-                    },
-                    // マジックリンクの最終リダイレクト先を /signup に固定
-                    redirectTo: `http://localhost:3000/signup?email=${
-                        encodeURIComponent(adminEmail)
-                    }&fullName=${encodeURIComponent(adminName)}`,
-                },
-            );
-
-        if (authError) {
-            throw new Error("招待メールの送信に失敗: " + authError.message);
-        }
-        if (!authUser.user) throw new Error("ユーザーが作成されませんでした");
-
-        // 5. Employeesテーブルへの登録
-        const { error: empError } = await adminSupabase
-            .from("employees")
-            .insert({
-                id: authUser.user.id,
-                tenant_id: tenant.id,
-                name: adminName,
-                app_role: "hr_manager", // 最初の契約者は人事マネージャー権限とする
-            });
-
-        if (empError) {
-            throw new Error("従業員データの作成に失敗: " + empError.message);
-        }
+        // 4. 契約者（管理者）の作成
+        await createEmployeeUser(
+            adminSupabase,
+            adminEmail,
+            adminName,
+            tenant.id,
+            "hr_manager", // 契約者は人事マネージャー権限
+            null, // 所属部署なし
+        );
 
         return {
             success: true,

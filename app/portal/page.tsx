@@ -1,235 +1,218 @@
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users, Heart, Briefcase, Zap, Settings, LogOut, Building2, User } from "lucide-react";
+import { getPortalMenuData, PortalService } from "@/utils/portal-actions";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { logout } from "@/app/auth/actions";
-import { Russo_One } from "next/font/google";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Users,
+  Activity,
+  GraduationCap,
+  Zap,
+  Headphones,
+  Briefcase,
+  Heart,
+  Building2,
+  User,
+  Star,
+  Mail,
+  FileText,
+  ShieldCheck,
+  Award,
+  TrendingUp,
+  Smile,
+  Globe,
+  Anchor,
+  Coffee,
+  Sun,
+  Umbrella,
+  ShoppingBag,
+  Bell,
+  CheckCircle2
+} from "lucide-react";
 
-const logoFont = Russo_One({ weight: "400", subsets: ["latin"] });
+// 1. Icon Mapping for "Category" (Header Icons)
+const categoryIconMap: { [key: string]: any } = {
+  "人事・採用支援": Users,
+  "組織の健康度測定・早期対応": Activity,
+  "人材育成・リスキリング": GraduationCap,
+  "業務自動化・生産性向上": Zap,
+  "顧客対応・営業支援": Headphones,
+  "健康経営": Heart,
+  "業務支援": Briefcase,
+  "チームビルディング": Users,
+  "生産性向上": Zap,
+};
+
+// 2. Random Icon List
+const randomIcons = [
+  ShoppingBag, Zap, Activity, Users, Star, ShieldCheck, Award, TrendingUp, Smile, Globe, Anchor, Coffee, Sun, Umbrella, Bell
+];
+
+// 3. Color Palettes
+const colorPalettes = [
+  { border: "border-l-orange-500", hoverBorder: "hover:border-orange-500", text: "text-orange-600", bg: "bg-orange-50", badge: "bg-orange-100 text-orange-700" },
+  { border: "border-l-blue-500", hoverBorder: "hover:border-blue-500", text: "text-blue-600", bg: "bg-blue-50", badge: "bg-blue-100 text-blue-700" },
+  { border: "border-l-green-500", hoverBorder: "hover:border-green-500", text: "text-green-600", bg: "bg-green-50", badge: "bg-green-100 text-green-700" },
+  { border: "border-l-rose-500", hoverBorder: "hover:border-rose-500", text: "text-rose-600", bg: "bg-rose-50", badge: "bg-rose-100 text-rose-700" },
+  { border: "border-l-purple-500", hoverBorder: "hover:border-purple-500", text: "text-purple-600", bg: "bg-purple-50", badge: "bg-purple-100 text-purple-700" },
+  { border: "border-l-cyan-500", hoverBorder: "hover:border-cyan-500", text: "text-cyan-600", bg: "bg-cyan-50", badge: "bg-cyan-100 text-cyan-700" },
+  { border: "border-l-indigo-500", hoverBorder: "hover:border-indigo-500", text: "text-indigo-600", bg: "bg-indigo-50", badge: "bg-indigo-100 text-indigo-700" },
+];
+
+const DefaultIcon = Star;
+
+function getHash(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+}
+
+function getStyleForService(serviceName: string) {
+  const hash = Math.abs(getHash(serviceName));
+  const palette = colorPalettes[hash % colorPalettes.length];
+  const icon = randomIcons[hash % randomIcons.length];
+  return { palette, Icon: icon };
+}
 
 export default async function PortalPage() {
-    const supabase = await createClient();
+  const supabase = await createClient();
 
-    // 1. 認証チェック
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser();
+  // 1. Auth & User Info
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-        redirect("/login");
-    }
+  if (!user) return null; 
 
-    // 2. 権限チェック
-    const { data: employee, error: empError } = await supabase
-        .from("employees")
-        .select(`
-      *,
+  const { data: employee } = await supabase
+    .from("employees")
+    .select(`
+      name,
       tenants (
         name
       )
     `)
-        .eq("id", user.id)
-        .single();
+    .eq("id", user.id)
+    .single();
 
-    if (empError) {
-        console.error("Portal Data Fetch Error:", empError);
-    }
+  // @ts-ignore
+  const tenantData = employee?.tenants as any;
+  const companyName = Array.isArray(tenantData)
+    ? tenantData[0]?.name
+    : tenantData?.name || "登録中の会社";
 
-    // 会社名の取得
-    // @ts-ignore
-    const tenantData = employee?.tenants;
-    const companyName = Array.isArray(tenantData)
-        ? tenantData[0]?.name
-        : tenantData?.name || "登録中の会社";
+  const userName = employee?.name || user.email || "Unknown User";
 
-    // ★修正ポイント1: 'employee' 以外なら管理画面ボタンを表示する
-    const canAccessDashboard = employee && employee.app_role !== "employee";
+  // 2. Fetch Menu Data
+  const categories = await getPortalMenuData();
 
-    // ★修正ポイント2: ユーザー名が取得できない場合のフォールバックを強化
-    const userName = employee?.name || user.email || "Unknown User";
-
-    // カードデータ定義
-    const services = [
-        {
-            title: "健康経営",
-            description: "労務リスク検知・メンタルヘルス Agent。従業員の心身の状態を継続的にモニタリングし、早期のアラート発信やケアプランの提案を行います。",
-            badge: "Well-Being",
-            icon: Heart,
-            color: "text-rose-600",
-            borderColor: "border-l-rose-500",
-            hoverBorderColor: "hover:border-rose-500",
-            badgeVariant: "bg-rose-50 text-rose-600 hover:bg-rose-50 border-none",
-        },
-        {
-            title: "業務支援",
-            description: "入社オンボーディング & SOP化 Agent。煩雑な入社手続きの自動化や、業務プロセスの標準化・マニュアル化を支援します。",
-            badge: "Work Support",
-            icon: Briefcase,
-            color: "text-blue-600",
-            borderColor: "border-l-blue-500",
-            hoverBorderColor: "hover:border-blue-500",
-            badgeVariant: "bg-blue-50 text-blue-600 hover:bg-blue-50 border-none",
-        },
-        {
-            title: "チームビルディング",
-            description: "採用スカウト特化型 Agent。組織のカルチャーにマッチした人材の発掘から、チーム編成の最適化までをサポートします。",
-            badge: "Team Building",
-            icon: Users,
-            color: "text-green-600",
-            borderColor: "border-l-green-500",
-            hoverBorderColor: "hover:border-green-500",
-            badgeVariant: "bg-green-50 text-green-600 hover:bg-green-50 border-none",
-        },
-        {
-            title: "生産性向上",
-            description: "業務効率化 Agent。日常の定型業務をAIが代行・効率化し、従業員がより創造的な業務に集中できる環境を整えます。",
-            badge: "Work Efficiency",
-            icon: Zap,
-            color: "text-orange-600",
-            borderColor: "border-l-orange-500",
-            hoverBorderColor: "hover:border-orange-500",
-            badgeVariant: "bg-orange-50 text-orange-600 hover:bg-orange-50 border-none",
-        },
-    ];
-
-    return (
-        <div className="min-h-screen bg-gray-50/50">
-            {/* Header */}
-            <header className="bg-white border-b sticky top-0 z-10 w-full shadow-sm">
-                <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <div>
-                        <span className={`${logoFont.className} text-3xl md:text-4xl bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent drop-shadow-sm`}>
-                            HR-dx
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <form action={logout}>
-                            <Button variant="outline" size="sm" className="gap-2 h-9">
-                                <LogOut className="h-4 w-4" />
-                                ログアウト
-                            </Button>
-                        </form>
-
-                        {/* ★修正ポイント: canAccessDashboard フラグを使用 */}
-                        {canAccessDashboard && (
-                            <Button asChild variant="default" size="sm" className="gap-2 h-9 bg-gray-900 hover:bg-gray-800 text-white">
-                                <Link href="/dashboard">
-                                    <Settings className="h-4 w-4" />
-                                    管理画面へ
-                                </Link>
-                            </Button>
-                        )}
-
-                        <Button asChild variant="ghost" size="sm" className="gap-2 h-9">
-                            <Link href="/portal/settings">
-                                <Settings className="h-4 w-4" />
-                                アカウント設定
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="container mx-auto px-6 py-8">
-
-                <div className="max-w-6xl mx-auto">
-
-                    {/* Title Section */}
-                    <div className="mb-10 text-center md:text-left">
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                            人事DX ポータル
-                        </h1>
-                        <p className="text-muted-foreground mt-2 text-lg">
-                            組織を強くするための統合プラットフォーム
-                        </p>
-
-                        {/* User Info Display */}
-                        <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-4">
-                            <div className="flex items-center gap-1">
-                                <Building2 className="h-4 w-4" />
-                                <span className="font-medium text-gray-700">{companyName}</span>
-                            </div>
-                            <div className="text-gray-300">|</div>
-                            <div className="flex items-center gap-1">
-                                <User className="h-4 w-4" />
-                                <span>{userName}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Service Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {services.map((service) => (
-                            <Card
-                                key={service.title}
-                                className={cn(
-                                    "group relative shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden",
-                                    "border-0 border-l-4 border-solid",
-                                    "hover:border",
-                                    service.borderColor,
-                                    service.hoverBorderColor
-                                )}
-                            >
-                                <CardHeader className="pb-1">
-                                    <div className="flex items-start justify-between">
-                                        <CardTitle className="text-xl font-bold text-gray-900">
-                                            {service.title}
-                                        </CardTitle>
-                                        <div className={cn("p-2 rounded-lg bg-gray-50 group-hover:bg-gray-100 transition-colors", service.color)}>
-                                            <service.icon className="h-6 w-6" />
-                                        </div>
-                                    </div>
-                                </CardHeader>
-
-                                <CardContent className="pt-0">
-                                    <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                                        {service.description}
-                                    </CardDescription>
-
-                                    {service.title === "健康経営" && (
-                                        <div className="mt-4 flex items-center gap-3">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
-                                                asChild
-                                            >
-                                                <Link href="#">
-                                                    パルスサーベイ
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-rose-600 text-rose-600 bg-transparent hover:bg-rose-600 hover:text-white transition-all duration-300 shadow-sm"
-                                                asChild
-                                            >
-                                                <Link href="#">
-                                                    ストレスチェック
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                </div>
-
-            </main>
+  return (
+    <div className="space-y-4 animate-in fade-in duration-500">
+      
+      {/* Title / Welcome Section */}
+      <div className="text-center md:text-left pb-0">
+        <div className="text-sm text-muted-foreground flex items-center justify-center md:justify-start gap-4 mt-0">
+          <div className="flex items-center gap-1">
+            <Building2 className="h-4 w-4" />
+            <span className="font-medium text-gray-700">{companyName}</span>
+          </div>
+          <div className="text-gray-300">|</div>
+          <div className="flex items-center gap-1">
+            <User className="h-4 w-4" />
+            <span>{userName}</span>
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Render All Categories */}
+      {categories.length === 0 ? (
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">利用可能なサービスがありません。</p>
+        </div>
+      ) : (
+        <div className="space-y-12">
+          {categories.map((category) => {
+            const HeaderIcon = categoryIconMap[category.name] || DefaultIcon;
+
+            return (
+              <div key={category.id} className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2">
+                   <HeaderIcon className="h-6 w-6 text-gray-700" />
+                   <h2 className="text-xl font-bold text-gray-800">{category.name}</h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {category.services.map((service) => {
+                     const { palette, Icon: DecoIcon } = getStyleForService(service.name);
+                     const MainIcon = service.name.includes("メール") ? Mail : (service.name.includes("診断") ? Activity : FileText);
+
+                     return (
+                        <Link key={service.name} href={service.route_path} className="block h-full">
+                          <Card
+                            className={cn(
+                              "group relative h-full bg-white overflow-hidden transition-all duration-300",
+                              "shadow-md hover:shadow-xl hover:-translate-y-1", // Enhanced 3D shadow + lift
+                              "border border-transparent border-l-4 border-solid p-4", // 1px transparent border (except left)
+                              palette.border,
+                              palette.hoverBorder // Colorize border on hover
+                            )}
+                          >
+                              {/* Top Row: Badge (Left) & Deco Icon (Right) */}
+                              <div className="flex justify-between items-start mb-1">
+                                  {/* Category Badge */}
+                                  <span className={cn(
+                                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+                                      palette.badge
+                                  )}>
+                                      {service.category || service.badge_text || category.name}
+                                  </span>
+                                  
+                                  {/* Decorative Icon */}
+                                  <DecoIcon className={cn("h-5 w-5 opacity-80", palette.text)} />
+                              </div>
+
+                              {/* Content Stack */}
+                              <div className="flex flex-col gap-1">
+                                  {/* Service Name Row */}
+                                  <div className="flex items-center gap-2">
+                                      <MainIcon className={cn("h-5 w-5", palette.text)} />
+                                      <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                                          {service.name}
+                                      </h3>
+                                  </div>
+
+                                  {/* Title (Catchphrase) */}
+                                  {service.title && (
+                                      <div className="w-full text-center"> {/* Center Align Title */}
+                                          <p className="text-sm font-bold text-gray-900 leading-snug">
+                                              「{service.title}」
+                                          </p>
+                                      </div>
+                                  )}
+
+                                  {/* Description */}
+                                  <div className="mt-3"> {/* Increased gap for visual separation */}
+                                      <p className="text-sm text-muted-foreground leading-snug line-clamp-3">
+                                          {service.description}
+                                      </p>
+                                  </div>
+                              </div>
+
+                          </Card>
+                        </Link>
+                     );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

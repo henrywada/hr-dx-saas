@@ -1,14 +1,18 @@
-import { getServiceCategories, getServices } from "./actions";
+import { getServiceCategories, getServices, getAppRoles, getTenants } from "./actions";
 import { CategoryManager } from "./_components/category-manager";
 import { ServiceManager } from "./_components/service-manager";
+import { RoleManager } from "./_components/role-manager";
+import { TenantServiceManager } from "./_components/tenant-service-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Blocks } from "lucide-react";
 
 export default async function ServicesPage() {
     // データを並列取得
-    const [categories, services] = await Promise.all([
+    const [categories, services, appRoles, tenants] = await Promise.all([
         getServiceCategories(),
         getServices(),
+        getAppRoles(),
+        getTenants(),
     ]);
 
     return (
@@ -27,14 +31,33 @@ export default async function ServicesPage() {
                 <TabsList>
                     <TabsTrigger value="services">サービス管理</TabsTrigger>
                     <TabsTrigger value="categories">カテゴリー管理</TabsTrigger>
+                    <TabsTrigger value="roles">App Role 管理</TabsTrigger>
+                    <TabsTrigger value="tenant-services">Tenant Service 管理</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="services" className="space-y-4">
-                    <ServiceManager services={services || []} categories={categories || []} />
+                    <ServiceManager 
+                        services={services || []} 
+                        categories={categories || []} 
+                    />
                 </TabsContent>
 
                 <TabsContent value="categories" className="space-y-4">
                     <CategoryManager categories={categories || []} />
+                </TabsContent>
+
+                <TabsContent value="roles" className="space-y-4">
+                    <RoleManager 
+                        roles={appRoles || []} 
+                        services={services || []} 
+                    />
+                </TabsContent>
+
+                <TabsContent value="tenant-services" className="space-y-4">
+                    <TenantServiceManager 
+                        services={services || []}
+                        tenants={tenants || []}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

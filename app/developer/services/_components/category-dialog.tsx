@@ -22,6 +22,7 @@ interface CategoryDialogProps {
         id: string;
         name: string;
         description: string | null;
+        sort_order?: number;
     } | null;
     trigger?: React.ReactNode;
     isOpen?: boolean;
@@ -107,6 +108,16 @@ export function CategoryDialog({ category, trigger, isOpen, onClose }: CategoryD
                             defaultValue={category?.description || ""}
                             placeholder="カテゴリーの説明を入力"
                             rows={3}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sort_order">ソート順</Label>
+                        <Input
+                            id="sort_order"
+                            name="sort_order"
+                            type="number"
+                            defaultValue={category?.sort_order || 0}
+                            placeholder="0"
                         />
                     </div>
                     <DialogFooter>

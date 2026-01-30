@@ -25,6 +25,7 @@ interface Category {
     id: string;
     name: string;
     description: string | null;
+    sort_order?: number;
 }
 
 interface CategoryManagerProps {
@@ -81,6 +82,7 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-[80px]">順序</TableHead>
                             <TableHead>カテゴリー名</TableHead>
                             <TableHead>説明</TableHead>
                             <TableHead className="w-[100px]">操作</TableHead>
@@ -89,13 +91,14 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
                     <TableBody>
                         {categories.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
                                     カテゴリーが登録されていません
                                 </TableCell>
                             </TableRow>
                         ) : (
                             categories.map((category) => (
                                 <TableRow key={category.id}>
+                                    <TableCell>{category.sort_order || 0}</TableCell>
                                     <TableCell className="font-medium">{category.name}</TableCell>
                                     <TableCell>{category.description || "-"}</TableCell>
                                     <TableCell>

@@ -170,6 +170,8 @@ CREATE TABLE IF NOT EXISTS "public"."employees" (
     "app_role" "text",
     "is_contacted_person" boolean DEFAULT false,
     "contacted_date" "text",
+    "is_manager" boolean DEFAULT false NOT NULL,
+    "group_name" "text",
     CONSTRAINT "check_app_role" CHECK (("app_role" = ANY (ARRAY['employee'::"text", 'hr_manager'::"text", 'hr'::"text", 'boss'::"text", 'company_doctor'::"text", 'company_nurse'::"text", 'hsc'::"text", 'developer'::"text", 'test'::"text", 'saas_adm'::"text"])))
 );
 
@@ -203,6 +205,90 @@ COMMENT ON COLUMN "public"."employees"."is_contacted_person" IS '連絡窓口担
 
 COMMENT ON COLUMN "public"."employees"."contacted_date" IS '連絡日（暗号化）';
 
+
+
+COMMENT ON COLUMN "public"."employees"."is_manager" IS 'マネージャーフラグ';
+
+
+
+COMMENT ON COLUMN "public"."employees"."group_name" IS '従業員が所属するグループ・チーム名（例: 開発チームA、営業第二グループ等）';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."pulse_alerts" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "tenant_id" "uuid" NOT NULL,
+    "employee_id" "uuid" NOT NULL,
+    "alert_level" "text",
+    "detected_reason" "text",
+    "is_resolved" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "pulse_alerts_alert_level_check" CHECK (("alert_level" = ANY (ARRAY['yellow'::"text", 'red'::"text"])))
+);
+
+
+ALTER TABLE "public"."pulse_alerts" OWNER TO "supabase_admin";
+
+
+CREATE TABLE IF NOT EXISTS "public"."pulse_configs" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "tenant_id" "uuid" NOT NULL,
+    "is_active" boolean DEFAULT true,
+    "delivery_day" integer DEFAULT 5,
+    "delivery_time" time without time zone DEFAULT '16:00:00'::time without time zone,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "survey_frequency" character varying(20) DEFAULT 'monthly'::character varying NOT NULL
+);
+
+
+ALTER TABLE "public"."pulse_configs" OWNER TO "supabase_admin";
+
+
+COMMENT ON COLUMN "public"."pulse_configs"."survey_frequency" IS 'サーベイ実施頻度 (daily, weekly, monthly)';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."pulse_questions" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "tenant_id" "uuid",
+    "category" "text" NOT NULL,
+    "question_text" "text" NOT NULL,
+    "is_active" boolean DEFAULT true,
+    "is_ai_generated" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."pulse_questions" OWNER TO "supabase_admin";
+
+
+CREATE TABLE IF NOT EXISTS "public"."pulse_responses" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "session_id" "uuid" NOT NULL,
+    "question_id" "uuid",
+    "custom_question_text" "text",
+    "answer_value" integer,
+    "answer_text" "text",
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."pulse_responses" OWNER TO "supabase_admin";
+
+
+CREATE TABLE IF NOT EXISTS "public"."pulse_sessions" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "tenant_id" "uuid" NOT NULL,
+    "employee_id" "uuid" NOT NULL,
+    "overall_score" integer,
+    "summary_by_ai" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "is_resolved" boolean DEFAULT false,
+    "resolution_note" "text"
+);
+
+
+ALTER TABLE "public"."pulse_sessions" OWNER TO "supabase_admin";
 
 
 CREATE TABLE IF NOT EXISTS "public"."service" (
@@ -381,6 +467,31 @@ ALTER TABLE ONLY "public"."employees"
 
 
 
+ALTER TABLE ONLY "public"."pulse_alerts"
+    ADD CONSTRAINT "pulse_alerts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_configs"
+    ADD CONSTRAINT "pulse_configs_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_questions"
+    ADD CONSTRAINT "pulse_questions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_responses"
+    ADD CONSTRAINT "pulse_responses_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_sessions"
+    ADD CONSTRAINT "pulse_sessions_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."service_category"
     ADD CONSTRAINT "service_category_pkey" PRIMARY KEY ("id");
 
@@ -441,6 +552,46 @@ ALTER TABLE ONLY "public"."employees"
 
 ALTER TABLE ONLY "public"."employees"
     ADD CONSTRAINT "employees_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_alerts"
+    ADD CONSTRAINT "pulse_alerts_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pulse_alerts"
+    ADD CONSTRAINT "pulse_alerts_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pulse_configs"
+    ADD CONSTRAINT "pulse_configs_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pulse_questions"
+    ADD CONSTRAINT "pulse_questions_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_responses"
+    ADD CONSTRAINT "pulse_responses_question_id_fkey" FOREIGN KEY ("question_id") REFERENCES "public"."pulse_questions"("id");
+
+
+
+ALTER TABLE ONLY "public"."pulse_responses"
+    ADD CONSTRAINT "pulse_responses_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."pulse_sessions"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pulse_sessions"
+    ADD CONSTRAINT "pulse_sessions_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pulse_sessions"
+    ADD CONSTRAINT "pulse_sessions_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE CASCADE;
 
 
 
@@ -519,10 +670,35 @@ ALTER TABLE "public"."divisions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."employees" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."pulse_alerts" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."pulse_configs" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."pulse_questions" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."pulse_responses" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."pulse_sessions" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "responses_self_access" ON "public"."pulse_responses" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."pulse_sessions"
+  WHERE (("pulse_sessions"."id" = "pulse_responses"."session_id") AND ("pulse_sessions"."employee_id" = "auth"."uid"())))));
+
+
+
 ALTER TABLE "public"."service" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."service_category" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "sessions_self_access" ON "public"."pulse_sessions" TO "authenticated" USING (("employee_id" = "auth"."uid"()));
+
 
 
 ALTER TABLE "public"."tenant_service" ENABLE ROW LEVEL SECURITY;
@@ -750,6 +926,41 @@ GRANT ALL ON TABLE "public"."divisions" TO "service_role";
 GRANT ALL ON TABLE "public"."employees" TO "anon";
 GRANT ALL ON TABLE "public"."employees" TO "authenticated";
 GRANT ALL ON TABLE "public"."employees" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."pulse_alerts" TO "postgres";
+GRANT ALL ON TABLE "public"."pulse_alerts" TO "anon";
+GRANT ALL ON TABLE "public"."pulse_alerts" TO "authenticated";
+GRANT ALL ON TABLE "public"."pulse_alerts" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."pulse_configs" TO "postgres";
+GRANT ALL ON TABLE "public"."pulse_configs" TO "anon";
+GRANT ALL ON TABLE "public"."pulse_configs" TO "authenticated";
+GRANT ALL ON TABLE "public"."pulse_configs" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."pulse_questions" TO "postgres";
+GRANT ALL ON TABLE "public"."pulse_questions" TO "anon";
+GRANT ALL ON TABLE "public"."pulse_questions" TO "authenticated";
+GRANT ALL ON TABLE "public"."pulse_questions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."pulse_responses" TO "postgres";
+GRANT ALL ON TABLE "public"."pulse_responses" TO "anon";
+GRANT ALL ON TABLE "public"."pulse_responses" TO "authenticated";
+GRANT ALL ON TABLE "public"."pulse_responses" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."pulse_sessions" TO "postgres";
+GRANT ALL ON TABLE "public"."pulse_sessions" TO "anon";
+GRANT ALL ON TABLE "public"."pulse_sessions" TO "authenticated";
+GRANT ALL ON TABLE "public"."pulse_sessions" TO "service_role";
 
 
 

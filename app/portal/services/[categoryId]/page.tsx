@@ -3,6 +3,7 @@ import { getPortalMenuData, PortalService } from "@/utils/portal-actions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ServiceCardWrapper } from "../../ServiceCardWrapper";
 import {
   Card,
   CardContent,
@@ -123,39 +124,30 @@ export default async function CategoryPage({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {category.services.map((service) => {
            const { palette, Icon: DecoIcon } = getStyleForService(service.name);
-           // Service Name Icon - Defaulting to Mail for "Recruitment" related, or generic. 
-           // Since we don't have per-service icons in DB yet, we'll try to guess or use a default.
-           // The design shows a specific icon next to the name. Let's use a generic 'FileText' or 'Zap' if not mapped.
            const MainIcon = service.name.includes("メール") ? Mail : (service.name.includes("診断") ? Activity : FileText);
-           
-           return (
-            <Link key={service.name} href={service.route_path} className="block h-full">
+           const isPulse = service.name === 'パルス回答 (Echo)';
+
+           const CardContent = (
               <Card
                 className={cn(
                   "group relative h-full bg-white overflow-hidden transition-all duration-300",
-                  "shadow-md hover:shadow-xl hover:-translate-y-1", // Enhanced 3D shadow + lift
-                  "border border-transparent border-l-4 border-solid p-4", // 1px transparent border (except left)
+                  "shadow-md hover:shadow-xl hover:-translate-y-1",
+                  "border border-transparent border-l-4 border-solid p-4",
                   palette.border,
-                  palette.hoverBorder // Colorize border on hover
+                  palette.hoverBorder
                 )}
               >
-                  {/* Top Row: Badge (Left) & Deco Icon (Right) */}
                   <div className="flex justify-between items-start mb-1"> 
-                      {/* Category Badge */}
                       <span className={cn(
                           "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium",
                           palette.badge
                       )}>
                           {service.category || service.badge_text || category.name}
                       </span>
-                      
-                      {/* Decorative Icon */}
                       <DecoIcon className={cn("h-5 w-5 opacity-80", palette.text)} />
                   </div>
 
-                  {/* Content Stack */}
                   <div className="flex flex-col gap-1">
-                      {/* Service Name Row */}
                       <div className="flex items-center gap-2">
                           <MainIcon className={cn("h-5 w-5", palette.text)} />
                           <h3 className="text-lg font-bold text-gray-900 leading-tight">
@@ -163,25 +155,35 @@ export default async function CategoryPage({
                           </h3>
                       </div>
 
-                      {/* Title (Catchphrase) */}
                       {service.title && (
-                          <div className="w-full text-center"> {/* Center Align Title */}
+                          <div className="w-full text-center">
                               <p className="text-sm font-bold text-gray-900 leading-snug">
                                   「{service.title}」
                               </p>
                           </div>
                       )}
 
-                      {/* Description */}
-                      <div className="mt-3"> {/* Increased gap for visual separation */}
+                      <div className="mt-3">
                           <p className="text-sm text-muted-foreground leading-snug line-clamp-3">
                               {service.description}
                           </p>
                       </div>
                   </div>
-
               </Card>
-            </Link>
+           );
+
+           return (
+            <div key={service.name} className="h-full">
+               {isPulse ? (
+                 <ServiceCardWrapper serviceName={service.name}>
+                   {CardContent}
+                 </ServiceCardWrapper>
+               ) : (
+                 <Link href={service.route_path} className="block h-full">
+                   {CardContent}
+                 </Link>
+               )}
+            </div>
           );
         })}
       </div>

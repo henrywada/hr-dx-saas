@@ -444,3 +444,31 @@ SELECT pg_catalog.setval('"supabase_functions"."hooks_id_seq"', 1, false);
 -- \unrestrict OaEqRY979zdz5Gqb1SulVWch19iN6fHTqUINqYQmaB9hqlniW644TqG8cYiuXD0
 
 RESET ALL;
+
+-- 1. Create Service Categories
+INSERT INTO public.service_category (id, name, description, sort_order)
+VALUES 
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'HR Management', 'Human Resources tools', 1),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Health', 'Health and Safety tools', 2)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Create Services
+INSERT INTO public.service (id, name, service_category_id, category, description, release_status, target_audience, title)
+VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Employee DB', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'HR', 'Employee Database Management', 'released', 'all_users', 'Employee Database'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Pulse Survey', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Health', 'Monthly Pulse Survey', 'released', 'all_users', 'Pulse Survey')
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Restore App Roles
+INSERT INTO public.app_role (app_role, name) VALUES 
+('employee', '一般従業員'),
+('hr_manager', '人事担当者'),
+('hr', '人事'),
+('boss', '承認者'),
+('company_doctor', '産業医'),
+('company_nurse', '産業看護師'),
+('hsc', '衛生管理者'),
+('saas_adm', 'SaaS管理者'),
+('developer', '開発者'),
+('test', 'テストユーザー')
+ON CONFLICT (app_role) DO NOTHING;

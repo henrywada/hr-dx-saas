@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Edit, Trash2, Building2, Mail } from "lucide-react";
+import { Users, Edit, Trash2, Building2, Mail, BadgeCheck } from "lucide-react";
 import { useState } from "react";
 
 type Division = {
@@ -19,7 +19,7 @@ type Employee = {
     email: string;
     app_role: string;
     division_id: string | null;
-    created_at: string;
+    is_manager: boolean;
 };
 
 interface EmployeeListProps {
@@ -131,8 +131,13 @@ export default function EmployeeList({ employees, divisions }: EmployeeListProps
                                                                 <span className="text-gray-400">未割り当て</span>
                                                             )}
                                                         </div>
-                                                        <div className="text-xs text-gray-600">
-                                                            {ROLE_LABELS[emp.app_role] || emp.app_role}
+                                                        <div className="text-xs text-gray-600 flex items-center gap-1">
+                                                            {emp.is_manager && (
+                                                                <div className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="マネージャー">
+                                                                    <BadgeCheck className="h-3.5 w-3.5" />
+                                                                </div>
+                                                            )}
+                                                            <span>{ROLE_LABELS[emp.app_role] || emp.app_role}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-1 flex-shrink-0">

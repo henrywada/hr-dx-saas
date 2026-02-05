@@ -2,9 +2,11 @@
 import { deleteEmployee } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Edit, Trash2, Building2, Mail, Plus, ChevronDown, ChevronRight, UserCheck } from "lucide-react";
+import { Users, Edit, Trash2, Building2, Mail, Plus, ChevronDown, ChevronRight, UserCheck, BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { EmployeeImportDialog } from "./import-dialog";
 import { EmployeeDialog } from "./employee-dialog";
+
 
 type Division = {
     id: string;
@@ -22,6 +24,8 @@ type Employee = {
     division_id: string | null;
     created_at: string;
     last_sign_in_at: string | null;
+    is_manager: boolean;
+    group_name: string | null;
 };
 
 interface EmployeeManagerProps {
@@ -204,9 +208,22 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                                                     ({emp.email})
                                                 </span>
                                             )}
+                                            {emp.group_name && (
+                                                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
+                                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    {emp.group_name}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="w-32 text-xs text-gray-600 text-right">
+                                    <div className="w-32 text-xs text-gray-600 text-right flex items-center justify-end gap-1">
+                                        {emp.is_manager && (
+                                            <div className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="マネージャー">
+                                                <BadgeCheck className="h-3.5 w-3.5" />
+                                            </div>
+                                        )}
                                         {ROLE_LABELS[emp.app_role] || emp.app_role}
                                     </div>
                                 </div>
@@ -271,18 +288,21 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                                 )}
                             </CardDescription>
                         </div>
-                        <EmployeeDialog
-                            divisions={divisions}
-                            editEmployee={editEmployee}
-                            isOpen={isDialogOpen}
-                            onClose={handleDialogClose}
-                            trigger={
-                                <Button className="bg-orange-600 hover:bg-orange-700">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    新規登録
-                                </Button>
-                            }
-                        />
+                        <div className="flex gap-2">
+                            <EmployeeImportDialog />
+                            <EmployeeDialog
+                                divisions={divisions}
+                                editEmployee={editEmployee}
+                                isOpen={isDialogOpen}
+                                onClose={handleDialogClose}
+                                trigger={
+                                    <Button className="bg-orange-600 hover:bg-orange-700">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        新規登録
+                                    </Button>
+                                }
+                            />
+                        </div>
                     </div>
                 </CardHeader>
             </Card>
@@ -331,7 +351,12 @@ export function EmployeeManager({ employees, divisions }: EmployeeManagerProps) 
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="w-32 text-xs text-gray-600 text-right">
+                                                    <div className="w-32 text-xs text-gray-600 text-right flex items-center justify-end gap-1">
+                                                        {emp.is_manager && (
+                                                            <div className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="マネージャー">
+                                                                <BadgeCheck className="h-3.5 w-3.5" />
+                                                            </div>
+                                                        )}
                                                         {ROLE_LABELS[emp.app_role] || emp.app_role}
                                                     </div>
                                                 </div>

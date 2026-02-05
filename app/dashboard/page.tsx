@@ -15,9 +15,11 @@ import {
   getDashboardHeaderData, 
   getCompanyDashboardStats, 
   getSaaSDashboardStats,
-    getSaaSTenantList 
+  getSaaSTenantList,
+  getManagerDashboardAnalytics,
 } from "@/utils/dashboard-actions";
-// Removed unused date-fns import
+import { ManagerAlertBanner } from "@/components/dashboard/ManagerAlertBanner"; 
+import { ManagerDashboardAnalytics } from "@/components/dashboard/ManagerDashboardAnalytics";
 
 export default async function DashboardPage() {
   // Fetch Mode to decide what to show
@@ -32,6 +34,9 @@ export default async function DashboardPage() {
   const companyStats = !isSaaSMode ? await getCompanyDashboardStats() : null;
   const saasStats = isSaaSMode ? await getSaaSDashboardStats() : null;
   const tenantList = isSaaSMode ? await getSaaSTenantList() : [];
+  
+  // Analytics Data (only for Company Admin)
+  const analyticsData = !isSaaSMode ? await getManagerDashboardAnalytics() : null;
 
   if (!headerData) {
     return <div className="p-8">Loading or access denied...</div>;
@@ -143,6 +148,14 @@ export default async function DashboardPage() {
       ) : (
         // === Company Admin Content ===
         <div>
+           {/* マネージャーアラートバナー */}
+           <ManagerAlertBanner />
+           
+           {/* アナリティクス & トレンド (New Section) */}
+           <div className="mb-8">
+             <ManagerDashboardAnalytics analytics={analyticsData} />
+           </div>
+
            {/* Top Stats Cards */}
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
              {/* 1. Organization Name */}

@@ -80,7 +80,8 @@ create table employees (
   app_role text,
   is_contacted_person bool default false,
   contacted_date text, -- Encrypted (date stored as text/encrypted)
-  constraint check_app_role check (app_role in ('employee', 'hr_manager', 'hr', 'boss', 'company_doctor', 'company_nurse', 'hsc', 'developer', 'test'))
+  is_manager bool default false,
+  constraint check_app_role check (app_role in ('employee', 'hr_manager', 'hr', 'boss', 'company_doctor', 'company_nurse', 'hsc', 'developer', 'test', 'saas_adm'))
 );
 
 comment on table employees is '従業員マスタ';

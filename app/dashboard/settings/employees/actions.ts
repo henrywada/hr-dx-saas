@@ -16,6 +16,8 @@ export async function createEmployee(prevState: any, formData: FormData) {
     const email = formData.get("email") as string;
     const role = formData.get("role") as string;
     const divisionId = formData.get("division_id") as string;
+    const isManager = formData.get("is_manager") === "on";
+    const groupName = formData.get("group_name") as string | null;
 
     if (!name || !email || !role) {
         return { error: "必須項目が入力されていません。" };
@@ -43,6 +45,8 @@ export async function createEmployee(prevState: any, formData: FormData) {
             operator.tenant_id,
             role,
             finalDivisionId,
+            isManager,
+            groupName,
         );
     } catch (e: any) {
         console.error(e);
@@ -94,6 +98,8 @@ export async function updateEmployee(prevState: any, formData: FormData) {
     const name = formData.get("name") as string;
     const role = formData.get("role") as string;
     const divisionId = formData.get("division_id") as string;
+    const isManager = formData.get("is_manager") === "on";
+    const groupName = formData.get("group_name") as string | null;
 
     if (!employeeId || !name || !role) {
         return { error: "必須項目が入力されていません。" };
@@ -120,6 +126,8 @@ export async function updateEmployee(prevState: any, formData: FormData) {
                 name: name,
                 app_role: role,
                 division_id: finalDivisionId,
+                is_manager: isManager,
+                group_name: groupName,
             })
             .eq("id", employeeId)
             .eq("tenant_id", operator.tenant_id);

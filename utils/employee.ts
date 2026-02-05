@@ -20,6 +20,8 @@ export async function createEmployeeUser(
     tenantId: string,
     appRole: string,
     divisionId?: string | null,
+    isManager: boolean = false,
+    groupName?: string | null,
 ): Promise<string> {
     // 1. OTP招待メール送信（Authユーザー作成）
     const { data: authUser, error: authError } = await adminSupabase.auth.admin
@@ -47,6 +49,8 @@ export async function createEmployeeUser(
             name: name,
             app_role: appRole,
             division_id: divisionId,
+            is_manager: isManager,
+            group_name: groupName,
         });
 
     if (empError) {

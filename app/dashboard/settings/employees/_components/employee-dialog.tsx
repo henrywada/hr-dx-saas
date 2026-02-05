@@ -22,6 +22,8 @@ type Employee = {
     email: string;
     app_role: string;
     division_id: string | null;
+    is_manager: boolean;
+    group_name: string | null;
 };
 
 interface EmployeeDialogProps {
@@ -38,6 +40,8 @@ export function EmployeeDialog({ divisions, editEmployee, isOpen, onClose, trigg
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("employee");
     const [divisionId, setDivisionId] = useState<string>("unassigned");
+    const [isManager, setIsManager] = useState(false);
+    const [groupName, setGroupName] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
@@ -53,11 +57,15 @@ export function EmployeeDialog({ divisions, editEmployee, isOpen, onClose, trigg
             setEmail(editEmployee.email);
             setRole(editEmployee.app_role);
             setDivisionId(editEmployee.division_id || "unassigned");
+            setIsManager(editEmployee.is_manager);
+            setGroupName(editEmployee.group_name || "");
         } else {
             setName("");
             setEmail("");
             setRole("employee");
             setDivisionId("unassigned");
+            setIsManager(false);
+            setGroupName("");
         }
         setError(null);
     }, [editEmployee]);
@@ -89,6 +97,7 @@ export function EmployeeDialog({ divisions, editEmployee, isOpen, onClose, trigg
                 setEmail("");
                 setRole("employee");
                 setDivisionId("unassigned");
+                setIsManager(false);
             }
         });
     };
@@ -201,6 +210,32 @@ export function EmployeeDialog({ divisions, editEmployee, isOpen, onClose, trigg
                                 <SelectItem value="hsc">安全衛生委員</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            id="is_manager"
+                            name="is_manager"
+                            checked={isManager}
+                            onChange={(e) => setIsManager(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <Label htmlFor="is_manager">マネージャー権限 (is_manager)</Label>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="group_name">グループ名</Label>
+                        <Input
+                            id="group_name"
+                            name="group_name"
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                            placeholder="例: 開発チームA、営業第二グループ"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            従業員が所属するグループ・チーム名（任意）
+                        </p>
                     </div>
 
                     <div className="space-y-2">

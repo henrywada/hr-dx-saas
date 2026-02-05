@@ -176,6 +176,18 @@ export default function EmployeeForm({ divisions }: EmployeeFormProps) {
                             </div>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="group_name">グループ名</Label>
+                            <Input 
+                                id="group_name" 
+                                name="group_name" 
+                                placeholder="例: 開発チームA、営業第二グループ" 
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                従業員が所属するグループ・チーム名を入力してください（任意）
+                            </p>
+                        </div>
+
                         {state?.success && (
                             <div className="text-green-700 text-sm p-3 bg-green-50 rounded border border-green-200">
                                 ✓ {state.message || "従業員の登録が完了しました。招待メールを送信しました。"}

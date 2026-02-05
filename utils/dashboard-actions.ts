@@ -334,3 +334,100 @@ export async function getDashboardServicesForCategory(categoryId: string) {
         services: services,
     };
 }
+
+export async function getManagerDashboardAnalytics() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    // 1. Get Tenant ID
+    const { data: employee } = await supabase
+        .from("employees")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+    if (!employee?.tenant_id) return null;
+
+    // 2. Fetch Pulse Sessions (Last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: sessions, error } = await supabase
+        .from("pulse_sessions")
+        .select(`
+            created_at,
+            overall_score,
+            pulse_intents (
+                label
+            )
+        `)
+        .eq("tenant_id", employee.tenant_id)
+        .gte("created_at", thirtyDaysAgo.toISOString())
+        .order("created_at", { ascending: true });
+
+    if (error || !sessions) {
+        console.error("Error fetching analytics:", error);
+        return {
+            trend: [],
+            themes: [],
+            metrics: { responseCount: 0, engagementScore: "0.0" },
+        };
+    }
+
+    // 3. Aggregate Trend Data (Daily Average)
+    const trendMap = new Map<string, { total: number; count: number }>();
+
+    sessions.forEach((session: any) => {
+        const date = new Date(session.created_at).toLocaleDateString("ja-JP", {
+            month: "numeric",
+            day: "numeric",
+        });
+        if (!trendMap.has(date)) {
+            trendMap.set(date, { total: 0, count: 0 });
+        }
+        const current = trendMap.get(date)!;
+        current.total += session.overall_score;
+        current.count += 1;
+    });
+
+    const trendData = Array.from(trendMap.entries()).map(([date, data]) => ({
+        date,
+        score: parseFloat((data.total / data.count).toFixed(1)),
+    }));
+
+    // 4. Aggregate Theme Data (Average per Intent)
+    const themeMap = new Map<string, { total: number; count: number }>();
+
+    sessions.forEach((session: any) => {
+        const label = session.pulse_intents?.label || "その他";
+        if (!themeMap.has(label)) {
+            themeMap.set(label, { total: 0, count: 0 });
+        }
+        const current = themeMap.get(label)!;
+        current.total += session.overall_score;
+        current.count += 1;
+    });
+
+    const themeData = Array.from(themeMap.entries()).map(([theme, data]) => ({
+        subject: theme, // For Recharts Radar
+        score: parseFloat((data.total / data.count).toFixed(1)),
+        fullMark: 5,
+    }));
+
+    // 5. Basic Metrics
+    const totalScore = sessions.reduce((acc, s) => acc + s.overall_score, 0);
+    const avgScore = sessions.length > 0
+        ? (totalScore / sessions.length).toFixed(1)
+        : "0.0";
+
+    return {
+        trend: trendData,
+        themes: themeData,
+        metrics: {
+            engagementScore: avgScore,
+            responseCount: sessions.length,
+        },
+    };
+}

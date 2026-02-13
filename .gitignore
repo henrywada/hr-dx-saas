@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase
+.branches
+.temp
+supabase/.branches
+supabase/.temp
+supabase/backups/
+supabase/snippets/
+
+# vscode (keep settings but ignore local workspace files)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json

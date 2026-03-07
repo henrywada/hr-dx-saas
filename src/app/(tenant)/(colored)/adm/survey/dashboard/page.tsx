@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, TrendingUp, Users, AlertTriangle, MessageSquare, ArrowRight, Activity, Smile, Frown } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+
 import { Badge } from '@/components/ui/Badge';
 
 // === モックデータ ===
@@ -125,7 +125,7 @@ export default function PulseSurveyDashboardPage() {
           <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center gap-3">
             <MessageSquare className="h-6 w-6 text-indigo-200" />
             <h2 className="text-lg font-bold">AI フリーコメント感情分析</h2>
-            <Badge variant="success" className="ml-auto bg-white/20 text-white border-none backdrop-blur-sm">AI Analyzed</Badge>
+            <Badge variant="teal" className="ml-auto bg-white/20 text-white border-none backdrop-blur-sm">AI Analyzed</Badge>
           </div>
           
           <div className="p-6 flex-grow space-y-6">

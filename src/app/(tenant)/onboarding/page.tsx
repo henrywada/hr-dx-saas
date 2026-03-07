@@ -1,4 +1,5 @@
 import { QuickStartUI } from '@/features/onboarding/components/QuickStartUI'
+import { Suspense } from 'react'
 
 export const metadata = {
   title: 'QuickStart | Smart HR App',
@@ -7,7 +8,9 @@ export const metadata = {
 export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-white">
-      <QuickStartUI />
+      <Suspense fallback={<div className="text-gray-500 animate-pulse">読み込み中...</div>}>
+        <QuickStartUI />
+      </Suspense>
     </div>
   )
 }

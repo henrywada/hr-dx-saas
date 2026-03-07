@@ -21,7 +21,7 @@ export async function submitSurvey(data: SubmitSurveyInput) {
     // ※※【特例処理】: モックの質問IDの外部キー制約エラーを回避するため、
     // 未登録のIDであれば質問マスタ(survey_questions)に仮データとして挿入する処理
     if (data.mockQuestionsData && data.mockQuestionsData.length > 0) {
-      // @ts-expect-error type not updated
+
       const { data: existingQA } = await supabase
         .from('survey_questions')
         .select('id')
@@ -36,7 +36,7 @@ export async function submitSurvey(data: SubmitSurveyInput) {
           content: q.text,
           is_active: true,
         }));
-        // @ts-expect-error type not updated
+
         await supabase.from('survey_questions').insert(seedData).select();
       }
     }
@@ -54,7 +54,7 @@ export async function submitSurvey(data: SubmitSurveyInput) {
     }));
 
     // バルクインサート (一括保存)
-    // @ts-expect-error type not updated
+
     const { error } = await supabase.from('survey_responses').insert(records);
 
     if (error) {

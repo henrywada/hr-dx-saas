@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getActivePeriod } from '../stress-check/queries'; // Re-use
+
 
 export interface HighStressEmployee {
   result_id: string;

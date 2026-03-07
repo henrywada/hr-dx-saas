@@ -1,0 +1,2 @@
+This file was created to explicitly trigger a Vercel build after module/layout errors.
+Timestamp: 2026-03-07T16:56

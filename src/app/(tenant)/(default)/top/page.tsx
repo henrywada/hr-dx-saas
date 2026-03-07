@@ -17,7 +17,7 @@ export default async function DashboardPage() {
         <div className="animate-in fade-in slide-in-from-left-4 duration-500">
           <div className="flex items-center gap-3 mb-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 tracking-wide">
-              {user?.department || '営業部'}
+              {user?.appRoleName || '営業部'}
             </span>
             <span className="text-sm text-slate-500 font-medium">
               {formattedDate} ({dayOfWeek})

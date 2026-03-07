@@ -7,3 +7,5 @@ export default function AppsLayout({
 }) {
   return <div className="apps-layout">{children}</div>;
 }
+
+// Trigger Vercel Build: 2026-03-07

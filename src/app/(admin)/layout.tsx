@@ -7,3 +7,5 @@ export default function AdminLayout({
 }) {
   return <div className="admin-layout">{children}</div>;
 }
+
+// Trigger Vercel Build: 2026-03-07

@@ -38,6 +38,7 @@
   "exclude": [
     "node_modules",
     "scripts",
-    "backups"
+    "backups",
+    "src_failed_logging_attempt"
   ]
 }

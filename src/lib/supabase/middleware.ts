@@ -9,6 +9,7 @@ export const updateSession = async (request: NextRequest) => {
     },
   })
 
+  // Next.jsのLint警告対応として未使用の options 変数を利用しない形に変更
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -18,7 +19,7 @@ export const updateSession = async (request: NextRequest) => {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           response = NextResponse.next({
@@ -34,7 +35,7 @@ export const updateSession = async (request: NextRequest) => {
     }
   )
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  return response
+  return { response, user, supabase }
 }

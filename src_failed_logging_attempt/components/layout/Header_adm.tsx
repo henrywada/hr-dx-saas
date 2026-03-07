@@ -1,0 +1,84 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { 
+  Menu,
+  ArrowLeft
+} from "lucide-react";
+
+interface HeaderProps {
+  role?: string;
+  userName?: string;
+  onMenuClick?: () => void;
+}
+
+export function Header({ role = "member", userName = "Guest User", onMenuClick }: HeaderProps) {
+  const isEmployee = role === "employee";
+  const label = isEmployee ? "従業員" : (role === "admin" ? "管理者" : (role === "supaUser" ? "SaaS管理者" : "メンバー"));
+  
+  // スタイルをオブジェクトとして定義し、確実に適用する
+  const headerStyle = {
+    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.2)",
+    zIndex: 50,
+    backgroundColor: "#0044CC", // 背景色を変更
+  };
+
+  return (
+    <header 
+      style={headerStyle}
+      className="h-16 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 rounded-b-2xl transition-all duration-300 border-b border-white/10 backdrop-blur-md"
+    >
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden p-2 hover:bg-white/10 rounded-md text-white"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        
+        <Link href="/top" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF6B00] to-orange-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 border border-white/20">
+             <span className="text-white font-bold text-lg tracking-tight">H</span>
+          </div>
+          <div 
+             className="text-xl md:text-2xl font-bold tracking-tighter text-white drop-shadow-sm select-none" 
+             style={{ textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}
+          >
+             HR-dx
+          </div>
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-3 md:gap-4">
+        <div className="h-6 w-px bg-white/20 mx-1 hidden md:block"></div>
+
+        {!isEmployee && (
+          <div className="hidden md:flex items-center gap-1 mr-2 border-r border-white/20 pr-4">
+            <Link href="/top" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white hover:text-white/90 hover:bg-white/10 rounded-md transition-all">
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>ポータルへ戻る</span>
+            </Link>        
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pl-2 cursor-pointer hover:opacity-80 transition-opacity">
+          <div className="text-right hidden md:block leading-tight">
+            <div className="text-sm font-semibold text-white">{userName}</div>
+            <div className={`text-[10px] px-2 py-0.5 rounded-full inline-block mt-1 font-medium tracking-wide shadow-sm border ${
+                role === 'supaUser' ? 'bg-gradient-to-r from-purple-50 to-white text-purple-700 border-purple-200' :
+                role === 'admin' ? 'bg-gradient-to-r from-orange-50 to-white text-orange-700 border-orange-200' :
+                'bg-gradient-to-r from-slate-50 to-white text-slate-600 border-slate-200'
+            }`}>
+                {label}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-600 font-bold border-2 border-white/50 shadow-md ring-1 ring-white/20">
+            {userName.slice(0, 1)}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+

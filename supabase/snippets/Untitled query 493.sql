@@ -1,142 +1,61 @@
--- 1) employees に user_id を追加（未追加の場合）
-alter table employees
-  add column if not exists user_id uuid;
 
--- auth.users との外部キー（任意）
-alter table employees
-  add constraint if not exists employees_user_id_fkey
-  foreign key (user_id) references auth.users(id) on delete set null;
+-- ─────────────────────────────────────────────
+-- 1. テーブル作成
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS "public"."access_logs" (
+    "id"          uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    "action"      text NOT NULL,
+    "path"        text,
+    "method"      text,
+    "ip_address"  text,
+    "user_agent"  text,
+    "tenant_id"   uuid REFERENCES "public"."tenants"("id") ON DELETE SET NULL,
+    "user_id"     uuid REFERENCES "auth"."users"("id") ON DELETE SET NULL,
+    "details"     jsonb DEFAULT '{}'::jsonb,
+    "created_at"  timestamptz DEFAULT now()
+);
 
--- 同一ユーザーが複数社員に紐づかない想定なら
-create unique index if not exists employees_user_id_uidx
-  on employees(user_id);
+COMMENT ON TABLE "public"."access_logs" IS 'アクセス履歴・監査ログ（Middleware + writeAuditLog から記録）';
 
--- 2) current tenant を取得する関数
-create or replace function public.current_tenant_id()
-returns uuid
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select e.tenant_id
-  from public.employees e
-  where e.user_id = auth.uid()
-  limit 1
-$$;
 
--- 3) RLS 有効化（マルチテナント対象）
-alter table tenants enable row level security;
-alter table divisions enable row level security;
-alter table employees enable row level security;
-alter table tenant_service enable row level security;
+-- ─────────────────────────────────────────────
+-- 2. インデックス（ダッシュボード集計の高速化）
+-- ─────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS "idx_access_logs_created_at"
+  ON "public"."access_logs" ("created_at" DESC);
 
--- 4) マルチテナント用ポリシー（同一テナントのみアクセス）
--- tenants
-create policy "tenants_select_same_tenant"
-on tenants for select
-using (id = current_tenant_id());
+CREATE INDEX IF NOT EXISTS "idx_access_logs_tenant_created"
+  ON "public"."access_logs" ("tenant_id", "created_at" DESC);
 
-create policy "tenants_update_same_tenant"
-on tenants for update
-using (id = current_tenant_id())
-with check (id = current_tenant_id());
 
--- divisions
-create policy "divisions_select_same_tenant"
-on divisions for select
-using (tenant_id = current_tenant_id());
+-- ─────────────────────────────────────────────
+-- 3. RLS 有効化 + ポリシー
+-- ─────────────────────────────────────────────
+ALTER TABLE "public"."access_logs" ENABLE ROW LEVEL SECURITY;
 
-create policy "divisions_insert_same_tenant"
-on divisions for insert
-with check (tenant_id = current_tenant_id());
+-- authenticated ユーザーは自テナントのログを INSERT できる（Middleware / Server Action 用）
+CREATE POLICY "access_logs_insert_authenticated"
+  ON "public"."access_logs" FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
 
-create policy "divisions_update_same_tenant"
-on divisions for update
-using (tenant_id = current_tenant_id())
-with check (tenant_id = current_tenant_id());
+-- SELECT は service_role（SaaSダッシュボード集計用 createAdminClient）のみ
+CREATE POLICY "access_logs_select_service_role"
+  ON "public"."access_logs" FOR SELECT
+  TO service_role
+  USING (true);
 
-create policy "divisions_delete_same_tenant"
-on divisions for delete
-using (tenant_id = current_tenant_id());
+-- supaUser (SaaS管理者) フルアクセス
+CREATE POLICY "supa_access_logs_all"
+  ON "public"."access_logs"
+  USING (auth.uid() = 'e97488f9-02be-4b0b-9dc9-ddb0c2902999'::uuid)
+  WITH CHECK (auth.uid() = 'e97488f9-02be-4b0b-9dc9-ddb0c2902999'::uuid);
 
--- employees
-create policy "employees_select_same_tenant"
-on employees for select
-using (tenant_id = current_tenant_id());
 
-create policy "employees_insert_same_tenant"
-on employees for insert
-with check (tenant_id = current_tenant_id());
-
-create policy "employees_update_same_tenant"
-on employees for update
-using (tenant_id = current_tenant_id())
-with check (tenant_id = current_tenant_id());
-
-create policy "employees_delete_same_tenant"
-on employees for delete
-using (tenant_id = current_tenant_id());
-
--- tenant_service
-create policy "tenant_service_select_same_tenant"
-on tenant_service for select
-using (tenant_id = current_tenant_id());
-
-create policy "tenant_service_insert_same_tenant"
-on tenant_service for insert
-with check (tenant_id = current_tenant_id());
-
-create policy "tenant_service_update_same_tenant"
-on tenant_service for update
-using (tenant_id = current_tenant_id())
-with check (tenant_id = current_tenant_id());
-
-create policy "tenant_service_delete_same_tenant"
-on tenant_service for delete
-using (tenant_id = current_tenant_id());
-
--- 5) グローバル・アクセス（全テナント共通）
--- 読み取りのみ許可、書き込みは service_role のみ
-alter table service_category enable row level security;
-alter table service enable row level security;
-alter table app_role enable row level security;
-alter table app_role_service enable row level security;
-
--- 全認証ユーザーに SELECT を許可
-create policy "global_select_service_category"
-on service_category for select
-using (auth.role() = 'authenticated');
-
-create policy "global_select_service"
-on service for select
-using (auth.role() = 'authenticated');
-
-create policy "global_select_app_role"
-on app_role for select
-using (auth.role() = 'authenticated');
-
-create policy "global_select_app_role_service"
-on app_role_service for select
-using (auth.role() = 'authenticated');
-
--- 書き込みは service_role のみに限定（管理用途）
-create policy "global_write_service_category"
-on service_category for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
-
-create policy "global_write_service"
-on service for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
-
-create policy "global_write_app_role"
-on app_role for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
-
-create policy "global_write_app_role_service"
-on app_role_service for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+-- ─────────────────────────────────────────────
+-- 4. GRANTS
+-- ─────────────────────────────────────────────
+GRANT ALL ON TABLE "public"."access_logs" TO "postgres";
+GRANT ALL ON TABLE "public"."access_logs" TO "anon";
+GRANT ALL ON TABLE "public"."access_logs" TO "authenticated";
+GRANT ALL ON TABLE "public"."access_logs" TO "service_role";

@@ -1,0 +1,4 @@
+-- このマイグレーションは不要です（テーブルにカラムは既に存在しています）
+-- tenants: paid_amount, employee_count は既存
+-- employees: is_manager は既存
+-- 空のマイグレーションとして残します

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
 
 export default function Home() {
-  redirect('/login')
+  redirect(APP_ROUTES.AUTH.LOGIN)
 }

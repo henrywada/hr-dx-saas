@@ -1,0 +1,521 @@
+-- ============================================================
+-- Phase 2: ストレスチェック 57問 質問マスタ シードデータ
+-- 職業性ストレス簡易調査票（57項目）準拠
+-- ============================================================
+-- 実行前提: 20260303000000_stress_check.sql が適用済みであること
+-- ============================================================
+
+-- ============================================================
+-- 1. 質問マスタ INSERT（57問）
+-- ============================================================
+-- カラム説明:
+--   category: A=仕事のストレス要因, B=心身のストレス反応, C=周囲のサポート, D=満足度
+--   question_number: カテゴリ内の問番号（A1〜A17, B1〜B29, C1〜C9, D1〜D2）
+--   sort_order: 全体通し番号（1〜57）
+--   question_text: 質問文
+--   response_scale: 回答尺度タイプ
+--   is_reverse_scored: 逆転項目フラグ（trueの場合、得点を反転して計算）
+--   scale_name: 素点換算表の尺度名
+--   scale_group: 尺度グループ（高ストレス判定用）
+--     'stressor'  = ストレスの原因と考えられる因子（A領域9尺度）
+--     'reaction'  = ストレスによっておこる心身の反応（B領域6尺度）
+--     'support'   = ストレス反応に影響を与える他の因子（C領域3尺度）
+--     'satisfaction' = 仕事や生活の満足度（D領域1尺度）※高ストレス判定には含まない
+--   is_in_short_version: 簡略版23問に含まれるか
+-- ============================================================
+
+INSERT INTO public.stress_check_questions (
+  category, question_number, sort_order, question_text,
+  response_scale, is_reverse_scored,
+  scale_name, scale_group, is_in_short_version
+) VALUES
+
+-- ============================================================
+-- A: あなたの仕事についてうかがいます
+-- 回答尺度: そうだ(4) / まあそうだ(3) / ややちがう(2) / ちがう(1)
+-- ※逆転項目は「そうだ」がストレス低い方向の質問
+-- ============================================================
+
+-- 心理的な仕事の負担（量）: 素点 = 15-(A1+A2+A3)
+('A', 1,  1, '非常にたくさんの仕事をしなければならない',
+ 'agreement', false, '心理的な仕事の負担（量）', 'stressor', true),
+('A', 2,  2, '時間内に仕事が処理しきれない',
+ 'agreement', false, '心理的な仕事の負担（量）', 'stressor', true),
+('A', 3,  3, '一生懸命働かなければならない',
+ 'agreement', false, '心理的な仕事の負担（量）', 'stressor', true),
+
+-- 心理的な仕事の負担（質）: 素点 = 15-(A4+A5+A6)
+('A', 4,  4, 'かなり注意を集中する必要がある',
+ 'agreement', false, '心理的な仕事の負担（質）', 'stressor', false),
+('A', 5,  5, '高度の知識や技術が必要なむずかしい仕事だ',
+ 'agreement', false, '心理的な仕事の負担（質）', 'stressor', false),
+('A', 6,  6, '勤務時間中はいつも仕事のことを考えていなければならない',
+ 'agreement', false, '心理的な仕事の負担（質）', 'stressor', false),
+
+-- 自覚的な身体的負担度: 素点 = 5-A7
+('A', 7,  7, 'からだを大変よく使う仕事だ',
+ 'agreement', false, '自覚的な身体的負担度', 'stressor', false),
+
+-- 仕事のコントロール度: 素点 = 15-(A8+A9+A10) ※逆転（高い=ストレス低い）
+('A', 8,  8, '自分のペースで仕事ができる',
+ 'agreement', true, '仕事のコントロール度', 'stressor', true),
+('A', 9,  9, '自分で仕事の順番・やり方を決めることができる',
+ 'agreement', true, '仕事のコントロール度', 'stressor', true),
+('A', 10, 10, '職場の仕事の方針に自分の意見を反映できる',
+ 'agreement', true, '仕事のコントロール度', 'stressor', true),
+
+-- 技能の活用度: 素点 = A11（そのまま。高い=ストレス高い）
+('A', 11, 11, '自分の技能や知識を仕事で使うことが少ない',
+ 'agreement', false, '技能の活用度', 'stressor', false),
+
+-- 職場の対人関係でのストレス: 素点 = 10-(A12+A13)+A14
+('A', 12, 12, '私の部署内で意見のくい違いがある',
+ 'agreement', false, '職場の対人関係でのストレス', 'stressor', false),
+('A', 13, 13, '私の部署と他の部署とはうまが合わない',
+ 'agreement', false, '職場の対人関係でのストレス', 'stressor', false),
+('A', 14, 14, '私の職場の雰囲気は友好的である',
+ 'agreement', true, '職場の対人関係でのストレス', 'stressor', false),
+
+-- 職場環境によるストレス: 素点 = 5-A15
+('A', 15, 15, '私の職場の作業環境（騒音、照明、温度、換気など）はよくない',
+ 'agreement', false, '職場環境によるストレス', 'stressor', false),
+
+-- 仕事の適性度: 素点 = 5-A16 ※逆転
+('A', 16, 16, '仕事の内容は自分にあっている',
+ 'agreement', true, '仕事の適性度', 'stressor', false),
+
+-- 働きがい: 素点 = 5-A17 ※逆転
+('A', 17, 17, '働きがいのある仕事だ',
+ 'agreement', true, '働きがい', 'stressor', false),
+
+-- ============================================================
+-- B: 最近1か月間のあなたの状態についてうかがいます
+-- 回答尺度: ほとんどなかった(1) / ときどきあった(2) / しばしばあった(3) / ほとんどいつもあった(4)
+-- ※逆転項目は「ほとんどいつもあった」がストレス低い方向の質問（活気B1-B3）
+-- ============================================================
+
+-- 活気: 素点 = B1+B2+B3 ※逆転（高い=ストレス低い）
+('B', 1,  18, '活気がわいてくる',
+ 'frequency', true, '活気', 'reaction', false),
+('B', 2,  19, '元気がいっぱいだ',
+ 'frequency', true, '活気', 'reaction', false),
+('B', 3,  20, '生き生きする',
+ 'frequency', true, '活気', 'reaction', false),
+
+-- イライラ感: 素点 = B4+B5+B6
+('B', 4,  21, '怒りを感じる',
+ 'frequency', false, 'イライラ感', 'reaction', false),
+('B', 5,  22, '内心腹立たしい',
+ 'frequency', false, 'イライラ感', 'reaction', false),
+('B', 6,  23, 'イライラしている',
+ 'frequency', false, 'イライラ感', 'reaction', false),
+
+-- 疲労感: 素点 = B7+B8+B9
+('B', 7,  24, 'ひどく疲れた',
+ 'frequency', false, '疲労感', 'reaction', true),
+('B', 8,  25, 'へとへとだ',
+ 'frequency', false, '疲労感', 'reaction', true),
+('B', 9,  26, 'だるい',
+ 'frequency', false, '疲労感', 'reaction', true),
+
+-- 不安感: 素点 = B10+B11+B12
+('B', 10, 27, '気がはりつめている',
+ 'frequency', false, '不安感', 'reaction', true),
+('B', 11, 28, '不安だ',
+ 'frequency', false, '不安感', 'reaction', true),
+('B', 12, 29, '落着かない',
+ 'frequency', false, '不安感', 'reaction', true),
+
+-- 抑うつ感: 素点 = B13+B14+B15+B16+B17+B18
+('B', 13, 30, 'ゆううつだ',
+ 'frequency', false, '抑うつ感', 'reaction', true),
+('B', 14, 31, '何をするのも面倒だ',
+ 'frequency', false, '抑うつ感', 'reaction', true),
+('B', 15, 32, '物事に集中できない',
+ 'frequency', false, '抑うつ感', 'reaction', false),
+('B', 16, 33, '気分が晴れない',
+ 'frequency', false, '抑うつ感', 'reaction', true),
+('B', 17, 34, '仕事が手につかない',
+ 'frequency', false, '抑うつ感', 'reaction', false),
+('B', 18, 35, '悲しいと感じる',
+ 'frequency', false, '抑うつ感', 'reaction', false),
+
+-- 身体愁訴: 素点 = B19+B20+...+B29（11項目）
+('B', 19, 36, 'めまいがする',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 20, 37, '体のふしぶしが痛む',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 21, 38, '頭が重かったり頭痛がする',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 22, 39, '首筋や肩がこる',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 23, 40, '腰が痛い',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 24, 41, '目が疲れる',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 25, 42, '動悸や息切れがする',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 26, 43, '胃腸の具合が悪い',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 27, 44, '食欲がない',
+ 'frequency', false, '身体愁訴', 'reaction', true),
+('B', 28, 45, '便秘や下痢をする',
+ 'frequency', false, '身体愁訴', 'reaction', false),
+('B', 29, 46, 'よく眠れない',
+ 'frequency', false, '身体愁訴', 'reaction', true),
+
+-- ============================================================
+-- C: あなたの周りの方々についてうかがいます
+-- 回答尺度: 非常に(4) / かなり(3) / 多少(2) / 全くない(1)
+-- ※全て逆転項目（高い=ストレス低い=サポートが多い）
+-- ============================================================
+
+-- 上司からのサポート: 素点 = 15-(C1+C4+C7)
+-- 「次の人たちはどのくらい気軽に話ができますか？」
+('C', 1,  47, '上司はどのくらい気軽に話ができますか',
+ 'support', true, '上司からのサポート', 'support', true),
+-- 「次の人たちはどのくらい頼りになりますか？」
+('C', 4,  50, 'あなたが困った時、上司はどのくらい頼りになりますか',
+ 'support', true, '上司からのサポート', 'support', true),
+-- 「あなたの個人的な問題を相談したら、次の人たちはどのくらいきいてくれますか？」
+('C', 7,  53, 'あなたの個人的な問題を相談したら、上司はどのくらいきいてくれますか',
+ 'support', true, '上司からのサポート', 'support', true),
+
+-- 同僚からのサポート: 素点 = 15-(C2+C5+C8)
+('C', 2,  48, '職場の同僚はどのくらい気軽に話ができますか',
+ 'support', true, '同僚からのサポート', 'support', true),
+('C', 5,  51, 'あなたが困った時、職場の同僚はどのくらい頼りになりますか',
+ 'support', true, '同僚からのサポート', 'support', true),
+('C', 8,  54, 'あなたの個人的な問題を相談したら、職場の同僚はどのくらいきいてくれますか',
+ 'support', true, '同僚からのサポート', 'support', true),
+
+-- 家族・友人からのサポート: 素点 = 15-(C3+C6+C9)
+('C', 3,  49, '配偶者、家族、友人等はどのくらい気軽に話ができますか',
+ 'support', true, '家族・友人からのサポート', 'support', false),
+('C', 6,  52, 'あなたが困った時、配偶者、家族、友人等はどのくらい頼りになりますか',
+ 'support', true, '家族・友人からのサポート', 'support', false),
+('C', 9,  55, 'あなたの個人的な問題を相談したら、配偶者、家族、友人等はどのくらいきいてくれますか',
+ 'support', true, '家族・友人からのサポート', 'support', false),
+
+-- ============================================================
+-- D: 満足度について
+-- 回答尺度: 満足(4) / まあ満足(3) / やや不満足(2) / 不満足(1)
+-- ※逆転項目（高い=ストレス低い=満足度が高い）
+-- ※高ストレス判定には含まない
+-- ============================================================
+
+-- 仕事や生活の満足度: 素点 = 10-(D1+D2)
+('D', 1,  56, '仕事に満足だ',
+ 'satisfaction', true, '仕事や生活の満足度', 'satisfaction', false),
+('D', 2,  57, '家庭生活に満足だ',
+ 'satisfaction', true, '仕事や生活の満足度', 'satisfaction', false);
+
+
+-- ============================================================
+-- 2. 素点換算表マスタ（尺度 × 性別 × 5段階評価基準）
+-- ============================================================
+-- scale_conversion_rules テーブルを作成し、
+-- フロントエンド scoring.ts で参照する
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.stress_check_scale_conversions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  scale_name text NOT NULL,
+  scale_group text NOT NULL CHECK (scale_group IN ('stressor', 'reaction', 'support', 'satisfaction')),
+  gender text NOT NULL CHECK (gender IN ('male', 'female')),
+  -- 素点の計算式（参考用テキスト）
+  formula text NOT NULL,
+  -- 5段階評価の境界値（素点の範囲）
+  -- level 1=低い/少ない（ストレス低い）〜 level 5=高い/多い（ストレス高い）
+  level_1_min int NOT NULL, level_1_max int NOT NULL,
+  level_2_min int NOT NULL, level_2_max int NOT NULL,
+  level_3_min int NOT NULL, level_3_max int NOT NULL,
+  level_4_min int NOT NULL, level_4_max int NOT NULL,
+  level_5_min int NOT NULL, level_5_max int NOT NULL,
+  UNIQUE (scale_name, gender)
+);
+
+-- RLSは不要（全ユーザー参照可能なマスタデータ）
+-- ただし書き込みはSaaS管理者のみ
+ALTER TABLE public.stress_check_scale_conversions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "scale_conversions_select_all" ON public.stress_check_scale_conversions
+  FOR SELECT USING (true);
+
+CREATE POLICY "scale_conversions_insert_admin" ON public.stress_check_scale_conversions
+  FOR INSERT WITH CHECK (
+    (SELECT auth.uid()) = 'e97488f9-02be-4b0b-9dc9-ddb0c2902999'::uuid
+  );
+
+-- ============================================================
+-- 素点換算表データ INSERT
+-- 厚労省マニュアル P39-40 準拠
+-- ============================================================
+-- 注意: level値は「素点」（計算後の値）の範囲
+-- 「ストレスが高い方」が level_5（高い/多い）
+-- ============================================================
+
+INSERT INTO public.stress_check_scale_conversions (
+  scale_name, scale_group, gender, formula,
+  level_1_min, level_1_max,
+  level_2_min, level_2_max,
+  level_3_min, level_3_max,
+  level_4_min, level_4_max,
+  level_5_min, level_5_max
+) VALUES
+
+-- ============================================================
+-- 【ストレスの原因と考えられる因子】(A領域 9尺度)
+-- ============================================================
+
+-- 心理的な仕事の負担（量）: 15-(A1+A2+A3)  得点範囲 3〜12
+-- ※素点が低い=仕事量が多い=ストレス高い → level_1が低い素点
+('心理的な仕事の負担（量）', 'stressor', 'male',   '15-(A1+A2+A3)',
+  3, 5,   6, 7,   8, 9,  10, 11,  12, 12),
+('心理的な仕事の負担（量）', 'stressor', 'female', '15-(A1+A2+A3)',
+  3, 4,   5, 6,   7, 9,  10, 11,  12, 12),
+
+-- 心理的な仕事の負担（質）: 15-(A4+A5+A6)  得点範囲 3〜12
+('心理的な仕事の負担（質）', 'stressor', 'male',   '15-(A4+A5+A6)',
+  3, 5,   6, 7,   8, 9,  10, 11,  12, 12),
+('心理的な仕事の負担（質）', 'stressor', 'female', '15-(A4+A5+A6)',
+  3, 4,   5, 6,   7, 8,   9, 10,  11, 12),
+
+-- 自覚的な身体的負担度: 5-A7  得点範囲 1〜4
+('自覚的な身体的負担度', 'stressor', 'male',   '5-A7',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+('自覚的な身体的負担度', 'stressor', 'female', '5-A7',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+
+-- 職場の対人関係でのストレス: 10-(A12+A13)+A14  得点範囲 3〜12
+('職場の対人関係でのストレス', 'stressor', 'male',   '10-(A12+A13)+A14',
+  3, 3,   4, 5,   6, 7,   8, 9,  10, 12),
+('職場の対人関係でのストレス', 'stressor', 'female', '10-(A12+A13)+A14',
+  3, 3,   4, 5,   6, 7,   8, 9,  10, 12),
+
+-- 職場環境によるストレス: 5-A15  得点範囲 1〜4
+('職場環境によるストレス', 'stressor', 'male',   '5-A15',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+('職場環境によるストレス', 'stressor', 'female', '5-A15',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+
+-- 仕事のコントロール度: 15-(A8+A9+A10)  得点範囲 3〜12
+-- ※素点が低い=コントロール低い=ストレス高い
+('仕事のコントロール度', 'stressor', 'male',   '15-(A8+A9+A10)',
+  3, 4,   5, 6,   7, 8,   9, 10,  11, 12),
+('仕事のコントロール度', 'stressor', 'female', '15-(A8+A9+A10)',
+  3, 3,   4, 5,   6, 8,   9, 10,  11, 12),
+
+-- 技能の活用度: A11  得点範囲 1〜4
+('技能の活用度', 'stressor', 'male',   'A11',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+('技能の活用度', 'stressor', 'female', 'A11',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+
+-- 仕事の適性度: 5-A16  得点範囲 1〜4
+('仕事の適性度', 'stressor', 'male',   '5-A16',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+('仕事の適性度', 'stressor', 'female', '5-A16',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+
+-- 働きがい: 5-A17  得点範囲 1〜4
+('働きがい', 'stressor', 'male',   '5-A17',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+('働きがい', 'stressor', 'female', '5-A17',
+  1, 1,   2, 2,   3, 3,   4, 4,   4, 4),
+
+-- ============================================================
+-- 【ストレスによっておこる心身の反応】(B領域 6尺度)
+-- ============================================================
+
+-- 活気: B1+B2+B3  得点範囲 3〜12
+-- ※素点が高い=活気がある=ストレス低い → level配置が逆
+('活気', 'reaction', 'male',   'B1+B2+B3',
+  3, 3,   4, 5,   6, 7,   8, 9,  10, 12),
+('活気', 'reaction', 'female', 'B1+B2+B3',
+  3, 3,   4, 5,   6, 7,   8, 9,  10, 12),
+
+-- イライラ感: B4+B5+B6  得点範囲 3〜12
+('イライラ感', 'reaction', 'male',   'B4+B5+B6',
+  3, 3,   4, 5,   6, 7,   8, 9,  10, 12),
+('イライラ感', 'reaction', 'female', 'B4+B5+B6',
+  3, 3,   4, 5,   6, 8,   9, 10,  11, 12),
+
+-- 疲労感: B7+B8+B9  得点範囲 3〜12
+('疲労感', 'reaction', 'male',   'B7+B8+B9',
+  3, 3,   4, 4,   5, 7,   8, 10,  11, 12),
+('疲労感', 'reaction', 'female', 'B7+B8+B9',
+  3, 3,   4, 5,   6, 8,   9, 11,  12, 12),
+
+-- 不安感: B10+B11+B12  得点範囲 3〜12
+('不安感', 'reaction', 'male',   'B10+B11+B12',
+  3, 3,   4, 4,   5, 7,   8, 9,  10, 12),
+('不安感', 'reaction', 'female', 'B10+B11+B12',
+  3, 3,   4, 4,   5, 7,   8, 10,  11, 12),
+
+-- 抑うつ感: B13〜B18合計  得点範囲 6〜24
+('抑うつ感', 'reaction', 'male',   'B13+B14+B15+B16+B17+B18',
+  6, 6,   7, 8,   9, 12,  13, 16,  17, 24),
+('抑うつ感', 'reaction', 'female', 'B13+B14+B15+B16+B17+B18',
+  6, 6,   7, 8,   9, 12,  13, 17,  18, 24),
+
+-- 身体愁訴: B19〜B29合計  得点範囲 11〜44
+('身体愁訴', 'reaction', 'male',   'B19+B20+B21+B22+B23+B24+B25+B26+B27+B28+B29',
+  11, 11,  12, 15,  16, 21,  22, 26,  27, 44),
+('身体愁訴', 'reaction', 'female', 'B19+B20+B21+B22+B23+B24+B25+B26+B27+B28+B29',
+  11, 13,  14, 17,  18, 23,  24, 29,  30, 44),
+
+-- ============================================================
+-- 【ストレス反応に影響を与える他の因子】(C領域 3尺度)
+-- ============================================================
+
+-- 上司からのサポート: 15-(C1+C4+C7)  得点範囲 3〜12
+-- ※素点が低い=サポート多い=ストレス低い
+('上司からのサポート', 'support', 'male',   '15-(C1+C4+C7)',
+  3, 4,   5, 6,   7, 8,   9, 10,  11, 12),
+('上司からのサポート', 'support', 'female', '15-(C1+C4+C7)',
+  3, 3,   4, 5,   6, 7,   8, 10,  11, 12),
+
+-- 同僚からのサポート: 15-(C2+C5+C8)  得点範囲 3〜12
+('同僚からのサポート', 'support', 'male',   '15-(C2+C5+C8)',
+  3, 5,   6, 7,   8, 9,  10, 11,  12, 12),
+('同僚からのサポート', 'support', 'female', '15-(C2+C5+C8)',
+  3, 5,   6, 7,   8, 9,  10, 11,  12, 12),
+
+-- 家族・友人からのサポート: 15-(C3+C6+C9)  得点範囲 3〜12
+('家族・友人からのサポート', 'support', 'male',   '15-(C3+C6+C9)',
+  3, 6,   7, 8,   9, 9,  10, 11,  12, 12),
+('家族・友人からのサポート', 'support', 'female', '15-(C3+C6+C9)',
+  3, 6,   7, 8,   9, 9,  10, 11,  12, 12),
+
+-- ============================================================
+-- 【仕事や生活の満足度】(D領域 1尺度) ※高ストレス判定には含まない
+-- ============================================================
+
+-- 仕事や生活の満足度: 10-(D1+D2)  得点範囲 2〜8
+('仕事や生活の満足度', 'satisfaction', 'male',   '10-(D1+D2)',
+  2, 3,   4, 4,   5, 6,   7, 7,   8, 8),
+('仕事や生活の満足度', 'satisfaction', 'female', '10-(D1+D2)',
+  2, 3,   4, 4,   5, 6,   7, 7,   8, 8);
+
+
+-- ============================================================
+-- 3. 高ストレス判定基準マスタ
+-- ============================================================
+-- 評価基準の例（その1）: 素点合計方式
+-- 評価基準の例（その2）: 5段階換算方式
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.stress_check_high_stress_criteria (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  method text NOT NULL CHECK (method IN ('raw_score', 'converted_score')),
+  questionnaire_type text NOT NULL CHECK (questionnaire_type IN ('57', '23')),
+  description text NOT NULL,
+  -- 条件①: B領域のみで高ストレス
+  condition_1_b_threshold int NOT NULL,
+  -- 条件②: A+C領域の閾値 AND B領域の閾値
+  condition_2_ac_threshold int NOT NULL,
+  condition_2_b_threshold int NOT NULL,
+  UNIQUE (method, questionnaire_type)
+);
+
+ALTER TABLE public.stress_check_high_stress_criteria ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "high_stress_criteria_select_all" ON public.stress_check_high_stress_criteria
+  FOR SELECT USING (true);
+
+CREATE POLICY "high_stress_criteria_insert_admin" ON public.stress_check_high_stress_criteria
+  FOR INSERT WITH CHECK (
+    (SELECT auth.uid()) = 'e97488f9-02be-4b0b-9dc9-ddb0c2902999'::uuid
+  );
+
+INSERT INTO public.stress_check_high_stress_criteria (
+  method, questionnaire_type, description,
+  condition_1_b_threshold,
+  condition_2_ac_threshold, condition_2_b_threshold
+) VALUES
+-- 評価基準の例（その1）: 素点合計方式（57問）
+-- ①B領域29項目合計 ≥ 77 → 高ストレス
+-- ②A領域17項目+C領域9項目合計 ≥ 76 かつ B領域合計 ≥ 63 → 高ストレス
+('raw_score', '57',
+ '素点合計方式（マニュアルP42準拠）: B≥77 or (AC≥76 and B≥63)',
+ 77, 76, 63),
+
+-- 評価基準の例（その1）: 素点合計方式（23問）
+-- ①B領域11項目合計 ≥ 31 → 高ストレス
+-- ②A領域6項目+C領域6項目合計 ≥ 39 かつ B領域合計 ≥ 23 → 高ストレス
+('raw_score', '23',
+ '素点合計方式（マニュアルP42準拠）: B≥31 or (AC≥39 and B≥23)',
+ 31, 39, 23),
+
+-- 評価基準の例（その2）: 5段階換算方式（57問）
+-- ①B領域6尺度の5段階合計 ≤ 12（平均2.00以下）→ 高ストレス
+-- ②A領域9尺度+C領域3尺度=12尺度の5段階合計 ≤ 26（平均2.17以下）
+--   かつ B領域6尺度合計 ≤ 17（平均2.83以下）→ 高ストレス
+-- ※converted_scoreの場合、thresholdは「以下」で判定（低い=ストレス高い）
+('converted_score', '57',
+ '5段階換算方式（マニュアルP43準拠）: B≤12 or (AC≤26 and B≤17)',
+ 12, 26, 17),
+
+-- 評価基準の例（その2）: 5段階換算方式（23問）
+-- ①B領域5尺度合計 ≤ 11（平均2.20以下）→ 高ストレス
+-- ②A領域2尺度+C領域2尺度=4尺度合計 ≤ 8（平均2.00以下）
+--   かつ B領域5尺度合計 ≤ 16（平均3.20以下）→ 高ストレス
+('converted_score', '23',
+ '5段階換算方式（マニュアルP44準拠）: B≤11 or (AC≤8 and B≤16)',
+ 11, 8, 16);
+
+
+-- ============================================================
+-- 4. 回答選択肢マスタ（フロントエンド表示用）
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.stress_check_response_options (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  response_scale text NOT NULL,
+  option_value int NOT NULL,
+  option_label text NOT NULL,
+  sort_order int NOT NULL,
+  UNIQUE (response_scale, option_value)
+);
+
+ALTER TABLE public.stress_check_response_options ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "response_options_select_all" ON public.stress_check_response_options
+  FOR SELECT USING (true);
+
+INSERT INTO public.stress_check_response_options (response_scale, option_value, option_label, sort_order) VALUES
+-- A領域: そうだ〜ちがう
+('agreement', 4, 'そうだ', 1),
+('agreement', 3, 'まあそうだ', 2),
+('agreement', 2, 'ややちがう', 3),
+('agreement', 1, 'ちがう', 4),
+
+-- B領域: ほとんどなかった〜ほとんどいつもあった
+('frequency', 1, 'ほとんどなかった', 1),
+('frequency', 2, 'ときどきあった', 2),
+('frequency', 3, 'しばしばあった', 3),
+('frequency', 4, 'ほとんどいつもあった', 4),
+
+-- C領域: 非常に〜全くない
+('support', 4, '非常に', 1),
+('support', 3, 'かなり', 2),
+('support', 2, '多少', 3),
+('support', 1, '全くない', 4),
+
+-- D領域: 満足〜不満足
+('satisfaction', 4, '満足', 1),
+('satisfaction', 3, 'まあ満足', 2),
+('satisfaction', 2, 'やや不満足', 3),
+('satisfaction', 1, '不満足', 4);
+
+
+-- ============================================================
+-- 完了メッセージ
+-- ============================================================
+-- 投入データサマリ:
+--   stress_check_questions: 57行（A17問 + B29問 + C9問 + D2問）
+--   stress_check_scale_conversions: 38行（19尺度 × 男女）
+--   stress_check_high_stress_criteria: 4行（2方式 × 2調査票タイプ）
+--   stress_check_response_options: 16行（4尺度 × 4選択肢）
+-- ============================================================

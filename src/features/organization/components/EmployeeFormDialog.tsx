@@ -25,6 +25,7 @@ export function EmployeeFormDialog({
 }: EmployeeFormDialogProps) {
   const isEdit = !!employee;
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const pathMap = React.useMemo(() => buildDivisionPathMap(divisions), [divisions]);
 
   const [name, setName] = useState('');
@@ -40,6 +41,7 @@ export function EmployeeFormDialog({
 
   React.useEffect(() => {
     if (open) {
+      setError(null);
       setName(employee?.name || '');
       setEmail(employee?.email || '');
       setEmployeeNo(employee?.employee_no || '');
@@ -57,6 +59,7 @@ export function EmployeeFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     startTransition(async () => {
       const data = {
         name,
@@ -71,12 +74,22 @@ export function EmployeeFormDialog({
         start_date: startDate || undefined,
       };
 
-      if (isEdit && employee) {
-        await updateEmployee(employee.id, data);
-      } else {
-        await createEmployee({ ...data, tenant_id: tenantId });
+      try {
+        let result;
+        if (isEdit && employee) {
+          result = await updateEmployee(employee.id, data);
+        } else {
+          result = await createEmployee({ ...data, tenant_id: tenantId });
+        }
+
+        if (result.success) {
+          onClose();
+        } else {
+          setError(result.error || '登録に失敗しました。');
+        }
+      } catch (err: any) {
+        setError(err.message || '通信エラーが発生しました。');
       }
-      onClose();
     });
   };
 
@@ -98,6 +111,12 @@ export function EmployeeFormDialog({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm mb-4">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">

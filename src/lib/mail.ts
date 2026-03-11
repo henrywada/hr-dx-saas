@@ -104,3 +104,50 @@ HR-dx Candidate Pulse 自動通知
     // but we log it properly instead.
   }
 }
+
+/**
+ * 製品有効期限アラートメールを送信する
+ */
+export const sendExpirationAlertEmail = async (
+  to: string,
+  companyName: string,
+  products: { serial_number: string; expiration_date: string }[]
+) => {
+  const from = process.env.MAIL_FROM || '"HR-dx 製品管理" <noreply@your-domain.com>'
+  const subject = `【重要】製品有効期限に関するお知らせ（${companyName}様）`
+  
+  const productList = products
+    .map((p) => `・シリアル番号: ${p.serial_number} / 有効期限: ${p.expiration_date}`)
+    .join('\n')
+
+  const text = `${companyName}
+担当者 様
+
+いつもお世話になっております。
+現在ご使用いただいている製品の中に、有効期限が間近（30日以内）のものが含まれています。
+安全のため、期限内にご使用いただくか、適切な処置をお願い申し上げます。
+
+■ 対象製品リスト
+${productList}
+
+ご不明な点がございましたら、管理者までお問い合わせください。
+
+--------------------------------------------------
+HR-dx 製品トレーサビリティシステム
+--------------------------------------------------
+`
+
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+    })
+    console.log('Expiration alert sent: %s', info.messageId)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('Error sending expiration alert email:', error)
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}

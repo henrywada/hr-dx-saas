@@ -7,7 +7,12 @@ export async function middleware(request: NextRequest) {
   const { response, user, supabase } = await updateSession(request)
 
   const pathname = request.nextUrl.pathname
-  const isAuthPage = pathname.startsWith(APP_ROUTES.AUTH.LOGIN) || pathname.startsWith('/reset-password') || pathname.startsWith('/api/auth')
+  const isAuthPage = 
+    pathname.startsWith(APP_ROUTES.AUTH.LOGIN) || 
+    pathname.startsWith(APP_ROUTES.AUTH.RESET_PASSWORD) || 
+    pathname.startsWith(APP_ROUTES.AUTH.FORGOT_PASSWORD) || 
+    pathname.startsWith(APP_ROUTES.AUTH.SIGNUP) || 
+    pathname.startsWith('/api/auth')
   const isPublicPage = pathname === '/'
 
   if (!pathname.startsWith('/_next') && !pathname.includes('.')) {

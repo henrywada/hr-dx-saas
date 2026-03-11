@@ -16,6 +16,7 @@ export type Tenant = {
 export type TenantWithManager = Tenant & {
   manager_name: string | null;
   manager_email: string | null;
+  manager_user_id: string | null;
 };
 
 /** 新規登録フォーム用 */

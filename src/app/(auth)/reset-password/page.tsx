@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { APP_ROUTES } from '@/config/routes';
 import { Eye, EyeOff } from 'lucide-react';
+import { verifyToken, resetPassword } from './actions';
 
 export default function ResetPasswordPage() {
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,8 +18,9 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
   const [linkExpired, setLinkExpired] = useState(false);
+  const [customUserId, setCustomUserId] = useState<string | null>(null);
+  const [isCustomToken, setIsCustomToken] = useState(false);
 
-  // @supabase/supabase-js の標準クライアント（URLハッシュ自動検出対応）
   const supabaseRef = useRef(
     createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,39 +29,55 @@ export default function ResetPasswordPage() {
   );
 
   useEffect(() => {
+    const token = searchParams.get('token');
+    const email = searchParams.get('email');
+
+    // ===== カスタムトークンフロー =====
+    if (token && email) {
+      setIsCustomToken(true);
+      setRecoveryEmail(email);
+      verifyToken(email, token).then((result) => {
+        if (result.valid && result.userId) {
+          setCustomUserId(result.userId);
+          setReady(true);
+        } else {
+          if (result.error?.includes('有効期限')) {
+            setLinkExpired(true);
+          } else {
+            setError(result.error || 'トークンの検証に失敗しました');
+          }
+        }
+      });
+      return;
+    }
+
+    // ===== 標準 Supabase リカバリーフロー =====
     const supabase = supabaseRef.current;
 
-    // ===== URLハッシュのエラーチェック =====
-    // リンク期限切れ等の場合: #error=access_denied&error_code=otp_expired&...
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       if (hash.includes('error=')) {
         const params = new URLSearchParams(hash.substring(1));
         const errorCode = params.get('error_code');
         const errorDesc = params.get('error_description');
-
         if (errorCode === 'otp_expired' || errorDesc?.includes('expired')) {
           setLinkExpired(true);
-          return; // イベントリスナーは不要
+          return;
         }
-
-        // その他のエラー
         setError(errorDesc || '認証エラーが発生しました。');
         return;
       }
     }
 
-    // ===== PASSWORD_RECOVERY イベントを待つ =====
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true);
         setRecoveryEmail(session?.user?.email || null);
-        console.log('PASSWORD_RECOVERY event:', session?.user?.email);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +87,6 @@ export default function ResetPasswordPage() {
       setError('パスワードは6文字以上で入力してください。');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('パスワードが一致しません。');
       return;
@@ -76,20 +95,25 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const supabase = supabaseRef.current;
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        password,
-      });
-
-      if (updateError) {
-        setError(updateError.message);
-        return;
+      if (isCustomToken && customUserId) {
+        // カスタムトークンフロー: RPC でパスワード更新
+        const result = await resetPassword(customUserId, password);
+        if (!result.success) {
+          setError(result.error || 'パスワード更新に失敗しました');
+          return;
+        }
+      } else {
+        // 標準フロー: Supabase Auth でパスワード更新
+        const supabase = supabaseRef.current;
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) {
+          setError(updateError.message);
+          return;
+        }
+        await supabase.auth.signOut();
       }
 
-      await supabase.auth.signOut();
-
-      alert('✅ パスワードの設定が完了しました。\nログイン画面からログインしてください。');
+      alert('パスワードの設定が完了しました。\nログイン画面からログインしてください。');
       window.location.href = APP_ROUTES.AUTH.LOGIN;
     } catch (err) {
       console.error('パスワード設定エラー:', err);
@@ -104,11 +128,10 @@ export default function ResetPasswordPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <h2 className="text-3xl font-bold text-center">パスワード設定</h2>
 
-        {/* ===== リンク期限切れ ===== */}
         {linkExpired ? (
           <div className="text-center py-6 space-y-4">
             <div className="mx-auto flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
-              <span className="text-3xl">⏰</span>
+              <span className="text-3xl">&#x23F0;</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900">
               リンクの有効期限が切れています
@@ -124,17 +147,23 @@ export default function ResetPasswordPage() {
               ログイン画面へ
             </a>
           </div>
-
-        /* ===== リカバリーセッション待ち ===== */
         ) : !ready ? (
-          <div className="text-center py-8">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-            <p className="mt-4 text-sm text-gray-500">
-              認証情報を確認しています...
-            </p>
-          </div>
-
-        /* ===== パスワード設定フォーム ===== */
+          error ? (
+            <div className="text-center py-6 space-y-4">
+              <div className="bg-red-50 text-red-600 p-4 rounded text-sm">{error}</div>
+              <a
+                href={APP_ROUTES.AUTH.LOGIN}
+                className="inline-block mt-4 px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                ログイン画面へ
+              </a>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+              <p className="mt-4 text-sm text-gray-500">認証情報を確認しています...</p>
+            </div>
+          )
         ) : (
           <>
             {recoveryEmail && (
@@ -144,19 +173,15 @@ export default function ResetPasswordPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">
-                {error}
-              </div>
+              <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">{error}</div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  パスワード
-                </label>
+                <label className="block text-sm font-medium text-gray-700">パスワード</label>
                 <div className="relative mt-1">
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -166,26 +191,20 @@ export default function ResetPasswordPage() {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  パスワード確認
-                </label>
+                <label className="block text-sm font-medium text-gray-700">パスワード確認</label>
                 <div className="relative mt-1">
                   <input
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -195,15 +214,11 @@ export default function ResetPasswordPage() {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     tabIndex={-1}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>

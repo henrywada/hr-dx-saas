@@ -28,7 +28,7 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
     console.log(`getAllTenants: ${tenants.length}件のテナントを取得`);
 
     // ===== Step 2: 責任者情報を取得（エラーでもテナント表示は続行） =====
-    const managerMap = new Map<string, { name: string; email: string | null }>();
+    const managerMap = new Map<string, { name: string; email: string | null; user_id: string | null }>();
 
     try {
       const tenantIds = tenants.map((t) => t.id);
@@ -41,25 +41,18 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
       if (mgrError) {
         console.error('getManagers error (テナント一覧は表示を続行):', mgrError);
       } else if (managers && managers.length > 0) {
-        // 責任者の user_id からメールアドレスを取得
-        let emailMap: Record<string, string> = {};
-        try {
-          const { data: usersData } = await supabase.auth.admin.listUsers();
-          if (usersData?.users) {
-            emailMap = {};
-            for (const u of usersData.users) {
-              if (u.email) {
-                emailMap[u.id] = u.email;
-              }
+        // RPC経由でメールアドレスを個別取得（auth.admin.listUsers はJWTエラーのためバイパス）
+        for (const mgr of managers) {
+          let email: string | null = null;
+          if (mgr.user_id) {
+            try {
+              const { data: userEmail } = await supabase.rpc('get_auth_user_email', { p_user_id: mgr.user_id });
+              email = userEmail || null;
+            } catch {
+              // メール取得失敗はスキップ
             }
           }
-        } catch (authErr) {
-          console.error('auth.admin.listUsers error:', authErr);
-        }
-
-        for (const mgr of managers) {
-          const email = mgr.user_id ? (emailMap[mgr.user_id] || null) : null;
-          managerMap.set(mgr.tenant_id, { name: mgr.name, email });
+          managerMap.set(mgr.tenant_id, { name: mgr.name, email, user_id: mgr.user_id || null });
         }
       }
     } catch (mgrErr) {
@@ -78,6 +71,7 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
       created_at: String(t.created_at ?? ''),
       manager_name: managerMap.get(String(t.id))?.name || null,
       manager_email: managerMap.get(String(t.id))?.email || null,
+      manager_user_id: managerMap.get(String(t.id))?.user_id || null,
     }));
   } catch (err) {
     console.error('getAllTenants 予期せぬエラー:', err);

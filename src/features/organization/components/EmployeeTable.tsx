@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useMemo, useTransition } from 'react';
-import { Plus, Pencil, Trash2, Search, Users, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Filter, Mail } from 'lucide-react';
 import type { Division, Employee, AppRole } from '../types';
 import { ACTIVE_STATUS_LABELS } from '../types';
-import { deleteEmployee } from '../actions';
+import { deleteEmployee, resendEmployeeInviteEmail } from '../actions';
 import { EmployeeFormDialog } from './EmployeeFormDialog';
 
 interface EmployeeTableProps {
@@ -24,6 +24,8 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
     employee?: Employee;
   }>({ open: false });
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [resendTarget, setResendTarget] = useState<Employee | null>(null);
+  const [resendResult, setResendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const filteredEmployees = useMemo(() => {
     return employees.filter(emp => {
@@ -59,6 +61,21 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
     startTransition(async () => {
       await deleteEmployee(deleteTarget.id);
       setDeleteTarget(null);
+    });
+  };
+
+  const confirmResend = () => {
+    if (!resendTarget) return;
+    startTransition(async () => {
+      const result = await resendEmployeeInviteEmail(resendTarget.id);
+      setResendTarget(null);
+      setResendResult({
+        success: result.success,
+        message: result.success
+          ? `${resendTarget.name} へ招待メールを再送しました`
+          : `送信失敗: ${result.error}`,
+      });
+      setTimeout(() => setResendResult(null), 4000);
     });
   };
 
@@ -166,6 +183,16 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-1">
+                          {/* メール再送ボタン: user_idがある従業員のみ表示 */}
+                          {emp.user_id && (
+                            <button
+                              onClick={() => setResendTarget(emp)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                              title="招待メール再送"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setDialogState({ open: true, employee: emp })}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
@@ -201,6 +228,16 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
         tenantId={tenantId}
       />
 
+      {/* 結果トースト */}
+      {resendResult && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
+          resendResult.success ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          <Mail className="w-4 h-4" />
+          {resendResult.message}
+        </div>
+      )}
+
       {/* Delete Confirmation Dialog */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -227,6 +264,42 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
                   {isPending ? '削除中...' : '削除する'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resend Email Confirmation Dialog */}
+      {resendTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setResendTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200">
+            <div className="p-6 space-y-4">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Mail className="w-5 h-5 text-green-600" />
+                招待メール再送
+              </h3>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  <span className="font-bold">「{resendTarget.name}」</span>へ招待メールを再送しますか？
+                </p>
+                <p className="text-xs text-green-700 mt-1">新しいパスワード設定リンク（有効期限2週間）を送信します。</p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setResendTarget(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={confirmResend}
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  {isPending ? '送信中...' : '再送する'}
                 </button>
               </div>
             </div>

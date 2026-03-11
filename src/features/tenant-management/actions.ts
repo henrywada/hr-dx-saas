@@ -15,28 +15,23 @@ type SupabaseAdmin = any;
 
 /**
  * 招待メール送信の共通処理
- *
- * generateLink でパスワード設定リンクを生成し、
+ * GoTrue JWT問題を回避するため、RPC関数でリカバリートークンを生成し、
  * nodemailer（Inbucket SMTP）経由で有効期限付きのカスタムメールを送信する。
  */
-async function sendInviteEmailToManager(supabase: SupabaseAdmin, email: string) {
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password`;
+async function sendInviteEmailToManager(supabase: SupabaseAdmin, email: string, userId: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // リカバリーリンクを生成（メールは送信しない）
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo },
-  });
+  // RPC関数でリカバリートークンを生成（GoTrue バイパス）
+  const { data: recoveryToken, error: tokenError } = await supabase.rpc(
+    'generate_recovery_token',
+    { p_user_id: userId, p_expiry_hours: 168 }
+  );
 
-  if (linkError) {
-    throw new Error(`リンク生成失敗: ${linkError.message}`);
+  if (tokenError || !recoveryToken) {
+    throw new Error('リカバリートークン生成失敗: ' + (tokenError?.message || 'トークンが返されませんでした'));
   }
 
-  const actionLink = linkData?.properties?.action_link;
-  if (!actionLink) {
-    throw new Error('パスワード設定リンクの取得に失敗しました');
-  }
+  const actionLink = appUrl + '/reset-password?token=' + recoveryToken + '&email=' + encodeURIComponent(email);
 
   // 有効期限を計算
   const expiryFormatted = formatExpiryDate(OTP_EXPIRY_SECONDS);
@@ -45,21 +40,20 @@ async function sendInviteEmailToManager(supabase: SupabaseAdmin, email: string) 
   await sendMail({
     to: email,
     subject: 'パスワード設定',
-    html: `<p>hr-dxシステムへパスワードを設定してください。パスワード設定は<a href="${actionLink}">ここ</a>。</p>
-<p>このメールの有効期限は${expiryFormatted}までです。</p>`,
+    html: '<p>hr-dxシステムへパスワードを設定してください。パスワード設定は<a href="' + actionLink + '">ここ</a>。</p>\n<p>このメールの有効期限は' + expiryFormatted + 'までです。</p>',
   });
 
-  console.log(`招待メール送信完了: ${email}（有効期限: ${expiryFormatted}）`);
+  console.log('招待メール送信完了: ' + email + '（有効期限: ' + expiryFormatted + '）');
 }
 
 /**
  * テナント新規登録
- * 
+ *
  * 処理フロー:
- * 1. tenants テーブルへ挿入（テナント名, 金額, 最高ユーザ数）
- * 2. auth.users へ責任者メールアドレスを登録（email_confirm: true で認証済み状態）
- * 3. employees テーブルへ責任者を登録（is_manager=true）
- * 4. 招待メール送信（パスワード設定URL付き, 有効期限1週間）
+ * 1. tenants テーブルへ挿入
+ * 2. RPC関数で auth.users へ直接登録（GoTrue JWT問題を回避）
+ * 3. employees テーブルへ責任者を登録
+ * 4. 招待メール送信
  */
 export async function createTenant(formData: TenantFormData): Promise<TenantActionResult> {
   const supabase = createAdminClient();
@@ -79,31 +73,29 @@ export async function createTenant(formData: TenantFormData): Promise<TenantActi
 
     if (tenantError) {
       console.error('テナント作成エラー:', tenantError);
-      return { success: false, error: `テナント作成失敗: ${tenantError.message}` };
+      return { success: false, error: 'テナント作成失敗: ' + tenantError.message };
     }
 
-    // ========== Step 2: auth.users へ責任者登録（認証済み状態） ==========
-    // email_confirm: true で「認知済」の状態にする（システム認証不要）
+    // ========== Step 2: RPC関数で auth ユーザーを直接作成（GoTrue バイパス） ==========
+    console.log('Step 2: [RPC] ユーザー作成開始 -', formData.manager_email);
     const tempPassword = generateTempPassword();
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: formData.manager_email,
-      password: tempPassword,
-      email_confirm: true, // 管理者により認証済みなのでシステムでの認証は不要
-      user_metadata: {
-        name: formData.manager_name,
-        role: 'admin',
-        tenant_id: tenant.id,
-      },
-    });
 
-    if (authError) {
+    const { data: userId, error: rpcError } = await supabase.rpc(
+      'create_auth_user',
+      {
+        p_email: formData.manager_email,
+        p_password: tempPassword,
+      }
+    );
+
+    if (rpcError || !userId) {
       // テナントを作成済みなのでロールバック
       await supabase.from('tenants').delete().eq('id', tenant.id);
-      console.error('ユーザー作成エラー:', authError);
-      return { success: false, error: `責任者ユーザー作成失敗: ${authError.message}` };
+      console.error('ユーザー作成エラー:', rpcError);
+      return { success: false, error: '責任者ユーザー作成失敗: ' + (rpcError?.message || 'ユーザーIDが返されませんでした') };
     }
 
-    const userId = authData.user.id;
+    console.log('Step 2 完了: userId =', userId);
 
     // ========== Step 3: employees テーブルへ責任者登録 ==========
     // app_role テーブルから 'hr' ロールの ID を取得
@@ -126,20 +118,21 @@ export async function createTenant(formData: TenantFormData): Promise<TenantActi
 
     if (empError) {
       // ロールバック: ユーザーとテナントを削除
-      await supabase.auth.admin.deleteUser(userId);
+      await supabase.rpc('delete_auth_user', { p_user_id: userId });
       await supabase.from('tenants').delete().eq('id', tenant.id);
       console.error('従業員作成エラー:', empError);
-      return { success: false, error: `責任者従業員レコード作成失敗: ${empError.message}` };
+      return { success: false, error: '責任者従業員レコード作成失敗: ' + empError.message };
     }
 
-    // ========== Step 4: 招待メール送信（パスワード設定URL + 有効期限付き） ==========
+    // ========== Step 4: 招待メール送信 ==========
     try {
-      await sendInviteEmailToManager(supabase, formData.manager_email);
+      await sendInviteEmailToManager(supabase, formData.manager_email, userId);
     } catch (emailError) {
       const errorMessage = emailError instanceof Error ? emailError.message : String(emailError);
       console.warn('招待メールの送信に失敗しました（テナントとユーザーは作成済み）:', errorMessage);
-      // SMTP設定が未完了でもテナントの作成自体は成功とみなす
     }
+
+    console.log('一時パスワード（開発用）:', tempPassword);
 
     revalidatePath(REVALIDATE_PATH);
     return {
@@ -157,27 +150,45 @@ export async function createTenant(formData: TenantFormData): Promise<TenantActi
 
 /**
  * 招待メール再送信
- * 
- * パスワード設定URLのメールを再送し、有効期限をリセットする。
- * メールに届かなかった人、有効期限切れの人向け。
  */
-export async function resendInviteEmail(managerEmail: string): Promise<TenantActionResult> {
+export async function resendInviteEmail(tenantId: string, managerEmail?: string | null): Promise<TenantActionResult> {
   const supabase = createAdminClient();
 
   try {
-    if (!managerEmail) {
-      return { success: false, error: '責任者のメールアドレスが設定されていません' };
+    // テナントの責任者（is_manager=true）を取得
+    const { data: manager, error: empError } = await supabase
+      .from('employees')
+      .select('user_id, name')
+      .eq('tenant_id', tenantId)
+      .eq('is_manager', true)
+      .single();
+
+    if (empError || !manager?.user_id) {
+      return { success: false, error: '責任者情報が見つかりません: ' + (empError?.message || 'user_idなし') };
     }
 
-    await sendInviteEmailToManager(supabase, managerEmail);
+    // RPC経由でメールアドレスを取得
+    let email = managerEmail;
+    if (!email) {
+      const { data: userEmail, error: emailError } = await supabase.rpc('get_auth_user_email', {
+        p_user_id: manager.user_id,
+      });
+      if (emailError || !userEmail) {
+        return { success: false, error: 'メールアドレスの取得に失敗しました' };
+      }
+      email = userEmail;
+    }
 
-    console.log('招待メール再送完了:', managerEmail);
+    await sendInviteEmailToManager(supabase, email, manager.user_id);
+
+    console.log('招待メール再送完了:', email);
     return { success: true };
   } catch (error) {
     console.error('招待メール再送 予期せぬエラー:', error);
-    return { success: false, error: `メール送信に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}` };
+    return { success: false, error: 'メール送信に失敗しました: ' + (error instanceof Error ? error.message : '不明なエラー') };
   }
 }
+
 
 /**
  * テナント情報更新
@@ -203,7 +214,7 @@ export async function updateTenant(
 
     if (error) {
       console.error('テナント更新エラー:', error);
-      return { success: false, error: `テナント更新失敗: ${error.message}` };
+      return { success: false, error: 'テナント更新失敗: ' + error.message };
     }
 
     revalidatePath(REVALIDATE_PATH);
@@ -215,15 +226,13 @@ export async function updateTenant(
 }
 
 /**
- * テナント削除
- * 
- * 関連データ（employees, tenant_service, ユーザー）も削除する
+ * テナント削除（RPC関数でauthユーザーも削除）
  */
 export async function deleteTenant(tenantId: string): Promise<TenantActionResult> {
   const supabase = createAdminClient();
 
   try {
-    // 1. テナントに紐づく従業員を取得（auth.users の削除のため）
+    // 1. テナントに紐づく従業員を取得
     const { data: employees } = await supabase
       .from('employees')
       .select('user_id')
@@ -237,7 +246,7 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
 
     if (tsError) {
       console.error('テナントサービス削除エラー:', tsError);
-      return { success: false, error: `テナントサービス削除失敗: ${tsError.message}` };
+      return { success: false, error: 'テナントサービス削除失敗: ' + tsError.message };
     }
 
     // 3. employees の削除
@@ -248,7 +257,7 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
 
     if (empError) {
       console.error('従業員削除エラー:', empError);
-      return { success: false, error: `従業員削除失敗: ${empError.message}` };
+      return { success: false, error: '従業員削除失敗: ' + empError.message };
     }
 
     // 4. divisions の削除
@@ -259,7 +268,6 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
 
     if (divError) {
       console.error('組織削除エラー:', divError);
-      // divisions の削除失敗は警告のみ（存在しない場合もある）
     }
 
     // 5. tenants の削除
@@ -270,16 +278,16 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
 
     if (tenantError) {
       console.error('テナント削除エラー:', tenantError);
-      return { success: false, error: `テナント削除失敗: ${tenantError.message}` };
+      return { success: false, error: 'テナント削除失敗: ' + tenantError.message };
     }
 
-    // 6. auth.users の削除（従業員に紐づくユーザー）
+    // 6. auth.users の削除（RPC関数経由でGoTrueバイパス）
     if (employees && employees.length > 0) {
       for (const emp of employees) {
         if (emp.user_id) {
-          const { error: authDelError } = await supabase.auth.admin.deleteUser(emp.user_id);
-          if (authDelError) {
-            console.warn(`ユーザー削除警告 (${emp.user_id}):`, authDelError);
+          const { error: delErr } = await supabase.rpc('delete_auth_user', { p_user_id: emp.user_id });
+          if (delErr) {
+            console.warn('ユーザー削除警告 (' + emp.user_id + '):', delErr);
           }
         }
       }
@@ -294,7 +302,7 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
 }
 
 /**
- * 一時パスワード生成（ユーザー作成時に使用、招待メール経由でリセットされる）
+ * 一時パスワード生成
  */
 function generateTempPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';

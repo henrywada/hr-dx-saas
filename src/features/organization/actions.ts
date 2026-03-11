@@ -8,37 +8,25 @@ import { sendMail, formatExpiryDate } from '@/lib/mail/send';
 
 const ADM_PATH = APP_ROUTES.TENANT.ADMIN;
 
-const OTP_EXPIRY_SECONDS = 604800;
-
-function generateTempPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-  let password = '';
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
+// メールリンクの有効期間: 2週間（336時間）
+const INVITE_EXPIRY_HOURS = 336;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendInviteEmailToEmployee(supabase: any, email: string) {
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password`;
+async function sendInviteEmailToEmployee(supabase: any, email: string, userId: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo },
+  // GoTrue をバイパス: RPC でリカバリートークンを生成
+  const { data: token, error: tokenError } = await supabase.rpc('generate_recovery_token', {
+    p_user_id: userId,
+    p_expiry_hours: INVITE_EXPIRY_HOURS,
   });
 
-  if (linkError) {
-    throw new Error(`リンク生成失敗: ${linkError.message}`);
+  if (tokenError) {
+    throw new Error(`リカバリートークン生成失敗: ${tokenError.message}`);
   }
 
-  const actionLink = linkData?.properties?.action_link;
-  if (!actionLink) {
-    throw new Error('パスワード設定リンクの取得に失敗しました');
-  }
-
-  const expiryFormatted = formatExpiryDate(OTP_EXPIRY_SECONDS);
+  const actionLink = `${appUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+  const expiryFormatted = formatExpiryDate(INVITE_EXPIRY_HOURS * 3600);
 
   await sendMail({
     to: email,
@@ -139,31 +127,28 @@ export async function createEmployee(data: {
 }) {
   const supabaseAdmin = createAdminClient();
 
-  let user_id = null;
+  let user_id: string | null = null;
+
   if (data.email) {
-    const tempPassword = generateTempPassword();
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        name: data.name,
-        role: data.is_manager ? 'manager' : 'member',
-        tenant_id: data.tenant_id,
-      },
+    // GoTrue をバイパス: RPC で auth.users に直接ユーザーを作成
+    const tempPassword = `Temp_${Math.random().toString(36).slice(2, 10)}!`;
+    const { data: newUserId, error: authError } = await supabaseAdmin.rpc('create_auth_user', {
+      p_email: data.email,
+      p_password: tempPassword,
     });
 
     if (authError) {
       console.error('ユーザー作成エラー:', authError);
       return { success: false, error: `ユーザー作成失敗: ${authError.message}` };
     }
-    user_id = authData.user.id;
+    user_id = newUserId as string;
   }
 
   const payload: Record<string, unknown> = { ...data };
   delete payload.email; // DBには存在しないカラムを削除
   if (user_id) {
     payload.user_id = user_id;
+    payload.active_status = payload.active_status ?? '承認済';
   }
 
   const supabase = await createClient();
@@ -174,14 +159,18 @@ export async function createEmployee(data: {
     .single();
 
   if (error) {
-    if (user_id) await supabaseAdmin.auth.admin.deleteUser(user_id);
+    // ロールバック: 作成した auth ユーザーを削除
+    if (user_id) {
+      await supabaseAdmin.rpc('delete_auth_user', { p_user_id: user_id });
+    }
     console.error('createEmployee error:', error);
     return { success: false, error: error.message };
   }
 
-  if (data.email) {
+  // 招待メール送信
+  if (data.email && user_id) {
     try {
-      await sendInviteEmailToEmployee(supabaseAdmin, data.email);
+      await sendInviteEmailToEmployee(supabaseAdmin, data.email, user_id);
     } catch (emailError) {
       console.warn('招待メールの送信に失敗しました:', emailError);
     }
@@ -258,3 +247,42 @@ export async function assignEmployeeToDivision(
   revalidatePath(`${ADM_PATH}/employees`);
   return { success: true };
 }
+
+// =====================================================
+// 従業員への招待メール再送
+// =====================================================
+
+export async function resendEmployeeInviteEmail(employeeId: string) {
+  const supabase = await createClient();
+
+  // employees から user_id を取得
+  const { data: emp, error: empError } = await supabase
+    .from('employees')
+    .select('user_id, name')
+    .eq('id', employeeId)
+    .single();
+
+  if (empError || !emp?.user_id) {
+    return { success: false, error: '従業員またはユーザーIDが見つかりません' };
+  }
+
+  const supabaseAdmin = createAdminClient();
+
+  // auth.users からメールアドレスを取得（RPC経由）
+  const { data: email, error: emailError } = await supabaseAdmin.rpc('get_auth_user_email', {
+    p_user_id: emp.user_id,
+  });
+
+  if (emailError || !email) {
+    return { success: false, error: `メールアドレスの取得に失敗: ${emailError?.message}` };
+  }
+
+  try {
+    await sendInviteEmailToEmployee(supabaseAdmin, email, emp.user_id);
+    return { success: true };
+  } catch (err) {
+    console.error('招待メール再送エラー:', err);
+    return { success: false, error: err instanceof Error ? err.message : '不明なエラー' };
+  }
+}
+

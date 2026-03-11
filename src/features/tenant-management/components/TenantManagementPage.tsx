@@ -94,21 +94,21 @@ export default function TenantManagementPage({ initialTenants }: Props) {
 
   // ===== 招待メール再送 =====
   const handleResendEmail = async (tenant: TenantWithManager) => {
-    if (!tenant.manager_email) {
+    if (!tenant.manager_email && !tenant.manager_user_id) {
       alert('このテナントには責任者のメールアドレスが設定されていません。');
       return;
     }
 
     const confirmed = confirm(
-      `「${tenant.name}」の責任者（${tenant.manager_email}）へ\nパスワード設定メールを再送信しますか？\n\n※ 新しい有効期限が設定されます。`
+      `「${tenant.name}」の責任者（${tenant.manager_email || '登録済みアドレス'}）へ\nパスワード設定メールを再送信しますか？\n\n※ 新しい有効期限（1週間）が設定されます。`
     );
     if (!confirmed) return;
 
     setLoading(true);
     try {
-      const result = await resendInviteEmail(tenant.manager_email);
+      const result = await resendInviteEmail(tenant.id, tenant.manager_email);
       if (result.success) {
-        alert(`✅ ${tenant.manager_email} へメールを再送しました。`);
+        alert(`✅ ${tenant.manager_email || '責任者'} へメールを再送しました。`);
       } else {
         alert(`メール再送エラー: ${result.error}`);
       }

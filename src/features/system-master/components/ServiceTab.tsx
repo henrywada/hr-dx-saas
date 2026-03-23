@@ -171,8 +171,9 @@ export default function ServiceTab({ initialServices, categories }: Props) {
         <table className="min-w-full bg-white border-collapse">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 border-b text-sm font-bold w-20 text-center">順序</th>
+              <th className="px-4 py-3 border-b text-sm font-bold w-16 text-center">No</th>
               <th className="px-4 py-3 border-b text-sm font-bold w-48">カテゴリ</th>
+              <th className="px-4 py-3 border-b text-sm font-bold w-20 text-center">順序</th>
               <th className="px-4 py-3 border-b text-sm font-bold w-96">name</th>
               <th className="px-4 py-3 border-b text-sm font-bold w-32">対象(Audience)</th>
               <th className="px-4 py-3 border-b text-sm font-bold">タイトル</th>
@@ -181,24 +182,25 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               <th className="px-4 py-3 border-b text-sm font-bold w-48 text-center">操作</th>
             </tr>
           </thead>
-          {services.map((item) => {
+          {services.map((item, index) => {
             const isEditing = editingId === item.id;
             const data = isEditing ? editData[item.id] : item;
 
             return (
               <tbody key={item.id} className="border-b">
                 <tr className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-center align-middle">
-                    {isEditing ? (
-                      <input type="number" value={data.sort_order || 0} onChange={(e) => handleChange(item.id, 'sort_order', e.target.value)} className="w-full border p-1 rounded text-center" />
-                    ) : item.sort_order}
-                  </td>
+                  <td className="px-4 py-2 text-center align-middle">{index + 1}</td>
                   <td className="px-4 py-2 align-middle">
                     {isEditing ? (
                       <select value={data.service_category_id || ''} onChange={(e) => handleChange(item.id, 'service_category_id', e.target.value)} className="w-full border p-1 rounded text-sm">
                         {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                       </select>
                     ) : (categories.find(c => c.id === item.service_category_id)?.name || '-')}
+                  </td>
+                  <td className="px-4 py-2 text-center align-middle">
+                    {isEditing ? (
+                      <input type="number" value={data.sort_order || 0} onChange={(e) => handleChange(item.id, 'sort_order', e.target.value)} className="w-full border p-1 rounded text-center" />
+                    ) : item.sort_order}
                   </td>
                   <td className="px-4 py-2 align-middle">
                     {isEditing ? (
@@ -216,10 +218,10 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{item.target_audience}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-2 align-middle text-center">
                     {isEditing ? (
-                      <input type="text" value={data.title || ''} onChange={(e) => handleChange(item.id, 'title', e.target.value)} className="w-full border p-1 rounded text-sm" />
-                    ) : item.title}
+                      <input type="text" value={data.title || ''} onChange={(e) => handleChange(item.id, 'title', e.target.value)} className="w-full border p-1 rounded text-sm text-left" />
+                    ) : (String(item.title ?? '').trim() ? '●' : '-')}
                   </td>
                   <td className="px-4 py-2 align-middle">
                     {isEditing ? (

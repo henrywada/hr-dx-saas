@@ -208,6 +208,12 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
                   最高ユーザ数
                 </th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  登録ユーザ数
+                </th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  産業医
+                </th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   責任者名
                 </th>
@@ -215,7 +221,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                   責任者メール
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  登録日
+                  契約終了日
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-32">
                   操作
@@ -225,7 +231,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
             <tbody className="bg-white divide-y divide-gray-100">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-500">
+                  <td colSpan={10} className="px-6 py-12 text-center text-sm text-gray-500">
                     {searchQuery
                       ? '検索結果が見つかりませんでした。'
                       : 'テナントが登録されていません。'}
@@ -250,7 +256,17 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                        {tenant.employee_count ?? '—'} 名
+                        {tenant.max_employees ?? '—'} 名
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                        {tenant.registered_user_count} 名
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                        {tenant.company_doctor_count} 名
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -262,8 +278,8 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {tenant.created_at
-                        ? formatDateInJST(tenant.created_at)
+                      {tenant.contract_end_at
+                        ? formatDateInJST(tenant.contract_end_at)
                         : '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">

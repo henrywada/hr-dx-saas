@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { sendMail, formatExpiryDate } from '@/lib/mail/send';
+import { contractEndDayYmdToUtcIso } from '@/lib/datetime';
 import type { TenantActionResult, TenantFormData, TenantUpdateData } from './types';
 
 const REVALIDATE_PATH = '/saas_adm/tenants';
@@ -65,8 +66,11 @@ export async function createTenant(formData: TenantFormData): Promise<TenantActi
       .insert({
         name: formData.name,
         paid_amount: formData.paid_amount,
-        employee_count: formData.employee_count,
+        max_employees: formData.max_employees,
         plan_type: formData.plan_type,
+        contract_end_at: formData.contract_end_day
+          ? contractEndDayYmdToUtcIso(formData.contract_end_day)
+          : null,
       })
       .select()
       .single();
@@ -205,8 +209,11 @@ export async function updateTenant(
       .update({
         name: updateData.name,
         paid_amount: updateData.paid_amount,
-        employee_count: updateData.employee_count,
+        max_employees: updateData.max_employees,
         plan_type: updateData.plan_type,
+        contract_end_at: updateData.contract_end_day
+          ? contractEndDayYmdToUtcIso(updateData.contract_end_day)
+          : null,
       })
       .eq('id', tenantId)
       .select()

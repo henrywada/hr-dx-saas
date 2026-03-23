@@ -127,6 +127,38 @@ export async function createEmployee(data: {
 }) {
   const supabaseAdmin = createAdminClient();
 
+  // tenants.max_employees を超える登録は不可
+  const supabase = await createClient();
+  const [{ data: tenant, error: tenantError }, { count, error: countError }] = await Promise.all([
+    supabase
+      .from('tenants')
+      .select('max_employees')
+      .eq('id', data.tenant_id)
+      .maybeSingle(),
+    supabase
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', data.tenant_id),
+  ]);
+
+  if (tenantError) {
+    console.error('createEmployee tenant fetch error:', tenantError);
+    return { success: false, error: 'テナント上限の取得に失敗しました。' };
+  }
+  if (countError) {
+    console.error('createEmployee employee count error:', countError);
+    return { success: false, error: '登録済み従業員数の取得に失敗しました。' };
+  }
+
+  const limit = typeof tenant?.max_employees === 'number' ? tenant.max_employees : 0;
+  const registered = typeof count === 'number' ? count : 0;
+  if (registered >= limit) {
+    return {
+      success: false,
+      error: `従業員の登録上限（${limit}名）に達しています。不要な従業員を削除してから再度お試しください。`,
+    };
+  }
+
   let user_id: string | null = null;
 
   if (data.email) {
@@ -151,7 +183,6 @@ export async function createEmployee(data: {
     payload.active_status = payload.active_status ?? '承認済';
   }
 
-  const supabase = await createClient();
   const { data: result, error } = await supabase
     .from('employees')
     .insert(payload)

@@ -26,6 +26,14 @@ export function toJSTISOString(date: Date = new Date()): string {
 }
 
 /**
+ * 契約終了「日」（暦日）の終端を表す timestamptz 用 UTC ISO 文字列
+ * 選択日の JST 23:59:59.999 を保存する
+ */
+export function contractEndDayYmdToUtcIso(ymd: string): string {
+  return new Date(`${ymd}T23:59:59.999+09:00`).toISOString()
+}
+
+/**
  * 指定日時（デフォルトは現在）を Asia/Tokyo の YYYY-MM-DD で返す
  * 日付のみフィールド用
  */

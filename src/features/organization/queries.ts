@@ -91,3 +91,62 @@ export async function getAppRoles() {
   }
   return data || [];
 }
+
+/**
+ * テナントの従業員上限と内訳を取得
+ * - limit: tenants.max_employees
+ * - registered_user_count: app_role <> 'company_doctor'（ロール未設定含む）
+ * - company_doctor_count: app_role = 'company_doctor'
+ * - remaining: max_employees −（登録ユーザ数 + 産業医）
+ */
+export async function getTenantEmployeeCapacity(tenantId: string) {
+  const supabase = await createClient();
+
+  const [{ data: tenant, error: tenantError }, { data: empRows, error: empError }] = await Promise.all([
+    supabase
+      .from('tenants')
+      .select('max_employees')
+      .eq('id', tenantId)
+      .maybeSingle(),
+    supabase
+      .from('employees')
+      .select(
+        `
+        app_role:app_role_id ( app_role )
+      `
+      )
+      .eq('tenant_id', tenantId),
+  ]);
+
+  if (tenantError) {
+    console.error('getTenantEmployeeCapacity tenant error:', tenantError);
+  }
+  if (empError) {
+    console.error('getTenantEmployeeCapacity employees error:', empError);
+  }
+
+  let registered_user_count = 0;
+  let company_doctor_count = 0;
+  if (empRows && empRows.length > 0) {
+    for (const row of empRows) {
+      const ar = (row as { app_role?: { app_role?: string } | { app_role?: string }[] }).app_role;
+      const slug = Array.isArray(ar) ? ar[0]?.app_role : ar?.app_role;
+      if (slug === 'company_doctor') {
+        company_doctor_count += 1;
+      } else {
+        registered_user_count += 1;
+      }
+    }
+  }
+
+  const limit = typeof tenant?.max_employees === 'number' ? tenant.max_employees : 0;
+  const totalEmployees = registered_user_count + company_doctor_count;
+  const remaining = Math.max(limit - totalEmployees, 0);
+
+  return {
+    limit,
+    registered_user_count,
+    company_doctor_count,
+    remaining,
+  };
+}

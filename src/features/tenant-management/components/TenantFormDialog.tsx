@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { tenantCreateSchema, tenantUpdateSchema } from '../schemas/tenant.schema';
 import type { TenantWithManager, TenantFormData, TenantUpdateData } from '../types';
+import { toJSTDateString } from '@/lib/datetime';
 
 interface Props {
   isOpen: boolean;
@@ -30,8 +31,11 @@ export default function TenantFormDialog({
       return {
         name: editingTenant.name || '',
         paidAmount: String(editingTenant.paid_amount ?? 0),
-        employeeCount: String(editingTenant.employee_count ?? 10),
+        maxEmployees: String(editingTenant.max_employees ?? 30),
         planType: editingTenant.plan_type || 'free',
+        contractEndDay: editingTenant.contract_end_at
+          ? toJSTDateString(new Date(editingTenant.contract_end_at))
+          : '',
         managerEmail: editingTenant.manager_email || '',
         managerName: editingTenant.manager_name || '',
       };
@@ -39,8 +43,9 @@ export default function TenantFormDialog({
     return {
       name: '',
       paidAmount: '0',
-      employeeCount: '10',
+      maxEmployees: '30',
       planType: 'free',
+      contractEndDay: '',
       managerEmail: '',
       managerName: '',
     };
@@ -49,8 +54,9 @@ export default function TenantFormDialog({
   // フォームの状態（初期値から開始）
   const [name, setName] = useState(initialValues.name);
   const [paidAmount, setPaidAmount] = useState(initialValues.paidAmount);
-  const [employeeCount, setEmployeeCount] = useState(initialValues.employeeCount);
+  const [maxEmployees, setMaxEmployees] = useState(initialValues.maxEmployees);
   const [planType, setPlanType] = useState(initialValues.planType);
+  const [contractEndDay, setContractEndDay] = useState(initialValues.contractEndDay);
   const [managerEmail, setManagerEmail] = useState(initialValues.managerEmail);
   const [managerName, setManagerName] = useState(initialValues.managerName);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,8 +66,9 @@ export default function TenantFormDialog({
   useEffect(() => {
     setName(initialValues.name);
     setPaidAmount(initialValues.paidAmount);
-    setEmployeeCount(initialValues.employeeCount);
+    setMaxEmployees(initialValues.maxEmployees);
     setPlanType(initialValues.planType);
+    setContractEndDay(initialValues.contractEndDay);
     setManagerEmail(initialValues.managerEmail);
     setManagerName(initialValues.managerName);
     setErrors({});
@@ -87,8 +94,9 @@ export default function TenantFormDialog({
       const parsed = tenantUpdateSchema.safeParse({
         name,
         paid_amount: Number(paidAmount),
-        employee_count: Number(employeeCount),
+        max_employees: Number(maxEmployees),
         plan_type: planType,
+        contract_end_day: contractEndDay,
       });
 
       if (!parsed.success) {
@@ -107,8 +115,9 @@ export default function TenantFormDialog({
       const parsed = tenantCreateSchema.safeParse({
         name,
         paid_amount: Number(paidAmount),
-        employee_count: Number(employeeCount),
+        max_employees: Number(maxEmployees),
         plan_type: planType,
+        contract_end_day: contractEndDay,
         manager_email: managerEmail,
         manager_name: managerName,
       });
@@ -201,6 +210,25 @@ export default function TenantFormDialog({
             )}
           </div>
 
+          {/* 契約終了日（任意） */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              契約終了日
+            </label>
+            <input
+              type="date"
+              value={contractEndDay}
+              onChange={(e) => setContractEndDay(e.target.value)}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                errors.contract_end_day ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
+              }`}
+            />
+            {errors.contract_end_day && (
+              <p className="mt-1 text-xs text-red-600">{errors.contract_end_day}</p>
+            )}
+            <p className="mt-1.5 text-xs text-gray-400">未入力の場合は期限なしとして扱います。</p>
+          </div>
+
           {/* 金額 & 最高ユーザ数 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -227,16 +255,16 @@ export default function TenantFormDialog({
               </label>
               <input
                 type="number"
-                value={employeeCount}
-                onChange={(e) => setEmployeeCount(e.target.value)}
-                placeholder="10"
+                value={maxEmployees}
+                onChange={(e) => setMaxEmployees(e.target.value)}
+                placeholder="30"
                 min="1"
                 className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                  errors.employee_count ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
+                  errors.max_employees ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
                 }`}
               />
-              {errors.employee_count && (
-                <p className="mt-1 text-xs text-red-600">{errors.employee_count}</p>
+              {errors.max_employees && (
+                <p className="mt-1 text-xs text-red-600">{errors.max_employees}</p>
               )}
             </div>
           </div>

@@ -12,9 +12,15 @@ interface EmployeeTableProps {
   divisions: Division[];
   appRoles: AppRole[];
   tenantId: string;
+  employeeCapacity: {
+    limit: number;
+    registered_user_count: number;
+    company_doctor_count: number;
+    remaining: number;
+  };
 }
 
-export function EmployeeTable({ employees, divisions, appRoles, tenantId }: EmployeeTableProps) {
+export function EmployeeTable({ employees, divisions, appRoles, tenantId, employeeCapacity }: EmployeeTableProps) {
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDivision, setFilterDivision] = useState('');
@@ -98,6 +104,26 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+          <span>
+            最大登録数：<span className="font-semibold text-slate-800">{employeeCapacity.limit}</span>
+          </span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <span>
+            登録ユーザ数：<span className="font-semibold text-slate-800">{employeeCapacity.registered_user_count}</span>
+          </span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <span>
+            産業医：<span className="font-semibold text-slate-800">{employeeCapacity.company_doctor_count}</span>
+          </span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <span>
+            残：
+            <span className={`font-semibold ${employeeCapacity.remaining > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {employeeCapacity.remaining}
+            </span>
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
             <Search className="w-4 h-4 text-slate-400" />

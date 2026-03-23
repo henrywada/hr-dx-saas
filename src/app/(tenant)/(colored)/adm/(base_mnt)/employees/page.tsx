@@ -1,7 +1,7 @@
 import { getServerUser } from '@/lib/auth/server-user';
 import { redirect } from 'next/navigation';
 import { APP_ROUTES } from '@/config/routes';
-import { getEmployees, getDivisions, getAppRoles } from '@/features/organization/queries';
+import { getEmployees, getDivisions, getAppRoles, getTenantEmployeeCapacity } from '@/features/organization/queries';
 import { EmployeeTable } from '@/features/organization/components/EmployeeTable';
 
 export default async function EmployeesPage() {
@@ -10,10 +10,11 @@ export default async function EmployeesPage() {
     redirect(APP_ROUTES.AUTH.LOGIN);
   }
 
-  const [employees, divisions, appRoles] = await Promise.all([
+  const [employees, divisions, appRoles, employeeCapacity] = await Promise.all([
     getEmployees(),
     getDivisions(),
     getAppRoles(),
+    getTenantEmployeeCapacity(user.tenant_id),
   ]);
 
   return (
@@ -23,6 +24,7 @@ export default async function EmployeesPage() {
         divisions={divisions}
         appRoles={appRoles}
         tenantId={user.tenant_id}
+        employeeCapacity={employeeCapacity}
       />
     </div>
   );

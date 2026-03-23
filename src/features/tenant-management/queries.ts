@@ -59,20 +59,71 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
       console.error('責任者情報取得で予期せぬエラー (テナント一覧は表示を続行):', mgrErr);
     }
 
-    // ===== Step 3: テナントデータを整形して返す =====
-    return tenants.map((t) => ({
-      id: String(t.id ?? ''),
-      name: String(t.name ?? ''),
-      contact_date: t.contact_date ? String(t.contact_date) : null,
-      paid_amount: typeof t.paid_amount === 'number' ? t.paid_amount : null,
-      employee_count: typeof t.employee_count === 'number' ? t.employee_count : null,
-      paied_date: t.paied_date ? String(t.paied_date) : null,
-      plan_type: t.plan_type ? String(t.plan_type) : null,
-      created_at: String(t.created_at ?? ''),
-      manager_name: managerMap.get(String(t.id))?.name || null,
-      manager_email: managerMap.get(String(t.id))?.email || null,
-      manager_user_id: managerMap.get(String(t.id))?.user_id || null,
-    }));
+    // ===== Step 3: テナント別 従業員数（登録ユーザ / 産業医） =====
+    const countMap = new Map<string, { registered_user_count: number; company_doctor_count: number }>();
+    for (const t of tenants) {
+      countMap.set(String(t.id), { registered_user_count: 0, company_doctor_count: 0 });
+    }
+
+    try {
+      const tenantIds = tenants.map((t) => t.id);
+      const { data: empRows, error: empError } = await supabase
+        .from('employees')
+        .select(
+          `
+          tenant_id,
+          app_role:app_role_id ( app_role )
+        `
+        )
+        .in('tenant_id', tenantIds);
+
+      if (empError) {
+        console.error('getEmployeeRoleCounts error (テナント一覧は表示を続行):', empError);
+      } else if (empRows && empRows.length > 0) {
+        for (const row of empRows) {
+          const tid = String((row as { tenant_id?: string }).tenant_id ?? '');
+          const bucket = countMap.get(tid);
+          if (!bucket) continue;
+
+          const ar = (row as { app_role?: { app_role?: string } | { app_role?: string }[] }).app_role;
+          const slug = Array.isArray(ar) ? ar[0]?.app_role : ar?.app_role;
+
+          if (slug === 'company_doctor') {
+            bucket.company_doctor_count += 1;
+          } else {
+            bucket.registered_user_count += 1;
+          }
+        }
+      }
+    } catch (empErr) {
+      console.error('従業員ロール集計で予期せぬエラー (テナント一覧は表示を続行):', empErr);
+    }
+
+    // ===== Step 4: テナントデータを整形して返す =====
+    return tenants.map((t) => {
+      const id = String(t.id ?? '');
+      const counts = countMap.get(id) ?? { registered_user_count: 0, company_doctor_count: 0 };
+      return {
+        id,
+        name: String(t.name ?? ''),
+        contact_date: t.contact_date ? String(t.contact_date) : null,
+        paid_amount: typeof t.paid_amount === 'number' ? t.paid_amount : null,
+        employee_count: typeof t.employee_count === 'number' ? t.employee_count : null,
+        max_employees: typeof t.max_employees === 'number' ? t.max_employees : null,
+        paied_date: t.paied_date ? String(t.paied_date) : null,
+        plan_type: t.plan_type ? String(t.plan_type) : null,
+        contract_end_at:
+          t.contract_end_at != null && t.contract_end_at !== ''
+            ? String(t.contract_end_at)
+            : null,
+        created_at: String(t.created_at ?? ''),
+        manager_name: managerMap.get(id)?.name || null,
+        manager_email: managerMap.get(id)?.email || null,
+        manager_user_id: managerMap.get(id)?.user_id || null,
+        registered_user_count: counts.registered_user_count,
+        company_doctor_count: counts.company_doctor_count,
+      };
+    });
   } catch (err) {
     console.error('getAllTenants 予期せぬエラー:', err);
     return [];

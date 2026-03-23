@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+/** 契約終了日（任意・空文字は null） */
+const contractEndDayField = z
+  .union([
+    z.literal(''),
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '契約終了日の形式が正しくありません'),
+  ])
+  .transform((v) => (v === '' ? null : v));
+
 /** 新規登録バリデーション */
 export const tenantCreateSchema = z.object({
   name: z
@@ -10,11 +18,12 @@ export const tenantCreateSchema = z.object({
     .number()
     .int('金額は整数で入力してください')
     .min(0, '金額は0以上で入力してください'),
-  employee_count: z
+  max_employees: z
     .number()
     .int('最高ユーザ数は整数で入力してください')
     .min(1, '最高ユーザ数は1以上で入力してください'),
   plan_type: z.enum(['free', 'pro', 'enterprise']),
+  contract_end_day: contractEndDayField,
   manager_email: z
     .string()
     .min(1, '責任者メールアドレスは必須です')
@@ -35,12 +44,13 @@ export const tenantUpdateSchema = z.object({
     .number()
     .int('金額は整数で入力してください')
     .min(0, '金額は0以上で入力してください'),
-  employee_count: z
+  max_employees: z
     .number()
     .int('最高ユーザ数は整数で入力してください')
     .min(1, '最高ユーザ数は1以上で入力してください'),
   plan_type: z.enum(['free', 'pro', 'enterprise']),
+  contract_end_day: contractEndDayField,
 });
 
-export type TenantCreateValues = z.infer<typeof tenantCreateSchema>;
-export type TenantUpdateValues = z.infer<typeof tenantUpdateSchema>;
+export type TenantCreateValues = z.output<typeof tenantCreateSchema>;
+export type TenantUpdateValues = z.output<typeof tenantUpdateSchema>;

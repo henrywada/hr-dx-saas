@@ -28,13 +28,29 @@ export async function signInAction(email: string, password: string) {
   }
 
   if (data.session) {
+    // employees テーブルから tenant_id と app_role を取得（リダイレクト先判定用）
+    let tenant_id = data.user.user_metadata?.tenant_id;
+    let appRole: string | undefined;
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('tenant_id, app_role:app_role_id(app_role)')
+      .eq('user_id', data.user.id)
+      .single();
+
+    if (employee) {
+      if (employee.tenant_id) tenant_id = employee.tenant_id;
+      const ar = employee.app_role as { app_role?: string } | null | undefined;
+      if (ar?.app_role) appRole = ar.app_role;
+    }
+
     const session: AuthSession = {
       user: {
         id: data.user.id,
         email: data.user.email,
         name: data.user.user_metadata?.name || '',
         role: data.user.user_metadata?.role || 'member',
-        tenant_id: data.user.user_metadata?.tenant_id,
+        tenant_id,
+        appRole,
       },
     };
 

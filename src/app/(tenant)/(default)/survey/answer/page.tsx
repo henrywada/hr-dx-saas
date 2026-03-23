@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
-import { Button } from '@/components/ui/Button';
+import React, { useState, useTransition, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Clock, Send, Sparkles } from 'lucide-react';
 import { submitSurvey } from '@/features/survey/actions';
+import { getJSTYearMonth } from '@/lib/datetime';
 
 // === モックデータ === (DBと紐づくためのダミーのUUIDを設定)
 const mockQuestions = [
@@ -24,12 +25,18 @@ const ratingOptions = [
 ];
 
 export default function SurveyAnswerPage() {
+  const searchParams = useSearchParams();
+  const surveyPeriod = useMemo(() => {
+    const p = searchParams.get('period');
+    if (p && /^\d{4}-\d{2}$/.test(p)) return p;
+    return getJSTYearMonth();
+  }, [searchParams]);
+
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [freeComment, setFreeComment] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
-  // サーバーアクション用の useTransition（モダンなローディング処理）
+
   const [isPending, startTransition] = useTransition();
 
   // カテゴリごとに質問をグループ化
@@ -53,13 +60,12 @@ export default function SurveyAnswerPage() {
       score,
     }));
 
-    // Server Action の呼び出し
     startTransition(async () => {
       const res = await submitSurvey({
         answers: answersArray,
         freeComment: freeComment,
-        // (モック検証用に追加) UUIDの不整合を防ぐため、初回のみデータベース側へ質問文をシード(自動登録)します。
         mockQuestionsData: mockQuestions,
+        surveyPeriod, // パルス調査用。pulse_survey_responses に保存し、トップの未回答判定に連動
       });
 
       if (res.success) {
@@ -101,7 +107,7 @@ export default function SurveyAnswerPage() {
           <span>より良い職場づくりのために</span>
         </div>
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-          今月の組織健康度アンケート
+          今月の組織度アンケート（Echo）
         </h1>
         <p className="text-gray-500 flex items-center justify-center gap-2 text-sm md:text-base mt-2">
           <Clock size={16} />

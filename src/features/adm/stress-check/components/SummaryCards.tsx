@@ -58,7 +58,12 @@ const cards = [
     iconColor: 'text-violet-600',
     getValue: (p: SummaryCardsProps) => p.consentRate,
     getSuffix: () => '%',
-    getSub: (p: SummaryCardsProps) => `同意者 ${p.consentCount}名 / ${p.submittedCount}名`,
+    getSub: (p: SummaryCardsProps) => {
+      const nonConsent = p.submittedCount - p.consentCount
+      return nonConsent > 0
+        ? `同意者 ${p.consentCount}名 / ${p.submittedCount}名（非合意者 ${nonConsent}名）`
+        : `同意者 ${p.consentCount}名 / ${p.submittedCount}名`
+    },
   },
 ];
 

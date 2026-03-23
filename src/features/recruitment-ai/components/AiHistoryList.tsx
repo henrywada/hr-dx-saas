@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card } from '@/components/ui';
+import { formatDateTimeInJST } from '@/lib/datetime';
 import { ChevronDown, MessageSquareText, ClipboardList, Lightbulb } from 'lucide-react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +41,7 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
           >
             <div className="flex-1 pr-4">
               <div className="text-xs font-medium tracking-wide text-slate-400 mb-1.5 flex items-center gap-2">
-                <span>{new Date(log.created_at).toLocaleString('ja-JP')}</span>
+                <span>{formatDateTimeInJST(log.created_at)}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
                 <span>作成者: {log.created_by ? '登録ユーザー' : '不明'}</span>
               </div>

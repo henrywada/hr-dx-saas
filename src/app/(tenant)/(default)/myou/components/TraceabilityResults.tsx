@@ -1,6 +1,7 @@
 'use client';
 
 import { Package, Truck, Calendar, MapPin, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { formatDateTimeInJST } from '@/lib/datetime';
 
 interface Log {
   id: string;
@@ -116,7 +117,7 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                       </h4>
                       <div className="text-sm font-medium text-blue-600 flex items-center mt-1 md:mt-0">
                         <Calendar className="h-3.5 w-3.5 mr-1" />
-                        {new Date(log.delivery_date).toLocaleString('ja-JP')}
+                        {formatDateTimeInJST(log.delivery_date)}
                       </div>
                     </div>
                     

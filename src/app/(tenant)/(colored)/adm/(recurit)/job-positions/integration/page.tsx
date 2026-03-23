@@ -29,6 +29,9 @@ export default async function SyndicationPage() {
         <p className="text-sm text-gray-500 mt-1">
           公開中の求人票を、アグリゲーター型求人エンジン（Indeed, スタンバイ, 求人ボックス 等）や検索エンジン（Google for Jobs）に自動連携・配信するための設定です。
         </p>
+        <p className="text-sm text-gray-500 mt-1">
+          ステータス「公開中」の求人を、無料の求人サイトへ自動掲載します。
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -44,14 +47,10 @@ export default async function SyndicationPage() {
           <div className="bg-gray-50 p-3 rounded border text-sm font-mono text-gray-800 break-all mb-3">
             {xmlFeedUrl}
           </div>
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-gray-500 mb-1">
             ※ 上記URLには「ステータスが公開中」の求人のみが含まれます。
           </p>
-          <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded text-sm font-semibold transition"
-            // クライアント側でクリップボードへコピーするために、本来はClient Componentへ分離するか onClick を使う
-          >
-            URLをコピーする
-          </button>
+          <p className="text-xs text-gray-500">※ URLをコピーしてお使いください</p>
         </div>
 
         {/* Google for Jobs パネル */}

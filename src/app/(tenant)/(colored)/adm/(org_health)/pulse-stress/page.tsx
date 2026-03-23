@@ -2,6 +2,7 @@ import { getServerUser } from '@/lib/auth/server-user';
 import { redirect } from 'next/navigation';
 import { APP_ROUTES } from '@/config/routes';
 import { getCrossAnalysisData } from '@/features/adm/pulse-stress/queries';
+import { PulseStressCalculationModalTrigger } from '@/features/adm/pulse-stress/components/PulseStressCalculationModal';
 import PulseStressClient from './PulseStressClient';
 import { Activity } from 'lucide-react';
 
@@ -18,8 +19,12 @@ export default async function PulseStressPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
-      {/* ページヘッダー */}
-      <PageHeader />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader />
+        <div className="pl-5 sm:pl-0 sm:shrink-0 sm:pt-1">
+          <PulseStressCalculationModalTrigger />
+        </div>
+      </div>
 
       <PulseStressClient 
         employees={data.employees}

@@ -21,15 +21,24 @@ export async function getServerUser(): Promise<AppUser | null> {
   const { data: employee } = await supabase
     .from('employees')
     .select(`
+      id,
       name,
       tenant_id,
+      division_id,
+      employee_no,
+      app_role_id,
       app_role:app_role_id(app_role, name),
       tenants:tenant_id(name, plan_type, max_employees)
     `)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
+  let employee_id: string | undefined;
+  let division_id: string | null | undefined = undefined;
+  let employee_no: string | null | undefined = undefined;
   if (employee) {
+    employee_id = (employee as { id?: string }).id;
+    employee_no = (employee as { employee_no?: string | null }).employee_no ?? null;
     if (employee.name) name = employee.name;
     if (employee.tenant_id) tenant_id = employee.tenant_id;
     
@@ -39,6 +48,21 @@ export async function getServerUser(): Promise<AppUser | null> {
     }
     if (distinctRole?.name) {
       appRoleName = distinctRole.name;
+    }
+
+    // JOIN が空でも app_role_id があれば app_role テーブルから補完（勤怠ダッシュ等の権限判定ずれ防止）
+    const roleId = (employee as { app_role_id?: string | null }).app_role_id;
+    if (!appRole && roleId) {
+      const { data: arRow } = await supabase
+        .from('app_role')
+        .select('app_role, name')
+        .eq('id', roleId)
+        .maybeSingle();
+      if (arRow) {
+        const row = arRow as { app_role?: string; name?: string };
+        if (row.app_role) appRole = row.app_role;
+        if (row.name) appRoleName = row.name;
+      }
     }
 
     const tenantInfo = employee.tenants as { name?: string; plan_type?: string; max_employees?: number } | null | undefined;
@@ -51,6 +75,7 @@ export async function getServerUser(): Promise<AppUser | null> {
     if (tenantInfo?.max_employees !== undefined) {
       maxEmployees = tenantInfo.max_employees;
     }
+    division_id = (employee as { division_id?: string | null }).division_id;
   }
 
   // If we couldn't get tenant_name via employee, try fetching directly if tenant_id exists
@@ -80,5 +105,8 @@ export async function getServerUser(): Promise<AppUser | null> {
     tenant_name,
     planType,
     maxEmployees,
+    employee_id,
+    division_id,
+    employee_no,
   };
 }

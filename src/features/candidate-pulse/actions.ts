@@ -136,3 +136,29 @@ export const createAndSendPulseRequest = async (formData: {
   revalidatePath('/adm/pulse')
   return { success: true, id: data.id }
 }
+
+/** 自テナントの候補者パルス1件を削除（RLS でテナント一致のみ） */
+export async function deleteTenantPulse(id: string) {
+  const supabase = await createClient()
+  const serverUser = await getServerUser()
+  if (!serverUser?.tenant_id) {
+    throw new Error('Tenant ID not found')
+  }
+
+  const { data, error } = await supabase
+    .from('candidate_pulses')
+    .delete()
+    .eq('id', id)
+    .select('id')
+
+  if (error) {
+    console.error('deleteTenantPulse error:', error)
+    throw new Error('削除に失敗しました。')
+  }
+  if (!data?.length) {
+    throw new Error('対象のデータが見つからないか、削除する権限がありません。')
+  }
+
+  revalidatePath('/adm/pulse')
+  return { success: true }
+}

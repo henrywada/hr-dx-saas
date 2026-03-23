@@ -1,5 +1,6 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/server-user';
 import Link from 'next/link';
 
 export default async function SubMenuPage({
@@ -20,6 +21,8 @@ export default async function SubMenuPage({
   }
 
   const supabase = await createClient();
+  const user = await getServerUser();
+  const tenantId = user?.tenant_id;
 
   // 1. カテゴリ情報の取得
   const { data: category } = await supabase
@@ -28,12 +31,27 @@ export default async function SubMenuPage({
     .eq('id', categoryId)
     .single();
 
-  // 2. サービス一覧の取得
-  const { data: services } = await supabase
-    .from('service')
-    .select('*')
-    .eq('service_category_id', categoryId)
-    .order('sort_order', { ascending: true });
+  // 2. テナントが契約しているサービスIDを取得
+  let tenantServiceIds: string[] = [];
+  if (tenantId) {
+    const { data: tenantServices } = await supabase
+      .from('tenant_service')
+      .select('service_id')
+      .eq('tenant_id', tenantId);
+    tenantServiceIds = tenantServices?.map(ts => ts.service_id).filter(Boolean) as string[] ?? [];
+  }
+
+  // 3. サービス一覧の取得（テナント契約済みのもののみ）
+  let services = null;
+  if (tenantServiceIds.length > 0) {
+    const { data } = await supabase
+      .from('service')
+      .select('*')
+      .eq('service_category_id', categoryId)
+      .in('id', tenantServiceIds)
+      .order('sort_order', { ascending: true });
+    services = data;
+  }
 
   const CARD_VARIANTS = [
     { bar: 'bg-blue-500', text: 'text-blue-600', hover: 'group-hover:text-blue-700' },

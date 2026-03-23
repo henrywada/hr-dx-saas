@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { Trash2 } from 'lucide-react'
 import { CandidatePulse } from '@/features/candidate-pulse/types'
-import { createTenantPulse, createAndSendPulseRequest } from '@/features/candidate-pulse/actions'
+import {
+  createTenantPulse,
+  createAndSendPulseRequest,
+  deleteTenantPulse,
+} from '@/features/candidate-pulse/actions'
+import { formatDateTimeInJST } from '@/lib/datetime'
 
 export const PulseDashboardUI = ({ initialPulses }: { initialPulses: CandidatePulse[] }) => {
+  const [isPending, startTransition] = useTransition()
   const [pulses, setPulses] = useState<CandidatePulse[]>(initialPulses)
+  const [deleteTarget, setDeleteTarget] = useState<CandidatePulse | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [candidateName, setCandidateName] = useState('')
   const [selectionStep, setSelectionStep] = useState('')
@@ -80,6 +88,21 @@ export const PulseDashboardUI = ({ initialPulses }: { initialPulses: CandidatePu
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
+    startTransition(async () => {
+      try {
+        await deleteTenantPulse(id)
+        setPulses((prev) => prev.filter((p) => p.id !== id))
+        setDeleteTarget(null)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : '削除に失敗しました。'
+        alert(msg)
+      }
+    })
   }
 
   // アラート候補者（回答済みでスコアが2以下）
@@ -164,6 +187,7 @@ export const PulseDashboardUI = ({ initialPulses }: { initialPulses: CandidatePu
               <th className="px-6 py-3 font-medium">ステータス</th>
               <th className="px-6 py-3 font-medium text-center">スコア</th>
               <th className="px-6 py-3 font-medium">発行日時</th>
+              <th className="px-6 py-3 font-medium text-right w-24">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-gray-800">
@@ -182,13 +206,23 @@ export const PulseDashboardUI = ({ initialPulses }: { initialPulses: CandidatePu
                   {p.sentiment_score || '-'}
                 </td>
                 <td className="px-6 py-4 text-gray-500 text-xs">
-                  {new Date(p.created_at).toLocaleString('ja-JP')}
+                  {formatDateTimeInJST(p.created_at)}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(p)}
+                    className="inline-flex p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="削除"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </td>
               </tr>
             ))}
             {pulses.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                   アンケートのデータがありません
                 </td>
               </tr>
@@ -288,6 +322,44 @@ export const PulseDashboardUI = ({ initialPulses }: { initialPulses: CandidatePu
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg flex items-center gap-3 z-50 animate-fade-in-up">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
           {toastMessage}
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setDeleteTarget(null)}
+            role="presentation"
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-gray-200">
+            <div className="p-6 space-y-4">
+              <h3 className="text-lg font-bold text-gray-900">アンケートを削除</h3>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800">
+                  <span className="font-bold">「{deleteTarget.candidate_name}」</span>
+                  の発行データを削除しますか？
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {isPending ? '削除中...' : '削除する'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

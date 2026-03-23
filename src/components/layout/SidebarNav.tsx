@@ -19,9 +19,11 @@ interface SidebarNavProps {
   isSaaSAdmin?: boolean;
   basePath?: string;
   userName?: string;
+  /** company_doctor の場合は「ポータルへ戻る」の代わりに「ログアウト」を表示 */
+  appRole?: string;
 }
 
-export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false, basePath = `${APP_ROUTES.TENANT.PORTAL}/subMenu`, userName }: SidebarNavProps) {
+export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false, basePath = `${APP_ROUTES.TENANT.PORTAL}/subMenu`, userName, appRole }: SidebarNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -29,7 +31,8 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useMobileMenu();
 
   const handleLogoutOrReturn = async () => {
-    if (isSaaSAdmin) {
+    // company_doctor の場合は常にログアウト（ポータルへ戻るは不要）
+    if (isSaaSAdmin && appRole !== 'company_doctor') {
       router.push(APP_ROUTES.TENANT.PORTAL);
     } else {
       await writeAuditLog({ action: "LOGOUT", path: "/logout" }).catch(console.error);
@@ -38,6 +41,9 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
       router.refresh();
     }
   };
+
+  // company_doctor の場合は「ポータルへ戻る」の代わりに「ログアウト」を表示
+  const showLogoutInsteadOfPortal = appRole === 'company_doctor';
 
   const dashboardHref = basePath.replace('/subMenu', ''); 
   // "/top/subMenu" -> "/top", "/adm/subMenu" -> "/adm", "/saas_adm/subMenu" -> "/saas_adm"
@@ -67,7 +73,7 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
         />
       )}
 
-      <aside className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 bg-slate-50 md:bg-slate-50/50 border-r border-slate-200 flex-col shrink-0 transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}>
+      <aside className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 bg-slate-50 md:bg-slate-50/50 border-r border-slate-200 flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}>
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
         
         {/* Main Navigation */}
@@ -124,7 +130,7 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
               })}
 
               {/* Logout / Return Button */}
-              {isSaaSAdmin ? (
+              {isSaaSAdmin && !showLogoutInsteadOfPortal ? (
                 <Link
                   href={APP_ROUTES.TENANT.PORTAL}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"

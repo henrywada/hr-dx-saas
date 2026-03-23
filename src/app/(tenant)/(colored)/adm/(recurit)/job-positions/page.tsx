@@ -2,6 +2,7 @@ import { getTenantJobPostings } from '@/features/job-postings/queries'
 import Link from 'next/link'
 import { CreateJobDraftButton } from '@/features/job-postings/components/CreateJobDraftButton'
 import { DeleteJobButton } from '@/features/job-postings/components/DeleteJobButton'
+import { formatDateTimeInJST } from '@/lib/datetime'
 
 export const metadata = {
   title: '求人票管理 (Job Positions) | Smart HR App',
@@ -15,7 +16,7 @@ export default async function JobPositionsPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">求人票管理</h1>
-          <p className="text-sm text-gray-500 mt-1">AI Smart Job Publisherを利用して求人票を生成・管理します。</p>
+          <p className="text-sm text-gray-500 mt-1">【無料求人サイトへ自動連携】：ステータス「公開中」の求人を、無料の求人サイトへ自動掲載します。</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/adm/job-positions/integration" className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium px-4 py-2 rounded shadow-sm transition">
@@ -67,7 +68,7 @@ export default async function JobPositionsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {new Date(job.updated_at).toLocaleString('ja-JP')}
+                    {formatDateTimeInJST(job.updated_at)}
                   </td>
                   <td className="px-6 py-4 flex items-center gap-3">
                     <Link href={`/adm/job-positions/${job.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">

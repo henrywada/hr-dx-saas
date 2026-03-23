@@ -61,9 +61,9 @@ export function EmployeeFormDialog({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const data = {
+      // 編集時は email を更新対象から除外する（email は auth.users で管理）
+      const baseData = {
         name,
-        email,
         employee_no: employeeNo || undefined,
         division_id: divisionId,
         active_status: activeStatus,
@@ -73,6 +73,10 @@ export function EmployeeFormDialog({
         sex: sex || undefined,
         start_date: startDate || undefined,
       };
+
+      const data = isEdit
+        ? baseData
+        : { ...baseData, email }; // 登録時のみ email を含める
 
       try {
         let result;

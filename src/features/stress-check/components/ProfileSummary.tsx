@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useTransition } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,7 +9,9 @@ import {
   Users,
   BarChart3,
   Home,
+  Loader2,
 } from 'lucide-react';
+import { requestInterview } from '../actions';
 import type { StressCheckResultData, ScaleScore } from '../queries';
 
 // ============================================================
@@ -99,10 +101,27 @@ interface ProfileSummaryProps {
 }
 
 export default function ProfileSummary({ result }: ProfileSummaryProps) {
+  const [interviewRequested, setInterviewRequested] = useState(result.interviewRequested ?? false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleRequestInterview = () => {
+    startTransition(async () => {
+      const res = await requestInterview(result.periodId);
+      if (res.success) {
+        setInterviewRequested(true);
+      } else {
+        alert(res.error ?? '申し出に失敗しました。');
+      }
+    });
+  };
   const answeredDate = result.answeredAt
-    ? new Date(result.answeredAt).toLocaleDateString('ja-JP', {
-        year: 'numeric', month: 'long', day: 'numeric',
-      })
+    ? (() => {
+        const d = new Date(result.answeredAt);
+        return d.toLocaleDateString('ja-JP', {
+          timeZone: 'Asia/Tokyo',
+          year: 'numeric', month: 'long', day: 'numeric',
+        });
+      })()
     : '—';
 
   const reactions = getReactionScales(result.scaleScores);
@@ -158,9 +177,35 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
             </div>
           </div>
           <p className="text-sm text-red-700 leading-relaxed">
-            産業医による面接指導を受けることができます。ご希望の場合は、人事部門にお申し出ください。
+            産業医による面接指導を受けることができます。
             面接指導は労働者の申出により行われ、申出を理由とした不利益な取り扱いは法律で禁止されています。
           </p>
+          {interviewRequested ? (
+            <div className="mt-4 p-4 rounded-xl bg-emerald-100 border border-emerald-200">
+              <p className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 shrink-0" />
+                面談希望を申し出ました。人事部門よりご連絡があります。
+              </p>
+            </div>
+          ) : result.resultId ? (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleRequestInterview}
+                disabled={isPending}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    送信中...
+                  </>
+                ) : (
+                  '面談希望を申し出す'
+                )}
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">

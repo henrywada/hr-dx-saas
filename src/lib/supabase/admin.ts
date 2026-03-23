@@ -1,34 +1,55 @@
-// src/lib/supabase/admin.ts
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 
-export const createAdminClient = () => {
-  const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-  const rawServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  
-  // 1. 全ての空白、引用符、制御文字、不可視文字を排除
-  // Base64 文字列に不可欠な「+」や「/」を消さないように修正しました。
-  const serviceRoleKey = rawServiceRoleKey.replace(/[^a-zA-Z0-9._/+-=]/g, '');
+function cleanEnv(value?: string) {
+  return (value ?? '').trim().replace(/^['"]|['"]$/g, '')
+}
 
-  console.log('[DEBUG] Supabase Admin Init');
-  console.log('URL:', supabaseUrl);
-  console.log(`Raw Length: ${rawServiceRoleKey.length}`);
-  console.log(`Cleaned Length: ${serviceRoleKey.length}`);
-  
-  if (serviceRoleKey.length < 150) {
-      console.error('CRITICAL: Service Role Key is suspiciously short!');
+function isUrl(value: string) {
+  return /^https?:\/\//i.test(value)
+}
+
+function isLikelySupabaseServerKey(value: string) {
+  if (!value) return false
+
+  // 新形式
+  if (value.startsWith('sb_secret_')) return true
+
+  // 旧形式JWT
+  if (value.startsWith('eyJ')) return true
+
+  return false
+}
+
+export function createAdminClient() {
+  const supabaseUrl = cleanEnv(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL)
+  const serviceRoleKey = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+  console.log('[DEBUG] Supabase Admin Init')
+  console.log('URL:', supabaseUrl)
+  console.log('Raw Length:', (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').length)
+  console.log('Cleaned Length:', serviceRoleKey.length)
+
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL または NEXT_PUBLIC_SUPABASE_URL が未設定です')
   }
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing Supabase environment variables');
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY が未設定です')
+  }
+
+  if (isUrl(serviceRoleKey)) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY にURLが入っています。.env.local を確認してください')
+  }
+
+  if (!isLikelySupabaseServerKey(serviceRoleKey)) {
+    console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY の形式が想定外です。値を確認してください')
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+      detectSessionInUrl: false,
     },
-  });
-};
-
-
-
+  })
+}

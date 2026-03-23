@@ -1,0 +1,142 @@
+import { createClient } from '@/lib/supabase/server'
+import { getJSTYearMonth, lastDayOfMonthYmd, toJSTDateString } from '@/lib/datetime'
+import { ImportantTask, Announcement, AnnouncementRow, PulseSurveyPeriodRow } from './types'
+
+// announcements / pulse_survey_periods 等は型定義に含まれない場合があるため any でラップ
+async function getSupabase() {
+  return (await createClient()) as any
+}
+
+// 従業員専用トップ画面向けのクエリ群
+// - tenant_id / user_id は RLS + current_tenant_id() に委ねつつ、必要なものだけ明示的に指定
+
+const ANNOUNCEMENT_LIMIT = 4
+
+export async function getTopAnnouncements(): Promise<Announcement[]> {
+  const supabase = await getSupabase()
+
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('id, title, body, published_at, is_new, target_audience')
+    .order('published_at', { ascending: false })
+    .limit(ANNOUNCEMENT_LIMIT)
+
+  if (error || !data) return []
+
+  return data.map(row => {
+    const d = row.published_at ? new Date(row.published_at) : null
+    const dateLabel = d
+      ? `${d.getFullYear()}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d
+          .getDate()
+          .toString()
+          .padStart(2, '0')}`
+      : ''
+
+    return {
+      id: row.id as string,
+      title: row.title as string,
+      body: (row.body as string | null) ?? null,
+      targetAudience: (row.target_audience as string | null) ?? null,
+      dateLabel,
+      isNew: !!row.is_new,
+    }
+  })
+}
+
+type PulsePeriodRow = {
+  id: string
+  survey_period: string
+  title: string
+  description: string | null
+  deadline_date: string
+  link_path: string | null
+}
+
+/** DB に当月行がなくても表示するデフォルト（管理画面のプレースホルダと揃える） */
+const DEFAULT_PULSE_TITLE = '今月の組織度アンケート（Echo）'
+const DEFAULT_PULSE_DESCRIPTION =
+  '毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約3分です。'
+
+export async function getEmployeeImportantTask(userId: string | null): Promise<ImportantTask | null> {
+  if (!userId) return null
+
+  const supabase = await getSupabase()
+
+  // 期間キーは Asia/Tokyo（サーバが UTC でも日本の「今月」と一致させる）
+  const periodKey = getJSTYearMonth()
+  const todayJstYmd = toJSTDateString()
+
+  const { data: period, error } = await supabase
+    .from('pulse_survey_periods')
+    .select('*')
+    .eq('survey_period', periodKey)
+    .order('sort_order', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) return null
+
+  const surveyPeriod = period?.survey_period ?? periodKey
+  const deadlineYmd = period?.deadline_date
+    ? String(period.deadline_date).slice(0, 10)
+    : lastDayOfMonthYmd(periodKey)
+
+  // 期限は日付のみで比較（締切日当日は含む。時刻による誤判定を防ぐ）
+  if (todayJstYmd > deadlineYmd) {
+    return null
+  }
+
+  const { data: responses, error: respError } = await supabase
+    .from('pulse_survey_responses')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('survey_period', surveyPeriod)
+    .limit(1)
+
+  if (respError) return null
+  const alreadyAnswered = !!responses && responses.length > 0
+
+  const [, dm, dd] = deadlineYmd.split('-').map(Number)
+  const deadlineLabel =
+    Number.isFinite(dm) && Number.isFinite(dd) ? `${dm}月${dd}日まで` : '今月中'
+
+  const title = period?.title ?? DEFAULT_PULSE_TITLE
+  const description = period?.description ?? DEFAULT_PULSE_DESCRIPTION
+  const linkPath =
+    period?.link_path ?? `/survey/answer?period=${encodeURIComponent(surveyPeriod)}`
+
+  return {
+    title,
+    description,
+    deadlineLabel,
+    linkPath,
+    isPending: !alreadyAnswered,
+  }
+}
+
+// ========== 管理画面用クエリ ==========
+
+/** テナント内の全お知らせを取得（管理画面用） */
+export async function getAnnouncementsForAdmin(): Promise<AnnouncementRow[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('published_at', { ascending: false })
+
+  if (error || !data) return []
+  return data as AnnouncementRow[]
+}
+
+/** テナント内の全パルス調査期間を取得（管理画面用） */
+export async function getPulseSurveyPeriodsForAdmin(): Promise<PulseSurveyPeriodRow[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('pulse_survey_periods')
+    .select('*')
+    .order('survey_period', { ascending: false })
+
+  if (error || !data) return []
+  return data as PulseSurveyPeriodRow[]
+}
+

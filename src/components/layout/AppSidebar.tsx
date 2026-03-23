@@ -51,9 +51,45 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
         .eq('release_status', '公開')
         .in('id', tenantServiceIds);
 
-      if (services) {
+      let filteredServices = services ?? [];
+
+      // app_role によるフィルタ（admin のみ）: app_role_service で制限されたサービスは該当ロールのみ表示
+      if (variant === 'admin' && filteredServices.length > 0) {
+        const serviceIds = filteredServices.map((s: { id: string }) => s.id);
+        const { data: roleServices } = await supabase
+          .from('app_role_service')
+          .select('service_id, app_role_id')
+          .in('service_id', serviceIds);
+
+        const serviceToRoles = new Map<string, Set<string>>();
+        for (const rs of roleServices ?? []) {
+          if (!rs.service_id || !rs.app_role_id) continue;
+          const set = serviceToRoles.get(rs.service_id) ?? new Set();
+          set.add(rs.app_role_id);
+          serviceToRoles.set(rs.service_id, set);
+        }
+
+        const appRole = user?.appRole;
+        let userAppRoleId: string | null = null;
+        if (appRole) {
+          const { data: roleRow } = await supabase
+            .from('app_role')
+            .select('id')
+            .eq('app_role', appRole)
+            .single();
+          userAppRoleId = roleRow?.id ?? null;
+        }
+
+        filteredServices = filteredServices.filter((s: { id: string }) => {
+          const restrictedRoles = serviceToRoles.get(s.id);
+          if (!restrictedRoles || restrictedRoles.size === 0) return true;
+          return userAppRoleId != null && restrictedRoles.has(userAppRoleId);
+        });
+      }
+
+      if (filteredServices.length > 0) {
         const categoryMap = new Map<string, { id: string; name: string; sort_order: number }>();
-        services.forEach((service: { service_category: unknown }) => {
+        filteredServices.forEach((service: { service_category: unknown }) => {
           const category = service.service_category as { id: string; name: string; sort_order: number } | null | undefined;
           if (category && !categoryMap.has(category.id)) {
             categoryMap.set(category.id, category);
@@ -74,6 +110,7 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
       basePath={basePath}
       userName={variant !== 'portal' ? userName : undefined}
       isSaaSAdmin={isSaaSAdmin}
+      appRole={user?.appRole}
     />
   );
 }

@@ -1,7 +1,13 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getServerUser } from '@/lib/auth/server-user';
+import { toJSTISOString } from '@/lib/datetime';
+import { revalidatePath } from 'next/cache';
+import { getMergedResponses } from './queries';
+import { calculateScoresFromResponses } from './score-calculator';
+import type { MergedResponse } from './score-calculator';
 
 interface AnswerInput {
   question_id: string;
@@ -59,7 +65,7 @@ export async function submitStressCheckAnswers(
     }
 
     // 4. 回答データを構築
-    const now = new Date().toISOString();
+    const now = toJSTISOString();
     const responseRows = answers.map((a) => ({
       tenant_id: user.tenant_id,
       period_id: periodId,
@@ -94,6 +100,36 @@ export async function submitStressCheckAnswers(
     if (subError) {
       console.error('submitStressCheckAnswers submission error:', subError);
       throw new Error('提出記録の保存に失敗しました');
+    }
+
+    // 7. 採点計算して stress_check_results に保存（集団分析用）
+    const mergedResponses = await getMergedResponses(db, periodId, employeeId);
+    if (mergedResponses && mergedResponses.length > 0) {
+      const calculated = calculateScoresFromResponses(mergedResponses as MergedResponse[]);
+      const adminDb = createAdminClient();
+      const { error: resultError } = await (adminDb as any)
+        .from('stress_check_results')
+        .upsert(
+          {
+            tenant_id: user.tenant_id,
+            period_id: periodId,
+            employee_id: employeeId,
+            score_a: calculated.score_a,
+            score_b: calculated.score_b,
+            score_c: calculated.score_c,
+            score_d: calculated.score_d,
+            is_high_stress: calculated.is_high_stress,
+            scale_scores: calculated.scale_scores,
+            needs_interview: calculated.is_high_stress,
+            calculated_at: now,
+          },
+          { onConflict: 'period_id, employee_id' }
+        );
+
+      if (resultError) {
+        console.error('submitStressCheckAnswers stress_check_results error:', resultError);
+        return { success: false, error: '結果の保存に失敗しました。管理者にお問い合わせください。' };
+      }
     }
 
     return { success: true };
@@ -135,4 +171,102 @@ export async function updateConsentStatus(
   }
 
   return { success: true };
+}
+
+/**
+ * 面談希望を申し出る Server Action
+ * 高ストレス者が本人の結果画面から面談希望を登録する
+ */
+export async function requestInterview(
+  periodId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getServerUser();
+    if (!user || !user.tenant_id) {
+      return { success: false, error: '認証エラー：ログインしてください。' };
+    }
+
+    const supabase = await createClient();
+
+    // employee_id 取得
+    const { data: employee, error: empError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (empError || !employee) {
+      return { success: false, error: '従業員情報が見つかりません。' };
+    }
+
+    const employeeId = employee.id;
+
+    // stress_check_results を取得（RLS により本人のみ SELECT 可能）
+    const { data: resultRow, error: resError } = await supabase
+      .from('stress_check_results')
+      .select('id, is_high_stress, interview_requested')
+      .eq('period_id', periodId)
+      .eq('employee_id', employeeId)
+      .maybeSingle();
+
+    if (resError || !resultRow) {
+      return { success: false, error: '結果データが見つかりません。' };
+    }
+
+    if (!resultRow.is_high_stress) {
+      return { success: false, error: '高ストレス者に該当する方のみ面談希望を申し出られます。' };
+    }
+
+    if (resultRow.interview_requested) {
+      return { success: false, error: 'すでに面談希望を申し出済みです。' };
+    }
+
+    const now = toJSTISOString();
+    const adminDb = createAdminClient();
+
+    // stress_check_results を更新
+    const { error: updErr } = await (adminDb as any)
+      .from('stress_check_results')
+      .update({
+        interview_requested: true,
+        interview_requested_at: now,
+      })
+      .eq('id', resultRow.id);
+
+    if (updErr) {
+      console.error('requestInterview update results error:', updErr);
+      return { success: false, error: '更新に失敗しました。もう一度お試しください。' };
+    }
+
+    // stress_check_interviews に pending レコードを INSERT（既存があればスキップ）
+    const { data: existingInterview } = await adminDb
+      .from('stress_check_interviews')
+      .select('id')
+      .eq('period_id', periodId)
+      .eq('employee_id', employeeId)
+      .maybeSingle();
+
+    if (!existingInterview) {
+      const { error: insErr } = await (adminDb as any)
+        .from('stress_check_interviews')
+        .insert({
+          tenant_id: user.tenant_id,
+          period_id: periodId,
+          employee_id: employeeId,
+          result_id: resultRow.id,
+          interview_status: 'pending',
+        });
+
+      if (insErr) {
+        console.error('requestInterview insert interviews error:', insErr);
+        // results は更新済みなので、ここで失敗しても申出は有効とする
+      }
+    }
+
+    revalidatePath('/stress-check/result');
+    return { success: true };
+  } catch (err) {
+    console.error('requestInterview unexpected error:', err);
+    return { success: false, error: '予期しないエラーが発生しました。' };
+  }
 }

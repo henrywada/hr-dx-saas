@@ -151,8 +151,11 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
               <tr className="border-b border-slate-100 bg-slate-50/30">
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">社員番号</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">氏名</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">性別</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">入社日</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">部署</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">役職</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">アプリロール</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">ステータス</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">操作</th>
               </tr>
@@ -160,7 +163,7 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
             <tbody>
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-400">
+                  <td colSpan={9} className="text-center py-12 text-slate-400">
                     該当する従業員が見つかりません
                   </td>
                 </tr>
@@ -172,10 +175,15 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId }: Empl
                     <tr key={emp.id} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{emp.employee_no || '---'}</td>
                       <td className="px-4 py-3 font-medium text-slate-800">{emp.name || '名前未設定'}</td>
+                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{emp.sex || '---'}</td>
+                      <td className="px-4 py-3 text-slate-500 hidden md:table-cell">{emp.start_date || '---'}</td>
                       <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
                         {divisionObj?.name || <span className="text-amber-500 text-xs">未所属</span>}
                       </td>
                       <td className="px-4 py-3 text-slate-500 hidden lg:table-cell">{emp.job_title || '---'}</td>
+                      <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">
+                        {emp.app_role?.name || '---'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
                           {status.label}

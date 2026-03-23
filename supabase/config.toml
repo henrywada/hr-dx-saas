@@ -156,11 +156,6 @@ jwt_expiry = 3600
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
 # signing_keys_path = "./signing_keys.json"
-# If disabled, the refresh token will never expire.
-enable_refresh_token_rotation = true
-# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
-# Requires enable_refresh_token_rotation = true.
-refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
 enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
@@ -172,6 +167,15 @@ minimum_password_length = 6
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
+# If disabled, the refresh token will never expire.
+enable_refresh_token_rotation = true
+# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
+# Requires enable_refresh_token_rotation = true.
+refresh_token_reuse_interval = 10
+
+[auth.sessions]
+timebox = "24h"
+inactivity_timeout = "8h"
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
@@ -252,13 +256,6 @@ max_frequency = "5s"
 # Use pre-defined map of phone number to OTP for testing.
 # [auth.sms.test_otp]
 # 4152127777 = "123456"
-
-# Configure logged in session timeouts.
-# [auth.sessions]
-# Force log out after the specified duration.
-# timebox = "24h"
-# Force log out if the user has been inactive longer than the specified duration.
-# inactivity_timeout = "8h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]
@@ -367,8 +364,52 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# QR 署名を明示したい場合: supabase/.env に QR_SIGNING_SECRET=（16文字以上）を記載。
+# 未設定でも localhost では Edge 関数内の開発用フォールバックが使われる。
 # [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# QR_SIGNING_SECRET = "env(QR_SIGNING_SECRET)"
+
+# QR 打刻: Kong 前段の JWT 検証だけが 401 になるケース（ローカル・一部環境）を避ける。
+# いずれの関数内でも Authorization + supabase.auth.getUser() で再検証する。
+[functions.qr-create-session]
+verify_jwt = false
+
+[functions.qr-scan]
+verify_jwt = false
+
+# ディレクトリ名は小文字に統一（ローカル Edge がパスを小文字化して解決するため）
+[functions.addpermission]
+verify_jwt = false
+
+[functions.removepermission]
+verify_jwt = false
+
+[functions.bulkimportpermissions]
+verify_jwt = false
+
+[functions.listpermissions]
+verify_jwt = false
+
+[functions.telework-start]
+verify_jwt = false
+
+[functions.telework-end]
+verify_jwt = false
+
+[functions.telework-pc-log-ingest]
+verify_jwt = false
+
+[functions.telework-device-register]
+verify_jwt = false
+
+[functions.telework-device-approve]
+verify_jwt = false
+
+[functions.telework-device-poll-secret]
+verify_jwt = false
+
+[functions.telework-device-issue-secret]
+verify_jwt = false
 
 [analytics]
 enabled = true

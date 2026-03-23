@@ -1,19 +1,25 @@
 'use client';
 
-import { Bell } from 'lucide-react';
+import { Bell, List } from 'lucide-react';
 import { useState } from 'react';
+import NotSubmittedListModal from './NotSubmittedListModal';
+import ReminderComposeModal from './ReminderComposeModal';
 
-export default function ReminderAction() {
+interface ReminderActionProps {
+  periodId?: string;
+  notSubmittedCount?: number;
+}
+
+export default function ReminderAction({
+  periodId,
+  notSubmittedCount = 0,
+}: ReminderActionProps) {
   const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [listModalOpen, setListModalOpen] = useState(false);
+  const [composeModalOpen, setComposeModalOpen] = useState(false);
 
-  const handleClick = () => {
-    setLoading(true);
-    // ダミー処理：後日実装予定
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 1200);
+  const handleReminderSent = () => {
+    setSent(true);
   };
 
   return (
@@ -30,26 +36,33 @@ export default function ReminderAction() {
         </div>
       </div>
 
-      <button
-        onClick={handleClick}
-        disabled={loading || sent}
+      <div className="flex items-center gap-3">
+        {notSubmittedCount > 0 && periodId && (
+          <button
+            type="button"
+            onClick={() => setListModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+          >
+            <List className="w-4 h-4" />
+            未受検者一覧を表示
+          </button>
+        )}
+        <button
+        type="button"
+        onClick={() => setComposeModalOpen(true)}
+        disabled={sent || notSubmittedCount === 0}
         className={`
           inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
           transition-all duration-300 shadow-sm
           ${sent
             ? 'bg-emerald-100 text-emerald-700 cursor-default'
-            : loading
-              ? 'bg-gray-100 text-gray-400 cursor-wait'
+            : notSubmittedCount === 0
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-md active:scale-95'
           }
         `}
       >
-        {loading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-            送信中...
-          </>
-        ) : sent ? (
+        {sent ? (
           <>
             <span>✓</span>
             送信完了
@@ -61,6 +74,24 @@ export default function ReminderAction() {
           </>
         )}
       </button>
+      </div>
+
+      {periodId && (
+        <>
+          <NotSubmittedListModal
+            open={listModalOpen}
+            onClose={() => setListModalOpen(false)}
+            periodId={periodId}
+          />
+          <ReminderComposeModal
+            open={composeModalOpen}
+            onClose={() => setComposeModalOpen(false)}
+            onSent={handleReminderSent}
+            periodId={periodId}
+            notSubmittedCount={notSubmittedCount}
+          />
+        </>
+      )}
     </div>
   );
 }

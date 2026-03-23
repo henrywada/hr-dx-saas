@@ -119,6 +119,14 @@ export function AppHeader({ variant }: AppHeaderProps) {
                 )}
               </div>
             </>
+          ) : appRole === 'company_doctor' ? (
+             <button
+               onClick={handleLogout}
+               className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90"
+             >
+               <LogOut className="w-4 h-4" />
+               <span>ログアウト</span>
+             </button>
           ) : (
              <Link href={APP_ROUTES.TENANT.PORTAL} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90`}>
                <ArrowLeft className="w-4 h-4" />

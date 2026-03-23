@@ -534,6 +534,166 @@ export type Database = {
           },
         ]
       }
+      qr_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          payload: Json | null
+          related_id: string | null
+          related_table: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          related_id?: string | null
+          related_table: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          related_id?: string | null
+          related_table?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qr_session_scans: {
+        Row: {
+          audit: Json | null
+          confirm_method: string | null
+          device_info: Json | null
+          employee_user_id: string
+          id: string
+          location: Json | null
+          photo_hash: string | null
+          photo_url: string | null
+          proximity: Json | null
+          result: string | null
+          scanned_at: string
+          session_id: string
+          supervisor_confirmed: boolean | null
+          tenant_id: string
+        }
+        Insert: {
+          audit?: Json | null
+          confirm_method?: string | null
+          device_info?: Json | null
+          employee_user_id: string
+          id?: string
+          location?: Json | null
+          photo_hash?: string | null
+          photo_url?: string | null
+          proximity?: Json | null
+          result?: string | null
+          scanned_at?: string
+          session_id: string
+          supervisor_confirmed?: boolean | null
+          tenant_id: string
+        }
+        Update: {
+          audit?: Json | null
+          confirm_method?: string | null
+          device_info?: Json | null
+          employee_user_id?: string
+          id?: string
+          location?: Json | null
+          photo_hash?: string | null
+          photo_url?: string | null
+          proximity?: Json | null
+          result?: string | null
+          scanned_at?: string
+          session_id?: string
+          supervisor_confirmed?: boolean | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_session_scans_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "qr_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_session_scans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qr_sessions: {
+        Row: {
+          code: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          max_uses: number
+          metadata: Json | null
+          nonce: string
+          purpose: string
+          supervisor_user_id: string
+          tenant_id: string
+          uses: number
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          metadata?: Json | null
+          nonce: string
+          purpose: string
+          supervisor_user_id: string
+          tenant_id: string
+          uses?: number
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          metadata?: Json | null
+          nonce?: string
+          purpose?: string
+          supervisor_user_id?: string
+          tenant_id?: string
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_jobs: {
         Row: {
           ai_catchphrase: string | null
@@ -600,6 +760,44 @@ export type Database = {
             foreignKeyName: "recruitment_jobs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_settings: {
+        Row: {
+          annual_limit_hours: number
+          average_limit_hours: number
+          id: string
+          monthly_limit_hours: number
+          monthly_warning_hours: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          annual_limit_hours?: number
+          average_limit_hours?: number
+          id?: string
+          monthly_limit_hours?: number
+          monthly_warning_hours?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          annual_limit_hours?: number
+          average_limit_hours?: number
+          id?: string
+          monthly_limit_hours?: number
+          monthly_warning_hours?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -1087,6 +1285,102 @@ export type Database = {
           },
         ]
       }
+      stress_interview_records: {
+        Row: {
+          id: string
+          tenant_id: string
+          stress_result_id: string
+          doctor_id: string
+          interviewee_id: string
+          interview_date: string
+          interview_duration: number | null
+          interview_notes: string | null
+          doctor_opinion: string | null
+          measure_type: string | null
+          measure_details: string | null
+          follow_up_date: string | null
+          follow_up_status: string
+          status: string
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          stress_result_id: string
+          doctor_id: string
+          interviewee_id: string
+          interview_date?: string
+          interview_duration?: number | null
+          interview_notes?: string | null
+          doctor_opinion?: string | null
+          measure_type?: string | null
+          measure_details?: string | null
+          follow_up_date?: string | null
+          follow_up_status?: string
+          status?: string
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          stress_result_id?: string
+          doctor_id?: string
+          interviewee_id?: string
+          interview_date?: string
+          interview_duration?: number | null
+          interview_notes?: string | null
+          doctor_opinion?: string | null
+          measure_type?: string | null
+          measure_details?: string | null
+          follow_up_date?: string | null
+          follow_up_status?: string
+          status?: string
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stress_interview_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_stress_result_id_fkey"
+            columns: ["stress_result_id"]
+            isOneToOne: false
+            referencedRelation: "stress_check_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_interviewee_id_fkey"
+            columns: ["interviewee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stress_check_submissions: {
         Row: {
           consent_at: string | null
@@ -1144,6 +1438,47 @@ export type Database = {
           },
           {
             foreignKeyName: "stress_check_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisor_qr_permissions: {
+        Row: {
+          can_display: boolean
+          created_at: string
+          employee_user_id: string
+          id: string
+          scope: string | null
+          supervisor_user_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_display?: boolean
+          created_at?: string
+          employee_user_id: string
+          id?: string
+          scope?: string | null
+          supervisor_user_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_display?: boolean
+          created_at?: string
+          employee_user_id?: string
+          id?: string
+          scope?: string | null
+          supervisor_user_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisor_qr_permissions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1273,6 +1608,165 @@ export type Database = {
           },
         ]
       }
+      telework_pc_devices: {
+        Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          device_identifier: string | null
+          device_name: string | null
+          device_secret: string | null
+          id: string
+          last_seen: string | null
+          metadata: Json | null
+          registered_at: string | null
+          registration_token_hash: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          secret_delivered_at: string | null
+          secret_issued_at: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          device_identifier?: string | null
+          device_name?: string | null
+          device_secret?: string | null
+          id?: string
+          last_seen?: string | null
+          metadata?: Json | null
+          registered_at?: string | null
+          registration_token_hash?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          secret_delivered_at?: string | null
+          secret_issued_at?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          device_identifier?: string | null
+          device_name?: string | null
+          device_secret?: string | null
+          id?: string
+          last_seen?: string | null
+          metadata?: Json | null
+          registered_at?: string | null
+          registration_token_hash?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          secret_delivered_at?: string | null
+          secret_issued_at?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telework_pc_logs: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          event_time: string
+          event_type: string
+          id: string
+          info: Json | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          event_time: string
+          event_type: string
+          id?: string
+          info?: Json | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          event_time?: string
+          event_type?: string
+          id?: string
+          info?: Json | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telework_sessions: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          end_at: string | null
+          end_ip: unknown
+          end_lat: number | null
+          end_lon: number | null
+          end_user_agent: string | null
+          id: string
+          start_at: string
+          start_ip: unknown
+          start_lat: number | null
+          start_lon: number | null
+          start_user_agent: string | null
+          status: string | null
+          summary_text: string | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+          worked_seconds: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          end_at?: string | null
+          end_ip?: unknown
+          end_lat?: number | null
+          end_lon?: number | null
+          end_user_agent?: string | null
+          id?: string
+          start_at: string
+          start_ip?: unknown
+          start_lat?: number | null
+          start_lon?: number | null
+          start_user_agent?: string | null
+          status?: string | null
+          summary_text?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+          worked_seconds?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          end_at?: string | null
+          end_ip?: unknown
+          end_lat?: number | null
+          end_lon?: number | null
+          end_user_agent?: string | null
+          id?: string
+          start_at?: string
+          start_ip?: unknown
+          start_lat?: number | null
+          start_lon?: number | null
+          start_user_agent?: string | null
+          status?: string | null
+          summary_text?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+          worked_seconds?: number | null
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           business_description: string | null
@@ -1332,6 +1826,51 @@ export type Database = {
       current_employee_app_role: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      fn_supervisor_qr_permission_apply: {
+        Args: {
+          p_actor_user_id: string
+          p_audit_action: string
+          p_can_display: boolean
+          p_employee_user_id: string
+          p_scope: string | null
+          p_supervisor_user_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      fn_supervisor_qr_permission_bulk_import_apply: {
+        Args: {
+          p_actor_user_id: string
+          p_can_display: boolean
+          p_employee_user_id: string
+          p_scope: string | null
+          p_supervisor_user_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      fn_supervisor_qr_permission_grant_self: {
+        Args: { p_employee_user_id: string }
+        Returns: Json
+      }
+      fn_supervisor_qr_permission_revoke_self: {
+        Args: { p_permission_id: string }
+        Returns: Json
+      }
+      get_auth_user_email: { Args: { p_user_id: string }; Returns: string | null }
+      get_tenant_employee_auth_email: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: string | null
+      }
+      upsert_overtime_settings: {
+        Args: {
+          p_annual_limit_hours: number
+          p_average_limit_hours: number
+          p_monthly_limit_hours: number
+          p_monthly_warning_hours: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

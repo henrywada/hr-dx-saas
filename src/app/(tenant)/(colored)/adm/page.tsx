@@ -9,10 +9,11 @@ import {
   ArrowRight,
   TrendingUp,
   LineChart,
-  Archive,
+  BookOpen,
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
+import { APP_ROUTES } from '@/config/routes';
 
 export default function HrDashboardPage() {
   return (
@@ -146,7 +147,7 @@ export default function HrDashboardPage() {
                     <span className="text-xs text-rose-400 font-medium">1時間前</span>
                   </div>
                   <p className="text-slate-800 font-medium leading-relaxed">
-                    今月の組織健康度アンケート、未回答の従業員が <span className="text-rose-600 font-bold px-1 bg-white rounded border border-rose-100">12名</span> います。
+                    今月の組織度アンケート（Echo）、未回答の従業員が <span className="text-rose-600 font-bold px-1 bg-white rounded border border-rose-100">12名</span> います。
                   </p>
                   <p className="text-sm text-slate-500">回答期限は明日までです。対象者へリマインドを送信しますか？</p>
                   <div className="pt-2">
@@ -223,19 +224,41 @@ export default function HrDashboardPage() {
               <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
             </button>
 
-            {/* Action 3 */}
-            <button type="button" className="w-full bg-white border border-slate-200 hover:border-emerald-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-emerald-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+            {/* 勤怠管理ダッシュボード */}
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}
+              className="w-full bg-white border border-slate-200 hover:border-slate-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50/40 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400"
+            >
               <div className="flex items-center gap-4">
-                <div className="bg-emerald-50 text-emerald-600 p-2.5 rounded-lg group-hover:bg-emerald-100 group-hover:scale-110 transition-transform duration-300">
-                  <Archive className="w-5 h-5" />
+                <div className="bg-slate-100 text-slate-700 p-2.5 rounded-lg group-hover:bg-slate-200 group-hover:scale-110 transition-transform duration-300">
+                  <Activity className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-emerald-700 transition-colors">過去の募集文アーカイブ</h3>
-                  <p className="text-slate-500 text-xs">保存された原稿や過去の応募実績を確認</p>
+                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-slate-900 transition-colors">
+                    勤怠管理ダッシュボード
+                  </h3>
+                  <p className="text-slate-500 text-xs">残業・アラート・従業員別一覧（人事）</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-            </button>
+              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-1 transition-all" />
+            </Link>
+
+            {/* Action 3: マニュアル集 */}
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_MANUAL}
+              className="w-full bg-white border border-slate-200 hover:border-amber-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-amber-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-amber-50 text-amber-700 p-2.5 rounded-lg group-hover:bg-amber-100 group-hover:scale-110 transition-transform duration-300">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-amber-800 transition-colors">マニュアル集</h3>
+                  <p className="text-slate-500 text-xs">システムの説明・利用方法等を説明</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
+            </Link>
             
           </div>
         </div>

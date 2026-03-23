@@ -3,6 +3,7 @@
 import * as cheerio from 'cheerio'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { toJSTISOString } from '@/lib/datetime'
 import { getServerUser } from '@/lib/auth/server-user'
 
 const openai = new OpenAI({
@@ -109,7 +110,7 @@ export async function saveCompanyProfile(data: {
       business_description: data.businessDescription,
       mission_vision: data.missionVision,
       culture_and_benefits: data.cultureAndBenefits,
-      onboarding_completed_at: new Date().toISOString(),
+      onboarding_completed_at: toJSTISOString(),
     })
     .eq('id', serverUser.tenant_id)
 

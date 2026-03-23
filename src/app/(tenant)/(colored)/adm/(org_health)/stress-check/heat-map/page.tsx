@@ -2,8 +2,9 @@ import { getServerUser } from '@/lib/auth/server-user';
 import { redirect } from 'next/navigation';
 import { APP_ROUTES } from '@/config/routes';
 import { getActiveStressCheckPeriod, getGroupAnalysisData } from '@/features/adm/stress-check/queries';
-import GroupRadarChart from '@/features/adm/stress-check/components/GroupRadarChart';
-import GroupAnalysisHeatMap from '@/features/adm/stress-check/components/GroupAnalysisHeatMap';
+import DepartmentHeatMap from '@/features/adm/stress-check/components/DepartmentHeatMap';
+import OrganComparisonRadarChart from '@/features/adm/stress-check/components/OrganComparisonRadarChart';
+import { formatDateInJST } from '@/lib/datetime';
 import { Activity, Calendar, ShieldAlert, BarChart3, ActivitySquare } from 'lucide-react';
 
 export default async function HeatMapPage() {
@@ -33,11 +34,7 @@ export default async function HeatMapPage() {
   // 2. 集団分析データの取得（10名未満の匿名化処理等のロジックは内部で実行済み）
   const { departments, summary } = await getGroupAnalysisData(user.tenant_id, period.id);
 
-  // 日付フォーマット
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  };
+  const formatDate = formatDateInJST;
 
   const visibleDepts = departments.filter((d) => !d.isMasked);
   const maskedDepts = departments.filter((d) => d.isMasked);
@@ -56,7 +53,7 @@ export default async function HeatMapPage() {
         <span className="text-gray-300">|</span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3.5 h-3.5" />
-          <span>{formatDate(period.startDate)} 〜 {formatDate(period.endDate)}</span>
+          <span>{formatDate(period.start_date)} 〜 {formatDate(period.end_date)}</span>
         </div>
         <span className={`
           inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
@@ -67,7 +64,7 @@ export default async function HeatMapPage() {
         `}>
           {period.status === 'active' ? '● 実施中' : period.status}
         </span>
-        <span className="text-xs text-gray-400 ml-auto">{period.fiscalYear}年度</span>
+        <span className="text-xs text-gray-400 ml-auto">{period.fiscal_year}年度</span>
       </div>
 
       {/* プライバシー保護アラート */}
@@ -94,7 +91,7 @@ export default async function HeatMapPage() {
             各尺度の平均点に基づくリスク評価（赤色がリスク高）と、全国平均100を基準とした総合健康リスクを可視化しています。
           </p>
         </div>
-        <GroupAnalysisHeatMap departments={departments} />
+        <DepartmentHeatMap departments={departments} />
       </div>
 
       {/* レーダーチャート（比較表示） */}
@@ -110,7 +107,7 @@ export default async function HeatMapPage() {
             </p>
           </div>
           <div className="p-4 md:p-6">
-            <GroupRadarChart departments={departments} summary={summary} />
+            <OrganComparisonRadarChart departments={departments} summary={summary} />
           </div>
         </div>
       )}

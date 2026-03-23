@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useCallback, useMemo } from 'react';
+import React, { useState, useTransition, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -40,6 +40,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const currentCategory = currentStep < domainGroups.length ? domainGroups[currentStep] : null;
 
@@ -67,17 +68,33 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
     setAnswers((prev) => ({ ...prev, [questionId]: score }));
   }, []);
 
+  // ステップ変更時に次の先頭設問が上部に表示されるようスクロール
+  // レイアウトのメインコンテンツが overflow-y-auto の div 内でスクロールするため、
+  // そのスクロール可能な親要素を検出してスクロールする
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let scrollParent: HTMLElement | null = el.parentElement;
+    while (scrollParent) {
+      const { overflowY, overflow } = getComputedStyle(scrollParent);
+      if (overflowY === 'auto' || overflowY === 'scroll' || overflow === 'auto' || overflow === 'scroll') {
+        scrollParent.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      scrollParent = scrollParent.parentElement;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   const goNext = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep((s) => s + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const goPrev = () => {
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -100,7 +117,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
 
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+    <div ref={containerRef} className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
       {/* ヘッダー */}
       <div className="mb-8 text-center space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="inline-flex items-center space-x-2 bg-indigo-50 text-indigo-700 px-5 py-2 rounded-full text-sm font-semibold">

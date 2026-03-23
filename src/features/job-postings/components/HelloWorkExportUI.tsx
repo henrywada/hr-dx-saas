@@ -5,6 +5,7 @@ import { JobPosting } from '../types'
 import { exportJobsForHelloWork } from '../actions'
 import { HelloWorkInstructionModal } from './HelloWorkInstructionModal'
 import { DeleteJobButton } from './DeleteJobButton'
+import { formatDateInJST } from '@/lib/datetime'
 import { Lightbulb } from 'lucide-react'
 
 interface Props {
@@ -151,7 +152,7 @@ export function HelloWorkExportUI({ jobs }: Props) {
                      job.employment_type ? 'その他' : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(job.updated_at).toLocaleDateString('ja-JP')}
+                    {formatDateInJST(job.updated_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
                     <DeleteJobButton jobId={job.id} />

@@ -39,6 +39,7 @@
     "node_modules",
     "scripts",
     "backups",
-    "src_failed_logging_attempt"
+    "src_failed_logging_attempt",
+    "supabase/functions"
   ]
 }

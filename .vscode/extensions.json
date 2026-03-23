@@ -4,6 +4,10 @@
     "esbenp.prettier-vscode",
     "bradlc.vscode-tailwindcss",
     "supabase.supabase-vscode",
-    "ms-vscode.vscode-typescript-next"
-  ]
+    "ms-vscode.vscode-typescript-next",
+    "usernamehw.errorlens",
+    "eamodio.gitlens",
+    "mikestead.dotenv"
+  ],
+  "unwantedRecommendations": []
 }

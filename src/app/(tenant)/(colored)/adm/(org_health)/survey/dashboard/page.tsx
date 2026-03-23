@@ -1,7 +1,8 @@
 import React from 'react';
-import { Sparkles, TrendingUp, Users, AlertTriangle, MessageSquare, ArrowRight, Activity, Smile, Frown } from 'lucide-react';
+import { Sparkles, TrendingUp, Users, AlertTriangle, MessageSquare, Activity, Smile, Frown } from 'lucide-react';
 
 import { Badge } from '@/components/ui/Badge';
+import { SurveyDashboardHelpModalTrigger } from './SurveyDashboardHelpModal';
 
 // === モックデータ ===
 const kpiData = {
@@ -44,12 +45,12 @@ export default function PulseSurveyDashboardPage() {
             組織健康度ダッシュボード <span className="text-xl font-medium text-gray-500 ml-2">(2026年2月度)</span>
           </h1>
           <p className="text-gray-500 mt-2 text-sm sm:text-base">
-            全社のコンディションと、AIによるフリーコメント分析結果を確認できます。
+            ストレスチェックの結果を分析の根拠として、全社のコンディションとAIによるフリーコメント分析結果を確認できます。
           </p>
         </div>
-        <button className="bg-white border-2 border-indigo-100 text-indigo-700 hover:bg-indigo-50 font-semibold py-2 px-4 rounded-lg flex items-center justify-center transition-colors shadow-sm">
-          詳細レポートを出力 <ArrowRight className="ml-2 h-4 w-4" />
-        </button>
+        <div className="shrink-0">
+          <SurveyDashboardHelpModalTrigger />
+        </div>
       </div>
 
       {/* 2. サマリーKPI（上部・横並び） */}

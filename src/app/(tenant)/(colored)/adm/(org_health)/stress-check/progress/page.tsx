@@ -4,7 +4,9 @@ import { APP_ROUTES } from '@/config/routes';
 import { getActiveStressCheckPeriod, getProgressStats } from '@/features/adm/stress-check/queries';
 import SummaryCards from '@/features/adm/stress-check/components/SummaryCards';
 import DepartmentChart from '@/features/adm/stress-check/components/DepartmentChart';
+import DepartmentProgressTree from '@/features/adm/stress-check/components/DepartmentProgressTree';
 import ReminderAction from '@/features/adm/stress-check/components/ReminderAction';
+import { formatDateInJST } from '@/lib/datetime';
 import { ClipboardCheck, Calendar, Activity } from 'lucide-react';
 
 export default async function StressCheckProgressPage() {
@@ -35,11 +37,15 @@ export default async function StressCheckProgressPage() {
   // 2. 進捗統計の取得
   const stats = await getProgressStats(user.tenant_id, period.id);
 
-  // 日付フォーマット
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  };
+  // ストレスチェック進捗管理は全社の受検状況を表示するため、常に全部署を表示
+  const visibleDepartments = stats.departments;
+
+  // バーチャート用：従業員がいない部署は非表示
+  const chartDepartments = visibleDepartments.filter(
+    (d) => d.submitted + d.notSubmitted > 0
+  );
+
+  const formatDate = formatDateInJST;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
@@ -55,7 +61,7 @@ export default async function StressCheckProgressPage() {
         <span className="text-gray-300">|</span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3.5 h-3.5" />
-          <span>{formatDate(period.startDate)} 〜 {formatDate(period.endDate)}</span>
+          <span>{formatDate(period.start_date)} 〜 {formatDate(period.end_date)}</span>
         </div>
         <span className={`
           inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
@@ -67,7 +73,7 @@ export default async function StressCheckProgressPage() {
           {period.status === 'active' ? '● 実施中' : period.status}
         </span>
         <span className="text-xs text-gray-400 ml-auto">
-          {period.fiscalYear}年度
+          {period.fiscal_year}年度
         </span>
       </div>
 
@@ -89,69 +95,28 @@ export default async function StressCheckProgressPage() {
             部署別 受検進捗
           </h2>
           <p className="text-xs text-gray-400 mt-1 ml-4">
-            各部署の受検済み・未受検人数を表示しています
+            各部署の受検済み・未受検人数を表示しています。
+            <span className="font-bold text-blue-600">青</span>＝受検済み人数、
+            <span className="font-bold text-red-600">赤</span>＝受検率（%）
           </p>
         </div>
         <div className="p-4">
-          <DepartmentChart departments={stats.departments} />
+          <DepartmentChart departments={chartDepartments} />
         </div>
 
-        {/* 部署別テーブル */}
-        {stats.departments.length > 0 && (
+        {/* 部署別テーブル（階層表示） */}
+        {visibleDepartments.length > 0 && (
           <div className="border-t border-gray-100">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      部署名
-                    </th>
-                    <th className="px-6 py-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      受検済み
-                    </th>
-                    <th className="px-6 py-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      未受検
-                    </th>
-                    <th className="px-6 py-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      受検率
-                    </th>
-                    <th className="px-6 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider w-48">
-                      進捗
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-50">
-                  {stats.departments.map((dept) => (
-                    <tr key={dept.name} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-3 text-sm font-medium text-gray-800">{dept.name}</td>
-                      <td className="px-6 py-3 text-sm text-center text-emerald-600 font-semibold">{dept.submitted}</td>
-                      <td className="px-6 py-3 text-sm text-center text-orange-500 font-semibold">{dept.notSubmitted}</td>
-                      <td className="px-6 py-3 text-sm text-center font-bold text-gray-800">{dept.rate}%</td>
-                      <td className="px-6 py-3">
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-700 ease-out ${
-                              dept.rate >= 80
-                                ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
-                                : dept.rate >= 50
-                                  ? 'bg-gradient-to-r from-amber-400 to-yellow-400'
-                                  : 'bg-gradient-to-r from-red-400 to-orange-400'
-                            }`}
-                            style={{ width: `${dept.rate}%` }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DepartmentProgressTree departments={visibleDepartments} />
           </div>
         )}
       </div>
 
       {/* リマインドアクション */}
-      <ReminderAction />
+      <ReminderAction
+        periodId={period.id}
+        notSubmittedCount={stats.notSubmittedCount}
+      />
     </div>
   );
 }

@@ -1,1 +1,13 @@
-select id, tenant_id, name from employees;
+select
+  id,
+  email,
+  email_change,
+  phone_change,
+  confirmation_token,
+  recovery_token,
+  email_change_token_new,
+  email_change_token_current,
+  phone_change_token,
+  reauthentication_token
+from auth.users
+where email = 'wada007@gmail.com';

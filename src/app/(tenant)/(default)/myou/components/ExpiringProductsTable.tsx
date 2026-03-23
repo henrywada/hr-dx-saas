@@ -9,8 +9,8 @@ interface ExpiringProduct {
   expiration_date: string;
   status: string;
   myou_companies: {
-    company_id: string;
-    company_name: string;
+    id: string;
+    name: string;
     email_address: string;
   };
 }
@@ -26,10 +26,10 @@ export default function ExpiringProductsTable({ products }: Props) {
 
   // 会社ごとに製品をグループ化
   const groupedByCompany = products.reduce((acc, product) => {
-    const companyId = product.myou_companies.company_id;
+    const companyId = product.myou_companies.id;
     if (!acc[companyId]) {
       acc[companyId] = {
-        name: product.myou_companies.company_name,
+        name: product.myou_companies.name,
         email: product.myou_companies.email_address,
         products: []
       };

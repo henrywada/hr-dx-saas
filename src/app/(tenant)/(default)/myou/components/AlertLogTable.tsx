@@ -1,6 +1,7 @@
 'use client';
 
 import { History, CheckCircle, XCircle } from 'lucide-react';
+import { formatDateTimeInJST } from '@/lib/datetime';
 
 interface AlertLog {
   id: string;
@@ -10,8 +11,8 @@ interface AlertLog {
   status: string;
   error_message: string | null;
   myou_companies: {
-    company_name: string;
-  };
+    name: string;
+  } | null;
 }
 
 interface Props {
@@ -53,9 +54,9 @@ export default function AlertLogTable({ logs }: Props) {
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-l-4 rounded-l border-transparent hover:border-blue-400">
                   {/* date-fns を使わず標準の Date にしても良いが、フォーマットの一貫性のため一応 */}
-                  {new Date(log.sent_at).toLocaleString('ja-JP')}
+                  {formatDateTimeInJST(log.sent_at)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{log.myou_companies?.company_name || '不明'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{log.myou_companies?.name || '不明'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                   <span className="font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 mr-2">
                     {log.target_serials?.length || 0}

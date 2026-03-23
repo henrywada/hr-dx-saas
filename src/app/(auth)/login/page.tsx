@@ -44,14 +44,7 @@ export default function LoginPage() {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
           </div>
           <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-700">パスワード</label>
-              <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                  パスワードを忘れたとき
-                </Link>
-              </div>
-            </div>
+            <label className="block text-sm font-medium text-gray-700">パスワード</label>
             <div className="relative mt-1">
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -72,6 +65,11 @@ export default function LoginPage() {
                   <Eye className="h-4 w-4" />
                 )}
               </button>
+            </div>
+            <div className="mt-2 text-right text-sm">
+              <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                パスワードを忘れたとき
+              </Link>
             </div>
           </div>
           <button type="submit" className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700">ログイン</button>

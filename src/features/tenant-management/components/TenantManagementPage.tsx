@@ -6,6 +6,7 @@ import { useTenantManagement } from '../hooks/useTenantManagement';
 import TenantFormDialog from './TenantFormDialog';
 import type { TenantWithManager, TenantFormData, TenantUpdateData } from '../types';
 import { Plus, Search, Building2, Mail } from 'lucide-react';
+import { formatDateInJST } from '@/lib/datetime';
 
 interface Props {
   initialTenants: TenantWithManager[];
@@ -262,7 +263,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {tenant.created_at
-                        ? new Date(tenant.created_at).toLocaleDateString('ja-JP')
+                        ? formatDateInJST(tenant.created_at)
                         : '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">

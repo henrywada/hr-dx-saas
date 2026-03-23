@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { getExpiringProducts, getAlertLogs } from '@/features/myou/actions';
 import ExpiringProductsTable from '../components/ExpiringProductsTable';
 import AlertLogTable from '../components/AlertLogTable';
-import { Header } from '@/components/layout/Header';
+import { formatDateInJST } from '@/lib/datetime';
 import { Metadata } from 'next';
 import { AlertTriangle, History, Calendar } from 'lucide-react';
 
@@ -50,7 +50,7 @@ export default async function ExpirationAlertsPage() {
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
                 <div className="text-blue-100 text-[10px] uppercase font-bold tracking-wider mb-1">直近送信</div>
                 <div className="text-sm font-bold text-white leading-none">
-                  {logs.length > 0 ? new Date(logs[0].sent_at).toLocaleDateString('ja-JP') : '履歴なし'}
+                  {logs.length > 0 ? formatDateInJST(logs[0].sent_at) : '履歴なし'}
                 </div>
               </div>
             </div>

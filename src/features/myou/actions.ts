@@ -3,8 +3,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+import { toJSTDateString, toJSTISOString } from '@/lib/datetime';
 import { sendExpirationAlertEmail } from '@/lib/mail';
 import { getServerUser } from '@/lib/auth/server-user';
+
+// myou_* テーブルは型定義に含まれないため any でラップ
+async function getSupabase() {
+  return (await createClient()) as any;
+}
 
 /**
  * 施工会社（myou_companies）の一覧を取得する
@@ -16,12 +22,12 @@ export async function getCompanies() {
     return [];
   }
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('myou_companies')
-    .select('company_id, company_name, email_address, created_at, tenant_id')
+    .select('id, name, email_address, created_at, tenant_id')
     .eq('tenant_id', user.tenant_id)
-    .order('company_name');
+    .order('name');
 
   if (error) {
     console.error('Error fetching companies:', {
@@ -32,9 +38,12 @@ export async function getCompanies() {
     });
     return [];
   }
-  // コンポーネント側が id/name を期待している場合はここでマッピングしても良いが、
-  // 全体的に company_id / company_name に統一するのが安全
-  return data || [];
+  // スキーマは id/name、コンポーネントは company_id/company_name を期待するためマッピング
+  return (data || []).map((row) => ({
+    company_id: row.id,
+    company_name: row.name,
+    email_address: row.email_address ?? undefined,
+  }));
 }
 
 /**
@@ -45,7 +54,7 @@ export async function getExpiringProducts() {
   const user = await getServerUser();
   if (!user?.tenant_id) return [];
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
   
   // 今日の日付から30日後の日付を計算
   const today = new Date();
@@ -60,8 +69,8 @@ export async function getExpiringProducts() {
       status,
       current_company_id,
       myou_companies (
-        company_id,
-        company_name,
+        id,
+        name,
         email_address
       )
     `)
@@ -84,20 +93,31 @@ export async function getExpiringProducts() {
   return data || [];
 }
 
+/** アラートログの型 */
+export type AlertLogRow = {
+  id: string;
+  company_id: string;
+  sent_at: string;
+  target_serials: string[];
+  status: string;
+  error_message: string | null;
+  myou_companies: { name: string } | null;
+};
+
 /**
  * アラート送信履歴を取得する
  */
-export async function getAlertLogs() {
+export async function getAlertLogs(): Promise<AlertLogRow[]> {
   const user = await getServerUser();
   if (!user?.tenant_id) return [];
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('myou_alert_logs')
     .select(`
       *,
       myou_companies (
-        company_name
+        name
       )
     `)
     .eq('tenant_id', user.tenant_id)
@@ -113,7 +133,7 @@ export async function getAlertLogs() {
     });
     return [];
   }
-  return data || [];
+  return (data || []) as AlertLogRow[];
 }
 
 /**
@@ -123,7 +143,7 @@ export async function sendManualAlert(companyId: string) {
   const user = await getServerUser();
   if (!user?.tenant_id) return { success: false, error: '認証エラー' };
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
   // ... (省略箇所があるため慎重に置換します)
   
   // 1. 対象の製品と会社情報を取得
@@ -145,8 +165,8 @@ export async function sendManualAlert(companyId: string) {
 
   const { data: company, error: companyError } = await supabase
     .from('myou_companies')
-    .select('company_name, email_address')
-    .eq('company_id', companyId)
+    .select('name, email_address')
+    .eq('id', companyId)
     .single();
 
   if (companyError || !company || !company.email_address) {
@@ -156,7 +176,7 @@ export async function sendManualAlert(companyId: string) {
   // 2. メール送信実行
   const mailResult = await sendExpirationAlertEmail(
     company.email_address,
-    company.company_name,
+    company.name,
     products.map(p => ({
       serial_number: p.serial_number,
       expiration_date: p.expiration_date
@@ -190,7 +210,7 @@ export async function sendManualAlert(companyId: string) {
  * 特定の製品（シリアル番号）の流通履歴を取得する
  */
 export async function getProductTrace(serialNumber: string) {
-  const supabase = await createClient();
+  const supabase = await getSupabase();
 
   // 1. 製品基本情報を取得
   const { data: product, error: productError } = await supabase
@@ -210,7 +230,7 @@ export async function getProductTrace(serialNumber: string) {
     .select(`
       *,
       myou_companies (
-        company_name
+        name
       )
     `)
     .eq('serial_number', serialNumber)
@@ -239,7 +259,7 @@ export async function registerDelivery(formData: {
   const user = await getServerUser();
   if (!user?.tenant_id) return { success: false, error: '認証エラー' };
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
 
   // 1. 製品情報の登録・更新
   const { error: productError } = await supabase
@@ -248,7 +268,7 @@ export async function registerDelivery(formData: {
       serial_number: formData.serial_number,
       expiration_date: formData.expiration_date,
       status: 'delivered',
-      last_delivery_at: new Date().toISOString(),
+      last_delivery_at: toJSTISOString(),
       current_company_id: formData.company_id,
       tenant_id: user.tenant_id // 明示的に tenant_id を指定
     }, {
@@ -266,8 +286,8 @@ export async function registerDelivery(formData: {
     .insert({
       serial_number: formData.serial_number,
       company_id: formData.company_id,
-      delivery_date: new Date().toISOString().split('T')[0],
-      registered_at: new Date().toISOString(),
+      delivery_date: toJSTDateString(),
+      registered_at: toJSTISOString(),
       tenant_id: user.tenant_id // 明示的に tenant_id を指定
     });
 
@@ -296,10 +316,10 @@ export async function upsertCompany(formData: {
     return { success: false, error: 'ユーザー情報を取得できませんでした。再ログインをお試しください。' };
   }
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
 
   const companyData = {
-    company_name: formData.name,
+    name: formData.name,
     email_address: formData.email_address,
     tenant_id: user.tenant_id,
   };
@@ -310,7 +330,7 @@ export async function upsertCompany(formData: {
     result = await supabase
       .from('myou_companies')
       .update(companyData)
-      .eq('company_id', formData.id)
+      .eq('id', formData.id)
       .eq('tenant_id', user.tenant_id);
   } else {
     // 新規作成
@@ -343,12 +363,12 @@ export async function deleteCompany(id: string) {
   const user = await getServerUser();
   if (!user?.tenant_id) return { success: false, error: '認証エラー' };
 
-  const supabase = await createClient();
+  const supabase = await getSupabase();
 
   const { error } = await supabase
     .from('myou_companies')
     .delete()
-    .eq('company_id', id)
+    .eq('id', id)
     .eq('tenant_id', user.tenant_id);
 
   if (error) {

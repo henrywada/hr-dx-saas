@@ -29,18 +29,25 @@ export async function sendMail({
   to,
   subject,
   html,
+  text,
 }: {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
+  text?: string;
 }) {
   const from = process.env.SMTP_FROM || 'noreply@hr-dx.com';
+  const content = html ?? (text ? text.replace(/\n/g, '<br>') : '');
+
+  if (!content) {
+    throw new Error('メール本文（html または text）を指定してください');
+  }
 
   await transporter.sendMail({
     from,
     to,
     subject,
-    html,
+    html: content,
   });
 }
 

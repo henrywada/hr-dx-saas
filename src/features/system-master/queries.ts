@@ -16,18 +16,28 @@ export async function getServiceCategories() {
 
 export async function getServices() {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('service')
-    .select('*')
-    .order('target_audience', { ascending: true })
-    .order('service_category_id', { ascending: true })
-    .order('sort_order', { ascending: true });
+  const { data, error } = await supabase.from('service').select(`
+      *,
+      service_category (
+        sort_order
+      )
+    `);
 
   if (error) {
     console.error('getServices error:', error);
     return [];
   }
-  return data || [];
+
+  const rows = data || [];
+  // 表示順: service_category.sort_order → service.sort_order（カテゴリ未設定は末尾）
+  rows.sort((a, b) => {
+    const ca = a.service_category?.sort_order ?? Number.MAX_SAFE_INTEGER;
+    const cb = b.service_category?.sort_order ?? Number.MAX_SAFE_INTEGER;
+    if (ca !== cb) return ca - cb;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+
+  return rows.map(({ service_category: _c, ...rest }) => rest);
 }
 
 export async function getAppRoles() {

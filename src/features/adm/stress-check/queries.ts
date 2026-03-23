@@ -1,472 +1,524 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server'
+
+// Supabase の型推論が深すぎるため、クエリ用に any でラップ
+async function getSupabase() {
+  return (await createClient()) as any
+}
 import type {
-  ProgressStats,
-  ActivePeriodInfo,
   GroupAnalysisDepartment,
   GroupAnalysisSummary,
   ScaleAverages,
-} from './types';
-import { GROUP_ANALYSIS_SCALES } from './types';
+  DepartmentStat,
+  ProgressStats,
+} from './types'
 
-/**
- * 現在アクティブなストレスチェック実施期間を取得
- * status='active' かつ期間内のものを返す
- */
-export async function getActiveStressCheckPeriod(
-  tenantId: string
-): Promise<ActivePeriodInfo | null> {
-  const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
+export type GroupData = {
+  division_id: string
+  name: string
+  tenant_id: string
+  member_count: number
+  high_stress_rate: number
+  health_risk: number
+  workload: number
+  control: number
+  supervisor_support: number
+  colleague_support: number
+  previous_health_risk?: number
+  period_name: string
+  is_latest: boolean
+}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('stress_check_periods')
-    .select('id, title, start_date, end_date, fiscal_year, status')
+export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
+  const supabase = await getSupabase()
+
+  let query = supabase.from('stress_group_analysis')
+    .select(
+      `
+      division_id,
+      name,
+      member_count,
+      high_stress_rate,
+      health_risk,
+      workload,
+      control,
+      supervisor_support,
+      colleague_support,
+      previous_health_risk,
+      period_name,
+      is_latest
+    `
+    )
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
-    .lte('start_date', today)
-    .gte('end_date', today)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
-  if (error || !data) {
-    // アクティブ期間が無い場合、最新の期間を代替取得
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: latest } = await (supabase as any)
-      .from('stress_check_periods')
-      .select('id, title, start_date, end_date, fiscal_year, status')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!latest) return null;
-    return {
-      id: latest.id,
-      title: latest.title,
-      startDate: latest.start_date,
-      endDate: latest.end_date,
-      fiscalYear: latest.fiscal_year,
-      status: latest.status,
-    };
+  if (latestOnly) {
+    query = query.eq('is_latest', true).order('health_risk', { ascending: false })
+  } else {
+    query = query.order('period_name', { ascending: true })
   }
 
-  return {
-    id: data.id,
-    title: data.title,
-    startDate: data.start_date,
-    endDate: data.end_date,
-    fiscalYear: data.fiscal_year,
-    status: data.status,
-  };
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Group analysis query error:', error)
+    throw error
+  }
+
+  return (data || []) as GroupData[]
+}
+
+/** 推移グラフ用：期間×部署の健康リスク */
+export type GroupTrendRow = {
+  division_id: string
+  name: string
+  period_name: string
+  health_risk: number
+}
+
+export async function getGroupTrend(tenantId: string): Promise<GroupTrendRow[]> {
+  const supabase = await getSupabase()
+  const { data } = await supabase
+    .from('stress_group_analysis')
+    .select('division_id, name, period_name, health_risk')
+    .eq('tenant_id', tenantId)
+    .order('period_name', { ascending: true })
+
+  return (data || []) as GroupTrendRow[]
+}
+// ========== ここから追加（既存の getGroupAnalysis の下に貼り付け）==========
+
+// 進行状況ページ用（元々存在していた関数）
+export async function getActiveStressCheckPeriod(tenantId: string) {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('stress_check_periods')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (error) {
+    console.error('getActiveStressCheckPeriod error:', error)
+    return null
+  }
+  return data
 }
 
 /**
- * ストレスチェック進捗統計を集計
- * - 全従業員数
- * - 受検完了者数 / 未受検者数
- * - 同意率
- * - 部署別の進捗
+ * program_targets から is_eligible=true の対象者ID一覧を取得
+ * レコードが無い場合は null を返し、後方互換として全従業員を対象とする
  */
-export async function getProgressStats(
+async function getEligibleEmployeeIds(
+  supabase: any,
   tenantId: string,
   periodId: string
+): Promise<Set<string> | null> {
+  const { data: targets } = await supabase
+    .from('program_targets')
+    .select('employee_id')
+    .eq('tenant_id', tenantId)
+    .eq('program_type', 'stress_check')
+    .eq('program_instance_id', periodId)
+    .eq('is_eligible', true)
+
+  if (!targets || targets.length === 0) {
+    return null // 後方互換: 全従業員を対象
+  }
+  return new Set(targets.map((t: { employee_id: string }) => t.employee_id))
+}
+
+/** 進捗統計（periodId 指定時は部署別含む完全版を返す） */
+export async function getProgressStats(
+  tenantId: string,
+  periodId?: string
 ): Promise<ProgressStats> {
-  const supabase = await createClient();
+  const supabase = await getSupabase()
 
-  // 1. テナント内のアクティブな全従業員を部署情報付きで取得
-  const { data: employees } = await supabase
+  // 全従業員数（後方互換用）
+  const { count: totalAll } = await supabase
     .from('employees')
-    .select('id, name, division_id, divisions:division_id(id, name)')
+    .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('active_status', '在籍');
 
-  const allEmployees = employees || [];
-  const totalEmployees = allEmployees.length;
-
-  // 2. 該当期間の提出データを取得
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: submissions } = await (supabase as any)
+  let submissionsCountQuery = supabase
     .from('stress_check_submissions')
-    .select('id, employee_id, status, consent_to_employer')
+    .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('period_id', periodId);
+    .eq('status', 'submitted')
+  if (periodId) {
+    submissionsCountQuery = submissionsCountQuery.eq('period_id', periodId)
+  }
+  const { count: completedAll } = await submissionsCountQuery
 
-  const allSubmissions = submissions || [];
-
-  // 提出済み従業員IDのセット（status='completed' or submitted_at が存在）
-  const submittedEmployeeIds = new Set<string>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    allSubmissions.map((s: any) => s.employee_id)
-  );
-
-  // 同意者数
-  const consentCount = allSubmissions.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (s: any) => s.consent_to_employer === true
-  ).length;
-
-  const submittedCount = submittedEmployeeIds.size;
-  const notSubmittedCount = totalEmployees - submittedCount;
-  const submissionRate = totalEmployees > 0
-    ? Math.round((submittedCount / totalEmployees) * 100)
-    : 0;
-  const consentRate = submittedCount > 0
-    ? Math.round((consentCount / submittedCount) * 100)
-    : 0;
-
-  // 3. 部署別集計
-  const deptMap = new Map<string, { name: string; total: number; submitted: number }>();
-
-  for (const emp of allEmployees) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const division = emp.divisions as any;
-    const deptName = division?.name || '未配属';
-    const deptId = division?.id || 'unassigned';
-
-    if (!deptMap.has(deptId)) {
-      deptMap.set(deptId, { name: deptName, total: 0, submitted: 0 });
-    }
-    const dept = deptMap.get(deptId)!;
-    dept.total += 1;
-
-    if (submittedEmployeeIds.has(emp.id)) {
-      dept.submitted += 1;
+  // periodId 未指定の場合は簡易版（departments は空、従来通り全従業員を対象）
+  if (!periodId) {
+    const totalEmployees = totalAll || 0
+    const submittedCount = completedAll || 0
+    const notSubmittedCount = Math.max(0, totalEmployees - submittedCount)
+    return {
+      totalEmployees,
+      submittedCount,
+      notSubmittedCount,
+      consentCount: 0,
+      submissionRate: totalEmployees ? Math.round((submittedCount / totalEmployees) * 100) : 0,
+      consentRate: 0,
+      departments: [],
     }
   }
 
-  const departments = Array.from(deptMap.values())
-    .map((d) => ({
-      name: d.name,
-      submitted: d.submitted,
-      notSubmitted: d.total - d.submitted,
-      rate: d.total > 0 ? Math.round((d.submitted / d.total) * 100) : 0,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  // program_targets の is_eligible で対象者を絞る（無効は対象外）
+  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+
+  // 同意数・提出データ取得
+  const { data: submissions } = await supabase
+    .from('stress_check_submissions')
+    .select('employee_id, status, consent_to_employer')
+    .eq('period_id', periodId)
+
+  const submittedEmployeeIds = new Set(
+    (submissions ?? [])
+      .filter((s) => s.status === 'submitted')
+      .map((s) => s.employee_id)
+  )
+
+  // 対象者数・受検済み・未受検を is_eligible でフィルタ
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('id, division_id')
+    .eq('tenant_id', tenantId)
+
+  const allEmployees = employees ?? []
+  const targetEmployees = eligibleIds
+    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    : allEmployees
+
+  // 対象者数: program_targets と提出済み employee_id の和集合（非合意者を含める）
+  const allTargetIds = new Set([
+    ...(eligibleIds ?? []),
+    ...submittedEmployeeIds,
+    ...targetEmployees.map((e) => e.id),
+  ])
+  const totalEmployees = allTargetIds.size
+  const submittedCount = submittedEmployeeIds.size
+  const notSubmittedCount = Math.max(0, totalEmployees - submittedCount)
+
+  // 同意数: 受検完了（status='submitted'）かつ同意した者のみ（対象者全体から集計）
+  const consentCount =
+    submissions?.filter(
+      (s) => s.status === 'submitted' && s.consent_to_employer === true
+    ).length ?? 0
+
+  // 部署一覧取得
+  const { data: divisions } = await supabase
+    .from('divisions')
+    .select('id, parent_id, name, layer')
+    .eq('tenant_id', tenantId)
+
+  // 部署別: 対象者（eligible）のみで集計
+  const empByDiv = new Map<string, { id: string; division_id: string | null }[]>()
+  for (const e of targetEmployees) {
+    const did = e.division_id ?? 'unassigned'
+    if (!empByDiv.has(did)) empByDiv.set(did, [])
+    empByDiv.get(did)!.push(e)
+  }
+
+  type DivRow = { id: string; parent_id: string | null; name: string | null; layer: number | null }
+  const divById = new Map<string, DivRow>(
+    (divisions ?? []).map((d) => [d.id, d as DivRow])
+  )
+
+  // empByDiv に存在するが divisions に無い division_id を補完（従業員の division_id が正しく参照される）
+  const orphanDivIds = [...empByDiv.keys()].filter(
+    (id) => id !== 'unassigned' && !divById.has(id)
+  )
+  if (orphanDivIds.length > 0) {
+    const { data: orphanDivs } = await supabase
+      .from('divisions')
+      .select('id, parent_id, name, layer')
+      .in('id', orphanDivIds)
+    for (const d of (orphanDivs ?? []) as DivRow[]) {
+      divById.set(d.id, d)
+    }
+  }
+
+  // 全部署（divisions + 対象者がいる部署）を対象に集計
+  const allDivIds = new Set([
+    ...(divisions ?? []).map((d) => d.id),
+    ...empByDiv.keys(),
+  ])
+  const departments: DepartmentStat[] = []
+  for (const divId of allDivIds) {
+    if (divId === 'unassigned') continue
+    const d = divById.get(divId)
+    const emps = empByDiv.get(divId) ?? []
+    const submitted = emps.filter((e) => submittedEmployeeIds.has(e.id)).length
+    const notSubmitted = emps.length - submitted
+    const inProgress =
+      submissions?.filter(
+        (s) =>
+          emps.some((e) => e.id === s.employee_id) && s.consent_to_employer === false
+      ).length ?? 0
+    departments.push({
+      id: divId,
+      parent_id: d?.parent_id ?? null,
+      name: d?.name ?? '不明',
+      submitted,
+      notSubmitted,
+      inProgress,
+      rate: emps.length ? Math.round((submitted / emps.length) * 100) : 0,
+      layer: d?.layer ?? null,
+    })
+  }
+
+  // 未配属（対象者のみ）
+  const unassigned = empByDiv.get('unassigned') ?? []
+  if (unassigned.length > 0) {
+    const submitted = unassigned.filter((e) => submittedEmployeeIds.has(e.id)).length
+    departments.push({
+      id: 'unassigned',
+      parent_id: null,
+      name: '未配属',
+      submitted,
+      notSubmitted: unassigned.length - submitted,
+      inProgress:
+        submissions?.filter(
+          (s) =>
+            unassigned.some((e) => e.id === s.employee_id) &&
+            s.consent_to_employer === false
+        ).length ?? 0,
+      rate: unassigned.length ? Math.round((submitted / unassigned.length) * 100) : 0,
+    })
+  }
 
   return {
     totalEmployees,
     submittedCount,
     notSubmittedCount,
     consentCount,
-    submissionRate,
-    consentRate,
+    submissionRate: totalEmployees ? Math.round((submittedCount / totalEmployees) * 100) : 0,
+    consentRate: submittedCount ? Math.round((consentCount / submittedCount) * 100) : 0,
     departments,
-  };
+  }
 }
 
-// ============================================================
-// 集団分析（組織健康度分析）クエリ
-// ============================================================
+/** 未受検者一覧を取得（氏名・社員番号・部署・役職） */
+export async function getNotSubmittedEmployees(
+  tenantId: string,
+  periodId: string
+) {
+  const supabase = await getSupabase()
 
-/** scale_scores JSON 内の個別スコア */
-interface StoredScaleScore {
-  scaleName: string;
-  evalPoint: number;
-  rawScore: number;
-  category: string;
+  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+
+  const { data: submissions } = await supabase
+    .from('stress_check_submissions')
+    .select('employee_id')
+    .eq('period_id', periodId)
+    .eq('status', 'submitted')
+
+  const submittedEmployeeIds = new Set(
+    (submissions ?? []).map((s: { employee_id: string }) => s.employee_id)
+  )
+
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('id, name, employee_no, job_title, division_id')
+    .eq('tenant_id', tenantId)
+
+  const allEmployees = employees ?? []
+  const targetEmployees = eligibleIds
+    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    : allEmployees
+
+  const notSubmittedIds = targetEmployees
+    .filter((e) => !submittedEmployeeIds.has(e.id))
+    .map((e) => e.id)
+
+  if (notSubmittedIds.length === 0) {
+    return []
+  }
+
+  const { data: rows } = await supabase
+    .from('employees')
+    .select(`
+      id,
+      name,
+      employee_no,
+      job_title,
+      division_id,
+      division:division_id(id, name)
+    `)
+    .in('id', notSubmittedIds)
+    .order('employee_no', { ascending: true })
+
+  return (rows ?? []).map((r: any) => ({
+    id: r.id,
+    name: r.name ?? null,
+    employee_no: r.employee_no ?? null,
+    job_title: r.job_title ?? null,
+    division_id: r.division_id ?? null,
+    division_name: r.division?.name ?? null,
+  }))
 }
 
-/**
- * 厚労省基準の全国平均評価点（男性・57項目版 参考値）
- * 健康リスク算出に使用
- */
-const NATIONAL_AVG: Record<string, number> = {
-  '心理的な仕事の負担（量）': 3.0,
-  '仕事のコントロール度': 3.0,
-  '上司からのサポート': 2.8,
-  '同僚からのサポート': 3.0,
-};
+/** リマインド送信用：未受検者の id, name, user_id を取得（メール送信先の特定に使用） */
+export async function getNotSubmittedEmployeesForReminder(
+  tenantId: string,
+  periodId: string
+): Promise<{ id: string; name: string | null; user_id: string | null }[]> {
+  const supabase = await getSupabase()
 
-/**
- * 集団分析（組織健康度分析）のデータを取得・集計
- *
- * 処理概要:
- * 1. テナント内の全従業員を部署付きで取得
- * 2. 該当期間の stress_check_results を取得（scale_scores, score_a〜d, is_high_stress）
- * 3. 部署別にグループ化し、回答者10名未満はマスキング
- * 4. 主要尺度の平均評価点、カテゴリ平均素点、高ストレス率を算出
- */
+  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+
+  const { data: submissions } = await supabase
+    .from('stress_check_submissions')
+    .select('employee_id')
+    .eq('period_id', periodId)
+    .eq('status', 'submitted')
+
+  const submittedEmployeeIds = new Set(
+    (submissions ?? []).map((s: { employee_id: string }) => s.employee_id)
+  )
+
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('id, name, user_id')
+    .eq('tenant_id', tenantId)
+
+  const allEmployees = employees ?? []
+  const targetEmployees = eligibleIds
+    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    : allEmployees
+
+  return targetEmployees
+    .filter((e) => !submittedEmployeeIds.has(e.id))
+    .map((e) => ({
+      id: e.id,
+      name: e.name ?? null,
+      user_id: e.user_id ?? null,
+    }))
+}
+
+/** ヒートマップページ用：期間指定で集団分析データを取得（10名未満はマスキング） */
 export async function getGroupAnalysisData(
   tenantId: string,
   periodId: string
 ): Promise<{ departments: GroupAnalysisDepartment[]; summary: GroupAnalysisSummary }> {
-  const supabase = await createClient();
+  const supabase = await getSupabase()
 
-  // 1. テナント内のアクティブな従業員を部署付きで取得
-  const { data: employees } = await supabase
-    .from('employees')
-    .select('id, name, division_id, divisions:division_id(id, name)')
+  // 期間の title を取得
+  const { data: period } = await supabase
+    .from('stress_check_periods')
+    .select('title')
+    .eq('id', periodId)
+    .single()
+
+  if (!period?.title) {
+    return { departments: [], summary: createEmptySummary() }
+  }
+
+  // stress_group_analysis から該当期間のデータを取得（period_name でフィルタ）
+  const { data: rows, error } = await supabase
+    .from('stress_group_analysis')
+    .select(
+      `
+      division_id,
+      name,
+      member_count,
+      high_stress_rate,
+      health_risk,
+      workload,
+      control,
+      supervisor_support,
+      colleague_support,
+      period_name
+    `
+    )
     .eq('tenant_id', tenantId)
-    .eq('active_status', '在籍');
+    .eq('period_name', period.title)
 
-  const allEmployees = employees || [];
-
-  // 従業員ID → 部署情報のマップ
-   
-  const employeeDeptMap = new Map<string, { deptId: string; deptName: string }>();
-  for (const emp of allEmployees) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const division = emp.divisions as any;
-    employeeDeptMap.set(emp.id, {
-      deptId: division?.id || 'unassigned',
-      deptName: division?.name || '未配属',
-    });
+  if (error) {
+    console.error('getGroupAnalysisData error:', error)
+    throw error
   }
 
-  // 2. 該当期間の結果データ（score_a〜d, scale_scores, is_high_stress）を取得
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: results } = await (supabase as any)
-    .from('stress_check_results')
-    .select('employee_id, score_a, score_b, score_c, score_d, scale_scores, is_high_stress')
-    .eq('tenant_id', tenantId)
-    .eq('period_id', periodId);
-
-  const allResults = results || [];
-
-  // 3. 部署別に集計用マップを構築
-  interface DeptAgg {
-    deptName: string;
-    respondentCount: number;
-    highStressCount: number;
-    scoreA: number[];
-    scoreB: number[];
-    scoreC: number[];
-    scoreD: number[];
-    scaleScores: Map<string, number[]>; // scaleName -> evalPoint[]
-  }
-
-  const deptAggMap = new Map<string, DeptAgg>();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const result of allResults as any[]) {
-    const empDept = employeeDeptMap.get(result.employee_id);
-    if (!empDept) continue; // テナント外、または退職済み
-
-    const deptId = empDept.deptId;
-
-    if (!deptAggMap.has(deptId)) {
-      deptAggMap.set(deptId, {
-        deptName: empDept.deptName,
-        respondentCount: 0,
-        highStressCount: 0,
-        scoreA: [],
-        scoreB: [],
-        scoreC: [],
-        scoreD: [],
-        scaleScores: new Map(),
-      });
-    }
-    const agg = deptAggMap.get(deptId)!;
-    agg.respondentCount += 1;
-
-    if (result.is_high_stress) {
-      agg.highStressCount += 1;
-    }
-
-    // カテゴリ別素点
-    if (result.score_a != null) agg.scoreA.push(result.score_a);
-    if (result.score_b != null) agg.scoreB.push(result.score_b);
-    if (result.score_c != null) agg.scoreC.push(result.score_c);
-    if (result.score_d != null) agg.scoreD.push(result.score_d);
-
-    // scale_scores JSON を解析
-    const scaleData = result.scale_scores as StoredScaleScore[] | null;
-    if (Array.isArray(scaleData)) {
-      for (const ss of scaleData) {
-        if (!agg.scaleScores.has(ss.scaleName)) {
-          agg.scaleScores.set(ss.scaleName, []);
-        }
-        agg.scaleScores.get(ss.scaleName)!.push(ss.evalPoint);
-      }
-    }
-  }
-
-  // 3.5 10名未満の部署を「その他」にまとめる
-  const MASKING_THRESHOLD = 10;
-  const mergedDeptAggMap = new Map<string, DeptAgg>();
-  
-  const otherAgg: DeptAgg = {
-    deptName: 'その他（10名未満の部署合算）',
-    respondentCount: 0,
-    highStressCount: 0,
-    scoreA: [],
-    scoreB: [],
-    scoreC: [],
-    scoreD: [],
-    scaleScores: new Map(),
-  };
-
-  let maskedDeptCount = 0;
-
-  for (const [deptId, agg] of deptAggMap) {
-    if (agg.respondentCount < MASKING_THRESHOLD) {
-      maskedDeptCount += 1;
-      otherAgg.respondentCount += agg.respondentCount;
-      otherAgg.highStressCount += agg.highStressCount;
-      otherAgg.scoreA.push(...agg.scoreA);
-      otherAgg.scoreB.push(...agg.scoreB);
-      otherAgg.scoreC.push(...agg.scoreC);
-      otherAgg.scoreD.push(...agg.scoreD);
-      
-      for (const [scaleName, evalPoints] of agg.scaleScores) {
-        if (!otherAgg.scaleScores.has(scaleName)) {
-          otherAgg.scaleScores.set(scaleName, []);
-        }
-        otherAgg.scaleScores.get(scaleName)!.push(...evalPoints);
-      }
-    } else {
-      mergedDeptAggMap.set(deptId, agg);
-    }
-  }
-
-  if (otherAgg.respondentCount > 0) {
-    mergedDeptAggMap.set('other_masked', otherAgg);
-  }
-
-  // 4. 部署別データを構築
-  const departments: GroupAnalysisDepartment[] = [];
-
-  // 全社集計用の累積
-  let totalRespondents = 0;
-  let totalHighStress = 0;
-  const allScaleAcc: Map<string, number[]> = new Map();
-
-  for (const [, agg] of mergedDeptAggMap) {
-    // 合算後も10名未満ならマスキング（念のため）
-    const isMasked = agg.respondentCount < MASKING_THRESHOLD;
-
-    // 尺度平均（マスキング時は null）
+  const raw = (rows || []) as GroupData[]
+  const departments: GroupAnalysisDepartment[] = raw.map((r) => {
+    const isMasked = r.member_count < 10
     const scaleAverages: ScaleAverages = {
+      workloadQuantity: r.workload,
+      workloadQuality: null,
+      control: r.control,
+      supervisorSupport: r.supervisor_support,
+      coworkerSupport: r.colleague_support,
+      vitality: null,
+    }
+    return {
+      departmentName: r.name,
+      respondentCount: r.member_count,
+      isMasked,
+      scaleAverages,
+      avgScoreA: r.workload,
+      avgScoreB: r.control,
+      avgScoreC: r.supervisor_support,
+      avgScoreD: r.colleague_support,
+      highStressCount: Math.round((r.member_count * r.high_stress_rate) / 100),
+      highStressRate: r.high_stress_rate,
+      totalHealthRisk: isMasked ? null : r.health_risk,
+    }
+  })
+
+  const visible = departments.filter((d) => !d.isMasked)
+  const totalRespondents = visible.reduce((s, d) => s + d.respondentCount, 0)
+  const totalHighStress = visible.reduce((s, d) => s + d.highStressCount, 0)
+  const healthRiskSum = visible.reduce(
+    (s, d) => s + (d.totalHealthRisk ?? 0) * d.respondentCount,
+    0
+  )
+
+  const summary: GroupAnalysisSummary = {
+    totalRespondents,
+    overallHighStressRate: totalRespondents ? (totalHighStress / totalRespondents) * 100 : 0,
+    overallHealthRisk:
+      totalRespondents > 0 ? healthRiskSum / totalRespondents : null,
+    maskedDepartmentCount: departments.filter((d) => d.isMasked).length,
+    overallScaleAverages: computeOverallScaleAverages(visible),
+  }
+
+  return { departments, summary }
+}
+
+function createEmptySummary(): GroupAnalysisSummary {
+  return {
+    totalRespondents: 0,
+    overallHighStressRate: 0,
+    overallHealthRisk: null,
+    maskedDepartmentCount: 0,
+    overallScaleAverages: {
       workloadQuantity: null,
       workloadQuality: null,
       control: null,
       supervisorSupport: null,
       coworkerSupport: null,
       vitality: null,
-    };
-
-    if (!isMasked) {
-      for (const scaleDef of GROUP_ANALYSIS_SCALES) {
-        const vals = agg.scaleScores.get(scaleDef.dbName);
-        if (vals && vals.length > 0) {
-          const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
-          (scaleAverages as unknown as Record<string, number | null>)[scaleDef.key] = Math.round(avg * 10) / 10;
-        }
-
-        // 全社用にも累積（その他のデータも実データとして集計に含めるが、全社平均は元の全データを足し合わせたものと一致するはず）
-        if (vals) {
-          if (!allScaleAcc.has(scaleDef.key)) allScaleAcc.set(scaleDef.key, []);
-          allScaleAcc.get(scaleDef.key)!.push(...vals);
-        }
-      }
-    }
-
-    // 総合健康リスク算出（マスキング時は null）
-    let totalHealthRisk: number | null = null;
-    if (!isMasked) {
-      const wlVals = agg.scaleScores.get('心理的な仕事の負担（量）');
-      const ctrlVals = agg.scaleScores.get('仕事のコントロール度');
-      const supVals = agg.scaleScores.get('上司からのサポート');
-      const cowVals = agg.scaleScores.get('同僚からのサポート');
-
-      if (wlVals?.length && ctrlVals?.length && supVals?.length && cowVals?.length) {
-        const avgWl = wlVals.reduce((s, v) => s + v, 0) / wlVals.length;
-        const avgCtrl = ctrlVals.reduce((s, v) => s + v, 0) / ctrlVals.length;
-        const avgSup = supVals.reduce((s, v) => s + v, 0) / supVals.length;
-        const avgCow = cowVals.reduce((s, v) => s + v, 0) / cowVals.length;
-
-        const natWl = NATIONAL_AVG['心理的な仕事の負担（量）'];
-        const natCtrl = NATIONAL_AVG['仕事のコントロール度'];
-        const natSup = NATIONAL_AVG['上司からのサポート'];
-        const natCow = NATIONAL_AVG['同僚からのサポート'];
-
-        // 健康リスクA = (仕事の負担/全国平均) × (コントロール度/全国平均) × 100
-        const riskA = (avgWl / natWl) * (avgCtrl / natCtrl) * 100;
-        // 健康リスクB = (上司サポート/全国平均) × (同僚サポート/全国平均) × 100
-        const riskB = (avgSup / natSup) * (avgCow / natCow) * 100;
-        // 総合 = A × B / 100
-        totalHealthRisk = Math.round((riskA * riskB) / 100);
-      }
-    }
-
-    // 全社累積
-    totalRespondents += agg.respondentCount;
-    totalHighStress += agg.highStressCount;
-
-    const avg = (arr: number[]) => arr.length > 0 ? Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10 : null;
-
-    departments.push({
-      departmentName: agg.deptName,
-      respondentCount: agg.respondentCount,
-      isMasked,
-      scaleAverages,
-      avgScoreA: isMasked ? null : avg(agg.scoreA),
-      avgScoreB: isMasked ? null : avg(agg.scoreB),
-      avgScoreC: isMasked ? null : avg(agg.scoreC),
-      avgScoreD: isMasked ? null : avg(agg.scoreD),
-      highStressCount: isMasked ? 0 : agg.highStressCount,
-      highStressRate: isMasked ? 0 : (agg.respondentCount > 0 ? Math.round((agg.highStressCount / agg.respondentCount) * 100) : 0),
-      totalHealthRisk,
-    });
+    },
   }
+}
 
-  // 回答者数の降順でソート
-  departments.sort((a, b) => b.respondentCount - a.respondentCount);
+function computeOverallScaleAverages(
+  depts: GroupAnalysisDepartment[]
+): ScaleAverages {
+  const n = depts.length
+  if (n === 0) return createEmptySummary().overallScaleAverages
 
-  // 5. 全社サマリーを算出
-  const overallHighStressRate = totalRespondents > 0
-    ? Math.round((totalHighStress / totalRespondents) * 100)
-    : 0;
+  const sum = (key: keyof ScaleAverages) =>
+    depts.reduce((s, d) => s + ((d.scaleAverages[key] as number) || 0), 0)
 
-  // 全社平均尺度スコア
-  const overallScaleAverages: ScaleAverages = {
-    workloadQuantity: null,
-    workloadQuality: null,
-    control: null,
-    supervisorSupport: null,
-    coworkerSupport: null,
-    vitality: null,
-  };
-
-  for (const scaleDef of GROUP_ANALYSIS_SCALES) {
-    const vals = allScaleAcc.get(scaleDef.key);
-    if (vals && vals.length > 0) {
-      (overallScaleAverages as unknown as Record<string, number | null>)[scaleDef.key] =
-        Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10;
-    }
+  return {
+    workloadQuantity: sum('workloadQuantity') / n,
+    workloadQuality: sum('workloadQuality') / n || null,
+    control: sum('control') / n,
+    supervisorSupport: sum('supervisorSupport') / n,
+    coworkerSupport: sum('coworkerSupport') / n,
+    vitality: sum('vitality') / n || null,
   }
-
-  // 全社健康リスク
-  let overallHealthRisk: number | null = null;
-  const allWl = allScaleAcc.get('workloadQuantity');
-  const allCtrl = allScaleAcc.get('control');
-  const allSup = allScaleAcc.get('supervisorSupport');
-  const allCow = allScaleAcc.get('coworkerSupport');
-  if (allWl?.length && allCtrl?.length && allSup?.length && allCow?.length) {
-    const avgWl = allWl.reduce((s, v) => s + v, 0) / allWl.length;
-    const avgCtrl = allCtrl.reduce((s, v) => s + v, 0) / allCtrl.length;
-    const avgSup = allSup.reduce((s, v) => s + v, 0) / allSup.length;
-    const avgCow = allCow.reduce((s, v) => s + v, 0) / allCow.length;
-
-    const natWl = NATIONAL_AVG['心理的な仕事の負担（量）'];
-    const natCtrl = NATIONAL_AVG['仕事のコントロール度'];
-    const natSup = NATIONAL_AVG['上司からのサポート'];
-    const natCow = NATIONAL_AVG['同僚からのサポート'];
-
-    const rA = (avgWl / natWl) * (avgCtrl / natCtrl) * 100;
-    const rB = (avgSup / natSup) * (avgCow / natCow) * 100;
-    overallHealthRisk = Math.round((rA * rB) / 100);
-  }
-
-  const summary: GroupAnalysisSummary = {
-    totalRespondents,
-    overallHighStressRate,
-    overallHealthRisk,
-    maskedDepartmentCount: maskedDeptCount,
-    overallScaleAverages,
-  };
-
-  return { departments, summary };
 }

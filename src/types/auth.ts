@@ -14,6 +14,12 @@ export interface AppUser {
   planType?: PlanType;
   /** テナントの従業員登録上限数 */
   maxEmployees?: number;
+  /** employees.id（ログインユーザーに紐づく従業員ID） */
+  employee_id?: string;
+  /** employees.division_id（所属部署ID。未配属はnull、従業員レコードなしはundefined） */
+  division_id?: string | null;
+  /** employees.employee_no（端末登録などで使用） */
+  employee_no?: string | null;
 }
 
 export interface AuthSession {

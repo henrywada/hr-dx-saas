@@ -114,7 +114,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."create_auth_user"("p_email" "text", "p_password" "text") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."create_auth_user"("p_email" "text", "p_password" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."current_employee_app_role"() RETURNS "text"
@@ -183,7 +183,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."delete_auth_user"("p_user_id" "uuid") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."delete_auth_user"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."generate_recovery_token"("p_user_id" "uuid", "p_expiry_hours" integer DEFAULT 168) RETURNS "text"
@@ -207,7 +207,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."generate_recovery_token"("p_user_id" "uuid", "p_expiry_hours" integer) OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."generate_recovery_token"("p_user_id" "uuid", "p_expiry_hours" integer) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_auth_user_email"("p_user_id" "uuid") RETURNS "text"
@@ -223,7 +223,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_auth_user_email"("p_user_id" "uuid") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_auth_user_email"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
@@ -266,7 +266,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."update_user_password"("p_user_id" "uuid", "p_new_password" "text") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."update_user_password"("p_user_id" "uuid", "p_new_password" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."verify_recovery_token"("p_email" "text", "p_token" "text", "p_expiry_hours" integer DEFAULT 336) RETURNS "uuid"
@@ -312,7 +312,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."verify_recovery_token"("p_email" "text", "p_token" "text", "p_expiry_hours" integer) OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."verify_recovery_token"("p_email" "text", "p_token" "text", "p_expiry_hours" integer) OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS "public"."ai_usage_logs" (
 );
 
 
-ALTER TABLE "public"."ai_usage_logs" OWNER TO "supabase_admin";
+ALTER TABLE "public"."ai_usage_logs" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."app_role" (
@@ -457,7 +457,7 @@ CREATE TABLE IF NOT EXISTS "public"."myou_alert_logs" (
 );
 
 
-ALTER TABLE "public"."myou_alert_logs" OWNER TO "supabase_admin";
+ALTER TABLE "public"."myou_alert_logs" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."myou_companies" (
@@ -469,7 +469,7 @@ CREATE TABLE IF NOT EXISTS "public"."myou_companies" (
 );
 
 
-ALTER TABLE "public"."myou_companies" OWNER TO "supabase_admin";
+ALTER TABLE "public"."myou_companies" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."myou_delivery_logs" (
@@ -482,7 +482,7 @@ CREATE TABLE IF NOT EXISTS "public"."myou_delivery_logs" (
 );
 
 
-ALTER TABLE "public"."myou_delivery_logs" OWNER TO "supabase_admin";
+ALTER TABLE "public"."myou_delivery_logs" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."myou_products" (
@@ -495,7 +495,7 @@ CREATE TABLE IF NOT EXISTS "public"."myou_products" (
 );
 
 
-ALTER TABLE "public"."myou_products" OWNER TO "supabase_admin";
+ALTER TABLE "public"."myou_products" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."pulse_survey_questions" (
@@ -673,7 +673,7 @@ CREATE TABLE IF NOT EXISTS "public"."stress_check_high_stress_criteria" (
 );
 
 
-ALTER TABLE "public"."stress_check_high_stress_criteria" OWNER TO "supabase_admin";
+ALTER TABLE "public"."stress_check_high_stress_criteria" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."stress_check_interviews" (
@@ -766,7 +766,7 @@ CREATE TABLE IF NOT EXISTS "public"."stress_check_response_options" (
 );
 
 
-ALTER TABLE "public"."stress_check_response_options" OWNER TO "supabase_admin";
+ALTER TABLE "public"."stress_check_response_options" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."stress_check_responses" (
@@ -833,7 +833,7 @@ CREATE TABLE IF NOT EXISTS "public"."stress_check_scale_conversions" (
 );
 
 
-ALTER TABLE "public"."stress_check_scale_conversions" OWNER TO "supabase_admin";
+ALTER TABLE "public"."stress_check_scale_conversions" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."stress_check_submissions" (

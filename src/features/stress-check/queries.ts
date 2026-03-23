@@ -9,6 +9,8 @@ import type {
   CategoryCode,
 } from './types';
 import { CATEGORY_LABELS } from './types';
+import { calculateScoresFromResponses } from './score-calculator';
+import type { MergedResponse } from './score-calculator';
 
 // --------------------------------------------------
 // 結果データ用の型
@@ -43,40 +45,76 @@ export interface StressCheckResultData {
   isHighStress: boolean;
   answeredAt: string | null;
   consentToEmployer: boolean;   // 事業者への結果提供同意
+  /** stress_check_results.id（面談希望用） */
+  resultId?: string | null;
+  /** 面談希望の申出済みフラグ */
+  interviewRequested?: boolean;
+  interviewRequestedAt?: string | null;
 }
 
+/**
+ * 回答データを質問情報とマージして取得
+ * getStressCheckResult と submitStressCheckAnswers で共通利用
+ */
+export async function getMergedResponses(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  periodId: string,
+  employeeId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[] | null> {
+  const { data: responses, error: respError } = await db
+    .from('stress_check_responses')
+    .select(`
+      answer,
+      answered_at,
+      question_id,
+      stress_check_questions (
+        id,
+        category,
+        question_no,
+        question_text,
+        is_reverse,
+        score_weights,
+        scale_name
+      )
+    `)
+    .eq('period_id', periodId)
+    .eq('employee_id', employeeId);
 
-// ============================================================
-// 厚労省公式 57項目 男性用 換算マッピング（純粋な合計値 -> 評価点1〜5）
-// ============================================================
-const DIRECT_EVAL_MAP: Record<string, (sum: number) => number> = {
-  // === A領域 (原因) ===
-  '心理的な仕事の負担（量）': (s) => s<=3 ? 1 : s===4 ? 2 : s<=6 ? 3 : s<=8 ? 4 : 5,
-  '心理的な仕事の負担（質）': (s) => s<=3 ? 1 : s===4 ? 2 : s<=6 ? 3 : s<=8 ? 4 : 5,
-  '自覚的な身体的負担度': (s) => s===1 ? 1 : s===2 ? 2 : s===3 ? 3 : 5,
-  '仕事のコントロール度': (s) => s<=5 ? 5 : s<=7 ? 4 : s<=9 ? 3 : s<=11 ? 2 : 1,
-  '技能の活用度': (s) => s===1 ? 1 : s===2 ? 2 : s===3 ? 3 : 5,
-  '職場の対人関係でのストレス': (s) => s<=5 ? 1 : s<=7 ? 2 : s<=9 ? 3 : s<=11 ? 4 : 5,
-  '職場環境によるストレス': (s) => s===1 ? 1 : s===2 ? 2 : s===3 ? 3 : 5,
-  '仕事の適性度': (s) => s===1 ? 5 : s===2 ? 3 : s===3 ? 2 : 1,
-  '働きがい': (s) => s===1 ? 5 : s===2 ? 3 : s===3 ? 2 : 1,
+  if (!respError && responses && responses.length > 0) {
+    return responses;
+  }
 
-  // === B領域 (心身の反応) ===
-  '活気': (s) => s<=4 ? 1 : s<=6 ? 2 : s<=8 ? 3 : s<=10 ? 4 : 5,
-  'イライラ感': (s) => s<=4 ? 5 : s===5 ? 4 : s<=7 ? 3 : s<=9 ? 2 : 1,
-  '疲労感': (s) => s<=4 ? 5 : s<=6 ? 4 : s<=8 ? 3 : s<=10 ? 2 : 1,
-  '不安感': (s) => s<=4 ? 5 : s<=6 ? 4 : s===7 ? 3 : s<=9 ? 2 : 1,
-  '抑うつ感': (s) => s===6 ? 5 : s<=8 ? 4 : s<=12 ? 3 : s<=16 ? 2 : 1,
-  '身体愁訴': (s) => s===11 ? 5 : s<=15 ? 4 : s<=21 ? 3 : s<=26 ? 2 : 1,
+  // フォールバック: 回答と質問を別々に取得してマージ
+  const { data: rawResponses, error: rawError } = await db
+    .from('stress_check_responses')
+    .select('answer, answered_at, question_id')
+    .eq('period_id', periodId)
+    .eq('employee_id', employeeId);
 
-  // === C領域 (サポート) ===
-  '上司からのサポート': (s) => s<=4 ? 5 : s<=6 ? 4 : s<=8 ? 3 : s<=10 ? 2 : 1,
-  '同僚からのサポート': (s) => s<=5 ? 5 : s<=7 ? 4 : s<=9 ? 3 : s<=11 ? 2 : 1,
-  '家族・友人からのサポート': (s) => s<=6 ? 5 : s<=8 ? 4 : s===9 ? 3 : s<=11 ? 2 : 1,
+  if (rawError || !rawResponses || rawResponses.length === 0) {
+    return null;
+  }
 
-  // === D領域 (満足度) ===
-  '仕事や生活の満足度': (s) => s<=3 ? 5 : s===4 ? 4 : s<=6 ? 3 : s===7 ? 2 : 1,
-};
+  const { data: allQuestions } = await db
+    .from('stress_check_questions')
+    .select('id, category, question_no, question_text, is_reverse, score_weights, scale_name');
+
+  if (!allQuestions || allQuestions.length === 0) {
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const questionMap = new Map(allQuestions.map((q: any) => [q.id, q]));
+  return rawResponses.map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (r: any) => ({
+      ...r,
+      stress_check_questions: questionMap.get(r.question_id) || null,
+    })
+  );
+}
 
 /**
  * 回答データからスコアを集計し、結果データを返す
@@ -111,128 +149,32 @@ export async function getStressCheckResult(
 
   if (!period) return null;
 
-  // 回答データを質問情報とJOINして取得（scale_name, question_no も含む）
-  const { data: responses, error: respError } = await db
-    .from('stress_check_responses')
-    .select(`
-      answer,
-      answered_at,
-      question_id,
-      stress_check_questions (
-        id,
-        category,
-        question_no,
-        question_text,
-        is_reverse,
-        score_weights,
-        scale_name
-      )
-    `)
-    .eq('period_id', periodId)
-    .eq('employee_id', employeeId);
-
-  // デバッグ: JOINクエリの結果をログ出力
-  console.log('[StressCheck] JOIN query result:', {
-    respError: respError ? JSON.stringify(respError) : null,
-    responsesCount: responses?.length ?? 'null',
-    periodId,
-    employeeId,
-  });
-
-  // JOINが失敗した場合のフォールバック: 回答と質問を別々に取得してマージ
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mergedResponses: any[] = [];
-
-  if (respError || !responses || responses.length === 0) {
-    console.warn('[StressCheck] JOIN query returned no data, trying fallback...');
-
-    // Step 1: 回答データだけ取得
-    const { data: rawResponses, error: rawError } = await db
-      .from('stress_check_responses')
-      .select('answer, answered_at, question_id')
-      .eq('period_id', periodId)
-      .eq('employee_id', employeeId);
-
-    console.log('[StressCheck] Fallback raw responses:', {
-      error: rawError ? JSON.stringify(rawError) : null,
-      count: rawResponses?.length ?? 'null',
-    });
-
-    if (rawError || !rawResponses || rawResponses.length === 0) {
-      console.error('[StressCheck] No response data found at all');
-      return null;
-    }
-
-    // Step 2: 質問マスタを全件取得
-    const { data: allQuestions } = await db
-      .from('stress_check_questions')
-      .select('id, category, question_no, question_text, is_reverse, score_weights, scale_name');
-
-    if (!allQuestions || allQuestions.length === 0) {
-      console.error('[StressCheck] No questions found in master table');
-      return null;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const questionMap = new Map(allQuestions.map((q: any) => [q.id, q]));
-
-    // Step 3: マージ
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mergedResponses = rawResponses.map((r: any) => ({
-      ...r,
-      stress_check_questions: questionMap.get(r.question_id) || null,
-    }));
-
-    console.log('[StressCheck] Fallback merged responses count:', mergedResponses.length);
-  } else {
-    mergedResponses = responses;
-  }
-
-  if (mergedResponses.length === 0) {
+  const mergedResponses = await getMergedResponses(db, periodId, employeeId);
+  if (!mergedResponses || mergedResponses.length === 0) {
     console.error('[StressCheck] No merged responses available');
     return null;
   }
 
-  // ----- カテゴリ別集計 -----
+  const calculated = calculateScoresFromResponses(mergedResponses as MergedResponse[]);
+
+  // scale_scores からカテゴリ別集計を再構築（CategoryScore 用）
   const categoryAgg: Record<string, { total: number; max: number; count: number }> = {};
-  // ----- 尺度別: 回答値の合計 -----
-  const scaleAgg: Record<string, { sumAnswers: number; count: number; category: string }> = {};
-
-  // --- 純粋な加算ループ ---
-  for (const resp of mergedResponses) {
-    const question = resp.stress_check_questions;
-    if (!question) continue;
-
-    const cat = question.category as string;
-    const scaleName = question.scale_name as string;
-
-    let val = resp.answer;
-    const qText = question.question_text || '';
-    // 厚労省公式：職場の対人関係（A14）の反転処理
-    // DBのテキスト揺れ（親しみやすい / 友好的）を確実に捕捉して 5 - val を適用する
-    if (scaleName === '職場の対人関係でのストレス' && (qText.includes('親しみ') || qText.includes('友好的'))) {
-      val = 5 - val;
-    }
-
+  for (const scale of calculated.scale_scores) {
+    const cat = scale.category;
     if (!categoryAgg[cat]) categoryAgg[cat] = { total: 0, max: 0, count: 0 };
-    categoryAgg[cat].total += val;
-    categoryAgg[cat].max += 4;
-    categoryAgg[cat].count += 1;
-
-    if (!scaleAgg[scaleName]) scaleAgg[scaleName] = { sumAnswers: 0, count: 0, category: cat };
-    scaleAgg[scaleName].sumAnswers += val;
-    scaleAgg[scaleName].count += 1;
+    categoryAgg[cat].total += scale.sumAnswers;
+    categoryAgg[cat].max += scale.questionCount * 4;
+    categoryAgg[cat].count += scale.questionCount;
   }
 
-  // CategoryScore 配列
   const categoryOrder: CategoryCode[] = ['A', 'B', 'C', 'D'];
   const scores: CategoryScore[] = categoryOrder
     .filter((cat) => categoryAgg[cat])
     .map((cat) => {
       const s = categoryAgg[cat];
       return {
-        category: cat,
-        label: CATEGORY_LABELS[cat],
+        category: cat as CategoryCode,
+        label: CATEGORY_LABELS[cat as CategoryCode],
         score: s.total,
         maxScore: s.max,
         questionCount: s.count,
@@ -240,38 +182,9 @@ export async function getStressCheckResult(
       };
     });
 
-  // --- 評価点の直接算出 ---
-  const scaleScores: ScaleScore[] = Object.entries(scaleAgg).map(
-    ([scaleName, agg]) => {
-      // 引き算（offset）は一切せず、純粋な合計値をそのまま渡す
-      const rawScore = agg.sumAnswers;
-
-      // マッピング関数で直接1〜5点へ変換
-      const evalFunc = DIRECT_EVAL_MAP[scaleName];
-      const evalPoint = evalFunc ? evalFunc(rawScore) : 3;
-
-      return {
-        scaleName,
-        rawScore,
-        evalPoint,
-        questionCount: agg.count,
-        sumAnswers: agg.sumAnswers,
-        category: agg.category,
-      };
-    }
-  );
-
+  const scaleScores: ScaleScore[] = calculated.scale_scores;
   const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
   const totalMaxScore = scores.reduce((sum, s) => sum + s.maxScore, 0);
-
-  // === 高ストレス判定（マニュアル P42 素点合計方式） ===
-  // 条件①: B領域29項目合計 ≥ 77
-  // 条件②: A+C領域合計 ≥ 76 かつ B領域合計 ≥ 63
-  const scoreA = categoryAgg['A']?.total ?? 0;
-  const scoreB = categoryAgg['B']?.total ?? 0;
-  const scoreC = categoryAgg['C']?.total ?? 0;
-  const isHighStress = scoreB >= 77 || ((scoreA + scoreC) >= 76 && scoreB >= 63);
-
   const answeredAt = mergedResponses[0]?.answered_at || null;
 
   // 同意状態を submissions テーブルから取得
@@ -284,6 +197,14 @@ export async function getStressCheckResult(
 
   const consentToEmployer = submission?.consent_to_employer ?? false;
 
+  // stress_check_results から面談希望情報を取得（本人は sc_results_select_own で SELECT 可能）
+  const { data: resultRow } = await db
+    .from('stress_check_results')
+    .select('id, interview_requested, interview_requested_at')
+    .eq('period_id', periodId)
+    .eq('employee_id', employeeId)
+    .maybeSingle();
+
   return {
     periodTitle: period.title,
     periodId: period.id,
@@ -292,9 +213,12 @@ export async function getStressCheckResult(
     totalScore,
     totalMaxScore,
     totalPercentage: Math.round((totalScore / totalMaxScore) * 100),
-    isHighStress,
+    isHighStress: calculated.is_high_stress,
     answeredAt,
     consentToEmployer,
+    resultId: resultRow?.id ?? null,
+    interviewRequested: resultRow?.interview_requested ?? false,
+    interviewRequestedAt: resultRow?.interview_requested_at ?? null,
   };
 }
 
@@ -408,6 +332,52 @@ export async function getQuestions(
   }
 
   return Array.from(categoryMap.values());
+}
+
+/**
+ * program_targets の is_eligible をチェックし、ストレスチェック受検可否を判定
+ * @param periodId 実施期間ID（stress_check_periods.id）
+ * @param authUserId auth.users の UUID（getServerUser().id）
+ * @returns 対象外の場合は { eligible: false, exclusionReason? }、対象の場合は { eligible: true }
+ *          program_targets にレコードが無い場合は後方互換のため { eligible: true }
+ */
+export async function checkStressCheckEligibility(
+  periodId: string,
+  authUserId: string
+): Promise<{ eligible: boolean; exclusionReason?: string }> {
+  const supabase = await createClient();
+
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', authUserId)
+    .single();
+
+  if (!employee) {
+    return { eligible: false, exclusionReason: '従業員情報が見つかりません' };
+  }
+
+  const { data: target } = await (supabase as any)
+    .from('program_targets')
+    .select('is_eligible, exclusion_reason')
+    .eq('program_type', 'stress_check')
+    .eq('program_instance_id', periodId)
+    .eq('employee_id', employee.id)
+    .maybeSingle();
+
+  // program_targets にレコードが無い場合は後方互換のため受検可
+  if (!target) {
+    return { eligible: true };
+  }
+
+  if (target.is_eligible) {
+    return { eligible: true };
+  }
+
+  return {
+    eligible: false,
+    exclusionReason: target.exclusion_reason ?? '対象外に設定されています',
+  };
 }
 
 /**

@@ -1,0 +1,8 @@
+# Project Rules
+- Next.js 16 + Supabase プロジェクト
+- TypeScript を使用
+- 日本語でコメント
+- 既存の .agent/rules/basic.md の設計方針に従う
+- app/ ディレクトリのApp Router構成
+- マルチテナント構成（会社データは完全隔離）
+- RLSポリシーを必ず設定する

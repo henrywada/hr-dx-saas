@@ -2,10 +2,16 @@
 
 /** 部署別進捗統計 */
 export interface DepartmentStat {
+  id: string;
+  parent_id: string | null;
   name: string;
   submitted: number;
-  notSubmitted: number;
+  notSubmitted: number; // 未受検（提出記録なし）
+  inProgress: number; // 否提出（consent_to_employer = false）
   rate: number; // 受検率（%）
+  layer?: number | null;
+  /** 子部署（ツリー表示用） */
+  children?: DepartmentStat[];
 }
 
 /** 進捗統計データ */
@@ -24,6 +30,16 @@ export interface ProgressStats {
   consentRate: number;
   /** 部署別統計 */
   departments: DepartmentStat[];
+}
+
+/** 未受検者（一覧表示用） */
+export interface NotSubmittedEmployee {
+  id: string;
+  name: string | null;
+  employee_no: string | null;
+  job_title: string | null;
+  division_id: string | null;
+  division_name: string | null;
 }
 
 /** アクティブ実施期間の情報 */

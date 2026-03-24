@@ -38,6 +38,13 @@ const markdownComponents: Components = {
   code: ({ children }) => (
     <code className="rounded bg-gray-900 px-1 py-0.5 font-mono text-sm text-white">{children}</code>
   ),
+  img: ({ src, alt }) => (
+    <img
+      src={src ?? ''}
+      alt={alt ?? ''}
+      className="mb-6 w-full rounded-lg border border-gray-200 object-contain shadow-sm"
+    />
+  ),
   strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
   hr: () => <hr className="my-8 border-gray-200" />,
 };

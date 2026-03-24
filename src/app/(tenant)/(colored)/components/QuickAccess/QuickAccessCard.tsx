@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { LucideIcon } from 'lucide-react'
+import { ChevronRight, type LucideIcon } from 'lucide-react'
 
 type Props = {
   href: string
@@ -26,19 +26,24 @@ export function QuickAccessCard({
   return (
     <Link
       href={href}
-      className="flex flex-col items-start p-5 bg-slate-50/50 hover:bg-white hover:shadow-md border shadow-sm border-slate-100 hover:border-indigo-100 rounded-xl transition-all duration-200 text-left group w-full outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+      className="w-full bg-white border border-slate-200 hover:border-indigo-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-indigo-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
     >
-      <div
-        className={`p-2.5 rounded-lg mb-4 ${iconBoxClass} group-hover:scale-110 transition-transform duration-300 shadow-sm`}
-      >
-        <Icon className="w-5 h-5" />
+      <div className="flex items-center gap-4">
+        <div
+          className={`p-2.5 rounded-lg ${iconBoxClass} group-hover:scale-110 transition-transform duration-300`}
+        >
+          <Icon className="w-5 h-5" />
+        </div>
+        <div>
+          <h3
+            className={`text-slate-800 font-bold mb-0.5 transition-colors ${titleHoverClass}`}
+          >
+            {title}
+          </h3>
+          <p className="text-slate-500 text-xs">{subtitle}</p>
+        </div>
       </div>
-      <span
-        className={`font-bold text-sm text-slate-800 mb-1.5 transition-colors ${titleHoverClass}`}
-      >
-        {title}
-      </span>
-      <span className="text-xs font-medium text-slate-500 leading-relaxed">{subtitle}</span>
+      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
     </Link>
   )
 }

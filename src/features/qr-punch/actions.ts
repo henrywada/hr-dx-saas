@@ -295,6 +295,116 @@ async function scanQrFallback(input: {
   }
 }
 
+/** 日本時間の当該日の [startIso, endIsoExclusive)（UTC ISO 文字列） */
+function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: string; endIsoExclusive: string } {
+  const dateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  const start = new Date(`${dateStr}T00:00:00+09:00`)
+  const endIsoExclusive = new Date(start.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  return { dateStr, startIso: start.toISOString(), endIsoExclusive }
+}
+
+/**
+ * QR 消費・位置送信の前に、同日（JST）かつ同一種別（出勤/退勤）で既に打刻があるか判定する。
+ * work_time_records の該当日レコード、または承認済み qr_session_scans を参照。
+ */
+export async function checkQrDuplicatePunch(
+  token: string,
+): Promise<{ ok: true; purpose: QrPunchPurpose; needsConfirm: boolean } | { ok: false; message: string }> {
+  const trimmed = token.trim()
+  if (!trimmed) {
+    return { ok: false, message: 'QRからデータを読み取れませんでした。' }
+  }
+  const secret = resolveQrSigningSecretServer()
+  if (!secret) {
+    return {
+      ok: false,
+      message:
+        'QR_SIGNING_SECRET が未設定か短すぎます（16文字以上）。本番では supabase secrets set で設定してください。',
+    }
+  }
+  const verified = verifyQrToken(secret, trimmed)
+  if (verified.ok === false) {
+    return { ok: false, message: mapQrScanApiError({ error: 'token_rejected', reason: verified.reason }) }
+  }
+  const rawPurpose = verified.payload.purpose
+  if (!PURPOSES.has(rawPurpose as QrPunchPurpose)) {
+    return { ok: false, message: 'QRの打刻種別が不正です。' }
+  }
+  const purpose = rawPurpose as QrPunchPurpose
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, message: 'ログイン情報を確認できませんでした。再ログインしてください。' }
+  }
+
+  const { data: emp, error: empErr } = await supabase
+    .from('employees')
+    .select('id, tenant_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (empErr || !emp?.tenant_id) {
+    return { ok: false, message: mapQrScanApiError({ error: 'employee_not_found' }) }
+  }
+  if (emp.tenant_id !== verified.payload.tenantId) {
+    return { ok: false, message: mapQrScanApiError({ error: 'tenant_mismatch' }) }
+  }
+
+  const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
+
+  /** 行が存在し、かつ時刻が実値として入っているときだけ true（null / 未設定 / 空文字は false） */
+  function workTimeFieldSet(v: string | null | undefined): boolean {
+    return v != null && String(v).trim() !== ''
+  }
+
+  // work_time_records は DB に存在するが Generated Database 型に未含まれる場合がある
+  const { data: wtr } = await (supabase as { from: (r: string) => any })
+    .from('work_time_records')
+    .select('start_time, end_time')
+    .eq('employee_id', emp.id)
+    .eq('record_date', dateStr)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const w = wtr as { start_time: string | null; end_time: string | null } | null
+  const fromWork =
+    w != null &&
+    (purpose === 'punch_in' ? workTimeFieldSet(w.start_time) : workTimeFieldSet(w.end_time))
+
+  const { data: scans, error: scanErr } = await supabase
+    .from('qr_session_scans')
+    .select('session_id')
+    .eq('employee_user_id', user.id)
+    .eq('result', 'accepted')
+    .gte('scanned_at', startIso)
+    .lt('scanned_at', endIsoExclusive)
+
+  let fromQr = false
+  if (scanErr) {
+    console.error('checkQrDuplicatePunch scans', scanErr)
+  } else {
+    const sessionIds = [...new Set((scans ?? []).map((r) => r.session_id))]
+    if (sessionIds.length > 0) {
+      const { data: sessions, error: sesErr } = await supabase.from('qr_sessions').select('id, purpose').in('id', sessionIds)
+      if (sesErr) {
+        console.error('checkQrDuplicatePunch sessions', sesErr)
+      } else {
+        fromQr = (sessions ?? []).some((s) => s.purpose === purpose)
+      }
+    }
+  }
+
+  return { ok: true, purpose, needsConfirm: fromWork || fromQr }
+}
+
 /** ブラウザから Edge を直接叩かず、サーバー経由で呼ぶ（広告ブロック・CORS 回避） */
 export async function invokeQrCreateSession(
   purpose: QrPunchPurpose,

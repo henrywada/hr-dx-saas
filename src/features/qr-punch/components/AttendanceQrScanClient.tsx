@@ -3,11 +3,13 @@
 import { createClient } from '@/lib/supabase/client'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { invokeQrScan } from '../actions'
+import { checkQrDuplicatePunch, invokeQrScan } from '../actions'
 
 type Phase =
   | 'idle'
   | 'scanning'
+  | 'duplicate_check'
+  | 'duplicate_confirm'
   | 'sending'
   | 'success'
   | 'pending_wait'
@@ -44,12 +46,17 @@ export function AttendanceQrScanClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [rejectHint, setRejectHint] = useState<string | null>(null)
   const [watchScanId, setWatchScanId] = useState<string | null>(null)
+  /** 重複確認後に再打刻するとき用（セッション消費前に保持） */
+  const pendingTokenRef = useRef<string | null>(null)
+  const [duplicateKindLabel, setDuplicateKindLabel] = useState<string>('')
   const processingRef = useRef(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const resetFlow = useCallback(() => {
     processingRef.current = false
+    pendingTokenRef.current = null
+    setDuplicateKindLabel('')
     setErrorMessage(null)
     setRejectHint(null)
     setWatchScanId(null)
@@ -122,80 +129,71 @@ export function AttendanceQrScanClient() {
     return () => clearInterval(id)
   }, [phase, watchScanId, supabase, finalizeFromResult])
 
-  const runScanPipeline = useCallback(
-    async (rawToken: string) => {
-      const token = rawToken.trim()
-      if (!token) {
-        setErrorMessage('QRからデータを読み取れませんでした。')
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+  const proceedWithScan = useCallback(async (token: string) => {
+    pendingTokenRef.current = null
+    setDuplicateKindLabel('')
+    setPhase('sending')
+    setErrorMessage(null)
 
-      setPhase('sending')
-      setErrorMessage(null)
+    let pos: GeolocationPosition
+    try {
+      pos = await getPosition()
+    } catch (e: unknown) {
+      const err = e as GeolocationPositionError & { message?: string }
+      const code = err?.code
+      let msg =
+        '位置情報を取得できませんでした。設定で位置情報を許可し、GPS をオンにしてから再度お試しください。'
+      if (code === 1) msg = '位置情報が拒否されています。ブラウザの設定でこのサイトへの位置情報の共有を許可してください。'
+      if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
+      setErrorMessage(msg)
+      setPhase('error')
+      processingRef.current = false
+      return
+    }
 
-      let pos: GeolocationPosition
-      try {
-        pos = await getPosition()
-      } catch (e: unknown) {
-        const err = e as GeolocationPositionError & { message?: string }
-        const code = err?.code
-        let msg =
-          '位置情報を取得できませんでした。設定で位置情報を許可し、GPS をオンにしてから再度お試しください。'
-        if (code === 1) msg = '位置情報が拒否されています。ブラウザの設定でこのサイトへの位置情報の共有を許可してください。'
-        if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
-        setErrorMessage(msg)
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+    const scanResult = await invokeQrScan({
+      token,
+      location: {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      },
+      deviceInfo: collectDeviceInfo(),
+    })
 
-      const scanResult = await invokeQrScan({
-        token,
-        location: {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        },
-        deviceInfo: collectDeviceInfo(),
-      })
+    if (scanResult.ok === false) {
+      setErrorMessage(scanResult.message)
+      setPhase('error')
+      processingRef.current = false
+      return
+    }
 
-      if (scanResult.ok === false) {
-        setErrorMessage(scanResult.message)
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+    const scanId = scanResult.scanId
+    const result = scanResult.result
 
-      const scanId = scanResult.scanId
-      const result = scanResult.result
-
-      if (result === 'accepted') {
-        setPhase('success')
-        processingRef.current = false
-        return
-      }
-
-      if (result === 'pending') {
-        setWatchScanId(scanId)
-        setPhase('pending_wait')
-        processingRef.current = false
-        return
-      }
-
-      if (result === 'rejected') {
-        setRejectHint('打刻が却下されています。所属へ確認してください。')
-        setPhase('rejected')
-        processingRef.current = false
-        return
-      }
-
+    if (result === 'accepted') {
       setPhase('success')
       processingRef.current = false
-    },
-    [supabase],
-  )
+      return
+    }
+
+    if (result === 'pending') {
+      setWatchScanId(scanId)
+      setPhase('pending_wait')
+      processingRef.current = false
+      return
+    }
+
+    if (result === 'rejected') {
+      setRejectHint('打刻が却下されています。所属へ確認してください。')
+      setPhase('rejected')
+      processingRef.current = false
+      return
+    }
+
+    setPhase('success')
+    processingRef.current = false
+  }, [])
 
   const onDecodedRef = useRef<(text: string) => void>(() => {})
   onDecodedRef.current = (decodedText: string) => {
@@ -210,7 +208,35 @@ export function AttendanceQrScanClient() {
       } catch {
         /* ignore */
       }
-      await runScanPipeline(decodedText)
+
+      const token = decodedText.trim()
+      if (!token) {
+        setErrorMessage('QRからデータを読み取れませんでした。')
+        setPhase('error')
+        processingRef.current = false
+        return
+      }
+
+      setPhase('duplicate_check')
+      setErrorMessage(null)
+
+      const dup = await checkQrDuplicatePunch(token)
+      if (dup.ok === false) {
+        setErrorMessage(dup.message)
+        setPhase('error')
+        processingRef.current = false
+        return
+      }
+
+      if (dup.needsConfirm) {
+        pendingTokenRef.current = token
+        setDuplicateKindLabel(dup.purpose === 'punch_in' ? '出勤' : '退勤')
+        setPhase('duplicate_confirm')
+        processingRef.current = false
+        return
+      }
+
+      await proceedWithScan(token)
     })()
   }
 
@@ -295,11 +321,30 @@ export function AttendanceQrScanClient() {
                 void scannerRef.current?.clear().catch(() => {})
                 scannerRef.current = null
                 processingRef.current = false
+                pendingTokenRef.current = null
                 setPhase('idle')
               }}
               className="min-h-12 w-full rounded-xl border border-white/40 bg-white/10 text-base font-semibold text-white"
             >
               キャンセル
+            </button>
+          </div>
+        )}
+
+        {phase === 'duplicate_check' && (
+          <div className="rounded-2xl bg-black/30 px-6 py-10 text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+            <p className="text-lg font-bold">打刻内容を確認しています…</p>
+            <p className="mt-2 text-sm text-emerald-100/90">そのままお待ちください</p>
+            <button
+              type="button"
+              onClick={() => {
+                processingRef.current = false
+                resetFlow()
+              }}
+              className="mt-8 min-h-12 w-full rounded-xl border border-white/40 text-base font-semibold text-white/90"
+            >
+              中断して戻る
             </button>
           </div>
         )}
@@ -368,6 +413,51 @@ export function AttendanceQrScanClient() {
             >
               やり直す
             </button>
+          </div>
+        )}
+
+        {phase === 'duplicate_confirm' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div
+              className="w-full max-w-md rounded-2xl bg-white px-6 py-8 text-center text-emerald-950 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="duplicate-punch-title"
+            >
+              <p id="duplicate-punch-title" className="text-lg font-bold">
+                本日の{duplicateKindLabel}は既に記録されています
+              </p>
+              <p className="mt-2 text-sm text-emerald-900/85">それでも打刻を記録しますか？</p>
+              <div className="mt-6 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (processingRef.current) return
+                    const t = pendingTokenRef.current
+                    if (!t) {
+                      setErrorMessage('セッションが無効です。もう一度 QR を読み取ってください。')
+                      setPhase('error')
+                      return
+                    }
+                    processingRef.current = true
+                    void proceedWithScan(t)
+                  }}
+                  className="min-h-14 w-full rounded-xl bg-emerald-600 text-lg font-bold text-white active:scale-[0.99]"
+                >
+                  再打刻
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    processingRef.current = false
+                    resetFlow()
+                  }}
+                  className="min-h-12 w-full rounded-xl border-2 border-emerald-800/30 text-base font-semibold text-emerald-900"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

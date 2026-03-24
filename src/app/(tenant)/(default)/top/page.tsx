@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const displayName = user?.name || 'ゲスト'
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* 1. Welcome Area */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="animate-in fade-in slide-in-from-left-4 duration-500">
@@ -159,53 +159,74 @@ export default async function DashboardPage() {
             </div>
             <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
           </div>
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-6 flex flex-col gap-3">
             <QuickAccessCards />
             {[
               {
                 icon: User,
                 label: '基本情報の確認',
                 desc: 'プロフィールや住所など',
-                color: 'bg-emerald-100 text-emerald-700',
-                hoverColor: 'group-hover:text-emerald-600',
+                color: 'bg-emerald-50 text-emerald-600',
+                hoverBorderColor: 'hover:border-emerald-300',
+                hoverBgColor: 'hover:bg-emerald-50/30',
+                focusColor: 'focus:ring-emerald-500',
+                hoverColor: 'group-hover:text-emerald-700',
+                chevronColor: 'group-hover:text-emerald-500',
               },
               {
                 icon: FileText,
                 label: '給与明細の照会',
                 desc: '今月・過去の明細',
-                color: 'bg-cyan-100 text-cyan-700',
-                hoverColor: 'group-hover:text-cyan-600',
+                color: 'bg-cyan-50 text-cyan-600',
+                hoverBorderColor: 'hover:border-cyan-300',
+                hoverBgColor: 'hover:bg-cyan-50/30',
+                focusColor: 'focus:ring-cyan-500',
+                hoverColor: 'group-hover:text-cyan-700',
+                chevronColor: 'group-hover:text-cyan-500',
               },
               {
                 icon: BarChart2,
                 label: '過去の回答履歴',
                 desc: 'アンケート・評価など',
-                color: 'bg-amber-100 text-amber-700',
-                hoverColor: 'group-hover:text-amber-600',
+                color: 'bg-amber-50 text-amber-700',
+                hoverBorderColor: 'hover:border-amber-300',
+                hoverBgColor: 'hover:bg-amber-50/30',
+                focusColor: 'focus:ring-amber-500',
+                hoverColor: 'group-hover:text-amber-800',
+                chevronColor: 'group-hover:text-amber-600',
               },
               {
                 icon: MessageCircle,
                 label: '人事へのお問合せ',
                 desc: '各種申請・相談窓口',
-                color: 'bg-rose-100 text-rose-700',
-                hoverColor: 'group-hover:text-rose-600',
+                color: 'bg-rose-50 text-rose-700',
+                hoverBorderColor: 'hover:border-rose-300',
+                hoverBgColor: 'hover:bg-rose-50/30',
+                focusColor: 'focus:ring-rose-500',
+                hoverColor: 'group-hover:text-rose-800',
+                chevronColor: 'group-hover:text-rose-600',
               },
             ].map((shortcut, i) => {
               const Icon = shortcut.icon;
               return (
                 <button
                   key={i}
-                  className="flex flex-col items-start p-5 bg-slate-50/50 hover:bg-white hover:shadow-md border shadow-sm border-slate-100 hover:border-indigo-100 rounded-xl transition-all duration-200 text-left group w-full outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className={`w-full bg-white border border-slate-200 ${shortcut.hoverBorderColor} text-left p-5 rounded-xl shadow-sm hover:shadow-md ${shortcut.hoverBgColor} transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 ${shortcut.focusColor}`}
                 >
-                  <div className={`p-2.5 rounded-lg mb-4 ${shortcut.color} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-                    <Icon className="w-5 h-5" />
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-lg ${shortcut.color} group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className={`block font-bold text-sm text-slate-800 mb-0.5 transition-colors ${shortcut.hoverColor}`}>
+                        {shortcut.label}
+                      </span>
+                      <span className="text-xs font-medium text-slate-500 leading-relaxed">
+                        {shortcut.desc}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`font-bold text-sm text-slate-800 mb-1.5 transition-colors ${shortcut.hoverColor}`}>
-                    {shortcut.label}
-                  </span>
-                  <span className="text-xs font-medium text-slate-500 leading-relaxed">
-                    {shortcut.desc}
-                  </span>
+                  <ChevronRight className={`w-5 h-5 text-slate-300 ${shortcut.chevronColor} group-hover:translate-x-1 transition-all`} />
                 </button>
               );
             })}

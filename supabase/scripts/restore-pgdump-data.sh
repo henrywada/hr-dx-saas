@@ -2,6 +2,20 @@
 # pg_dump --data-only で出力した SQL を、指定した PostgreSQL に流し込む。
 # 接続先を明示するため DATABASE_URL（第2引数）必須。
 #
+# 【4 テーブル同期フロー（service_category / service / app_role_service / tenant_service）】
+#   ローカル → クラウド: backup-local-service-tenant-data.sh → 本スクリプト（クラウド URL）
+#   または: sync-local-service-masters-to-remote.sh（REMOTE_DATABASE_URL）
+#   クラウド → ローカル: backup-remote-service-tenant-data.sh → 本スクリプト（ローカル URL）
+#
+# 【PK 衝突・全置換】
+#   既存行と主キーが重なるとエラーになる。マスタを差し替える運用では、影響範囲を確認のうえ例えば:
+#     TRUNCATE public.tenant_service, public.app_role_service, public.service, public.service_category CASCADE;
+#   を先に実行する（他テーブルへの CASCADE に注意）。
+#
+# 【前提】
+#   app_role はダンプに無い場合、先方に同一 UUID の app_role が必要。
+#   tenant_service は先方の public.tenants に tenant_id が必要。
+#
 # 使い方:
 #   ./supabase/scripts/restore-pgdump-data.sh <backup.sql> '<postgresql://...>'
 # 例（ローカル・実際に作られたファイル名に合わせる）:
@@ -9,8 +23,6 @@
 #   ./supabase/scripts/restore-pgdump-data.sh supabase/backups/service_tenant_tables_data_20260323_153045.sql 'postgresql://postgres:postgres@127.0.0.1:55322/postgres'
 # 例（Supabase クラウド）:
 #   ダッシュボードの Database → Connection string（URI）を使用。sslmode=require が付いていることが多い。
-#
-# 注意: 既存 PK と衝突すると失敗する。置き換え同期の場合は事前に対象テーブルのデータ削除が必要なことがある。
 
 set -euo pipefail
 

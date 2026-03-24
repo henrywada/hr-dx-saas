@@ -94,10 +94,10 @@ export async function getAppRoles() {
 
 /**
  * テナントの従業員上限と内訳を取得
- * - limit: tenants.max_employees
+ * - limit: tenants.max_employees（数値でない／NULL は未設定で null）
  * - registered_user_count: app_role <> 'company_doctor'（ロール未設定含む）
  * - company_doctor_count: app_role = 'company_doctor'
- * - remaining: max_employees −（登録ユーザ数 + 産業医）
+ * - remaining: limit があるとき max −（登録ユーザ数 + 産業医）、未設定時は null
  */
 export async function getTenantEmployeeCapacity(tenantId: string) {
   const supabase = await createClient();
@@ -139,9 +139,12 @@ export async function getTenantEmployeeCapacity(tenantId: string) {
     }
   }
 
-  const limit = typeof tenant?.max_employees === 'number' ? tenant.max_employees : 0;
+  const rawMax = tenant?.max_employees;
+  const limit =
+    typeof rawMax === 'number' && Number.isFinite(rawMax) ? rawMax : null;
   const totalEmployees = registered_user_count + company_doctor_count;
-  const remaining = Math.max(limit - totalEmployees, 0);
+  const remaining =
+    limit === null ? null : Math.max(limit - totalEmployees, 0);
 
   return {
     limit,

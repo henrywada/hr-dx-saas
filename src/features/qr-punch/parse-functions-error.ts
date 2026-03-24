@@ -1,4 +1,4 @@
-import { FunctionsHttpError } from '@supabase/supabase-js'
+import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js'
 
 /** Edge Function の JSON ボディからユーザー向け文言（特定コードのときは detail より優先） */
 export function userMessageFromEdgeJsonBody(j: Record<string, unknown>): string | null {
@@ -28,8 +28,50 @@ export async function jsonFromFunctionsHttpError(
   return null
 }
 
+/** qr-scan の JSON エラーをユーザー向け文言に */
+export function mapQrScanApiError(body: {
+  error?: string
+  reason?: string
+  detail?: string
+}): string {
+  const code = body.error ?? ''
+  const reason = body.reason ?? ''
+  if (code === 'token_rejected') {
+    if (reason === 'expired') return 'QRの有効期限が切れています。上司に新しいQRの表示を依頼してください。'
+    if (reason === 'bad_signature' || reason === 'invalid_payload')
+      return 'QRが改ざんされているか無効です。'
+    return 'QRが無効です。もう一度スキャンしてください。'
+  }
+  if (code === 'session_expired') return 'セッションの有効期限が切れています。'
+  if (code === 'session_exhausted' || code === 'session_already_used') return 'このQRはすでに使用されています。'
+  if (code === 'tenant_mismatch') return '別の会社のQRです。正しいQRをスキャンしてください。'
+  if (code === 'session_not_found') return 'セッションが見つかりません。QRを再表示してもらってください。'
+  if (code === 'session_token_mismatch') return 'QRとサーバー情報が一致しません。再スキャンしてください。'
+  if (code === 'unauthorized') return 'ログインの有効期限が切れています。再ログインしてください。'
+  if (code === 'employee_not_found') return '従業員情報が見つかりません。管理者に連絡してください。'
+  if (code === 'invalid_location') return '位置情報の形式が不正です。'
+  return body.detail ?? (code || '打刻に失敗しました。')
+}
+
+function underlyingFetchMessage(context: unknown): string {
+  if (context instanceof Error && context.message) return context.message
+  if (typeof context === 'object' && context !== null && 'message' in context) {
+    const m = (context as { message?: unknown }).message
+    if (typeof m === 'string' && m.length > 0) return m
+  }
+  return ''
+}
+
 /** Edge Function が非 2xx を返したとき、レスポンス JSON からメッセージを取り出す */
 export async function messageFromFunctionsInvokeError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsFetchError) {
+    const hint = underlyingFetchMessage(error.context)
+    const base = 'Edge Function への接続に失敗しました'
+    if (hint && !/^failed to fetch$/i.test(hint)) {
+      return `${base}（${hint}）`
+    }
+    return `${base}。ブラウザの広告ブロック・拡張機能をオフにする、別ブラウザで試す、VPN を切るなどを確認してください。改善しない場合は管理者へ連絡してください。`
+  }
   if (error instanceof FunctionsHttpError) {
     const res = error.context
     if (res instanceof Response) {

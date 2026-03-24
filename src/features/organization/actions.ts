@@ -150,13 +150,19 @@ export async function createEmployee(data: {
     return { success: false, error: '登録済み従業員数の取得に失敗しました。' };
   }
 
-  const limit = typeof tenant?.max_employees === 'number' ? tenant.max_employees : 0;
-  const registered = typeof count === 'number' ? count : 0;
-  if (registered >= limit) {
-    return {
-      success: false,
-      error: `従業員の登録上限（${limit}名）に達しています。不要な従業員を削除してから再度お試しください。`,
-    };
+  // DB の check_max_employees と同様、上限は数値が取れたときのみ適用（NULL は未設定＝チェックしない）
+  const maxEmployees = tenant?.max_employees;
+  const hasFiniteLimit = typeof maxEmployees === 'number' && Number.isFinite(maxEmployees);
+  if (hasFiniteLimit) {
+    const limit = maxEmployees;
+    const registered = typeof count === 'number' ? count : 0;
+    if (registered >= limit) {
+      const error =
+        limit === 0
+          ? '従業員の登録上限が0名に設定されているため、新規登録できません。システム管理者に上限の変更を依頼してください。'
+          : `従業員の登録上限（${limit}名）に達しています。不要な従業員を削除してから再度お試しください。`;
+      return { success: false, error };
+    }
   }
 
   let user_id: string | null = null;

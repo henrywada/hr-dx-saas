@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { jsonFromFunctionsHttpError, messageFromFunctionsInvokeError } from '../parse-functions-error'
+import { invokeQrScan } from '../actions'
 
 type Phase =
   | 'idle'
@@ -36,25 +36,6 @@ function getPosition(): Promise<GeolocationPosition> {
       maximumAge: 0,
     })
   })
-}
-
-function mapApiError(body: { error?: string; reason?: string; detail?: string }): string {
-  const code = body.error ?? ''
-  const reason = body.reason ?? ''
-  if (code === 'token_rejected') {
-    if (reason === 'expired') return 'QRの有効期限が切れています。上司に新しいQRの表示を依頼してください。'
-    if (reason === 'bad_signature' || reason === 'invalid_payload') return 'QRが改ざんされているか無効です。'
-    return 'QRが無効です。もう一度スキャンしてください。'
-  }
-  if (code === 'session_expired') return 'セッションの有効期限が切れています。'
-  if (code === 'session_exhausted' || code === 'session_already_used') return 'このQRはすでに使用されています。'
-  if (code === 'tenant_mismatch') return '別の会社のQRです。正しいQRをスキャンしてください。'
-  if (code === 'session_not_found') return 'セッションが見つかりません。QRを再表示してもらってください。'
-  if (code === 'session_token_mismatch') return 'QRとサーバー情報が一致しません。再スキャンしてください。'
-  if (code === 'unauthorized') return 'ログインの有効期限が切れています。再ログインしてください。'
-  if (code === 'employee_not_found') return '従業員情報が見つかりません。管理者に連絡してください。'
-  if (code === 'invalid_location') return '位置情報の形式が不正です。'
-  return body.detail ?? (code || '打刻に失敗しました。')
 }
 
 export function AttendanceQrScanClient() {
@@ -170,68 +151,25 @@ export function AttendanceQrScanClient() {
         return
       }
 
-      const { data: userData, error: authErr } = await supabase.auth.getUser()
-      if (authErr || !userData.user) {
-        setErrorMessage('ログイン情報を確認できませんでした。再ログインしてください。')
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
-
-      const { data, error: fnErr } = await supabase.functions.invoke('qr-scan', {
-        body: {
-          token,
-          location: {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-          },
-          deviceInfo: collectDeviceInfo(),
+      const scanResult = await invokeQrScan({
+        token,
+        location: {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
         },
+        deviceInfo: collectDeviceInfo(),
       })
 
-      if (fnErr) {
-        const errJson = await jsonFromFunctionsHttpError(fnErr)
-        if (errJson && typeof errJson.error === 'string') {
-          setErrorMessage(
-            mapApiError({
-              error: errJson.error,
-              reason: typeof errJson.reason === 'string' ? errJson.reason : undefined,
-              detail: typeof errJson.detail === 'string' ? errJson.detail : undefined,
-            }),
-          )
-        } else {
-          setErrorMessage(await messageFromFunctionsInvokeError(fnErr))
-        }
+      if (scanResult.ok === false) {
+        setErrorMessage(scanResult.message)
         setPhase('error')
         processingRef.current = false
         return
       }
 
-      const json = data as {
-        scanId?: string
-        result?: string
-        error?: string
-        reason?: string
-        detail?: string
-      }
-
-      if (json?.error) {
-        setErrorMessage(mapApiError(json))
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
-
-      const scanId = json.scanId
-      const result = json.result
-
-      if (!scanId || !result) {
-        setErrorMessage('応答が不正です。')
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+      const scanId = scanResult.scanId
+      const result = scanResult.result
 
       if (result === 'accepted') {
         setPhase('success')

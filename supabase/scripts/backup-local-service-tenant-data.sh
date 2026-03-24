@@ -1,7 +1,25 @@
 #!/usr/bin/env bash
-# service_category / service / app_role_service / tenant_service のデータのみをバックアップする。
-# app_role は含めない（両環境で同一 UUID がマイグレーション等により揃っている前提）。
-# tenant_service は tenants に FK があるため、リストア先に該当 tenant_id の行が必要。
+# =============================================================================
+# service_category / service / app_role_service / tenant_service のデータのみバックアップ（ローカル Supabase 向け）
+# =============================================================================
+#
+# 【同期の向き】
+#   ・ローカル → クラウド: 本スクリプトでダンプ → restore-pgdump-data.sh でクラウド URL へ流す
+#   ・クラウド → ローカル: backup-remote-service-tenant-data.sh でクラウドからダンプ → restore でローカル URL
+#
+# 【PK 衝突・置き換え同期】
+#   pg_dump のデータのみリストアは既存 PK とぶつかると失敗する。
+#   マスタを「差し替え」する場合は運用で決め、例として次を検討（CASCADE で他テーブルに波及しうる）:
+#     TRUNCATE public.tenant_service, public.app_role_service, public.service, public.service_category CASCADE;
+#   実行前に必ずバックアップを取ること。
+#
+# 【app_role】
+#   ダンプに含めない。転送先に同一 UUID の app_role 行があること（db push / マイグレーションで揃っている前提）。
+#   欠けると app_role_service の FK でリストア失敗。
+#
+# 【tenant_service】
+#   tenant_id は転送先の public.tenants に存在する必要がある。テナント UUID が環境間で異なる場合は tenant_service を同期しないか、
+#   テナントデータも揃えてから実行する。
 #
 # 使い方: リポジトリルートで ./supabase/scripts/backup-local-service-tenant-data.sh
 # 前提: supabase start 済み。復元先には既に同一スキーマのテーブルが必要（--data-only のため）。

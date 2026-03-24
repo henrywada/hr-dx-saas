@@ -3,12 +3,15 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchEmployeeEmailsForTenant, revokeSupervisorQrDisplayPermission } from '../actions'
+import {
+  fetchEmployeeEmailsForTenant,
+  revokeSupervisorQrDisplayPermission,
+} from '../actions'
 import { SqpEditModal } from './SqpEditModal'
 
 type PermRow = Database['public']['Tables']['supervisor_qr_permissions']['Row']
 
-type Enriched = { name: string; division: string; email: string }
+type Enriched = { name: string; employeeNo: string; division: string; email: string }
 
 type Props = {
   supervisorUserId: string
@@ -84,60 +87,15 @@ export function SqpList({
 
       let query = supabase
         .from('supervisor_qr_permissions')
-        .select('*', { count: 'exact' })
+        .select('*')
         .eq('tenant_id', activeTenantId)
         .eq('can_display', true)
       if (!canManageTenantWide) {
         query = query.eq('supervisor_user_id', supervisorUserId)
       }
+      query = query.order('updated_at', { ascending: false })
 
-      const term = debouncedSearch.trim()
-      if (term) {
-        const esc = term.replace(/%/g, '\\%').replace(/_/g, '\\_')
-        const pat = `%${esc}%`
-        const baseEmp = () =>
-          supabase
-            .from('employees')
-            .select('user_id')
-            .eq('tenant_id', activeTenantId)
-            .not('user_id', 'is', null)
-
-        const [{ data: byName }, { data: byNo }, { data: divs }] = await Promise.all([
-          baseEmp().ilike('name', pat),
-          baseEmp().ilike('employee_no', pat),
-          supabase.from('divisions').select('id').eq('tenant_id', activeTenantId).ilike('name', pat),
-        ])
-        const idSet = new Set<string>()
-        for (const e of [...(byName ?? []), ...(byNo ?? [])]) {
-          if (e.user_id) idSet.add(e.user_id)
-        }
-        const divIds = (divs ?? []).map((d) => d.id).filter(Boolean)
-        if (divIds.length > 0) {
-          const { data: byDiv } = await supabase
-            .from('employees')
-            .select('user_id')
-            .eq('tenant_id', activeTenantId)
-            .in('division_id', divIds)
-            .not('user_id', 'is', null)
-          for (const e of byDiv ?? []) {
-            if (e.user_id) idSet.add(e.user_id)
-          }
-        }
-        const matchIds = [...idSet]
-        if (matchIds.length === 0) {
-          setRows([])
-          setTotal(0)
-          setEnriched(new Map())
-          return
-        }
-        query = query.in('employee_user_id', matchIds)
-      }
-
-      const from = (page - 1) * perPage
-      const to = from + perPage - 1
-      query = query.order('updated_at', { ascending: false }).range(from, to)
-
-      const { data, error: qErr, count } = await query
+      const { data, error: qErr } = await query
       if (qErr) {
         setError(qErr.message)
         setRows([])
@@ -158,7 +116,7 @@ export function SqpList({
           .in('user_id', userIds)
 
         for (const uid of userIds) {
-          nextEnriched.set(uid, { name: uid.slice(0, 8), division: '—', email: '—' })
+          nextEnriched.set(uid, { name: uid.slice(0, 8), employeeNo: '', division: '—', email: '—' })
         }
         for (const e of emps ?? []) {
           if (!e.user_id) continue
@@ -168,7 +126,8 @@ export function SqpList({
           const divObj = Array.isArray(divRow.division) ? divRow.division[0] : divRow.division
           const division = (divObj?.name ?? '').trim() || '—'
           const name = (e.name ?? '').trim() || e.employee_no || e.user_id
-          nextEnriched.set(e.user_id, { name, division, email: '—' })
+          const employeeNo = (e.employee_no ?? '').trim()
+          nextEnriched.set(e.user_id, { name, employeeNo, division, email: '—' })
         }
 
         // ブラウザ RPC get_tenant_employee_auth_email は schema cache 未載せ等で失敗しやすいため、サーバで get_auth_user_email を使用
@@ -179,9 +138,25 @@ export function SqpList({
           if (cur && mail) cur.email = mail
         }
       }
+      const term = debouncedSearch.trim().toLowerCase()
+      const filtered = term
+        ? list.filter((r) => {
+            const m = nextEnriched.get(r.employee_user_id)
+            const targets = [
+              m?.name ?? '',
+              m?.employeeNo ?? '',
+              m?.division ?? '',
+              m?.email ?? '',
+              r.employee_user_id,
+            ]
+            return targets.some((v) => v.toLowerCase().includes(term))
+          })
+        : list
 
-      setRows(list)
-      setTotal(count ?? list.length)
+      const from = (page - 1) * perPage
+      const to = from + perPage
+      setRows(filtered.slice(from, to))
+      setTotal(filtered.length)
       setEnriched(nextEnriched)
     } catch (e) {
       setError(e instanceof Error ? e.message : '読み込みエラー')

@@ -3,6 +3,105 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 
+export type TenantEmployeeSearchResult = {
+  user_id: string
+  name: string | null
+  employee_no: string | null
+}
+
+/**
+ * 従業員検索: RLS の影響を受けずに同一テナント内の候補を返す。
+ */
+export async function searchTenantEmployees(
+  tenantId: string,
+  rawTerm: string,
+  limit = 30,
+): Promise<TenantEmployeeSearchResult[]> {
+  const me = await getServerUser()
+  if (!me?.tenant_id || me.tenant_id !== tenantId) {
+    return []
+  }
+
+  const term = rawTerm.trim()
+  if (!term) return []
+
+  try {
+    const admin = createAdminClient()
+    const esc = term.replace(/[%_]/g, '\\$&')
+    const pat = `%${esc}%`
+    const max = Math.min(Math.max(1, limit), 100)
+
+    const base = () =>
+      admin
+        .from('employees')
+        .select('user_id, name, employee_no')
+        .eq('tenant_id', tenantId)
+        .not('user_id', 'is', null)
+
+    const [{ data: byName }, { data: byNo }] = await Promise.all([
+      base().ilike('name', pat).limit(max),
+      base().ilike('employee_no', pat).limit(max),
+    ])
+    const map = new Map<string, TenantEmployeeSearchResult>()
+    for (const row of [...(byName ?? []), ...(byNo ?? [])]) {
+      if (row.user_id) {
+        map.set(row.user_id, {
+          user_id: row.user_id,
+          name: row.name ?? null,
+          employee_no: row.employee_no ?? null,
+        })
+      }
+    }
+    return [...map.values()].slice(0, max)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 部署名に一致する従業員 user_id を返す（同一テナントのみ）。
+ */
+export async function searchTenantEmployeeIdsByDivisionName(
+  tenantId: string,
+  rawTerm: string,
+  limit = 200,
+): Promise<string[]> {
+  const me = await getServerUser()
+  if (!me?.tenant_id || me.tenant_id !== tenantId) {
+    return []
+  }
+
+  const term = rawTerm.trim()
+  if (!term) return []
+
+  try {
+    const admin = createAdminClient()
+    const esc = term.replace(/[%_]/g, '\\$&')
+    const pat = `%${esc}%`
+    const max = Math.min(Math.max(1, limit), 1000)
+
+    const { data: divs } = await admin
+      .from('divisions')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .ilike('name', pat)
+      .limit(max)
+    const divIds = (divs ?? []).map((d) => d.id).filter(Boolean)
+    if (divIds.length === 0) return []
+
+    const { data: emps } = await admin
+      .from('employees')
+      .select('user_id')
+      .eq('tenant_id', tenantId)
+      .in('division_id', divIds)
+      .not('user_id', 'is', null)
+      .limit(max)
+    return [...new Set((emps ?? []).map((e) => e.user_id).filter(Boolean) as string[])]
+  } catch {
+    return []
+  }
+}
+
 /**
  * 権限一覧用: 同一テナントの従業員 user_id に対する auth メール（サーバのみ service_role で取得）
  */

@@ -6,8 +6,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { bulkConfirmPendingScans, confirmScanResult } from '../actions'
-import { messageFromFunctionsInvokeError, userMessageFromEdgeJsonBody } from '../parse-functions-error'
+import { bulkConfirmPendingScans, confirmScanResult, invokeQrCreateSession } from '../actions'
 
 type QrPurpose = 'punch_in' | 'punch_out'
 type ScanRow = Database['public']['Tables']['qr_session_scans']['Row']
@@ -169,47 +168,18 @@ export function QrPunchSupervisorClient() {
     setError(null)
     setLoadingQr(true)
     try {
-      const { data: userData, error: authErr } = await supabase.auth.getUser()
-      if (authErr || !userData.user) {
-        setError('ログイン情報を確認できませんでした。再度ログインしてください。')
-        return
-      }
-
-      const { data, error: fnErr } = await supabase.functions.invoke('qr-create-session', {
-        body: { purpose },
-      })
-
-      if (fnErr) {
-        const msg = await messageFromFunctionsInvokeError(fnErr)
-        setError(msg || 'QR セッションの作成に失敗しました')
-        return
-      }
-
-      const json = data as {
-        sessionId?: string
-        expiresAt?: string
-        token?: string
-        error?: string
-        detail?: string
-      }
-
-      if (json?.error) {
-        const mapped = userMessageFromEdgeJsonBody(json as Record<string, unknown>)
-        setError(mapped ?? (json.detail as string) ?? json.error)
-        return
-      }
-
-      if (!json?.sessionId || !json?.expiresAt || !json?.token) {
-        setError('応答形式が不正です')
+      const result = await invokeQrCreateSession(purpose)
+      if (result.ok === false) {
+        setError(result.message || 'QR セッションの作成に失敗しました')
         return
       }
 
       setError(null)
-      setSessionId(json.sessionId)
-      setExpiresAt(json.expiresAt)
-      setToken(json.token)
+      setSessionId(result.sessionId)
+      setExpiresAt(result.expiresAt)
+      setToken(result.token)
       setScans([])
-      await loadScans(json.sessionId)
+      await loadScans(result.sessionId)
     } catch (e) {
       setError(e instanceof Error ? e.message : '通信エラー')
     } finally {

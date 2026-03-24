@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { searchTenantEmployees } from '../actions'
 
 type EmpPick = { user_id: string; name: string | null; employee_no: string | null }
 
@@ -17,6 +18,7 @@ type Props = {
 export function SqpEditModal({ open, onClose, supervisorUserId, tenantId, onSaved }: Props) {
   const supabase = useMemo(() => createClient(), [])
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
   const [candidates, setCandidates] = useState<EmpPick[]>([])
   const [employeeUserId, setEmployeeUserId] = useState('')
   const [busy, setBusy] = useState(false)
@@ -32,15 +34,20 @@ export function SqpEditModal({ open, onClose, supervisorUserId, tenantId, onSave
     setPickedLabel('')
   }, [open])
 
-  /** 「検索」ボタン（または Enter）でのみ実行 */
-  const runEmployeeSearch = useCallback(async () => {
+  useEffect(() => {
+    if (!open) return
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 250)
+    return () => clearTimeout(t)
+  }, [open, q])
+
+  /** 検索実行（自動検索・検索ボタン・Enter で共通利用） */
+  const runEmployeeSearch = useCallback(async (rawTerm?: string) => {
     setErr(null)
-    const t = q.trim()
+    const t = (rawTerm ?? q).trim()
     if (t.length < 1) {
       setCandidates([])
       return
     }
-    const pat = `%${t.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`
     const { data: rpcTenantId } = await supabase.rpc('current_tenant_id')
     const activeTenantId =
       rpcTenantId != null && String(rpcTenantId).length > 0 ? String(rpcTenantId) : tenantId
@@ -49,27 +56,18 @@ export function SqpEditModal({ open, onClose, supervisorUserId, tenantId, onSave
       setErr('テナント情報を取得できませんでした。')
       return
     }
-    const base = () =>
-      supabase
-        .from('employees')
-        .select('user_id, name, employee_no')
-        .eq('tenant_id', activeTenantId)
-        .not('user_id', 'is', null)
+    const rows = await searchTenantEmployees(activeTenantId, t, 15)
+    setCandidates(rows as EmpPick[])
+  }, [q, supabase, tenantId])
 
-    const [{ data: byName, error: e1 }, { data: byNo, error: e2 }] = await Promise.all([
-      base().ilike('name', pat).limit(15),
-      base().ilike('employee_no', pat).limit(15),
-    ])
-    if (e1 || e2) {
-      setErr(e1?.message ?? e2?.message ?? '検索エラー')
+  useEffect(() => {
+    if (!open) return
+    if (!debouncedQ) {
+      setCandidates([])
       return
     }
-    const map = new Map<string, EmpPick>()
-    for (const row of [...(byName ?? []), ...(byNo ?? [])]) {
-      if (row.user_id) map.set(row.user_id, row as EmpPick)
-    }
-    setCandidates([...map.values()].slice(0, 15))
-  }, [q, supabase, tenantId])
+    void runEmployeeSearch(debouncedQ)
+  }, [open, debouncedQ, runEmployeeSearch])
 
   const save = async () => {
     if (!employeeUserId) {
@@ -162,6 +160,9 @@ export function SqpEditModal({ open, onClose, supervisorUserId, tenantId, onSave
               </li>
             ))}
           </ul>
+          {q.trim().length > 0 && candidates.length === 0 && !err && (
+            <p className="mt-2 text-xs text-slate-500">候補が見つかりませんでした</p>
+          )}
           {pickedLabel && (
             <p className="text-sm mt-2 text-slate-700">
               選択中: <span className="font-medium">{pickedLabel}</span>

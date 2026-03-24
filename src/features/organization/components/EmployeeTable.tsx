@@ -13,10 +13,10 @@ interface EmployeeTableProps {
   appRoles: AppRole[];
   tenantId: string;
   employeeCapacity: {
-    limit: number;
+    limit: number | null;
     registered_user_count: number;
     company_doctor_count: number;
-    remaining: number;
+    remaining: number | null;
   };
 }
 
@@ -106,7 +106,10 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
           <span>
-            最大登録数：<span className="font-semibold text-slate-800">{employeeCapacity.limit}</span>
+            最大登録数：
+            <span className="font-semibold text-slate-800">
+              {employeeCapacity.limit === null ? '—' : employeeCapacity.limit}
+            </span>
           </span>
           <span className="text-slate-300 hidden sm:inline">|</span>
           <span>
@@ -119,8 +122,16 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
           <span className="text-slate-300 hidden sm:inline">|</span>
           <span>
             残：
-            <span className={`font-semibold ${employeeCapacity.remaining > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {employeeCapacity.remaining}
+            <span
+              className={`font-semibold ${
+                employeeCapacity.remaining === null
+                  ? 'text-slate-600'
+                  : employeeCapacity.remaining > 0
+                    ? 'text-emerald-600'
+                    : 'text-red-600'
+              }`}
+            >
+              {employeeCapacity.remaining === null ? '—' : employeeCapacity.remaining}
             </span>
           </span>
         </div>

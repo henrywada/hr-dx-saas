@@ -44,6 +44,7 @@ export function AttendanceQrScanClient() {
   const supabase = createClient()
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorDebug, setErrorDebug] = useState<string | null>(null)
   const [rejectHint, setRejectHint] = useState<string | null>(null)
   const [watchScanId, setWatchScanId] = useState<string | null>(null)
   /** 重複確認後に再打刻するとき用（セッション消費前に保持） */
@@ -58,6 +59,7 @@ export function AttendanceQrScanClient() {
     pendingTokenRef.current = null
     setDuplicateKindLabel('')
     setErrorMessage(null)
+    setErrorDebug(null)
     setRejectHint(null)
     setWatchScanId(null)
     if (channelRef.current) {
@@ -146,6 +148,7 @@ export function AttendanceQrScanClient() {
       if (code === 1) msg = '位置情報が拒否されています。ブラウザの設定でこのサイトへの位置情報の共有を許可してください。'
       if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
       setErrorMessage(msg)
+      setErrorDebug(null)
       setPhase('error')
       processingRef.current = false
       return
@@ -163,6 +166,7 @@ export function AttendanceQrScanClient() {
 
     if (scanResult.ok === false) {
       setErrorMessage(scanResult.message)
+      setErrorDebug(scanResult.debug ? JSON.stringify(scanResult.debug, null, 2) : null)
       setPhase('error')
       processingRef.current = false
       return
@@ -212,6 +216,7 @@ export function AttendanceQrScanClient() {
       const token = decodedText.trim()
       if (!token) {
         setErrorMessage('QRからデータを読み取れませんでした。')
+        setErrorDebug(null)
         setPhase('error')
         processingRef.current = false
         return
@@ -223,6 +228,7 @@ export function AttendanceQrScanClient() {
       const dup = await checkQrDuplicatePunch(token)
       if (dup.ok === false) {
         setErrorMessage(dup.message)
+        setErrorDebug(dup.debug ? JSON.stringify(dup.debug, null, 2) : null)
         setPhase('error')
         processingRef.current = false
         return
@@ -406,6 +412,11 @@ export function AttendanceQrScanClient() {
           <div className="rounded-2xl bg-red-950/40 px-5 py-8 text-center">
             <p className="text-lg font-bold text-red-100">打刻できませんでした</p>
             <p className="mt-3 text-sm text-red-50/95">{errorMessage}</p>
+            {errorDebug && (
+              <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-3 text-left text-[11px] leading-[1.4] text-red-100/90">
+                {errorDebug}
+              </pre>
+            )}
             <button
               type="button"
               onClick={resetFlow}
@@ -436,6 +447,7 @@ export function AttendanceQrScanClient() {
                     const t = pendingTokenRef.current
                     if (!t) {
                       setErrorMessage('セッションが無効です。もう一度 QR を読み取ってください。')
+                      setErrorDebug(null)
                       setPhase('error')
                       return
                     }

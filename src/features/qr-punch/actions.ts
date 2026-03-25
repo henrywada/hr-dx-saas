@@ -18,8 +18,35 @@ type QrTokenPayload = {
   nonce: string
   purpose: string
 }
-type SessionCreateResult = { ok: true; sessionId: string; expiresAt: string; token: string } | { ok: false; message: string }
-type ScanInvokeResult = { ok: true; scanId: string; result: string } | { ok: false; message: string }
+type QrSigningSecretDebug = {
+  // 値そのものは出さない（推測/漏洩防止）
+  hasEnvVar: boolean
+  envLength: number | null
+  envValid: boolean
+  usedLocalFallback: boolean
+  // ローカルフォールバック判定に使用した URL のホストだけ出す
+  supabaseUrlHostForFallbackCheck: string | null
+}
+
+type QrTokenVerificationDebug = {
+  tokenRejectedReason?: string
+  // secret の出所のみ（値は出さない）
+  secretSource: 'env' | 'local_fallback'
+}
+
+type QrDebugInfo = {
+  qrSigningSecret?: QrSigningSecretDebug
+  tokenVerification?: QrTokenVerificationDebug
+  // Edge invoke のフォールバック等が発生したか
+  fallbackUsed?: boolean
+}
+
+type SessionCreateResult =
+  | { ok: true; sessionId: string; expiresAt: string; token: string }
+  | { ok: false; message: string; debug?: QrDebugInfo }
+type ScanInvokeResult =
+  | { ok: true; scanId: string; result: string }
+  | { ok: false; message: string; debug?: QrDebugInfo }
 const PURPOSES = new Set<QrPunchPurpose>(['punch_in', 'punch_out'])
 
 function bytesToBase64Url(bytes: Buffer): string {
@@ -108,6 +135,30 @@ function isLikelyLocalSupabaseUrl(url: string): boolean {
   return false
 }
 
+function getQrSigningSecretServerDebug(): QrSigningSecretDebug {
+  const hasEnvVar = typeof process.env.QR_SIGNING_SECRET !== 'undefined'
+  const raw = (process.env.QR_SIGNING_SECRET ?? '').trim()
+  const envLength = hasEnvVar ? raw.length : null
+  const envValid = raw.length >= 16
+
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const usedLocalFallback = isLikelyLocalSupabaseUrl(supabaseUrl)
+  let supabaseUrlHostForFallbackCheck: string | null = null
+  try {
+    supabaseUrlHostForFallbackCheck = new URL(supabaseUrl).hostname
+  } catch {
+    supabaseUrlHostForFallbackCheck = null
+  }
+
+  return {
+    hasEnvVar,
+    envLength,
+    envValid,
+    usedLocalFallback,
+    supabaseUrlHostForFallbackCheck,
+  }
+}
+
 function resolveQrSigningSecretServer(): string | null {
   const raw = (process.env.QR_SIGNING_SECRET ?? '').trim()
   if (raw) {
@@ -137,6 +188,10 @@ async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string):
       ok: false,
       message:
         'QR_SIGNING_SECRET が未設定か短すぎます（16文字以上）。本番では supabase secrets set で設定してください。',
+      debug: {
+        qrSigningSecret: getQrSigningSecretServerDebug(),
+        fallbackUsed: true,
+      },
     }
   }
   const userClient = await createClient()
@@ -203,11 +258,24 @@ async function scanQrFallback(input: {
       ok: false,
       message:
         'QR_SIGNING_SECRET が未設定か短すぎます（16文字以上）。本番では supabase secrets set で設定してください。',
+      debug: {
+        qrSigningSecret: getQrSigningSecretServerDebug(),
+        fallbackUsed: true,
+      },
     }
   }
   const verified = verifyQrToken(secret, input.token)
   if (verified.ok === false) {
-    return { ok: false, message: mapQrScanApiError({ error: 'token_rejected', reason: verified.reason }) }
+    return {
+      ok: false,
+      message: mapQrScanApiError({ error: 'token_rejected', reason: verified.reason }),
+      debug: {
+        tokenVerification: {
+          tokenRejectedReason: verified.reason,
+          secretSource: secret.startsWith('local-dev-only-') ? 'local_fallback' : 'env',
+        },
+      },
+    }
   }
   const userClient = await createClient()
   const { data: emp, error: empErr } = await userClient
@@ -314,7 +382,10 @@ function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: stri
  */
 export async function checkQrDuplicatePunch(
   token: string,
-): Promise<{ ok: true; purpose: QrPunchPurpose; needsConfirm: boolean } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; purpose: QrPunchPurpose; needsConfirm: boolean }
+  | { ok: false; message: string; debug?: QrDebugInfo }
+> {
   const trimmed = token.trim()
   if (!trimmed) {
     return { ok: false, message: 'QRからデータを読み取れませんでした。' }
@@ -325,11 +396,23 @@ export async function checkQrDuplicatePunch(
       ok: false,
       message:
         'QR_SIGNING_SECRET が未設定か短すぎます（16文字以上）。本番では supabase secrets set で設定してください。',
+      debug: {
+        qrSigningSecret: getQrSigningSecretServerDebug(),
+      },
     }
   }
   const verified = verifyQrToken(secret, trimmed)
   if (verified.ok === false) {
-    return { ok: false, message: mapQrScanApiError({ error: 'token_rejected', reason: verified.reason }) }
+    return {
+      ok: false,
+      message: mapQrScanApiError({ error: 'token_rejected', reason: verified.reason }),
+      debug: {
+        tokenVerification: {
+          tokenRejectedReason: verified.reason,
+          secretSource: secret.startsWith('local-dev-only-') ? 'local_fallback' : 'env',
+        },
+      },
+    }
   }
   const rawPurpose = verified.payload.purpose
   if (!PURPOSES.has(rawPurpose as QrPunchPurpose)) {

@@ -45,6 +45,7 @@ export function AttendanceQrScanClient() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [errorDebug, setErrorDebug] = useState<string | null>(null)
+  const [pendingDebug, setPendingDebug] = useState<string | null>(null)
   const [rejectHint, setRejectHint] = useState<string | null>(null)
   const [watchScanId, setWatchScanId] = useState<string | null>(null)
   /** 重複確認後に再打刻するとき用（セッション消費前に保持） */
@@ -60,6 +61,7 @@ export function AttendanceQrScanClient() {
     setDuplicateKindLabel('')
     setErrorMessage(null)
     setErrorDebug(null)
+    setPendingDebug(null)
     setRejectHint(null)
     setWatchScanId(null)
     if (channelRef.current) {
@@ -105,6 +107,18 @@ export function AttendanceQrScanClient() {
         },
         (payload) => {
           const row = payload.new as { result?: string | null }
+          setPendingDebug(
+            JSON.stringify(
+              {
+                type: 'realtime_update',
+                scanId: watchScanId,
+                receivedResult: row.result ?? null,
+                at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          )
           finalizeFromResult(row.result ?? null)
         },
       )
@@ -122,8 +136,21 @@ export function AttendanceQrScanClient() {
     if (phase !== 'pending_wait' || !watchScanId) return
     const sid = watchScanId
     const tick = async () => {
-      const { data } = await supabase.from('qr_session_scans').select('result').eq('id', sid).maybeSingle()
+      const { data, error } = await supabase.from('qr_session_scans').select('result').eq('id', sid).maybeSingle()
       const r = data?.result
+      setPendingDebug(
+        JSON.stringify(
+          {
+            type: 'poll',
+            scanId: sid,
+            fetchedResult: r ?? null,
+            fetchError: error ? { message: error.message, code: (error as any).code ?? null } : null,
+            at: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      )
       if (r && r !== 'pending') finalizeFromResult(r)
     }
     const id = setInterval(() => void tick(), 8000)
@@ -384,6 +411,11 @@ export function AttendanceQrScanClient() {
             <p className="mt-3 text-sm text-emerald-100/90">
               承認が完了すると、この画面が自動で切り替わります。しばらくそのままお待ちください。
             </p>
+            {pendingDebug && (
+              <pre className="mx-auto mt-4 max-w-full whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-3 text-left text-[11px] leading-[1.4] text-emerald-100/90">
+                {pendingDebug}
+              </pre>
+            )}
             <button
               type="button"
               onClick={resetFlow}

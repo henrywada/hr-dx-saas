@@ -275,7 +275,7 @@ export function QrPunchSupervisorClient() {
           </div>
         )}
 
-        {token && !expired && (
+        {token && !expired && pendingScans.length === 0 && (
           <div className="rounded-2xl bg-white p-4 text-center text-slate-900 shadow-2xl">
             <div className="flex justify-center py-2">
               <QRCodeSVG value={token} size={qrSize} level="M" includeMargin />
@@ -291,7 +291,7 @@ export function QrPunchSupervisorClient() {
           </div>
         )}
 
-        {token && expired && (
+        {token && expired && pendingScans.length === 0 && (
           <div className="rounded-2xl border border-white/40 bg-black/20 px-4 py-6 text-center text-lg font-semibold">
             QR の有効期限が切れました。必要なら再生成してください。
           </div>

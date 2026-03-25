@@ -636,7 +636,7 @@ export async function confirmScanResult(
     return { ok: false, message: 'このセッションの監督者のみ承認できます' }
   }
 
-  const { error: upErr } = await supabase
+  const { data: updatedRow, error: upErr } = await supabase
     .from('qr_session_scans')
     .update({
       result,
@@ -645,8 +645,12 @@ export async function confirmScanResult(
     })
     .eq('id', scanId)
     .eq('result', 'pending')
+    .select('id')
+    .maybeSingle()
 
   if (upErr) return { ok: false, message: upErr.message }
+  if (!updatedRow) return { ok: false, message: '保留中スキャンが見つかりません（既に更新された可能性があります）' }
+
   return { ok: true }
 }
 

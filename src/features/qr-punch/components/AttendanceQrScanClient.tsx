@@ -280,6 +280,11 @@ export function AttendanceQrScanClient() {
       <div className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-6 pb-24">
         <header>
           <div className="flex items-start justify-between gap-3">
+            <div className="w-[88px]" aria-hidden="true" />
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl font-bold tracking-tight">QR 打刻（従業員）</h1>
+              <p className="mt-1 text-sm text-emerald-100">上司の QR を読み取って出退勤を記録します</p>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -289,11 +294,6 @@ export function AttendanceQrScanClient() {
             >
               戻る
             </button>
-            <div className="flex-1 text-center">
-              <h1 className="text-2xl font-bold tracking-tight">QR 打刻（従業員）</h1>
-              <p className="mt-1 text-sm text-emerald-100">上司の QR を読み取って出退勤を記録します</p>
-            </div>
-            <div className="w-[88px]" aria-hidden="true" />
           </div>
         </header>
 

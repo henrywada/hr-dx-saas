@@ -201,7 +201,8 @@ async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string):
   try {
     const admin = createAdminServiceClient()
     const nonce = crypto.randomUUID()
-    const expiresAt = new Date(Date.now() + 60_000).toISOString()
+    // QR（監督者表示→従業員スキャン→承認完了まで）に十分な余裕を持たせる
+    const expiresAt = new Date(Date.now() + 180_000).toISOString()
     const { data: row, error: insErr } = await admin
       .from('qr_sessions')
       .insert({

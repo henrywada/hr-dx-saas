@@ -39,6 +39,7 @@ export function QrPunchSupervisorClient() {
   const [scans, setScans] = useState<ScanView[]>([])
   const [loadingQr, setLoadingQr] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmNotice, setConfirmNotice] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [qrSize, setQrSize] = useState(260)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
@@ -166,6 +167,7 @@ export function QrPunchSupervisorClient() {
 
   const createQrSession = async () => {
     setError(null)
+    setConfirmNotice(null)
     setLoadingQr(true)
     try {
       const result = await invokeQrCreateSession(purpose)
@@ -197,7 +199,16 @@ export function QrPunchSupervisorClient() {
         return
       }
       setError(null)
+      if (result === 'accepted') {
+        setConfirmNotice('承認しました。新しい QR を生成してください。')
+      } else {
+        setConfirmNotice('却下しました。新しい QR を生成してください。')
+      }
       if (sessionId) await loadScans(sessionId)
+      // QRカードとカウントダウンをリセット（“途中の残り時間”で表示されないようにする）
+      setToken(null)
+      setExpiresAt(null)
+      setCountdownSec(0)
     })
   }
 
@@ -211,7 +222,15 @@ export function QrPunchSupervisorClient() {
         return
       }
       setError(null)
+      if (result === 'accepted') {
+        setConfirmNotice('一括承認しました。新しい QR を生成してください。')
+      } else {
+        setConfirmNotice('一括却下しました。新しい QR を生成してください。')
+      }
       if (sessionId) await loadScans(sessionId)
+      setToken(null)
+      setExpiresAt(null)
+      setCountdownSec(0)
     })
   }
 
@@ -222,6 +241,11 @@ export function QrPunchSupervisorClient() {
       <div className="mx-auto flex max-w-lg flex-col gap-6 px-4 py-6 pb-28">
         <header>
           <div className="flex items-start justify-between gap-3">
+            <div className="w-[88px]" aria-hidden="true" />
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
+              <p className="mt-1 text-sm text-white/85">現場で QR を表示し、スキャンを確認・承認します</p>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -231,11 +255,6 @@ export function QrPunchSupervisorClient() {
             >
               戻る
             </button>
-            <div className="flex-1 text-center">
-              <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
-              <p className="mt-1 text-sm text-white/85">現場で QR を表示し、スキャンを確認・承認します</p>
-            </div>
-            <div className="w-[88px]" aria-hidden="true" />
           </div>
         </header>
 
@@ -286,6 +305,11 @@ export function QrPunchSupervisorClient() {
             role="alert"
           >
             {error}
+          </div>
+        )}
+        {confirmNotice && (
+          <div className="rounded-xl border border-white/30 bg-black/25 px-4 py-3 text-center text-sm font-medium text-white/90">
+            {confirmNotice}
           </div>
         )}
 

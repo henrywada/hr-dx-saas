@@ -8,7 +8,9 @@ import { corsHeaders } from "../_shared/cors.ts"
 import { signQrToken } from "../_shared/qr-crypto.ts"
 import { resolveQrSigningSecret } from "../_shared/qr-secret.ts"
 
-const SESSION_TTL_MS = 60_000
+// QR（監督者が表示する一時的なQR）の有効期限
+// 従業員がスキャンして承認まで行うため、十分な余裕を持たせる
+const SESSION_TTL_MS = 180_000
 const PURPOSES = new Set(["punch_in", "punch_out"])
 
 serve(async (req) => {

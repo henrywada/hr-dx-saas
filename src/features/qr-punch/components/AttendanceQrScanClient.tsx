@@ -45,7 +45,6 @@ export function AttendanceQrScanClient() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [errorDebug, setErrorDebug] = useState<string | null>(null)
-  const [pendingDebug, setPendingDebug] = useState<string | null>(null)
   const [rejectHint, setRejectHint] = useState<string | null>(null)
   const [watchScanId, setWatchScanId] = useState<string | null>(null)
   /** 重複確認後に再打刻するとき用（セッション消費前に保持） */
@@ -61,7 +60,6 @@ export function AttendanceQrScanClient() {
     setDuplicateKindLabel('')
     setErrorMessage(null)
     setErrorDebug(null)
-    setPendingDebug(null)
     setRejectHint(null)
     setWatchScanId(null)
     if (channelRef.current) {
@@ -107,18 +105,6 @@ export function AttendanceQrScanClient() {
         },
         (payload) => {
           const row = payload.new as { result?: string | null }
-          setPendingDebug(
-            JSON.stringify(
-              {
-                type: 'realtime_update',
-                scanId: watchScanId,
-                receivedResult: row.result ?? null,
-                at: new Date().toISOString(),
-              },
-              null,
-              2,
-            ),
-          )
           finalizeFromResult(row.result ?? null)
         },
       )
@@ -138,19 +124,6 @@ export function AttendanceQrScanClient() {
     const tick = async () => {
       const { data, error } = await supabase.from('qr_session_scans').select('result').eq('id', sid).maybeSingle()
       const r = data?.result
-      setPendingDebug(
-        JSON.stringify(
-          {
-            type: 'poll',
-            scanId: sid,
-            fetchedResult: r ?? null,
-            fetchError: error ? { message: error.message, code: (error as any).code ?? null } : null,
-            at: new Date().toISOString(),
-          },
-          null,
-          2,
-        ),
-      )
       if (r && r !== 'pending') finalizeFromResult(r)
     }
     const id = setInterval(() => void tick(), 8000)
@@ -305,9 +278,23 @@ export function AttendanceQrScanClient() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-700 to-emerald-950 text-white">
       <div className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-6 pb-24">
-        <header className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">QR 打刻（従業員）</h1>
-          <p className="mt-1 text-sm text-emerald-100">上司の QR を読み取って出退勤を記録します</p>
+        <header>
+          <div className="flex items-start justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/top'
+              }}
+              className="min-h-10 rounded-xl border border-white/40 bg-white/10 px-4 text-sm font-bold text-white"
+            >
+              戻る
+            </button>
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl font-bold tracking-tight">QR 打刻（従業員）</h1>
+              <p className="mt-1 text-sm text-emerald-100">上司の QR を読み取って出退勤を記録します</p>
+            </div>
+            <div className="w-[88px]" aria-hidden="true" />
+          </div>
         </header>
 
         {!secure && (
@@ -396,10 +383,12 @@ export function AttendanceQrScanClient() {
             <p className="mt-3 text-base text-emerald-800/90">お疲れさまです。画面を閉じて構いません。</p>
             <button
               type="button"
-              onClick={resetFlow}
+              onClick={() => {
+                window.location.href = '/top'
+              }}
               className="mt-8 min-h-14 w-full rounded-xl bg-emerald-600 text-lg font-bold text-white"
             >
-              続けてスキャンする
+              ポータルへ戻る
             </button>
           </div>
         )}
@@ -411,11 +400,6 @@ export function AttendanceQrScanClient() {
             <p className="mt-3 text-sm text-emerald-100/90">
               承認が完了すると、この画面が自動で切り替わります。しばらくそのままお待ちください。
             </p>
-            {pendingDebug && (
-              <pre className="mx-auto mt-4 max-w-full whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-3 text-left text-[11px] leading-[1.4] text-emerald-100/90">
-                {pendingDebug}
-              </pre>
-            )}
             <button
               type="button"
               onClick={resetFlow}

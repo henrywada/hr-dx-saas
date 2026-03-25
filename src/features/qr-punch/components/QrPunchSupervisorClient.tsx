@@ -220,9 +220,23 @@ export function QrPunchSupervisorClient() {
   return (
     <div className={`min-h-screen ${shellClass}`}>
       <div className="mx-auto flex max-w-lg flex-col gap-6 px-4 py-6 pb-28">
-        <header className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
-          <p className="mt-1 text-sm text-white/85">現場で QR を表示し、スキャンを確認・承認します</p>
+        <header>
+          <div className="flex items-start justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/top'
+              }}
+              className="min-h-10 rounded-xl border border-white/40 bg-white/10 px-4 text-sm font-bold text-white"
+            >
+              戻る
+            </button>
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
+              <p className="mt-1 text-sm text-white/85">現場で QR を表示し、スキャンを確認・承認します</p>
+            </div>
+            <div className="w-[88px]" aria-hidden="true" />
+          </div>
         </header>
 
         {/* 出勤 / 退勤 */}

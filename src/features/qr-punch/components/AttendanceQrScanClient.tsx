@@ -1,20 +1,11 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { checkQrDuplicatePunch, invokeQrScan } from '../actions'
+import { checkQrDuplicatePunch, invokeQrScan, type QrPunchPurpose } from '../actions'
+import { QrPunchMobileTipsModalTrigger } from './QrPunchMobileTipsModal'
 
-type Phase =
-  | 'idle'
-  | 'scanning'
-  | 'duplicate_check'
-  | 'duplicate_confirm'
-  | 'sending'
-  | 'success'
-  | 'pending_wait'
-  | 'rejected'
-  | 'error'
+type Phase = 'idle' | 'scanning' | 'duplicate_check' | 'sending' | 'success' | 'error'
 
 function collectDeviceInfo(): Record<string, string> {
   if (typeof navigator === 'undefined') return {}
@@ -40,100 +31,27 @@ function getPosition(): Promise<GeolocationPosition> {
   })
 }
 
+function purposeLabel(p: QrPunchPurpose): string {
+  return p === 'punch_in' ? '出勤' : '退勤'
+}
+
 export function AttendanceQrScanClient() {
-  const supabase = createClient()
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [errorDebug, setErrorDebug] = useState<string | null>(null)
-  const [rejectHint, setRejectHint] = useState<string | null>(null)
-  const [watchScanId, setWatchScanId] = useState<string | null>(null)
-  /** 重複確認後に再打刻するとき用（セッション消費前に保持） */
-  const pendingTokenRef = useRef<string | null>(null)
-  const [duplicateKindLabel, setDuplicateKindLabel] = useState<string>('')
+  const [successPurpose, setSuccessPurpose] = useState<QrPunchPurpose>('punch_in')
   const processingRef = useRef(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const purposeRef = useRef<QrPunchPurpose>('punch_in')
 
   const resetFlow = useCallback(() => {
     processingRef.current = false
-    pendingTokenRef.current = null
-    setDuplicateKindLabel('')
     setErrorMessage(null)
     setErrorDebug(null)
-    setRejectHint(null)
-    setWatchScanId(null)
-    if (channelRef.current) {
-      void supabase.removeChannel(channelRef.current)
-      channelRef.current = null
-    }
     setPhase('idle')
-  }, [supabase])
-
-  const finalizeFromResult = useCallback((result: string | null) => {
-    if (result === 'accepted') {
-      setPhase('success')
-      if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-      return
-    }
-    if (result === 'rejected') {
-      setRejectHint(
-        '上司により打刻が却下されました。位置情報や現場ルールを確認し、必要なら所属へ連絡してください。',
-      )
-      setPhase('rejected')
-      if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-    }
-  }, [supabase])
-
-  useEffect(() => {
-    if (!watchScanId || phase !== 'pending_wait') return
-
-    const ch = supabase
-      .channel(`employee-scan-${watchScanId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'qr_session_scans',
-          filter: `id=eq.${watchScanId}`,
-        },
-        (payload) => {
-          const row = payload.new as { result?: string | null }
-          finalizeFromResult(row.result ?? null)
-        },
-      )
-      .subscribe()
-
-    channelRef.current = ch
-    return () => {
-      void supabase.removeChannel(ch)
-      if (channelRef.current === ch) channelRef.current = null
-    }
-  }, [watchScanId, phase, supabase, finalizeFromResult])
-
-  // Realtime が届かない場合のフォールバック
-  useEffect(() => {
-    if (phase !== 'pending_wait' || !watchScanId) return
-    const sid = watchScanId
-    const tick = async () => {
-      const { data, error } = await supabase.from('qr_session_scans').select('result').eq('id', sid).maybeSingle()
-      const r = data?.result
-      if (r && r !== 'pending') finalizeFromResult(r)
-    }
-    const id = setInterval(() => void tick(), 8000)
-    void tick()
-    return () => clearInterval(id)
-  }, [phase, watchScanId, supabase, finalizeFromResult])
+  }, [])
 
   const proceedWithScan = useCallback(async (token: string) => {
-    pendingTokenRef.current = null
-    setDuplicateKindLabel('')
     setPhase('sending')
     setErrorMessage(null)
 
@@ -172,29 +90,8 @@ export function AttendanceQrScanClient() {
       return
     }
 
-    const scanId = scanResult.scanId
-    const result = scanResult.result
-
-    if (result === 'accepted') {
-      setPhase('success')
-      processingRef.current = false
-      return
-    }
-
-    if (result === 'pending') {
-      setWatchScanId(scanId)
-      setPhase('pending_wait')
-      processingRef.current = false
-      return
-    }
-
-    if (result === 'rejected') {
-      setRejectHint('打刻が却下されています。所属へ確認してください。')
-      setPhase('rejected')
-      processingRef.current = false
-      return
-    }
-
+    const p = scanResult.purpose ?? purposeRef.current
+    setSuccessPurpose(p)
     setPhase('success')
     processingRef.current = false
   }, [])
@@ -234,14 +131,7 @@ export function AttendanceQrScanClient() {
         return
       }
 
-      if (dup.needsConfirm) {
-        pendingTokenRef.current = token
-        setDuplicateKindLabel(dup.purpose === 'punch_in' ? '出勤' : '退勤')
-        setPhase('duplicate_confirm')
-        processingRef.current = false
-        return
-      }
-
+      purposeRef.current = dup.purpose
       await proceedWithScan(token)
     })()
   }
@@ -280,7 +170,7 @@ export function AttendanceQrScanClient() {
       <div className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-6 pb-24">
         <header>
           <div className="flex items-start justify-between gap-3">
-            <div className="w-[88px]" aria-hidden="true" />
+            <QrPunchMobileTipsModalTrigger />
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold tracking-tight">QR 打刻（従業員）</h1>
               <p className="mt-1 text-sm text-emerald-100">上司の QR を読み取って出退勤を記録します</p>
@@ -318,8 +208,6 @@ export function AttendanceQrScanClient() {
             type="button"
             onClick={() => {
               setErrorMessage(null)
-              setRejectHint(null)
-              setWatchScanId(null)
               processingRef.current = false
               setPhase('scanning')
             }}
@@ -341,7 +229,6 @@ export function AttendanceQrScanClient() {
                 void scannerRef.current?.clear().catch(() => {})
                 scannerRef.current = null
                 processingRef.current = false
-                pendingTokenRef.current = null
                 setPhase('idle')
               }}
               className="min-h-12 w-full rounded-xl border border-white/40 bg-white/10 text-base font-semibold text-white"
@@ -379,7 +266,7 @@ export function AttendanceQrScanClient() {
 
         {phase === 'success' && (
           <div className="rounded-2xl bg-white px-6 py-10 text-center text-emerald-900 shadow-2xl">
-            <p className="text-3xl font-bold">打刻完了</p>
+            <p className="text-2xl font-bold">【{purposeLabel(successPurpose)}】打刻は完了しました</p>
             <p className="mt-3 text-base text-emerald-800/90">お疲れさまです。画面を閉じて構いません。</p>
             <button
               type="button"
@@ -389,37 +276,6 @@ export function AttendanceQrScanClient() {
               className="mt-8 min-h-14 w-full rounded-xl bg-emerald-600 text-lg font-bold text-white"
             >
               ポータルへ戻る
-            </button>
-          </div>
-        )}
-
-        {phase === 'pending_wait' && (
-          <div className="rounded-2xl bg-black/30 px-5 py-8 text-center">
-            <div className="mx-auto mb-4 h-12 w-12 animate-pulse rounded-full bg-amber-400/80" />
-            <p className="text-xl font-bold">上司の承認を待っています…</p>
-            <p className="mt-3 text-sm text-emerald-100/90">
-              承認が完了すると、この画面が自動で切り替わります。しばらくそのままお待ちください。
-            </p>
-            <button
-              type="button"
-              onClick={resetFlow}
-              className="mt-8 min-h-12 w-full rounded-xl border border-white/40 text-base font-semibold text-white/90"
-            >
-              中断してトップに戻る
-            </button>
-          </div>
-        )}
-
-        {phase === 'rejected' && (
-          <div className="rounded-2xl bg-red-950/50 px-5 py-8 text-center ring-2 ring-red-400/50">
-            <p className="text-2xl font-bold text-red-100">打刻が却下されました</p>
-            <p className="mt-3 text-sm text-red-100/90">{rejectHint}</p>
-            <button
-              type="button"
-              onClick={resetFlow}
-              className="mt-8 min-h-14 w-full rounded-xl bg-white text-lg font-bold text-red-900"
-            >
-              閉じる
             </button>
           </div>
         )}
@@ -440,52 +296,6 @@ export function AttendanceQrScanClient() {
             >
               やり直す
             </button>
-          </div>
-        )}
-
-        {phase === 'duplicate_confirm' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-            <div
-              className="w-full max-w-md rounded-2xl bg-white px-6 py-8 text-center text-emerald-950 shadow-2xl"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="duplicate-punch-title"
-            >
-              <p id="duplicate-punch-title" className="text-lg font-bold">
-                本日の{duplicateKindLabel}は既に記録されています
-              </p>
-              <p className="mt-2 text-sm text-emerald-900/85">それでも打刻を記録しますか？</p>
-              <div className="mt-6 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (processingRef.current) return
-                    const t = pendingTokenRef.current
-                    if (!t) {
-                      setErrorMessage('セッションが無効です。もう一度 QR を読み取ってください。')
-                      setErrorDebug(null)
-                      setPhase('error')
-                      return
-                    }
-                    processingRef.current = true
-                    void proceedWithScan(t)
-                  }}
-                  className="min-h-14 w-full rounded-xl bg-emerald-600 text-lg font-bold text-white active:scale-[0.99]"
-                >
-                  再打刻
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    processingRef.current = false
-                    resetFlow()
-                  }}
-                  className="min-h-12 w-full rounded-xl border-2 border-emerald-800/30 text-base font-semibold text-emerald-900"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

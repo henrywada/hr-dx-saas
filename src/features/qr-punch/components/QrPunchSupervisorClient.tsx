@@ -2,47 +2,59 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
+import { getJstDateRangeUtc } from '@/features/qr-punch/jst-date-range'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { QRCodeSVG } from 'qrcode.react'
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { bulkConfirmPendingScans, confirmScanResult, invokeQrCreateSession } from '../actions'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { invokeQrCreateSession, type QrPunchPurpose, type QrSupervisorLocationInput } from '../actions'
+import { QrPunchMobileTipsModalTrigger } from './QrPunchMobileTipsModal'
 
-type QrPurpose = 'punch_in' | 'punch_out'
 type ScanRow = Database['public']['Tables']['qr_session_scans']['Row']
 
-type ScanView = ScanRow & { employee_name: string }
+type TodayPunchRow = {
+  id: string
+  scanned_at: string
+  employee_user_id: string
+  purpose: QrPunchPurpose
+  employee_name: string
+}
 
-function locationStatus(scan: ScanRow): string {
-  if (scan.result === 'accepted' && scan.confirm_method === 'auto') {
-    return '自動承認（位置範囲内）'
-  }
-  if (scan.result === 'accepted' && scan.confirm_method === 'supervisor_tap') {
-    return '承認済（手動）'
-  }
-  if (scan.result === 'rejected') {
-    return '却下'
-  }
-  if (scan.result === 'pending') {
-    return '保留（位置または手動確認）'
-  }
-  return scan.result ?? '—'
+function getSupervisorPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('geolocation_unsupported'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 18_000,
+      maximumAge: 0,
+    })
+  })
+}
+
+function purposeLabel(p: QrPunchPurpose): string {
+  return p === 'punch_in' ? '出勤' : '退勤'
 }
 
 export function QrPunchSupervisorClient() {
   const supabase = useMemo(() => createClient(), [])
-  const [purpose, setPurpose] = useState<QrPurpose>('punch_in')
+  const [purpose, setPurpose] = useState<QrPunchPurpose>('punch_in')
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [countdownSec, setCountdownSec] = useState<number>(0)
-  const [scans, setScans] = useState<ScanView[]>([])
+  const [todayList, setTodayList] = useState<TodayPunchRow[]>([])
   const [loadingQr, setLoadingQr] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [confirmNotice, setConfirmNotice] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
   const [qrSize, setQrSize] = useState(260)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const supervisorUserIdRef = useRef<string | null>(null)
+  const purposeRef = useRef(purpose)
+
+  useEffect(() => {
+    purposeRef.current = purpose
+  }, [purpose])
 
   useEffect(() => {
     const w = typeof window !== 'undefined' ? Math.min(280, window.innerWidth - 80) : 260
@@ -55,8 +67,10 @@ export function QrPunchSupervisorClient() {
       ? 'bg-gradient-to-b from-blue-600 to-blue-900 text-white'
       : 'bg-gradient-to-b from-orange-500 to-orange-900 text-white'
 
-  const enrichScans = useCallback(
-    async (rows: ScanRow[]): Promise<ScanView[]> => {
+  const enrichTodayRows = useCallback(
+    async (
+      rows: { id: string; scanned_at: string; employee_user_id: string; qr_sessions: { purpose: string } | null }[],
+    ): Promise<TodayPunchRow[]> => {
       const userIds = [...new Set(rows.map((r) => r.employee_user_id))]
       if (userIds.length === 0) return []
       const { data: emps } = await supabase.from('employees').select('user_id, name').in('user_id', userIds)
@@ -65,61 +79,118 @@ export function QrPunchSupervisorClient() {
         if (e.user_id) nameByUser.set(e.user_id, e.name?.trim() || '（名前なし）')
       }
       return rows.map((r) => ({
-        ...r,
+        id: r.id,
+        scanned_at: r.scanned_at,
+        employee_user_id: r.employee_user_id,
+        purpose: (r.qr_sessions?.purpose === 'punch_out' ? 'punch_out' : 'punch_in') as QrPunchPurpose,
         employee_name: nameByUser.get(r.employee_user_id) ?? '（不明）',
       }))
     },
     [supabase],
   )
 
-  const loadScans = useCallback(
-    async (sid: string) => {
-      const { data, error: qErr } = await supabase
-        .from('qr_session_scans')
-        .select('*')
-        .eq('session_id', sid)
-        .order('scanned_at', { ascending: false })
-      if (qErr) {
-        console.error(qErr)
-        return
-      }
-      const enriched = await enrichScans((data ?? []) as ScanRow[])
-      setScans(enriched)
-    },
-    [supabase, enrichScans],
-  )
+  const loadTodayPunches = useCallback(async () => {
+    const uid = supervisorUserIdRef.current
+    if (!uid) return
+    const { startIso, endIsoExclusive } = getJstDateRangeUtc()
+    const { data, error: qErr } = await supabase
+      .from('qr_session_scans')
+      .select('id, scanned_at, employee_user_id, qr_sessions!inner(supervisor_user_id, purpose)')
+      .eq('result', 'accepted')
+      .gte('scanned_at', startIso)
+      .lt('scanned_at', endIsoExclusive)
+      .filter('qr_sessions.supervisor_user_id', 'eq', uid)
+      .order('scanned_at', { ascending: false })
 
-  const mergeScanPayload = useCallback(
-    async (row: ScanRow) => {
-      const [one] = await enrichScans([row])
-      if (!one) return
-      setScans((prev) => {
-        const idx = prev.findIndex((s) => s.id === one.id)
-        if (idx >= 0) {
-          const next = [...prev]
-          next[idx] = one
-          return next
-        }
-        return [one, ...prev]
-      })
-    },
-    [enrichScans],
-  )
-
-  useEffect(() => {
-    if (!expiresAt) {
-      setCountdownSec(0)
+    if (qErr) {
+      console.error(qErr)
       return
     }
-    const tick = () => {
-      const end = new Date(expiresAt).getTime()
-      const sec = Math.max(0, Math.ceil((end - Date.now()) / 1000))
-      setCountdownSec(sec)
-    }
-    tick()
-    const id = setInterval(tick, 500)
-    return () => clearInterval(id)
-  }, [expiresAt])
+    const raw =
+      (data ?? []) as unknown as {
+        id: string
+        scanned_at: string
+        employee_user_id: string
+        qr_sessions: { supervisor_user_id: string; purpose: string }
+      }[]
+    const enriched = await enrichTodayRows(raw)
+    setTodayList(enriched)
+  }, [supabase, enrichTodayRows])
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      supervisorUserIdRef.current = user?.id ?? null
+      void loadTodayPunches()
+    })
+  }, [supabase, loadTodayPunches])
+
+  const mergeTodayFromScan = useCallback(
+    async (row: ScanRow) => {
+      if (row.result !== 'accepted') return
+      const { data: sess } = await supabase
+        .from('qr_sessions')
+        .select('supervisor_user_id, purpose')
+        .eq('id', row.session_id)
+        .maybeSingle()
+      const supId = supervisorUserIdRef.current
+      if (!sess || sess.supervisor_user_id !== supId) return
+      const { startIso, endIsoExclusive } = getJstDateRangeUtc()
+      const t = new Date(row.scanned_at).getTime()
+      if (t < new Date(startIso).getTime() || t >= new Date(endIsoExclusive).getTime()) return
+
+      const [one] = await enrichTodayRows([
+        {
+          id: row.id,
+          scanned_at: row.scanned_at,
+          employee_user_id: row.employee_user_id,
+          qr_sessions: { purpose: sess.purpose ?? 'punch_in' },
+        },
+      ])
+      if (!one) return
+      setTodayList((prev) => {
+        if (prev.some((p) => p.id === one.id)) {
+          return prev.map((p) => (p.id === one.id ? one : p))
+        }
+        return [one, ...prev].sort((a, b) => new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime())
+      })
+    },
+    [supabase, enrichTodayRows],
+  )
+
+  const createSessionWithLocation = useCallback(
+    async (p: QrPunchPurpose): Promise<{ ok: true } | { ok: false; message: string }> => {
+      let pos: GeolocationPosition
+      try {
+        pos = await getSupervisorPosition()
+      } catch (e: unknown) {
+        const err = e as GeolocationPositionError & { message?: string }
+        const code = err?.code
+        let msg =
+          '位置情報を取得できませんでした。ブラウザで位置情報を許可し、GPS をオンにしてから再度お試しください。'
+        if (code === 1) msg = '位置情報が拒否されています。設定からこのサイトへの位置情報の共有を許可してください。'
+        if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
+        return { ok: false, message: msg }
+      }
+      const loc: QrSupervisorLocationInput = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      }
+      const result = await invokeQrCreateSession(p, loc)
+      if (result.ok === false) {
+        return { ok: false, message: result.message || 'QR セッションの作成に失敗しました' }
+      }
+      setSessionId(result.sessionId)
+      setToken(result.token)
+      return { ok: true }
+    },
+    [],
+  )
+
+  const loadTodayPunchesRef = useRef(loadTodayPunches)
+  loadTodayPunchesRef.current = loadTodayPunches
+  const mergeTodayFromScanRef = useRef(mergeTodayFromScan)
+  mergeTodayFromScanRef.current = mergeTodayFromScan
 
   useEffect(() => {
     if (!sessionId) {
@@ -141,19 +212,24 @@ export function QrPunchSupervisorClient() {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          void mergeScanPayload(payload.new as ScanRow)
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'qr_session_scans',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload) => {
-          void mergeScanPayload(payload.new as ScanRow)
+          const row = payload.new as ScanRow
+          void mergeTodayFromScanRef.current(row)
+          void (async () => {
+            const p = purposeRef.current
+            setRegenerating(true)
+            setToken(null)
+            try {
+              const r = await createSessionWithLocation(p)
+              if (r.ok === false) {
+                setError(r.message)
+                return
+              }
+              setError(null)
+              await loadTodayPunchesRef.current()
+            } finally {
+              setRegenerating(false)
+            }
+          })()
         },
       )
       .subscribe()
@@ -163,25 +239,19 @@ export function QrPunchSupervisorClient() {
       void supabase.removeChannel(ch)
       channelRef.current = null
     }
-  }, [sessionId, supabase, mergeScanPayload])
+  }, [sessionId, supabase, createSessionWithLocation])
 
   const createQrSession = async () => {
     setError(null)
-    setConfirmNotice(null)
     setLoadingQr(true)
     try {
-      const result = await invokeQrCreateSession(purpose)
-      if (result.ok === false) {
-        setError(result.message || 'QR セッションの作成に失敗しました')
+      const r = await createSessionWithLocation(purpose)
+      if (r.ok === false) {
+        setError(r.message)
         return
       }
-
       setError(null)
-      setSessionId(result.sessionId)
-      setExpiresAt(result.expiresAt)
-      setToken(result.token)
-      setScans([])
-      await loadScans(result.sessionId)
+      await loadTodayPunches()
     } catch (e) {
       setError(e instanceof Error ? e.message : '通信エラー')
     } finally {
@@ -189,62 +259,17 @@ export function QrPunchSupervisorClient() {
     }
   }
 
-  const pendingScans = useMemo(() => scans.filter((s) => s.result === 'pending'), [scans])
-
-  const handleConfirmOne = (scanId: string, result: 'accepted' | 'rejected') => {
-    startTransition(async () => {
-      const r = await confirmScanResult(scanId, result)
-      if (r.ok === false) {
-        setError(r.message)
-        return
-      }
-      setError(null)
-      if (result === 'accepted') {
-        setConfirmNotice('承認しました。新しい QR を生成してください。')
-      } else {
-        setConfirmNotice('却下しました。新しい QR を生成してください。')
-      }
-      if (sessionId) await loadScans(sessionId)
-      // QRカードとカウントダウンをリセット（“途中の残り時間”で表示されないようにする）
-      setToken(null)
-      setExpiresAt(null)
-      setCountdownSec(0)
-    })
-  }
-
-  const handleBulk = (result: 'accepted' | 'rejected') => {
-    const ids = pendingScans.map((s) => s.id)
-    if (ids.length === 0) return
-    startTransition(async () => {
-      const r = await bulkConfirmPendingScans(ids, result)
-      if (r.ok === false) {
-        setError(r.message)
-        return
-      }
-      setError(null)
-      if (result === 'accepted') {
-        setConfirmNotice('一括承認しました。新しい QR を生成してください。')
-      } else {
-        setConfirmNotice('一括却下しました。新しい QR を生成してください。')
-      }
-      if (sessionId) await loadScans(sessionId)
-      setToken(null)
-      setExpiresAt(null)
-      setCountdownSec(0)
-    })
-  }
-
-  const expired = countdownSec <= 0 && !!expiresAt
+  const secure = typeof window !== 'undefined' && window.isSecureContext
 
   return (
     <div className={`min-h-screen ${shellClass}`}>
       <div className="mx-auto flex max-w-lg flex-col gap-6 px-4 py-6 pb-28">
         <header>
           <div className="flex items-start justify-between gap-3">
-            <div className="w-[88px]" aria-hidden="true" />
+            <QrPunchMobileTipsModalTrigger />
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
-              <p className="mt-1 text-sm text-white/85">現場で QR を表示し、スキャンを確認・承認します</p>
+              <p className="mt-1 text-sm text-white/85">現場で QR を表示し、従業員の打刻を受け付けます</p>
             </div>
             <button
               type="button"
@@ -258,7 +283,12 @@ export function QrPunchSupervisorClient() {
           </div>
         </header>
 
-        {/* 出勤 / 退勤 */}
+        {!secure && (
+          <div className="rounded-xl border border-amber-300/50 bg-black/20 px-3 py-2 text-center text-xs text-amber-100">
+            QR 生成には位置情報が必要です。<strong>HTTPS</strong> または localhost で開いてください。
+          </div>
+        )}
+
         <div
           className={`grid grid-cols-2 gap-3 rounded-2xl p-1.5 ${theme === 'in' ? 'bg-blue-950/40' : 'bg-orange-950/40'}`}
         >
@@ -289,7 +319,7 @@ export function QrPunchSupervisorClient() {
         <button
           type="button"
           onClick={() => void createQrSession()}
-          disabled={loadingQr}
+          disabled={loadingQr || regenerating}
           className={`min-h-16 w-full rounded-2xl text-xl font-bold shadow-xl transition active:scale-[0.98] disabled:opacity-60 ${
             theme === 'in'
               ? 'bg-white text-blue-700 hover:bg-blue-50'
@@ -307,107 +337,44 @@ export function QrPunchSupervisorClient() {
             {error}
           </div>
         )}
-        {confirmNotice && (
-          <div className="rounded-xl border border-white/30 bg-black/25 px-4 py-3 text-center text-sm font-medium text-white/90">
-            {confirmNotice}
-          </div>
-        )}
 
-        {token && !expired && pendingScans.length === 0 && (
+        {token && !regenerating && (
           <div className="rounded-2xl bg-white p-4 text-center text-slate-900 shadow-2xl">
             <div className="flex justify-center py-2">
               <QRCodeSVG value={token} size={qrSize} level="M" includeMargin />
             </div>
-            <p className="mt-3 text-xs text-slate-500">従業員アプリでこの QR をスキャンしてください</p>
-            <div
-              className={`mt-4 rounded-xl py-4 text-3xl font-mono font-bold tabular-nums ${
-                countdownSec <= 15 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-800'
-              }`}
-            >
-              残り {countdownSec} 秒
-            </div>
+            <p className="mt-3 text-xs text-slate-500">従業員がこの QR をスキャンすると打刻されます</p>
           </div>
         )}
 
-        {token && expired && pendingScans.length === 0 && (
-          <div className="rounded-2xl border border-white/40 bg-black/20 px-4 py-6 text-center text-lg font-semibold">
-            QR の有効期限が切れました。必要なら再生成してください。
+        {regenerating && (
+          <div className="rounded-2xl border border-white/30 bg-black/25 px-4 py-8 text-center text-sm font-medium text-white">
+            次の打刻用に QR を再生成しています…
           </div>
         )}
 
         <section className="rounded-2xl bg-black/20 p-4 backdrop-blur-sm">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">スキャン待ち（保留）</h2>
-            <button
-              type="button"
-              disabled={pendingScans.length === 0 || isPending}
-              onClick={() => handleBulk('accepted')}
-              className="min-h-11 min-w-32 rounded-xl bg-emerald-500 px-4 text-base font-bold text-white shadow-md disabled:opacity-40"
-            >
-              一括承認
-            </button>
-          </div>
-
-          {pendingScans.length === 0 ? (
-            <p className="py-6 text-center text-sm text-white/75">保留中のスキャンはありません</p>
+          <h2 className="mb-3 text-lg font-bold">打刻済リスト（本日）</h2>
+          <p className="mb-3 text-xs text-white/70">出退勤区分・氏名・日時（新しい順）</p>
+          {todayList.length === 0 ? (
+            <p className="py-6 text-center text-sm text-white/75">本日の打刻はまだありません</p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {pendingScans.map((s) => (
+            <ul className="flex flex-col gap-2">
+              {todayList.map((row) => (
                 <li
-                  key={s.id}
-                  className="rounded-xl border border-white/20 bg-white/10 p-3 text-left shadow-inner"
+                  key={row.id}
+                  className="grid grid-cols-[4.5rem_1fr_auto] gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm"
                 >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-lg font-bold">{s.employee_name}</p>
-                      <p className="text-sm text-white/80">
-                        {format(new Date(s.scanned_at), 'M/d HH:mm:ss', { locale: ja })}
-                      </p>
-                      <p className="mt-1 text-sm text-white/90">{locationStatus(s)}</p>
-                    </div>
-                    <div className="mt-2 flex shrink-0 gap-2 sm:mt-0">
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => handleConfirmOne(s.id, 'accepted')}
-                        className="min-h-11 flex-1 rounded-lg bg-emerald-500 px-3 text-sm font-bold text-white sm:flex-none"
-                      >
-                        承認
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => handleConfirmOne(s.id, 'rejected')}
-                        className="min-h-11 flex-1 rounded-lg bg-red-600/90 px-3 text-sm font-bold text-white sm:flex-none"
-                      >
-                        却下
-                      </button>
-                    </div>
-                  </div>
+                  <span className="font-bold text-white">{purposeLabel(row.purpose)}</span>
+                  <span className="truncate font-medium">{row.employee_name}</span>
+                  <span className="shrink-0 tabular-nums text-white/85">
+                    {format(new Date(row.scanned_at), 'M/d HH:mm:ss', { locale: ja })}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
         </section>
-
-        {scans.some((s) => s.result !== 'pending') && (
-          <section className="rounded-2xl bg-black/15 p-4 text-sm text-white/85">
-            <h3 className="mb-2 font-bold text-white">最近の処理済み</h3>
-            <ul className="max-h-48 space-y-2 overflow-y-auto">
-              {scans
-                .filter((s) => s.result !== 'pending')
-                .slice(0, 12)
-                .map((s) => (
-                  <li key={s.id} className="flex justify-between gap-2 border-b border-white/10 py-1">
-                    <span className="font-medium">{s.employee_name}</span>
-                    <span className="text-white/70">
-                      {s.result} · {format(new Date(s.scanned_at), 'HH:mm:ss')}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          </section>
-        )}
       </div>
     </div>
   )

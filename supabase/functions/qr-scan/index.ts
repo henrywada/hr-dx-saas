@@ -1,14 +1,10 @@
 /**
- * 従業員用: QR トークン検証 → qr_session_scans 記録（必要なら自動承認）
- * 環境変数: QR_SIGNING_SECRET, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+ * 従業員用: QR 検証 → ジオフェンス・重複チェック → セッション消費 → qr_session_scans + work_time_records
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 import { corsHeaders } from "../_shared/cors.ts"
-import {
-  haversineDistanceM,
-  verifyQrToken,
-} from "../_shared/qr-crypto.ts"
+import { haversineDistanceM, verifyQrToken } from "../_shared/qr-crypto.ts"
 import { resolveQrSigningSecret } from "../_shared/qr-secret.ts"
 
 type LocationInput = { lat: number; lng: number; accuracy?: number }
@@ -18,20 +14,88 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v)
 }
 
-/** メタデータに監督者位置と半径があれば、端末位置が範囲内なら自動承認 */
-function evaluateAutoAccept(
+function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: string; endIsoExclusive: string } {
+  const dateStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now)
+  const start = new Date(`${dateStr}T00:00:00+09:00`)
+  const endIsoExclusive = new Date(start.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  return { dateStr, startIso: start.toISOString(), endIsoExclusive }
+}
+
+function workTimeFieldSet(v: string | null | undefined): boolean {
+  return v != null && String(v).trim() !== ""
+}
+
+/** メタデータに監督者位置が必須。範囲外・精度不良は拒否（セッション未消費で返す想定） */
+function evaluateGeofenceStrict(
   metadata: unknown,
   loc: LocationInput,
-): boolean {
-  if (!isRecord(metadata)) return false
+): { ok: true } | { ok: false; code: string } {
+  if (!isRecord(metadata)) return { ok: false, code: "geofence_not_configured" }
   const slat = metadata.supervisor_lat
   const slng = metadata.supervisor_lng
-  if (typeof slat !== "number" || typeof slng !== "number") return false
+  if (typeof slat !== "number" || typeof slng !== "number") {
+    return { ok: false, code: "geofence_not_configured" }
+  }
   const radiusM = typeof metadata.radius_m === "number" ? metadata.radius_m : 100
   const acc = typeof loc.accuracy === "number" ? loc.accuracy : 9999
-  if (acc > 150) return false
+  if (acc > 150) return { ok: false, code: "location_accuracy_too_low" }
   const d = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  return d <= radiusM + acc
+  if (d > radiusM + acc) return { ok: false, code: "geo_fence_violation" }
+  return { ok: true }
+}
+
+async function hasDuplicatePunch(
+  admin: SupabaseClient,
+  employeeId: string,
+  employeeUserId: string,
+  purpose: string,
+  dateStr: string,
+  startIso: string,
+  endIsoExclusive: string,
+): Promise<boolean> {
+  const { data: wtr } = await admin
+    .from("work_time_records")
+    .select("start_time, end_time")
+    .eq("employee_id", employeeId)
+    .eq("record_date", dateStr)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const w = wtr as { start_time: string | null; end_time: string | null } | null
+  const fromWork =
+    w != null &&
+    (purpose === "punch_in" ? workTimeFieldSet(w.start_time) : workTimeFieldSet(w.end_time))
+  if (fromWork) return true
+
+  const { data: scans, error: scanErr } = await admin
+    .from("qr_session_scans")
+    .select("session_id")
+    .eq("employee_user_id", employeeUserId)
+    .eq("result", "accepted")
+    .gte("scanned_at", startIso)
+    .lt("scanned_at", endIsoExclusive)
+
+  if (scanErr) {
+    console.error("hasDuplicatePunch scans", scanErr)
+    return false
+  }
+  const sessionIds = [...new Set((scans ?? []).map((r: { session_id: string }) => r.session_id))]
+  if (sessionIds.length === 0) return false
+  const { data: sessions, error: sesErr } = await admin
+    .from("qr_sessions")
+    .select("id, purpose")
+    .in("id", sessionIds)
+  if (sesErr) {
+    console.error("hasDuplicatePunch sessions", sesErr)
+    return false
+  }
+  return (sessions ?? []).some((s: { purpose: string }) => s.purpose === purpose)
 }
 
 serve(async (req) => {
@@ -107,13 +171,20 @@ serve(async (req) => {
   }
 
   const verified = await verifyQrToken(secret, body.token)
-  if (!verified.ok) {
+  if (verified.ok === false) {
     return new Response(JSON.stringify({ error: "token_rejected", reason: verified.reason }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   }
   const { payload } = verified
+  const purpose = payload.purpose
+  if (purpose !== "punch_in" && purpose !== "punch_out") {
+    return new Response(JSON.stringify({ error: "invalid_purpose" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
 
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -129,11 +200,11 @@ serve(async (req) => {
 
   const { data: emp, error: empErr } = await userClient
     .from("employees")
-    .select("tenant_id")
+    .select("id, tenant_id")
     .eq("user_id", user.id)
     .maybeSingle()
 
-  if (empErr || !emp?.tenant_id) {
+  if (empErr || !emp?.tenant_id || !emp.id) {
     return new Response(JSON.stringify({ error: "employee_not_found" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -158,7 +229,9 @@ serve(async (req) => {
 
   const { data: session, error: sesErr } = await admin
     .from("qr_sessions")
-    .select("id, tenant_id, nonce, purpose, expires_at, is_active, uses, max_uses, metadata")
+    .select(
+      "id, tenant_id, nonce, purpose, expires_at, is_active, uses, max_uses, metadata, supervisor_user_id",
+    )
     .eq("id", payload.sessionId)
     .maybeSingle()
 
@@ -194,6 +267,32 @@ serve(async (req) => {
     })
   }
 
+  const geo = evaluateGeofenceStrict(session.metadata, loc)
+  if (!geo.ok) {
+    const status = geo.code === "geo_fence_violation" ? 403 : 400
+    return new Response(JSON.stringify({ error: geo.code }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+
+  const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
+  const dup = await hasDuplicatePunch(
+    admin,
+    emp.id,
+    user.id,
+    purpose,
+    dateStr,
+    startIso,
+    endIsoExclusive,
+  )
+  if (dup) {
+    return new Response(JSON.stringify({ error: "duplicate_punch" }), {
+      status: 409,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+
   const prevUses = session.uses
   const { data: consumed, error: upErr } = await admin
     .from("qr_sessions")
@@ -213,10 +312,6 @@ serve(async (req) => {
     })
   }
 
-  const autoOk = evaluateAutoAccept(session.metadata, loc)
-  const result = autoOk ? "accepted" : "pending"
-  const confirmMethod = autoOk ? "auto" : null
-
   const locationJson = {
     lat: loc.lat,
     lng: loc.lng,
@@ -233,12 +328,12 @@ serve(async (req) => {
       employee_user_id: user.id,
       location: locationJson,
       device_info: deviceJson,
-      result,
-      confirm_method: confirmMethod,
+      result: "accepted",
+      confirm_method: "auto",
       audit: {
         token_exp: payload.exp,
-        auto_accept_evaluated: true,
-        auto_accept: autoOk,
+        geofence_passed: true,
+        purpose,
       },
     })
     .select("id, result, scanned_at")
@@ -246,10 +341,106 @@ serve(async (req) => {
 
   if (scanErr || !scan) {
     console.error("qr_session_scans insert", scanErr)
+    await admin
+      .from("qr_sessions")
+      .update({ uses: prevUses, is_active: true })
+      .eq("id", session.id)
     return new Response(JSON.stringify({ error: "scan_insert_failed", detail: scanErr?.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
+  }
+
+  const punchSupervisorId = session.supervisor_user_id as string
+  const nowIso = new Date().toISOString()
+
+  const { data: existingWtr } = await admin
+    .from("work_time_records")
+    .select("id, start_time, end_time")
+    .eq("employee_id", emp.id)
+    .eq("record_date", dateStr)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const ex = existingWtr as { id: string; start_time: string | null; end_time: string | null } | null
+
+  let wtrErr: Error | null = null
+  if (purpose === "punch_in") {
+    if (!ex) {
+      const { error } = await admin.from("work_time_records").insert({
+        tenant_id: session.tenant_id,
+        employee_id: emp.id,
+        record_date: dateStr,
+        start_time: nowIso,
+        end_time: null,
+        duration_minutes: 0,
+        is_holiday: false,
+        source: "qr",
+        qr_session_id: session.id,
+        punch_supervisor_user_id: punchSupervisorId,
+      })
+      if (error) wtrErr = error
+    } else {
+      const { error } = await admin
+        .from("work_time_records")
+        .update({
+          start_time: nowIso,
+          source: "qr",
+          qr_session_id: session.id,
+          punch_supervisor_user_id: punchSupervisorId,
+        })
+        .eq("id", ex.id)
+      if (error) wtrErr = error
+    }
+  } else {
+    if (!ex) {
+      const { error } = await admin.from("work_time_records").insert({
+        tenant_id: session.tenant_id,
+        employee_id: emp.id,
+        record_date: dateStr,
+        start_time: null,
+        end_time: nowIso,
+        duration_minutes: 0,
+        is_holiday: false,
+        source: "qr",
+        qr_session_id: session.id,
+        punch_supervisor_user_id: punchSupervisorId,
+      })
+      if (error) wtrErr = error
+    } else {
+      const startMs = ex.start_time ? new Date(ex.start_time).getTime() : null
+      const endMs = new Date(nowIso).getTime()
+      let duration = 0
+      if (startMs != null) duration = Math.max(0, Math.round((endMs - startMs) / 60_000))
+      const { error } = await admin
+        .from("work_time_records")
+        .update({
+          end_time: nowIso,
+          duration_minutes: duration,
+          source: "qr",
+          qr_session_id: session.id,
+          punch_supervisor_user_id: punchSupervisorId,
+        })
+        .eq("id", ex.id)
+      if (error) wtrErr = error
+    }
+  }
+
+  if (wtrErr) {
+    console.error("work_time_records upsert", wtrErr)
+    await admin.from("qr_session_scans").delete().eq("id", scan.id)
+    await admin
+      .from("qr_sessions")
+      .update({ uses: prevUses, is_active: true })
+      .eq("id", session.id)
+    return new Response(
+      JSON.stringify({ error: "work_time_record_failed", detail: String(wtrErr.message ?? wtrErr) }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    )
   }
 
   const { error: auditErr } = await admin.from("qr_audit_logs").insert({
@@ -258,7 +449,7 @@ serve(async (req) => {
     related_id: scan.id,
     action: "scan",
     actor_user_id: user.id,
-    payload: { session_id: session.id, result: scan.result },
+    payload: { session_id: session.id, result: scan.result, purpose },
   })
   if (auditErr) console.error("qr_audit_logs insert", auditErr)
 
@@ -268,6 +459,7 @@ serve(async (req) => {
       result: scan.result,
       scannedAt: scan.scanned_at,
       sessionId: session.id,
+      purpose,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   )

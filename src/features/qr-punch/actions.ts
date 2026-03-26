@@ -2,13 +2,24 @@
 
 import { createAdminServiceClient } from '@/lib/supabase/adminClient'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/lib/supabase/types'
 import { FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { getJstDateRangeUtc } from './jst-date-range'
 import {
+  jsonFromFunctionsHttpError,
   mapQrScanApiError,
   messageFromFunctionsInvokeError,
   userMessageFromEdgeJsonBody,
 } from './parse-functions-error'
+
+async function messageFromQrScanInvokeError(error: unknown): Promise<string> {
+  const j = await jsonFromFunctionsHttpError(error)
+  if (j && typeof (j as { error?: unknown }).error === 'string') {
+    return mapQrScanApiError(j as { error: string; reason?: string; detail?: string })
+  }
+  return messageFromFunctionsInvokeError(error)
+}
 
 export type QrPunchPurpose = 'punch_in' | 'punch_out'
 type QrTokenPayload = {
@@ -45,8 +56,11 @@ type SessionCreateResult =
   | { ok: true; sessionId: string; expiresAt: string; token: string }
   | { ok: false; message: string; debug?: QrDebugInfo }
 type ScanInvokeResult =
-  | { ok: true; scanId: string; result: string }
+  | { ok: true; scanId: string; result: string; purpose?: QrPunchPurpose }
   | { ok: false; message: string; debug?: QrDebugInfo }
+
+/** 監督者端末の位置（QR 生成時） */
+export type QrSupervisorLocationInput = { lat: number; lng: number; accuracy?: number }
 const PURPOSES = new Set<QrPunchPurpose>(['punch_in', 'punch_out'])
 
 function bytesToBase64Url(bytes: Buffer): string {
@@ -180,7 +194,11 @@ async function shouldFallbackToServerImpl(error: unknown): Promise<boolean> {
   return false
 }
 
-async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string): Promise<SessionCreateResult> {
+async function createQrSessionFallback(
+  purpose: QrPunchPurpose,
+  userId: string,
+  supervisorLocation: QrSupervisorLocationInput,
+): Promise<SessionCreateResult> {
   if (!PURPOSES.has(purpose)) return { ok: false, message: 'invalid_purpose' }
   const secret = resolveQrSigningSecretServer()
   if (!secret) {
@@ -198,11 +216,19 @@ async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string):
   const { data: emp, error: empErr } = await userClient.from('employees').select('tenant_id').eq('user_id', userId).maybeSingle()
   if (empErr || !emp?.tenant_id) return { ok: false, message: 'employee_not_found' }
 
+  const metadata = {
+    supervisor_lat: supervisorLocation.lat,
+    supervisor_lng: supervisorLocation.lng,
+    radius_m: 100,
+    ...(typeof supervisorLocation.accuracy === 'number'
+      ? { supervisor_accuracy_m: supervisorLocation.accuracy }
+      : {}),
+  }
+
   try {
     const admin = createAdminServiceClient()
     const nonce = crypto.randomUUID()
-    // QR（監督者表示→従業員スキャン→承認完了まで）に十分な余裕を持たせる
-    const expiresAt = new Date(Date.now() + 180_000).toISOString()
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
     const { data: row, error: insErr } = await admin
       .from('qr_sessions')
       .insert({
@@ -214,7 +240,7 @@ async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string):
         max_uses: 1,
         uses: 0,
         is_active: true,
-        metadata: {},
+        metadata: metadata as Json,
       })
       .select('id, expires_at')
       .single()
@@ -234,17 +260,76 @@ async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string):
   }
 }
 
-function evaluateAutoAccept(metadata: unknown, loc: QrScanLocationInput): boolean {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false
+function evaluateGeofenceStrict(
+  metadata: unknown,
+  loc: QrScanLocationInput,
+): { ok: true } | { ok: false; code: string } {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return { ok: false, code: 'geofence_not_configured' }
+  }
   const m = metadata as Record<string, unknown>
   const slat = m.supervisor_lat
   const slng = m.supervisor_lng
-  if (typeof slat !== 'number' || typeof slng !== 'number') return false
+  if (typeof slat !== 'number' || typeof slng !== 'number') {
+    return { ok: false, code: 'geofence_not_configured' }
+  }
   const radiusM = typeof m.radius_m === 'number' ? m.radius_m : 100
   const acc = typeof loc.accuracy === 'number' ? loc.accuracy : 9999
-  if (acc > 150) return false
+  if (acc > 150) return { ok: false, code: 'location_accuracy_too_low' }
   const d = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  return d <= radiusM + acc
+  if (d > radiusM + acc) return { ok: false, code: 'geo_fence_violation' }
+  return { ok: true }
+}
+
+function workTimeFieldSet(v: string | null | undefined): boolean {
+  return v != null && String(v).trim() !== ''
+}
+
+async function hasDuplicatePunchAdmin(
+  admin: ReturnType<typeof createAdminServiceClient>,
+  employeeId: string,
+  employeeUserId: string,
+  purpose: string,
+  dateStr: string,
+  startIso: string,
+  endIsoExclusive: string,
+): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adb = admin as any
+  const { data: wtr } = await adb
+    .from('work_time_records')
+    .select('start_time, end_time')
+    .eq('employee_id', employeeId)
+    .eq('record_date', dateStr)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const w = wtr as { start_time: string | null; end_time: string | null } | null
+  const fromWork =
+    w != null && (purpose === 'punch_in' ? workTimeFieldSet(w.start_time) : workTimeFieldSet(w.end_time))
+  if (fromWork) return true
+
+  const { data: scans, error: scanErr } = await admin
+    .from('qr_session_scans')
+    .select('session_id')
+    .eq('employee_user_id', employeeUserId)
+    .eq('result', 'accepted')
+    .gte('scanned_at', startIso)
+    .lt('scanned_at', endIsoExclusive)
+
+  if (scanErr) {
+    console.error('hasDuplicatePunchAdmin scans', scanErr)
+    return false
+  }
+  const sessionIds = [...new Set((scans ?? []).map((r: { session_id: string }) => r.session_id))]
+  if (sessionIds.length === 0) return false
+  const { data: sessions, error: sesErr } = await admin.from('qr_sessions').select('id, purpose').in('id', sessionIds)
+  if (sesErr) {
+    console.error('hasDuplicatePunchAdmin sessions', sesErr)
+    return false
+  }
+  return (sessions ?? []).some((s: { purpose: string }) => s.purpose === purpose)
 }
 
 async function scanQrFallback(input: {
@@ -281,17 +366,29 @@ async function scanQrFallback(input: {
   const userClient = await createClient()
   const { data: emp, error: empErr } = await userClient
     .from('employees')
-    .select('tenant_id')
+    .select('id, tenant_id')
     .eq('user_id', input.userId)
     .maybeSingle()
-  if (empErr || !emp?.tenant_id) return { ok: false, message: mapQrScanApiError({ error: 'employee_not_found' }) }
-  if (emp.tenant_id !== verified.payload.tenantId) return { ok: false, message: mapQrScanApiError({ error: 'tenant_mismatch' }) }
+  if (empErr || !emp?.tenant_id || !emp.id) {
+    return { ok: false, message: mapQrScanApiError({ error: 'employee_not_found' }) }
+  }
+  if (emp.tenant_id !== verified.payload.tenantId) {
+    return { ok: false, message: mapQrScanApiError({ error: 'tenant_mismatch' }) }
+  }
+
+  const purposeRaw = verified.payload.purpose
+  if (!PURPOSES.has(purposeRaw as QrPunchPurpose)) {
+    return { ok: false, message: mapQrScanApiError({ error: 'invalid_purpose' }) }
+  }
+  const purpose = purposeRaw as QrPunchPurpose
 
   try {
     const admin = createAdminServiceClient()
     const { data: session, error: sesErr } = await admin
       .from('qr_sessions')
-      .select('id, tenant_id, nonce, purpose, expires_at, is_active, uses, max_uses, metadata')
+      .select(
+        'id, tenant_id, nonce, purpose, expires_at, is_active, uses, max_uses, metadata, supervisor_user_id',
+      )
       .eq('id', verified.payload.sessionId)
       .maybeSingle()
     if (sesErr || !session) return { ok: false, message: mapQrScanApiError({ error: 'session_not_found' }) }
@@ -309,6 +406,17 @@ async function scanQrFallback(input: {
       return { ok: false, message: mapQrScanApiError({ error: 'session_expired' }) }
     }
 
+    const geo = evaluateGeofenceStrict(session.metadata, input.location)
+    if (geo.ok === false) {
+      return { ok: false, message: mapQrScanApiError({ error: geo.code }) }
+    }
+
+    const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
+    const dup = await hasDuplicatePunchAdmin(admin, emp.id, input.userId, purpose, dateStr, startIso, endIsoExclusive)
+    if (dup) {
+      return { ok: false, message: mapQrScanApiError({ error: 'duplicate_punch' }) }
+    }
+
     const prevUses = session.uses
     const { data: consumed, error: upErr } = await admin
       .from('qr_sessions')
@@ -322,8 +430,6 @@ async function scanQrFallback(input: {
       .maybeSingle()
     if (upErr || !consumed) return { ok: false, message: mapQrScanApiError({ error: 'session_already_used' }) }
 
-    const autoOk = evaluateAutoAccept(session.metadata, input.location)
-    const result = autoOk ? 'accepted' : 'pending'
     const { data: scan, error: scanErr } = await admin
       .from('qr_session_scans')
       .insert({
@@ -337,17 +443,104 @@ async function scanQrFallback(input: {
           provider: 'client',
         },
         device_info: input.deviceInfo ?? {},
-        result,
-        confirm_method: autoOk ? 'auto' : null,
+        result: 'accepted',
+        confirm_method: 'auto',
         audit: {
           token_exp: verified.payload.exp,
-          auto_accept_evaluated: true,
-          auto_accept: autoOk,
+          geofence_passed: true,
+          purpose,
         },
       })
       .select('id, result')
       .single()
-    if (scanErr || !scan) return { ok: false, message: scanErr?.message ?? 'scan_insert_failed' }
+    if (scanErr || !scan) {
+      await admin.from('qr_sessions').update({ uses: prevUses, is_active: true }).eq('id', session.id)
+      return { ok: false, message: scanErr?.message ?? 'scan_insert_failed' }
+    }
+
+    const punchSupervisorId = session.supervisor_user_id as string
+    const nowIso = new Date().toISOString()
+    // work_time_records は Generated 型に未含まれる場合がある
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wAdmin = admin as any
+
+    const { data: existingWtr } = await wAdmin
+      .from('work_time_records')
+      .select('id, start_time, end_time')
+      .eq('employee_id', emp.id)
+      .eq('record_date', dateStr)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const ex = existingWtr as { id: string; start_time: string | null; end_time: string | null } | null
+    let wtrErr: { message: string } | null = null
+
+    if (purpose === 'punch_in') {
+      if (!ex) {
+        const { error } = await wAdmin.from('work_time_records').insert({
+          tenant_id: session.tenant_id,
+          employee_id: emp.id,
+          record_date: dateStr,
+          start_time: nowIso,
+          end_time: null,
+          duration_minutes: 0,
+          is_holiday: false,
+          source: 'qr',
+          qr_session_id: session.id,
+          punch_supervisor_user_id: punchSupervisorId,
+        })
+        wtrErr = error
+      } else {
+        const { error } = await wAdmin
+          .from('work_time_records')
+          .update({
+            start_time: nowIso,
+            source: 'qr',
+            qr_session_id: session.id,
+            punch_supervisor_user_id: punchSupervisorId,
+          })
+          .eq('id', ex.id)
+        wtrErr = error
+      }
+    } else if (!ex) {
+      const { error } = await wAdmin.from('work_time_records').insert({
+        tenant_id: session.tenant_id,
+        employee_id: emp.id,
+        record_date: dateStr,
+        start_time: null,
+        end_time: nowIso,
+        duration_minutes: 0,
+        is_holiday: false,
+        source: 'qr',
+        qr_session_id: session.id,
+        punch_supervisor_user_id: punchSupervisorId,
+      })
+      wtrErr = error
+    } else {
+      const startMs = ex.start_time ? new Date(ex.start_time).getTime() : null
+      const endMs = new Date(nowIso).getTime()
+      let duration = 0
+      if (startMs != null) duration = Math.max(0, Math.round((endMs - startMs) / 60_000))
+      const { error } = await wAdmin
+        .from('work_time_records')
+        .update({
+          end_time: nowIso,
+          duration_minutes: duration,
+          source: 'qr',
+          qr_session_id: session.id,
+          punch_supervisor_user_id: punchSupervisorId,
+        })
+        .eq('id', ex.id)
+      wtrErr = error
+    }
+
+    if (wtrErr) {
+      console.error('work_time_records upsert', wtrErr)
+      await admin.from('qr_session_scans').delete().eq('id', scan.id)
+      await admin.from('qr_sessions').update({ uses: prevUses, is_active: true }).eq('id', session.id)
+      return { ok: false, message: mapQrScanApiError({ error: 'work_time_record_failed' }) }
+    }
 
     const { error: auditErr } = await admin.from('qr_audit_logs').insert({
       tenant_id: session.tenant_id,
@@ -355,26 +548,13 @@ async function scanQrFallback(input: {
       related_id: scan.id,
       action: 'scan',
       actor_user_id: input.userId,
-      payload: { session_id: session.id, result: scan.result },
+      payload: { session_id: session.id, result: scan.result, purpose },
     })
     if (auditErr) console.error('qr_audit_logs insert', auditErr)
-    return { ok: true, scanId: scan.id, result: scan.result }
+    return { ok: true, scanId: scan.id, result: scan.result, purpose }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'QR スキャン処理に失敗しました。' }
   }
-}
-
-/** 日本時間の当該日の [startIso, endIsoExclusive)（UTC ISO 文字列） */
-function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: string; endIsoExclusive: string } {
-  const dateStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Tokyo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
-  const start = new Date(`${dateStr}T00:00:00+09:00`)
-  const endIsoExclusive = new Date(start.getTime() + 24 * 60 * 60 * 1000).toISOString()
-  return { dateStr, startIso: start.toISOString(), endIsoExclusive }
 }
 
 /**
@@ -383,10 +563,7 @@ function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: stri
  */
 export async function checkQrDuplicatePunch(
   token: string,
-): Promise<
-  | { ok: true; purpose: QrPunchPurpose; needsConfirm: boolean }
-  | { ok: false; message: string; debug?: QrDebugInfo }
-> {
+): Promise<{ ok: true; purpose: QrPunchPurpose } | { ok: false; message: string; debug?: QrDebugInfo }> {
   const trimmed = token.trim()
   if (!trimmed) {
     return { ok: false, message: 'QRからデータを読み取れませんでした。' }
@@ -486,12 +663,17 @@ export async function checkQrDuplicatePunch(
     }
   }
 
-  return { ok: true, purpose, needsConfirm: fromWork || fromQr }
+  if (fromWork || fromQr) {
+    const label = purpose === 'punch_in' ? '出勤' : '退勤'
+    return { ok: false, message: `本日の${label}はすでに記録されています。` }
+  }
+  return { ok: true, purpose }
 }
 
 /** ブラウザから Edge を直接叩かず、サーバー経由で呼ぶ（広告ブロック・CORS 回避） */
 export async function invokeQrCreateSession(
   purpose: QrPunchPurpose,
+  supervisorLocation: QrSupervisorLocationInput,
 ): Promise<SessionCreateResult> {
   const supabase = await createClient()
   const {
@@ -510,13 +692,13 @@ export async function invokeQrCreateSession(
   }
 
   const { data, error: fnErr } = await supabase.functions.invoke('qr-create-session', {
-    body: { purpose },
+    body: { purpose, supervisorLocation },
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (fnErr) {
     if (await shouldFallbackToServerImpl(fnErr)) {
-      return createQrSessionFallback(purpose, user.id)
+      return createQrSessionFallback(purpose, user.id, supervisorLocation)
     }
     return { ok: false, message: await messageFromFunctionsInvokeError(fnErr) }
   }
@@ -579,12 +761,13 @@ export async function invokeQrScan(input: {
         userId: user.id,
       })
     }
-    return { ok: false, message: await messageFromFunctionsInvokeError(fnErr) }
+    return { ok: false, message: await messageFromQrScanInvokeError(fnErr) }
   }
 
   const json = data as {
     scanId?: string
     result?: string
+    purpose?: string
     error?: string
     reason?: string
     detail?: string
@@ -597,7 +780,9 @@ export async function invokeQrScan(input: {
   if (!scanId || !result) {
     return { ok: false, message: '応答が不正です。' }
   }
-  return { ok: true, scanId, result }
+  const purpose =
+    json.purpose === 'punch_in' || json.purpose === 'punch_out' ? (json.purpose as QrPunchPurpose) : undefined
+  return { ok: true, scanId, result, purpose }
 }
 
 type SessionRow = {

@@ -1,10 +1,14 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ChevronRight, Briefcase, LogOut, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
+import {
+  SidebarCategoryLinkRow,
+  SidebarDashboardLinkRow,
+  SidebarPlainNavLink,
+} from '@/components/layout/SidebarNavLinkRows';
 import { APP_ROUTES } from '@/config/routes';
 import { writeAuditLog } from '@/lib/log/actions';
 import { useMobileMenu } from '@/components/layout/MobileMenuContext';
@@ -82,22 +86,16 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
             メインメニュー
           </h3>
           <nav className="space-y-1">
-            <Link 
+            <SidebarDashboardLinkRow
               href={dashboardHref}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
-                isActive(dashboardHref) 
-                  ? "bg-white text-accent-orange shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700" 
-                  : "text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"
+              isActive={isActive(dashboardHref)}
+              onNavigate={() => setIsMobileMenuOpen(false)}
+              linkClassName={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                isActive(dashboardHref)
+                  ? 'bg-white text-accent-orange shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                  : 'text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm'
               }`}
-            >
-              {isActive(dashboardHref) && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent-orange rounded-r-full"></div>
-              )}
-              <LayoutDashboard className={`w-5 h-5 transition-colors ${isActive(dashboardHref) ? "text-accent-orange" : "text-slate-400 group-hover:text-slate-600"}`} />
-              <span className="flex-1">ダッシュボード</span>
-              {isActive(dashboardHref) && <ChevronRight className="w-4 h-4 text-accent-orange opacity-50" />}
-            </Link>
+            />
           </nav>
         </div>
 
@@ -109,35 +107,29 @@ export function SidebarNav({ dynamicCategories, tenantName, isSaaSAdmin = false,
                 const active = isActive(basePath, category.id);
                 
                 return (
-                  <Link
+                  <SidebarCategoryLinkRow
                     key={category.id}
                     href={categoryPath}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
-                      active 
-                        ? "bg-white text-accent-orange shadow-sm border border-slate-100" 
-                        : "text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"
+                    categoryName={category.name}
+                    active={active}
+                    onNavigate={() => setIsMobileMenuOpen(false)}
+                    linkClassName={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                      active
+                        ? 'bg-white text-accent-orange shadow-sm border border-slate-100'
+                        : 'text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm'
                     }`}
-                  >
-                     {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent-orange rounded-r-full"></div>
-                    )}
-                    <Briefcase className={`w-5 h-5 transition-colors ${active ? "text-accent-orange" : "text-slate-400 group-hover:text-slate-600"}`} />
-                    <span className="flex-1">{category.name}</span>
-                    {active ? <ChevronRight className="w-4 h-4 text-accent-orange opacity-50" /> : null}
-                  </Link>
+                  />
                 );
               })}
 
               {/* Logout / Return Button */}
               {isSaaSAdmin && !showLogoutInsteadOfPortal ? (
-                <Link
+                <SidebarPlainNavLink
                   href={APP_ROUTES.TENANT.PORTAL}
+                  icon={ArrowLeft}
+                  label="ポータルへ戻る"
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"
-                >
-                  <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
-                  <span className="flex-1 text-left">ポータルへ戻る</span>
-                </Link>
+                />
               ) : (
                 <button
                   onClick={handleLogoutOrReturn}

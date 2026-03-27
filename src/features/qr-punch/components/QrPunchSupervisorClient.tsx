@@ -29,6 +29,8 @@ export function QrPunchSupervisorClient() {
   const [purpose, setPurpose] = useState<QrPunchPurpose>('punch_in')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  /** サーバが返すセッション失効時刻（自動 QR 更新のスケジュール用） */
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [todayList, setTodayList] = useState<TodayPunchRow[]>([])
   const [loadingQr, setLoadingQr] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
@@ -37,6 +39,8 @@ export function QrPunchSupervisorClient() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const supervisorUserIdRef = useRef<string | null>(null)
   const purposeRef = useRef(purpose)
+  /** スキャン通知と期限タイマーが同時に走ったときの二重生成を防ぐ */
+  const qrRefreshInFlightRef = useRef(false)
 
   useEffect(() => {
     purposeRef.current = purpose
@@ -48,6 +52,7 @@ export function QrPunchSupervisorClient() {
     setPurpose(p)
     setSessionId(null)
     setToken(null)
+    setExpiresAt(null)
     setError(null)
     setRegenerating(false)
   }, [purpose])
@@ -160,13 +165,66 @@ export function QrPunchSupervisorClient() {
     }
     setSessionId(result.sessionId)
     setToken(result.token)
+    setExpiresAt(result.expiresAt)
     return { ok: true }
   }, [])
+
+  /** 従業員スキャン後・有効期限切れ時など、同じモードで QR を作り直す */
+  const refreshQrForCurrentPurpose = useCallback(async () => {
+    if (qrRefreshInFlightRef.current) return
+    qrRefreshInFlightRef.current = true
+    setRegenerating(true)
+    setToken(null)
+    try {
+      const r = await createQrSessionCore(purposeRef.current)
+      if (r.ok === false) {
+        setError(r.message)
+        setSessionId(null)
+        setExpiresAt(null)
+        return
+      }
+      setError(null)
+      await loadTodayPunches()
+    } finally {
+      qrRefreshInFlightRef.current = false
+      setRegenerating(false)
+    }
+  }, [createQrSessionCore, loadTodayPunches])
 
   const loadTodayPunchesRef = useRef(loadTodayPunches)
   loadTodayPunchesRef.current = loadTodayPunches
   const mergeTodayFromScanRef = useRef(mergeTodayFromScan)
   mergeTodayFromScanRef.current = mergeTodayFromScan
+  const refreshQrForCurrentPurposeRef = useRef(refreshQrForCurrentPurpose)
+  refreshQrForCurrentPurposeRef.current = refreshQrForCurrentPurpose
+
+  /** 有効期限到来で自動更新（タブが非表示のときはタイマーが遅延しうるため visibility でも補完） */
+  useEffect(() => {
+    if (!expiresAt || !sessionId || regenerating || loadingQr) return
+    const deadline = new Date(expiresAt).getTime()
+    const ms = deadline - Date.now()
+    const run = () => void refreshQrForCurrentPurposeRef.current()
+    if (ms <= 0) {
+      run()
+      return
+    }
+    const id = window.setTimeout(run, ms)
+    return () => window.clearTimeout(id)
+  }, [expiresAt, sessionId, regenerating, loadingQr])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      if (regenerating || loadingQr) return
+      if (!expiresAt || !sessionId) return
+      if (new Date(expiresAt).getTime() <= Date.now()) {
+        void refreshQrForCurrentPurposeRef.current()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [expiresAt, sessionId, regenerating, loadingQr])
 
   useEffect(() => {
     if (!sessionId) {
@@ -190,22 +248,7 @@ export function QrPunchSupervisorClient() {
         (payload) => {
           const row = payload.new as ScanRow
           void mergeTodayFromScanRef.current(row)
-          void (async () => {
-            const p = purposeRef.current
-            setRegenerating(true)
-            setToken(null)
-            try {
-              const r = await createQrSessionCore(p)
-              if (r.ok === false) {
-                setError(r.message)
-                return
-              }
-              setError(null)
-              await loadTodayPunchesRef.current()
-            } finally {
-              setRegenerating(false)
-            }
-          })()
+          void refreshQrForCurrentPurposeRef.current()
         },
       )
       .subscribe()
@@ -215,7 +258,7 @@ export function QrPunchSupervisorClient() {
       void supabase.removeChannel(ch)
       channelRef.current = null
     }
-  }, [sessionId, supabase, createQrSessionCore])
+  }, [sessionId, supabase])
 
   const createQrSession = async () => {
     setError(null)
@@ -247,7 +290,7 @@ export function QrPunchSupervisorClient() {
               <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
               <p className="mt-1 text-sm text-white/85">現場で QR を表示し、従業員の打刻を受け付けます</p>
               <p className="mt-2 text-xs leading-snug text-white/65">
-                QR の有効期限は約 5 分です。期限切れの場合は「QRコードを生成」で再表示してください。
+                QR の有効期限は約 5 分です。期限が切れると自動で新しい QR に差し替わります。
               </p>
             </div>
             <button

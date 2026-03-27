@@ -30,6 +30,9 @@ function workTimeFieldSet(v: string | null | undefined): boolean {
   return v != null && String(v).trim() !== ""
 }
 
+const QR_PUNCH_DEFAULT_RADIUS_M = 200
+const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
+
 /** メタデータに監督者位置が必須。範囲外・精度不良は拒否（セッション未消費で返す想定） */
 function evaluateGeofenceStrict(
   metadata: unknown,
@@ -41,11 +44,15 @@ function evaluateGeofenceStrict(
   if (typeof slat !== "number" || typeof slng !== "number") {
     return { ok: false, code: "geofence_not_configured" }
   }
-  const radiusM = typeof metadata.radius_m === "number" ? metadata.radius_m : 100
+  const radiusM = typeof metadata.radius_m === "number" ? metadata.radius_m : QR_PUNCH_DEFAULT_RADIUS_M
   const acc = typeof loc.accuracy === "number" ? loc.accuracy : 9999
   if (acc > 150) return { ok: false, code: "location_accuracy_too_low" }
+  const supRaw = metadata.supervisor_accuracy_m
+  const supAccRaw =
+    typeof supRaw === "number" && Number.isFinite(supRaw) ? Math.max(0, supRaw) : 0
+  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
   const d = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  if (d > radiusM + acc) return { ok: false, code: "geo_fence_violation" }
+  if (d > radiusM + acc + supSlack) return { ok: false, code: "geo_fence_violation" }
   return { ok: true }
 }
 

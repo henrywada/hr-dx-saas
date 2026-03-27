@@ -63,6 +63,14 @@ type ScanInvokeResult =
 export type QrSupervisorLocationInput = { lat: number; lng: number; accuracy?: number }
 const PURPOSES = new Set<QrPunchPurpose>(['punch_in', 'punch_out'])
 
+/** ジオフェンスの既定半径（m）。PC とスマホの座標ズレをある程度吸収する */
+const QR_PUNCH_DEFAULT_RADIUS_M = 200
+/**
+ * 監督者端末の accuracy（m）を判定に加算する上限。
+ * 未反映だとデスクトップの粗い位置とスマホ GPS の乖離で同一現場でも弾かれやすい。
+ */
+const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
+
 function bytesToBase64Url(bytes: Buffer): string {
   return bytes.toString('base64url')
 }
@@ -219,7 +227,7 @@ async function createQrSessionFallback(
   const metadata = {
     supervisor_lat: supervisorLocation.lat,
     supervisor_lng: supervisorLocation.lng,
-    radius_m: 100,
+    radius_m: QR_PUNCH_DEFAULT_RADIUS_M,
     ...(typeof supervisorLocation.accuracy === 'number'
       ? { supervisor_accuracy_m: supervisorLocation.accuracy }
       : {}),
@@ -273,11 +281,16 @@ function evaluateGeofenceStrict(
   if (typeof slat !== 'number' || typeof slng !== 'number') {
     return { ok: false, code: 'geofence_not_configured' }
   }
-  const radiusM = typeof m.radius_m === 'number' ? m.radius_m : 100
+  const radiusM = typeof m.radius_m === 'number' ? m.radius_m : QR_PUNCH_DEFAULT_RADIUS_M
   const acc = typeof loc.accuracy === 'number' ? loc.accuracy : 9999
   if (acc > 150) return { ok: false, code: 'location_accuracy_too_low' }
+  const supAccRaw =
+    typeof m.supervisor_accuracy_m === 'number' && Number.isFinite(m.supervisor_accuracy_m)
+      ? Math.max(0, m.supervisor_accuracy_m)
+      : 0
+  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
   const d = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  if (d > radiusM + acc) return { ok: false, code: 'geo_fence_violation' }
+  if (d > radiusM + acc + supSlack) return { ok: false, code: 'geo_fence_violation' }
   return { ok: true }
 }
 

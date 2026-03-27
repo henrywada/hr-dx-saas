@@ -124,7 +124,7 @@ serve(async (req) => {
     metadata.supervisor_accuracy_m = sl.accuracy
   }
   if (typeof metadata.radius_m !== "number" || Number.isNaN(metadata.radius_m as number)) {
-    metadata.radius_m = 100
+    metadata.radius_m = 200
   }
 
   const nonce = crypto.randomUUID()

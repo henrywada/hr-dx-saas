@@ -270,6 +270,9 @@ export function QrPunchSupervisorClient() {
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
               <p className="mt-1 text-sm text-white/85">現場で QR を表示し、従業員の打刻を受け付けます</p>
+              <p className="mt-2 text-xs leading-snug text-white/65">
+                PC では位置が粗くなることがあります。打刻が弾かれるときは、監督者もスマホのブラウザで QR を表示してください。
+              </p>
             </div>
             <button
               type="button"

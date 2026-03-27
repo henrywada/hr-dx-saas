@@ -42,6 +42,16 @@ export function QrPunchSupervisorClient() {
     purposeRef.current = purpose
   }, [purpose])
 
+  /** 出勤↔退勤を切り替えたときは QR を消し、「QRコードを生成」から出し直させる */
+  const handlePurposeChange = useCallback((p: QrPunchPurpose) => {
+    if (p === purpose) return
+    setPurpose(p)
+    setSessionId(null)
+    setToken(null)
+    setError(null)
+    setRegenerating(false)
+  }, [purpose])
+
   useEffect(() => {
     const w = typeof window !== 'undefined' ? Math.min(280, window.innerWidth - 80) : 260
     setQrSize(Math.max(200, w))
@@ -263,7 +273,7 @@ export function QrPunchSupervisorClient() {
         >
           <button
             type="button"
-            onClick={() => setPurpose('punch_in')}
+            onClick={() => handlePurposeChange('punch_in')}
             className={`min-h-14 rounded-xl text-lg font-bold transition ${
               purpose === 'punch_in'
                 ? 'bg-white text-blue-700 shadow-lg'
@@ -274,7 +284,7 @@ export function QrPunchSupervisorClient() {
           </button>
           <button
             type="button"
-            onClick={() => setPurpose('punch_out')}
+            onClick={() => handlePurposeChange('punch_out')}
             className={`min-h-14 rounded-xl text-lg font-bold transition ${
               purpose === 'punch_out'
                 ? 'bg-white text-orange-700 shadow-lg'

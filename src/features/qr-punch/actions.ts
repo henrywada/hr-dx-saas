@@ -658,7 +658,13 @@ export async function invokeQrCreateSession(purpose: QrPunchPurpose): Promise<Se
   })
 
   if (fnErr) {
-    if (await shouldFallbackToServerImpl(fnErr)) {
+    const httpBody = await jsonFromFunctionsHttpError(fnErr)
+    const httpErr = httpBody?.error
+    // 本番 Edge が未更新のとき、旧バージョンが missing_supervisor_location を返す → サーバー実装へ
+    if (
+      httpErr === 'missing_supervisor_location' ||
+      (await shouldFallbackToServerImpl(fnErr))
+    ) {
       return createQrSessionFallback(purpose, user.id)
     }
     return { ok: false, message: await messageFromFunctionsInvokeError(fnErr) }
@@ -670,6 +676,9 @@ export async function invokeQrCreateSession(purpose: QrPunchPurpose): Promise<Se
     token?: string
     error?: string
     detail?: string
+  }
+  if (json?.error === 'missing_supervisor_location') {
+    return createQrSessionFallback(purpose, user.id)
   }
   if (json?.error) {
     const mapped = userMessageFromEdgeJsonBody(json as Record<string, unknown>)

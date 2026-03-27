@@ -96,45 +96,47 @@ export function AttendanceQrScanClient() {
     processingRef.current = false
   }, [])
 
-  const onDecodedRef = useRef<(text: string) => void>(() => {})
-  onDecodedRef.current = (decodedText: string) => {
-    if (processingRef.current) return
-    processingRef.current = true
-    void (async () => {
-      try {
-        if (scannerRef.current) {
-          await scannerRef.current.clear().catch(() => {})
-          scannerRef.current = null
+  const onQrDecoded = useCallback(
+    (decodedText: string) => {
+      if (processingRef.current) return
+      processingRef.current = true
+      void (async () => {
+        try {
+          if (scannerRef.current) {
+            await scannerRef.current.clear().catch(() => {})
+            scannerRef.current = null
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
 
-      const token = decodedText.trim()
-      if (!token) {
-        setErrorMessage('QRからデータを読み取れませんでした。')
-        setErrorDebug(null)
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+        const token = decodedText.trim()
+        if (!token) {
+          setErrorMessage('QRからデータを読み取れませんでした。')
+          setErrorDebug(null)
+          setPhase('error')
+          processingRef.current = false
+          return
+        }
 
-      setPhase('duplicate_check')
-      setErrorMessage(null)
+        setPhase('duplicate_check')
+        setErrorMessage(null)
 
-      const dup = await checkQrDuplicatePunch(token)
-      if (dup.ok === false) {
-        setErrorMessage(dup.message)
-        setErrorDebug(dup.debug ? JSON.stringify(dup.debug, null, 2) : null)
-        setPhase('error')
-        processingRef.current = false
-        return
-      }
+        const dup = await checkQrDuplicatePunch(token)
+        if (dup.ok === false) {
+          setErrorMessage(dup.message)
+          setErrorDebug(dup.debug ? JSON.stringify(dup.debug, null, 2) : null)
+          setPhase('error')
+          processingRef.current = false
+          return
+        }
 
-      purposeRef.current = dup.purpose
-      await proceedWithScan(token)
-    })()
-  }
+        purposeRef.current = dup.purpose
+        await proceedWithScan(token)
+      })()
+    },
+    [proceedWithScan],
+  )
 
   useEffect(() => {
     if (phase !== 'scanning') return
@@ -152,16 +154,13 @@ export function AttendanceQrScanClient() {
     )
     scannerRef.current = scanner
 
-    scanner.render(
-      (text) => onDecodedRef.current(text),
-      () => {},
-    )
+    scanner.render(onQrDecoded, () => {})
 
     return () => {
       void scanner.clear().catch(() => {})
       if (scannerRef.current === scanner) scannerRef.current = null
     }
-  }, [phase])
+  }, [phase, onQrDecoded])
 
   const secure = typeof window !== 'undefined' && window.isSecureContext
 

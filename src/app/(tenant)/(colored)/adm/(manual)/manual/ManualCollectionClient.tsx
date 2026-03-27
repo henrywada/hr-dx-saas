@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { getHelpMarkdown } from '@/content/help';
+import { HelpMarkdownModal } from '@/components/help/HelpMarkdownModal';
 import { MANUAL_CATEGORIES, type ManualEntry } from './manualData';
-import { ManualDetailModal } from './ManualDetailModal';
-import { AttendanceMethodsModal } from './components/AttendanceMethodsModal';
 
 /** マニュアル集：カテゴリー一覧とモーダル制御 */
 export function ManualCollectionClient() {
   const [selected, setSelected] = useState<ManualEntry | null>(null);
-  const [attendanceMethodsOpen, setAttendanceMethodsOpen] = useState(false);
 
   const openEntry = useCallback((entry: ManualEntry) => {
     setSelected(entry);
@@ -18,6 +17,19 @@ export function ManualCollectionClient() {
   const closeModal = useCallback(() => {
     setSelected(null);
   }, []);
+
+  const markdown = selected ? getHelpMarkdown(selected.id) : '';
+
+  const srDescription = useMemo(() => {
+    if (!selected) return undefined;
+    if (selected.id === 'att-attendance-three-methods') {
+      return 'QRコード打刻・CSV一括取り込み・PC端末ログの3方式の仕組みと手順の説明です。';
+    }
+    if (selected.id === 'att-qr') {
+      return 'QR 打刻時のカメラ・位置情報・端末設定に関する注意事項です。';
+    }
+    return 'マニュアルの説明文です。';
+  }, [selected]);
 
   return (
     <>
@@ -45,18 +57,6 @@ export function ManualCollectionClient() {
               </div>
 
               <ul className="divide-y divide-slate-100">
-                {cat.id === 'attendance' && (
-                  <li key="attendance-methods-guide">
-                    <button
-                      type="button"
-                      onClick={() => setAttendanceMethodsOpen(true)}
-                      className="w-full flex items-center gap-3 px-5 py-3.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 transition-colors group"
-                    >
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 shrink-0" />
-                      <span className="flex-1">勤怠管理の3つのデータ取得方法</span>
-                    </button>
-                  </li>
-                )}
                 {cat.entries.map((entry) => (
                   <li key={entry.id}>
                     <button
@@ -75,8 +75,15 @@ export function ManualCollectionClient() {
         </div>
       </div>
 
-      <ManualDetailModal open={selected !== null} entry={selected} onClose={closeModal} />
-      <AttendanceMethodsModal open={attendanceMethodsOpen} onOpenChange={setAttendanceMethodsOpen} />
+      <HelpMarkdownModal
+        open={selected !== null}
+        onOpenChange={(o) => {
+          if (!o) closeModal();
+        }}
+        title={selected?.title ?? ''}
+        markdown={markdown}
+        srDescription={srDescription}
+      />
     </>
   );
 }

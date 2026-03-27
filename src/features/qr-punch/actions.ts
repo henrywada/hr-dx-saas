@@ -21,6 +21,15 @@ async function messageFromQrScanInvokeError(error: unknown): Promise<string> {
   return messageFromFunctionsInvokeError(error)
 }
 
+/** Edge が 4xx で返した JSON からジオフェンス調査用フィールドを取り出す */
+function geofenceDebugFromInvokeJson(j: Record<string, unknown> | null): QrGeofenceDebugPayload | undefined {
+  const g = j?.geofence_debug
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return undefined
+  const o = g as Record<string, unknown>
+  if (typeof o.fail_code !== 'string') return undefined
+  return g as unknown as QrGeofenceDebugPayload
+}
+
 export type QrPunchPurpose = 'punch_in' | 'punch_out'
 type QrTokenPayload = {
   sessionId: string
@@ -45,11 +54,28 @@ type QrTokenVerificationDebug = {
   secretSource: 'env' | 'local_fallback'
 }
 
+/** QR_PUNCH_DEBUG_GEOFENCE=1 のときのみ API 応答に含める（座標は個人情報に近いので本番では明示的に有効化したときだけ） */
+export type QrGeofenceDebugPayload = {
+  fail_code: string
+  distance_m: number | null
+  allowed_m: number | null
+  radius_m: number | null
+  employee_accuracy_m: number | null
+  supervisor_accuracy_raw_m: number | null
+  supervisor_slack_m: number | null
+  supervisor_lat: number | null
+  supervisor_lng: number | null
+  employee_lat: number
+  employee_lng: number
+  note_ja: string
+}
+
 type QrDebugInfo = {
   qrSigningSecret?: QrSigningSecretDebug
   tokenVerification?: QrTokenVerificationDebug
   // Edge invoke のフォールバック等が発生したか
   fallbackUsed?: boolean
+  geofence?: QrGeofenceDebugPayload
 }
 
 type SessionCreateResult =
@@ -61,6 +87,8 @@ type ScanInvokeResult =
 
 /** 監督者端末の位置（QR 生成時） */
 export type QrSupervisorLocationInput = { lat: number; lng: number; accuracy?: number }
+/** 従業員打刻時に送る位置（accuracy 必須：ジオフェンス判定で使用） */
+export type QrScanLocationInput = { lat: number; lng: number; accuracy: number }
 const PURPOSES = new Set<QrPunchPurpose>(['punch_in', 'punch_out'])
 
 /** ジオフェンスの既定半径（m）。PC とスマホの座標ズレをある程度吸収する */
@@ -70,6 +98,64 @@ const QR_PUNCH_DEFAULT_RADIUS_M = 200
  * 未反映だとデスクトップの粗い位置とスマホ GPS の乖離で同一現場でも弾かれやすい。
  */
 const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
+
+function isQrPunchGeofenceDebugEnabled(): boolean {
+  return process.env.QR_PUNCH_DEBUG_GEOFENCE === '1'
+}
+
+function roundGeoDebugM(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+function roundGeoDebugDeg(n: number): number {
+  return Math.round(n * 1e5) / 1e5
+}
+
+/** ジオフェンス失敗時の調査用（有効化時のみ応答に載せる） */
+function buildQrGeofenceDebugPayload(
+  code: string,
+  loc: QrScanLocationInput,
+  metadata: Record<string, unknown> | null,
+  distanceM: number | null,
+): QrGeofenceDebugPayload {
+  const radiusM =
+    metadata && typeof metadata.radius_m === 'number' && Number.isFinite(metadata.radius_m)
+      ? metadata.radius_m
+      : QR_PUNCH_DEFAULT_RADIUS_M
+  const slat =
+    metadata && typeof metadata.supervisor_lat === 'number' && Number.isFinite(metadata.supervisor_lat)
+      ? metadata.supervisor_lat
+      : null
+  const slng =
+    metadata && typeof metadata.supervisor_lng === 'number' && Number.isFinite(metadata.supervisor_lng)
+      ? metadata.supervisor_lng
+      : null
+  const supAccRaw =
+    metadata &&
+    typeof metadata.supervisor_accuracy_m === 'number' &&
+    Number.isFinite(metadata.supervisor_accuracy_m)
+      ? Math.max(0, metadata.supervisor_accuracy_m)
+      : 0
+  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
+  const acc = typeof loc.accuracy === 'number' && Number.isFinite(loc.accuracy) ? loc.accuracy : null
+  const allowedM =
+    slat != null && slng != null && acc != null ? radiusM + acc + supSlack : null
+  return {
+    fail_code: code,
+    distance_m: distanceM != null ? roundGeoDebugM(distanceM) : null,
+    allowed_m: allowedM != null ? roundGeoDebugM(allowedM) : null,
+    radius_m: roundGeoDebugM(radiusM),
+    employee_accuracy_m: acc != null ? roundGeoDebugM(acc) : null,
+    supervisor_accuracy_raw_m: roundGeoDebugM(supAccRaw),
+    supervisor_slack_m: roundGeoDebugM(supSlack),
+    supervisor_lat: slat != null ? roundGeoDebugDeg(slat) : null,
+    supervisor_lng: slng != null ? roundGeoDebugDeg(slng) : null,
+    employee_lat: roundGeoDebugDeg(loc.lat),
+    employee_lng: roundGeoDebugDeg(loc.lng),
+    note_ja:
+      '打刻可否はWi‑Fiの同一接続ではなく、QR生成時に保存された監督者の位置とスマホGPSの直線距離で判定しています。PCブラウザの位置が粗いと、同じ部屋でも拒否されることがあります。',
+  }
+}
 
 function bytesToBase64Url(bytes: Buffer): string {
   return bytes.toString('base64url')
@@ -271,26 +357,38 @@ async function createQrSessionFallback(
 function evaluateGeofenceStrict(
   metadata: unknown,
   loc: QrScanLocationInput,
-): { ok: true } | { ok: false; code: string } {
+): { ok: true } | { ok: false; code: string; debugPayload?: QrGeofenceDebugPayload } {
+  const dbg = isQrPunchGeofenceDebugEnabled()
+  const attach = (
+    code: string,
+    m: Record<string, unknown> | null,
+    distanceM: number | null,
+  ): { ok: false; code: string; debugPayload?: QrGeofenceDebugPayload } => ({
+    ok: false,
+    code,
+    ...(dbg ? { debugPayload: buildQrGeofenceDebugPayload(code, loc, m, distanceM) } : {}),
+  })
+
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return { ok: false, code: 'geofence_not_configured' }
+    return attach('geofence_not_configured', null, null)
   }
   const m = metadata as Record<string, unknown>
   const slat = m.supervisor_lat
   const slng = m.supervisor_lng
   if (typeof slat !== 'number' || typeof slng !== 'number') {
-    return { ok: false, code: 'geofence_not_configured' }
+    return attach('geofence_not_configured', m, null)
   }
   const radiusM = typeof m.radius_m === 'number' ? m.radius_m : QR_PUNCH_DEFAULT_RADIUS_M
   const acc = typeof loc.accuracy === 'number' ? loc.accuracy : 9999
-  if (acc > 150) return { ok: false, code: 'location_accuracy_too_low' }
+  const dAlways = haversineDistanceM(slat, slng, loc.lat, loc.lng)
+  if (acc > 150) return attach('location_accuracy_too_low', m, dAlways)
   const supAccRaw =
     typeof m.supervisor_accuracy_m === 'number' && Number.isFinite(m.supervisor_accuracy_m)
       ? Math.max(0, m.supervisor_accuracy_m)
       : 0
   const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
-  const d = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  if (d > radiusM + acc + supSlack) return { ok: false, code: 'geo_fence_violation' }
+  const d = dAlways
+  if (d > radiusM + acc + supSlack) return attach('geo_fence_violation', m, d)
   return { ok: true }
 }
 
@@ -421,7 +519,11 @@ async function scanQrFallback(input: {
 
     const geo = evaluateGeofenceStrict(session.metadata, input.location)
     if (geo.ok === false) {
-      return { ok: false, message: mapQrScanApiError({ error: geo.code }) }
+      return {
+        ok: false,
+        message: mapQrScanApiError({ error: geo.code }),
+        ...(geo.debugPayload ? { debug: { geofence: geo.debugPayload } } : {}),
+      }
     }
 
     const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
@@ -733,8 +835,6 @@ export async function invokeQrCreateSession(
   return { ok: true, sessionId: json.sessionId, expiresAt: json.expiresAt, token: json.token }
 }
 
-export type QrScanLocationInput = { lat: number; lng: number; accuracy: number }
-
 export async function invokeQrScan(input: {
   token: string
   location: QrScanLocationInput
@@ -774,7 +874,14 @@ export async function invokeQrScan(input: {
         userId: user.id,
       })
     }
-    return { ok: false, message: await messageFromQrScanInvokeError(fnErr) }
+    const errJson = await jsonFromFunctionsHttpError(fnErr)
+    const msg = await messageFromQrScanInvokeError(fnErr)
+    const gf = geofenceDebugFromInvokeJson(errJson)
+    return {
+      ok: false,
+      message: msg,
+      ...(gf ? { debug: { geofence: gf } } : {}),
+    }
   }
 
   const json = data as {
@@ -784,9 +891,15 @@ export async function invokeQrScan(input: {
     error?: string
     reason?: string
     detail?: string
+    geofence_debug?: QrGeofenceDebugPayload
   }
   if (json?.error) {
-    return { ok: false, message: mapQrScanApiError(json) }
+    const gf = json.geofence_debug
+    return {
+      ok: false,
+      message: mapQrScanApiError(json),
+      ...(gf ? { debug: { geofence: gf } } : {}),
+    }
   }
   const scanId = json.scanId
   const result = json.result

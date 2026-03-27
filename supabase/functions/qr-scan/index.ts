@@ -49,7 +49,13 @@ type GeofenceDebugPayload = {
   note_ja: string
 }
 
+/**
+ * 【テスト後に false に戻す／削除】true の間、ジオフェンス失敗時に geofence_debug を常に JSON で返す。
+ */
+const QR_PUNCH_TMP_DEBUG_GEOFENCE = true
+
 function isQrPunchGeofenceDebugEnabled(): boolean {
+  if (QR_PUNCH_TMP_DEBUG_GEOFENCE) return true
   return Deno.env.get("QR_PUNCH_DEBUG_GEOFENCE") === "1"
 }
 

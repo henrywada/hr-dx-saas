@@ -99,7 +99,14 @@ const QR_PUNCH_DEFAULT_RADIUS_M = 200
  */
 const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
 
+/**
+ * 【テスト後に false に戻す／削除】true の間、ジオフェンス失敗時に距離・座標などを常に API 経由で画面に返す。
+ * 本番では個人情報に近いため、調査が終わったら必ず無効化すること。
+ */
+const QR_PUNCH_TMP_DEBUG_GEOFENCE = true
+
 function isQrPunchGeofenceDebugEnabled(): boolean {
+  if (QR_PUNCH_TMP_DEBUG_GEOFENCE) return true
   return process.env.QR_PUNCH_DEBUG_GEOFENCE === '1'
 }
 

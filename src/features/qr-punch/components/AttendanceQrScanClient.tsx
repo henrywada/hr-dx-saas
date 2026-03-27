@@ -84,7 +84,16 @@ export function AttendanceQrScanClient() {
 
     if (scanResult.ok === false) {
       setErrorMessage(scanResult.message)
-      setErrorDebug(scanResult.debug ? JSON.stringify(scanResult.debug, null, 2) : null)
+      // 【テスト後削除】サーバー debug に加え、端末が送った位置をその場で表示（比較用）
+      const clientLoc = {
+        tmp_debug_client_sent: {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy_m: pos.coords.accuracy,
+        },
+      }
+      const merged = scanResult.debug ? { ...scanResult.debug, ...clientLoc } : clientLoc
+      setErrorDebug(JSON.stringify(merged, null, 2))
       setPhase('error')
       processingRef.current = false
       return
@@ -283,6 +292,10 @@ export function AttendanceQrScanClient() {
           <div className="rounded-2xl bg-red-950/40 px-5 py-8 text-center">
             <p className="text-lg font-bold text-red-100">打刻できませんでした</p>
             <p className="mt-3 text-sm text-red-50/95">{errorMessage}</p>
+            {/* 【テスト後削除】一時デバッグ表示 */}
+            {errorDebug && (
+              <p className="mt-2 text-xs font-bold text-amber-200">［一時デバッグ・テスト後にコード削除］</p>
+            )}
             {errorDebug && (
               <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-3 text-left text-[11px] leading-[1.4] text-red-100/90">
                 {errorDebug}

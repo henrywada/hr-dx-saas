@@ -289,9 +289,6 @@ export function QrPunchSupervisorClient() {
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
               <p className="mt-1 text-sm text-white/85">現場で QR を表示し、従業員の打刻を受け付けます</p>
-              <p className="mt-2 text-xs leading-snug text-white/65">
-                QR の有効期限は約 5 分です。期限が切れると自動で新しい QR に差し替わります。
-              </p>
             </div>
             <button
               type="button"

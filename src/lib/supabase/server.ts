@@ -1,13 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from './types'
+import { getSupabasePublicConfig, warnIfSupabasePlaceholder } from './public-config'
 
 export const createClient = async () => {
   const cookieStore = await cookies()
+  const { url, anonKey, usesPlaceholder } = getSupabasePublicConfig()
+  if (usesPlaceholder) {
+    warnIfSupabasePlaceholder('server')
+  }
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {

@@ -99,15 +99,3 @@ export async function verifyQrToken(
 
   return { ok: true, payload }
 }
-
-/** メートル（概算） */
-export function haversineDistanceM(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000
-  const toR = (d: number) => (d * Math.PI) / 180
-  const dLat = toR(lat2 - lat1)
-  const dLng = toR(lng2 - lng1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
-}

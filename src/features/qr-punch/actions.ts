@@ -21,14 +21,8 @@ async function messageFromQrScanInvokeError(error: unknown): Promise<string> {
   return messageFromFunctionsInvokeError(error)
 }
 
-/** Edge が 4xx で返した JSON からジオフェンス調査用フィールドを取り出す */
-function geofenceDebugFromInvokeJson(j: Record<string, unknown> | null): QrGeofenceDebugPayload | undefined {
-  const g = j?.geofence_debug
-  if (!g || typeof g !== 'object' || Array.isArray(g)) return undefined
-  const o = g as Record<string, unknown>
-  if (typeof o.fail_code !== 'string') return undefined
-  return g as unknown as QrGeofenceDebugPayload
-}
+/** QR セッション・署名トークンの有効期限（ミリ秒） */
+const QR_SESSION_TTL_MS = 5 * 60 * 1000
 
 export type QrPunchPurpose = 'punch_in' | 'punch_out'
 type QrTokenPayload = {
@@ -54,28 +48,11 @@ type QrTokenVerificationDebug = {
   secretSource: 'env' | 'local_fallback'
 }
 
-/** QR_PUNCH_DEBUG_GEOFENCE=1 のときのみ API 応答に含める（座標は個人情報に近いので本番では明示的に有効化したときだけ） */
-export type QrGeofenceDebugPayload = {
-  fail_code: string
-  distance_m: number | null
-  allowed_m: number | null
-  radius_m: number | null
-  employee_accuracy_m: number | null
-  supervisor_accuracy_raw_m: number | null
-  supervisor_slack_m: number | null
-  supervisor_lat: number | null
-  supervisor_lng: number | null
-  employee_lat: number
-  employee_lng: number
-  note_ja: string
-}
-
 type QrDebugInfo = {
   qrSigningSecret?: QrSigningSecretDebug
   tokenVerification?: QrTokenVerificationDebug
   // Edge invoke のフォールバック等が発生したか
   fallbackUsed?: boolean
-  geofence?: QrGeofenceDebugPayload
 }
 
 type SessionCreateResult =
@@ -85,84 +62,9 @@ type ScanInvokeResult =
   | { ok: true; scanId: string; result: string; purpose?: QrPunchPurpose }
   | { ok: false; message: string; debug?: QrDebugInfo }
 
-/** 監督者端末の位置（QR 生成時） */
-export type QrSupervisorLocationInput = { lat: number; lng: number; accuracy?: number }
-/** 従業員打刻時に送る位置（accuracy 必須：ジオフェンス判定で使用） */
-export type QrScanLocationInput = { lat: number; lng: number; accuracy: number }
+/** 従業員打刻時に任意で送る位置（記録用。未送信可） */
+export type QrScanLocationInput = { lat: number; lng: number; accuracy?: number }
 const PURPOSES = new Set<QrPunchPurpose>(['punch_in', 'punch_out'])
-
-/** ジオフェンスの既定半径（m）。PC とスマホの座標ズレをある程度吸収する */
-const QR_PUNCH_DEFAULT_RADIUS_M = 200
-/**
- * 監督者端末の accuracy（m）を判定に加算する上限。
- * 未反映だとデスクトップの粗い位置とスマホ GPS の乖離で同一現場でも弾かれやすい。
- */
-const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
-
-/**
- * 【テスト後に false に戻す／削除】true の間、ジオフェンス失敗時に距離・座標などを常に API 経由で画面に返す。
- * 本番では個人情報に近いため、調査が終わったら必ず無効化すること。
- */
-const QR_PUNCH_TMP_DEBUG_GEOFENCE = true
-
-function isQrPunchGeofenceDebugEnabled(): boolean {
-  if (QR_PUNCH_TMP_DEBUG_GEOFENCE) return true
-  return process.env.QR_PUNCH_DEBUG_GEOFENCE === '1'
-}
-
-function roundGeoDebugM(n: number): number {
-  return Math.round(n * 10) / 10
-}
-
-function roundGeoDebugDeg(n: number): number {
-  return Math.round(n * 1e5) / 1e5
-}
-
-/** ジオフェンス失敗時の調査用（有効化時のみ応答に載せる） */
-function buildQrGeofenceDebugPayload(
-  code: string,
-  loc: QrScanLocationInput,
-  metadata: Record<string, unknown> | null,
-  distanceM: number | null,
-): QrGeofenceDebugPayload {
-  const radiusM =
-    metadata && typeof metadata.radius_m === 'number' && Number.isFinite(metadata.radius_m)
-      ? metadata.radius_m
-      : QR_PUNCH_DEFAULT_RADIUS_M
-  const slat =
-    metadata && typeof metadata.supervisor_lat === 'number' && Number.isFinite(metadata.supervisor_lat)
-      ? metadata.supervisor_lat
-      : null
-  const slng =
-    metadata && typeof metadata.supervisor_lng === 'number' && Number.isFinite(metadata.supervisor_lng)
-      ? metadata.supervisor_lng
-      : null
-  const supAccRaw =
-    metadata &&
-    typeof metadata.supervisor_accuracy_m === 'number' &&
-    Number.isFinite(metadata.supervisor_accuracy_m)
-      ? Math.max(0, metadata.supervisor_accuracy_m)
-      : 0
-  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
-  const acc = typeof loc.accuracy === 'number' && Number.isFinite(loc.accuracy) ? loc.accuracy : null
-  const allowedM =
-    slat != null && slng != null && acc != null ? radiusM + acc + supSlack : null
-  return {
-    fail_code: code,
-    distance_m: distanceM != null ? roundGeoDebugM(distanceM) : null,
-    allowed_m: allowedM != null ? roundGeoDebugM(allowedM) : null,
-    radius_m: roundGeoDebugM(radiusM),
-    employee_accuracy_m: acc != null ? roundGeoDebugM(acc) : null,
-    supervisor_accuracy_raw_m: roundGeoDebugM(supAccRaw),
-    supervisor_slack_m: roundGeoDebugM(supSlack),
-    supervisor_lat: slat != null ? roundGeoDebugDeg(slat) : null,
-    supervisor_lng: slng != null ? roundGeoDebugDeg(slng) : null,
-    employee_lat: roundGeoDebugDeg(loc.lat),
-    employee_lng: roundGeoDebugDeg(loc.lng),
-    note_ja:
-      '打刻可否はWi‑Fiの同一接続ではなく、QR生成時に保存された監督者の位置とスマホGPSの直線距離で判定しています。PCブラウザの位置が粗いと、同じ部屋でも拒否されることがあります。',
-  }
-}
 
 function bytesToBase64Url(bytes: Buffer): string {
   return bytes.toString('base64url')
@@ -222,15 +124,6 @@ function verifyQrToken(
   const nowSec = Math.floor(Date.now() / 1000)
   if (payload.exp < nowSec) return { ok: false, reason: 'expired' }
   return { ok: true, payload }
-}
-
-function haversineDistanceM(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000
-  const toR = (d: number) => (d * Math.PI) / 180
-  const dLat = toR(lat2 - lat1)
-  const dLng = toR(lng2 - lng1)
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
 }
 
 function isLikelyLocalSupabaseUrl(url: string): boolean {
@@ -295,11 +188,7 @@ async function shouldFallbackToServerImpl(error: unknown): Promise<boolean> {
   return false
 }
 
-async function createQrSessionFallback(
-  purpose: QrPunchPurpose,
-  userId: string,
-  supervisorLocation: QrSupervisorLocationInput,
-): Promise<SessionCreateResult> {
+async function createQrSessionFallback(purpose: QrPunchPurpose, userId: string): Promise<SessionCreateResult> {
   if (!PURPOSES.has(purpose)) return { ok: false, message: 'invalid_purpose' }
   const secret = resolveQrSigningSecretServer()
   if (!secret) {
@@ -317,19 +206,10 @@ async function createQrSessionFallback(
   const { data: emp, error: empErr } = await userClient.from('employees').select('tenant_id').eq('user_id', userId).maybeSingle()
   if (empErr || !emp?.tenant_id) return { ok: false, message: 'employee_not_found' }
 
-  const metadata = {
-    supervisor_lat: supervisorLocation.lat,
-    supervisor_lng: supervisorLocation.lng,
-    radius_m: QR_PUNCH_DEFAULT_RADIUS_M,
-    ...(typeof supervisorLocation.accuracy === 'number'
-      ? { supervisor_accuracy_m: supervisorLocation.accuracy }
-      : {}),
-  }
-
   try {
     const admin = createAdminServiceClient()
     const nonce = crypto.randomUUID()
-    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+    const expiresAt = new Date(Date.now() + QR_SESSION_TTL_MS).toISOString()
     const { data: row, error: insErr } = await admin
       .from('qr_sessions')
       .insert({
@@ -341,7 +221,7 @@ async function createQrSessionFallback(
         max_uses: 1,
         uses: 0,
         is_active: true,
-        metadata: metadata as Json,
+        metadata: {} as Json,
       })
       .select('id, expires_at')
       .single()
@@ -359,44 +239,6 @@ async function createQrSessionFallback(
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'QR セッションの作成に失敗しました。' }
   }
-}
-
-function evaluateGeofenceStrict(
-  metadata: unknown,
-  loc: QrScanLocationInput,
-): { ok: true } | { ok: false; code: string; debugPayload?: QrGeofenceDebugPayload } {
-  const dbg = isQrPunchGeofenceDebugEnabled()
-  const attach = (
-    code: string,
-    m: Record<string, unknown> | null,
-    distanceM: number | null,
-  ): { ok: false; code: string; debugPayload?: QrGeofenceDebugPayload } => ({
-    ok: false,
-    code,
-    ...(dbg ? { debugPayload: buildQrGeofenceDebugPayload(code, loc, m, distanceM) } : {}),
-  })
-
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return attach('geofence_not_configured', null, null)
-  }
-  const m = metadata as Record<string, unknown>
-  const slat = m.supervisor_lat
-  const slng = m.supervisor_lng
-  if (typeof slat !== 'number' || typeof slng !== 'number') {
-    return attach('geofence_not_configured', m, null)
-  }
-  const radiusM = typeof m.radius_m === 'number' ? m.radius_m : QR_PUNCH_DEFAULT_RADIUS_M
-  const acc = typeof loc.accuracy === 'number' ? loc.accuracy : 9999
-  const dAlways = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  if (acc > 150) return attach('location_accuracy_too_low', m, dAlways)
-  const supAccRaw =
-    typeof m.supervisor_accuracy_m === 'number' && Number.isFinite(m.supervisor_accuracy_m)
-      ? Math.max(0, m.supervisor_accuracy_m)
-      : 0
-  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
-  const d = dAlways
-  if (d > radiusM + acc + supSlack) return attach('geo_fence_violation', m, d)
-  return { ok: true }
 }
 
 function workTimeFieldSet(v: string | null | undefined): boolean {
@@ -452,7 +294,7 @@ async function hasDuplicatePunchAdmin(
 
 async function scanQrFallback(input: {
   token: string
-  location: QrScanLocationInput
+  location?: QrScanLocationInput | null
   deviceInfo: Record<string, string>
   userId: string
 }): Promise<ScanInvokeResult> {
@@ -524,15 +366,6 @@ async function scanQrFallback(input: {
       return { ok: false, message: mapQrScanApiError({ error: 'session_expired' }) }
     }
 
-    const geo = evaluateGeofenceStrict(session.metadata, input.location)
-    if (geo.ok === false) {
-      return {
-        ok: false,
-        message: mapQrScanApiError({ error: geo.code }),
-        ...(geo.debugPayload ? { debug: { geofence: geo.debugPayload } } : {}),
-      }
-    }
-
     const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
     const dup = await hasDuplicatePunchAdmin(admin, emp.id, input.userId, purpose, dateStr, startIso, endIsoExclusive)
     if (dup) {
@@ -552,24 +385,33 @@ async function scanQrFallback(input: {
       .maybeSingle()
     if (upErr || !consumed) return { ok: false, message: mapQrScanApiError({ error: 'session_already_used' }) }
 
+    const loc = input.location
+    const locationPayload =
+      loc &&
+      typeof loc.lat === 'number' &&
+      typeof loc.lng === 'number' &&
+      !Number.isNaN(loc.lat) &&
+      !Number.isNaN(loc.lng)
+        ? {
+            lat: loc.lat,
+            lng: loc.lng,
+            accuracy: typeof loc.accuracy === 'number' && !Number.isNaN(loc.accuracy) ? loc.accuracy : null,
+            provider: 'client' as const,
+          }
+        : null
+
     const { data: scan, error: scanErr } = await admin
       .from('qr_session_scans')
       .insert({
         tenant_id: session.tenant_id,
         session_id: session.id,
         employee_user_id: input.userId,
-        location: {
-          lat: input.location.lat,
-          lng: input.location.lng,
-          accuracy: input.location.accuracy ?? null,
-          provider: 'client',
-        },
+        location: locationPayload,
         device_info: input.deviceInfo ?? {},
         result: 'accepted',
         confirm_method: 'auto',
         audit: {
           token_exp: verified.payload.exp,
-          geofence_passed: true,
           purpose,
         },
       })
@@ -793,10 +635,7 @@ export async function checkQrDuplicatePunch(
 }
 
 /** ブラウザから Edge を直接叩かず、サーバー経由で呼ぶ（広告ブロック・CORS 回避） */
-export async function invokeQrCreateSession(
-  purpose: QrPunchPurpose,
-  supervisorLocation: QrSupervisorLocationInput,
-): Promise<SessionCreateResult> {
+export async function invokeQrCreateSession(purpose: QrPunchPurpose): Promise<SessionCreateResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -814,13 +653,13 @@ export async function invokeQrCreateSession(
   }
 
   const { data, error: fnErr } = await supabase.functions.invoke('qr-create-session', {
-    body: { purpose, supervisorLocation },
+    body: { purpose },
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (fnErr) {
     if (await shouldFallbackToServerImpl(fnErr)) {
-      return createQrSessionFallback(purpose, user.id, supervisorLocation)
+      return createQrSessionFallback(purpose, user.id)
     }
     return { ok: false, message: await messageFromFunctionsInvokeError(fnErr) }
   }
@@ -844,7 +683,7 @@ export async function invokeQrCreateSession(
 
 export async function invokeQrScan(input: {
   token: string
-  location: QrScanLocationInput
+  location?: QrScanLocationInput | null
   deviceInfo: Record<string, string>
 }): Promise<ScanInvokeResult> {
   const supabase = await createClient()
@@ -863,12 +702,14 @@ export async function invokeQrScan(input: {
     }
   }
 
+  const body: { token: string; deviceInfo: Record<string, string>; location?: QrScanLocationInput } = {
+    token: input.token,
+    deviceInfo: input.deviceInfo,
+  }
+  if (input.location) body.location = input.location
+
   const { data, error: fnErr } = await supabase.functions.invoke('qr-scan', {
-    body: {
-      token: input.token,
-      location: input.location,
-      deviceInfo: input.deviceInfo,
-    },
+    body,
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
@@ -881,13 +722,9 @@ export async function invokeQrScan(input: {
         userId: user.id,
       })
     }
-    const errJson = await jsonFromFunctionsHttpError(fnErr)
-    const msg = await messageFromQrScanInvokeError(fnErr)
-    const gf = geofenceDebugFromInvokeJson(errJson)
     return {
       ok: false,
-      message: msg,
-      ...(gf ? { debug: { geofence: gf } } : {}),
+      message: await messageFromQrScanInvokeError(fnErr),
     }
   }
 
@@ -898,14 +735,11 @@ export async function invokeQrScan(input: {
     error?: string
     reason?: string
     detail?: string
-    geofence_debug?: QrGeofenceDebugPayload
   }
   if (json?.error) {
-    const gf = json.geofence_debug
     return {
       ok: false,
       message: mapQrScanApiError(json),
-      ...(gf ? { debug: { geofence: gf } } : {}),
     }
   }
   const scanId = json.scanId

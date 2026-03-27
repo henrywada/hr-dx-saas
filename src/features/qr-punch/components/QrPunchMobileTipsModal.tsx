@@ -5,8 +5,7 @@ import { getHelpMarkdown, HELP_CONTENT_IDS, ATT_QR_DISPLAY_TITLE } from '@/conte
 import { HelpMarkdownModal } from '@/components/help/HelpMarkdownModal'
 import { cn } from '@/lib/utils'
 
-const ATT_QR_SR_DESCRIPTION =
-  'QR 打刻時のカメラ・位置情報・端末設定に関する注意事項です。'
+const ATT_QR_SR_DESCRIPTION = 'QR 打刻時のカメラ・端末設定に関する注意事項です。'
 
 /** QR 打刻画面：スマホ設定の説明（本文は src/content/help/markdown/attendance/att-qr.md） */
 export function QrPunchMobileTipsModalTrigger({

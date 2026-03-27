@@ -1,10 +1,10 @@
 /**
- * 従業員用: QR 検証 → ジオフェンス・重複チェック → セッション消費 → qr_session_scans + work_time_records
+ * 従業員用: QR 検証 → 重複チェック → セッション消費 → qr_session_scans + work_time_records
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 import { corsHeaders } from "../_shared/cors.ts"
-import { haversineDistanceM, verifyQrToken } from "../_shared/qr-crypto.ts"
+import { verifyQrToken } from "../_shared/qr-crypto.ts"
 import { resolveQrSigningSecret } from "../_shared/qr-secret.ts"
 
 type LocationInput = { lat: number; lng: number; accuracy?: number }
@@ -28,124 +28,6 @@ function getJstDateRangeUtc(now = new Date()): { dateStr: string; startIso: stri
 
 function workTimeFieldSet(v: string | null | undefined): boolean {
   return v != null && String(v).trim() !== ""
-}
-
-const QR_PUNCH_DEFAULT_RADIUS_M = 200
-const QR_PUNCH_MAX_SUPERVISOR_SLACK_M = 500
-
-/** QR_PUNCH_DEBUG_GEOFENCE=1 のときのみ JSON に含める（座標は個人情報に近い） */
-type GeofenceDebugPayload = {
-  fail_code: string
-  distance_m: number | null
-  allowed_m: number | null
-  radius_m: number | null
-  employee_accuracy_m: number | null
-  supervisor_accuracy_raw_m: number | null
-  supervisor_slack_m: number | null
-  supervisor_lat: number | null
-  supervisor_lng: number | null
-  employee_lat: number
-  employee_lng: number
-  note_ja: string
-}
-
-/**
- * 【テスト後に false に戻す／削除】true の間、ジオフェンス失敗時に geofence_debug を常に JSON で返す。
- */
-const QR_PUNCH_TMP_DEBUG_GEOFENCE = true
-
-function isQrPunchGeofenceDebugEnabled(): boolean {
-  if (QR_PUNCH_TMP_DEBUG_GEOFENCE) return true
-  return Deno.env.get("QR_PUNCH_DEBUG_GEOFENCE") === "1"
-}
-
-function roundGeoDebugM(n: number): number {
-  return Math.round(n * 10) / 10
-}
-
-function roundGeoDebugDeg(n: number): number {
-  return Math.round(n * 1e5) / 1e5
-}
-
-function buildQrGeofenceDebugPayload(
-  code: string,
-  loc: LocationInput,
-  metadata: Record<string, unknown> | null,
-  distanceM: number | null,
-): GeofenceDebugPayload {
-  const radiusM =
-    metadata && typeof metadata.radius_m === "number" && Number.isFinite(metadata.radius_m)
-      ? metadata.radius_m
-      : QR_PUNCH_DEFAULT_RADIUS_M
-  const slat =
-    metadata && typeof metadata.supervisor_lat === "number" && Number.isFinite(metadata.supervisor_lat)
-      ? metadata.supervisor_lat
-      : null
-  const slng =
-    metadata && typeof metadata.supervisor_lng === "number" && Number.isFinite(metadata.supervisor_lng)
-      ? metadata.supervisor_lng
-      : null
-  const supAccRaw =
-    metadata &&
-    typeof metadata.supervisor_accuracy_m === "number" &&
-    Number.isFinite(metadata.supervisor_accuracy_m)
-      ? Math.max(0, metadata.supervisor_accuracy_m)
-      : 0
-  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
-  const acc = typeof loc.accuracy === "number" && Number.isFinite(loc.accuracy) ? loc.accuracy : null
-  const allowedM =
-    slat != null && slng != null && acc != null ? radiusM + acc + supSlack : null
-  return {
-    fail_code: code,
-    distance_m: distanceM != null ? roundGeoDebugM(distanceM) : null,
-    allowed_m: allowedM != null ? roundGeoDebugM(allowedM) : null,
-    radius_m: roundGeoDebugM(radiusM),
-    employee_accuracy_m: acc != null ? roundGeoDebugM(acc) : null,
-    supervisor_accuracy_raw_m: roundGeoDebugM(supAccRaw),
-    supervisor_slack_m: roundGeoDebugM(supSlack),
-    supervisor_lat: slat != null ? roundGeoDebugDeg(slat) : null,
-    supervisor_lng: slng != null ? roundGeoDebugDeg(slng) : null,
-    employee_lat: roundGeoDebugDeg(loc.lat),
-    employee_lng: roundGeoDebugDeg(loc.lng),
-    note_ja:
-      "打刻可否はWi‑Fiの同一接続ではなく、QR生成時に保存された監督者の位置とスマホGPSの直線距離で判定しています。PCブラウザの位置が粗いと、同じ部屋でも拒否されることがあります。",
-  }
-}
-
-/** メタデータに監督者位置が必須。範囲外・精度不良は拒否（セッション未消費で返す想定） */
-function evaluateGeofenceStrict(
-  metadata: unknown,
-  loc: LocationInput,
-): { ok: true } | { ok: false; code: string; debugPayload?: GeofenceDebugPayload } {
-  const dbg = isQrPunchGeofenceDebugEnabled()
-  const attach = (
-    code: string,
-    m: Record<string, unknown> | null,
-    distanceM: number | null,
-  ): { ok: false; code: string; debugPayload?: GeofenceDebugPayload } => ({
-    ok: false,
-    code,
-    ...(dbg ? { debugPayload: buildQrGeofenceDebugPayload(code, loc, m, distanceM) } : {}),
-  })
-
-  if (!isRecord(metadata)) return attach("geofence_not_configured", null, null)
-  const m = metadata
-  const slat = m.supervisor_lat
-  const slng = m.supervisor_lng
-  if (typeof slat !== "number" || typeof slng !== "number") {
-    return attach("geofence_not_configured", m, null)
-  }
-  const radiusM = typeof m.radius_m === "number" ? m.radius_m : QR_PUNCH_DEFAULT_RADIUS_M
-  const acc = typeof loc.accuracy === "number" ? loc.accuracy : 9999
-  const dAlways = haversineDistanceM(slat, slng, loc.lat, loc.lng)
-  if (acc > 150) return attach("location_accuracy_too_low", m, dAlways)
-  const supRaw = m.supervisor_accuracy_m
-  const supAccRaw =
-    typeof supRaw === "number" && Number.isFinite(supRaw) ? Math.max(0, supRaw) : 0
-  const supSlack = Math.min(supAccRaw, QR_PUNCH_MAX_SUPERVISOR_SLACK_M)
-  const d = dAlways
-  if (d > radiusM + acc + supSlack) return attach("geo_fence_violation", m, d)
-  return { ok: true }
 }
 
 async function hasDuplicatePunch(
@@ -256,18 +138,19 @@ serve(async (req) => {
   }
 
   const loc = body.location
-  if (
-    !loc ||
-    typeof loc.lat !== "number" ||
-    typeof loc.lng !== "number" ||
-    Number.isNaN(loc.lat) ||
-    Number.isNaN(loc.lng)
-  ) {
-    return new Response(JSON.stringify({ error: "invalid_location" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
-  }
+  const locationJson =
+    loc &&
+    typeof loc.lat === "number" &&
+    typeof loc.lng === "number" &&
+    !Number.isNaN(loc.lat) &&
+    !Number.isNaN(loc.lng)
+      ? {
+          lat: loc.lat,
+          lng: loc.lng,
+          accuracy: typeof loc.accuracy === "number" && !Number.isNaN(loc.accuracy) ? loc.accuracy : null,
+          provider: "client",
+        }
+      : null
 
   const verified = await verifyQrToken(secret, body.token)
   if (verified.ok === false) {
@@ -366,17 +249,6 @@ serve(async (req) => {
     })
   }
 
-  const geo = evaluateGeofenceStrict(session.metadata, loc)
-  if (!geo.ok) {
-    const status = geo.code === "geo_fence_violation" ? 403 : 400
-    const body: Record<string, unknown> = { error: geo.code }
-    if (geo.debugPayload) body.geofence_debug = geo.debugPayload
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
-  }
-
   const { dateStr, startIso, endIsoExclusive } = getJstDateRangeUtc()
   const dup = await hasDuplicatePunch(
     admin,
@@ -413,12 +285,6 @@ serve(async (req) => {
     })
   }
 
-  const locationJson = {
-    lat: loc.lat,
-    lng: loc.lng,
-    accuracy: loc.accuracy ?? null,
-    provider: "client",
-  }
   const deviceJson = isRecord(body.deviceInfo) ? body.deviceInfo : {}
 
   const { data: scan, error: scanErr } = await admin
@@ -433,7 +299,6 @@ serve(async (req) => {
       confirm_method: "auto",
       audit: {
         token_exp: payload.exp,
-        geofence_passed: true,
         purpose,
       },
     })

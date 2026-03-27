@@ -17,20 +17,6 @@ function collectDeviceInfo(): Record<string, string> {
   }
 }
 
-function getPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('geolocation_unsupported'))
-      return
-    }
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 18_000,
-      maximumAge: 0,
-    })
-  })
-}
-
 function purposeLabel(p: QrPunchPurpose): string {
   return p === 'punch_in' ? '出勤' : '退勤'
 }
@@ -38,7 +24,6 @@ function purposeLabel(p: QrPunchPurpose): string {
 export function AttendanceQrScanClient() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [errorDebug, setErrorDebug] = useState<string | null>(null)
   const [successPurpose, setSuccessPurpose] = useState<QrPunchPurpose>('punch_in')
   const processingRef = useRef(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
@@ -47,7 +32,6 @@ export function AttendanceQrScanClient() {
   const resetFlow = useCallback(() => {
     processingRef.current = false
     setErrorMessage(null)
-    setErrorDebug(null)
     setPhase('idle')
   }, [])
 
@@ -55,45 +39,13 @@ export function AttendanceQrScanClient() {
     setPhase('sending')
     setErrorMessage(null)
 
-    let pos: GeolocationPosition
-    try {
-      pos = await getPosition()
-    } catch (e: unknown) {
-      const err = e as GeolocationPositionError & { message?: string }
-      const code = err?.code
-      let msg =
-        '位置情報を取得できませんでした。設定で位置情報を許可し、GPS をオンにしてから再度お試しください。'
-      if (code === 1) msg = '位置情報が拒否されています。ブラウザの設定でこのサイトへの位置情報の共有を許可してください。'
-      if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
-      setErrorMessage(msg)
-      setErrorDebug(null)
-      setPhase('error')
-      processingRef.current = false
-      return
-    }
-
     const scanResult = await invokeQrScan({
       token,
-      location: {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-      },
       deviceInfo: collectDeviceInfo(),
     })
 
     if (scanResult.ok === false) {
       setErrorMessage(scanResult.message)
-      // 【テスト後削除】サーバー debug に加え、端末が送った位置をその場で表示（比較用）
-      const clientLoc = {
-        tmp_debug_client_sent: {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy_m: pos.coords.accuracy,
-        },
-      }
-      const merged = scanResult.debug ? { ...scanResult.debug, ...clientLoc } : clientLoc
-      setErrorDebug(JSON.stringify(merged, null, 2))
       setPhase('error')
       processingRef.current = false
       return
@@ -122,7 +74,6 @@ export function AttendanceQrScanClient() {
         const token = decodedText.trim()
         if (!token) {
           setErrorMessage('QRからデータを読み取れませんでした。')
-          setErrorDebug(null)
           setPhase('error')
           processingRef.current = false
           return
@@ -134,7 +85,6 @@ export function AttendanceQrScanClient() {
         const dup = await checkQrDuplicatePunch(token)
         if (dup.ok === false) {
           setErrorMessage(dup.message)
-          setErrorDebug(dup.debug ? JSON.stringify(dup.debug, null, 2) : null)
           setPhase('error')
           processingRef.current = false
           return
@@ -197,17 +147,16 @@ export function AttendanceQrScanClient() {
 
         {!secure && (
           <div className="rounded-xl border border-amber-300/60 bg-amber-950/40 px-3 py-3 text-sm text-amber-100">
-            位置情報の取得には <strong>HTTPS</strong>（または localhost）が必要です。このままでは打刻できない場合があります。
+            カメラ利用には <strong>HTTPS</strong>（または localhost）での表示を推奨します。
           </div>
         )}
 
         <section className="rounded-2xl bg-black/25 p-4 text-sm text-emerald-50">
-          <p className="font-bold text-white">カメラ・位置情報の許可</p>
+          <p className="font-bold text-white">カメラの許可</p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-emerald-100/95">
             <li>「スキャン開始」を押すとカメラ利用の確認が出ます。<strong>許可</strong>を選んでください。</li>
-            <li>次に、現在地の共有を求められたら <strong>許可</strong>してください（打刻の位置確認に使います）。</li>
-            <li>iOS Safari: 設定 → Safari → カメラ／位置情報でこのサイトを確認できます。</li>
-            <li>Android Chrome: アドレスバーの鍵アイコン → 権限からカメラ・位置を確認できます。</li>
+            <li>iOS Safari: 設定 → Safari → カメラでこのサイトを確認できます。</li>
+            <li>Android Chrome: アドレスバーの鍵アイコン → 権限からカメラを確認できます。</li>
           </ul>
         </section>
 
@@ -267,7 +216,7 @@ export function AttendanceQrScanClient() {
         {phase === 'sending' && (
           <div className="rounded-2xl bg-black/30 px-6 py-10 text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/30 border-t-white" />
-            <p className="text-lg font-bold">位置を確認して打刻しています…</p>
+            <p className="text-lg font-bold">打刻処理を実行しています…</p>
             <p className="mt-2 text-sm text-emerald-100/90">そのままお待ちください</p>
           </div>
         )}
@@ -292,15 +241,6 @@ export function AttendanceQrScanClient() {
           <div className="rounded-2xl bg-red-950/40 px-5 py-8 text-center">
             <p className="text-lg font-bold text-red-100">打刻できませんでした</p>
             <p className="mt-3 text-sm text-red-50/95">{errorMessage}</p>
-            {/* 【テスト後削除】一時デバッグ表示 */}
-            {errorDebug && (
-              <p className="mt-2 text-xs font-bold text-amber-200">［一時デバッグ・テスト後にコード削除］</p>
-            )}
-            {errorDebug && (
-              <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-3 text-left text-[11px] leading-[1.4] text-red-100/90">
-                {errorDebug}
-              </pre>
-            )}
             <button
               type="button"
               onClick={resetFlow}

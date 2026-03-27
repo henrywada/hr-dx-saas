@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { invokeQrCreateSession, type QrPunchPurpose, type QrSupervisorLocationInput } from '../actions'
+import { invokeQrCreateSession, type QrPunchPurpose } from '../actions'
 import { QrPunchMobileTipsModalTrigger } from './QrPunchMobileTipsModal'
 
 type ScanRow = Database['public']['Tables']['qr_session_scans']['Row']
@@ -18,20 +18,6 @@ type TodayPunchRow = {
   employee_user_id: string
   purpose: QrPunchPurpose
   employee_name: string
-}
-
-function getSupervisorPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('geolocation_unsupported'))
-      return
-    }
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 18_000,
-      maximumAge: 0,
-    })
-  })
 }
 
 function purposeLabel(p: QrPunchPurpose): string {
@@ -157,35 +143,15 @@ export function QrPunchSupervisorClient() {
     [supabase, enrichTodayRows],
   )
 
-  const createSessionWithLocation = useCallback(
-    async (p: QrPunchPurpose): Promise<{ ok: true } | { ok: false; message: string }> => {
-      let pos: GeolocationPosition
-      try {
-        pos = await getSupervisorPosition()
-      } catch (e: unknown) {
-        const err = e as GeolocationPositionError & { message?: string }
-        const code = err?.code
-        let msg =
-          '位置情報を取得できませんでした。ブラウザで位置情報を許可し、GPS をオンにしてから再度お試しください。'
-        if (code === 1) msg = '位置情報が拒否されています。設定からこのサイトへの位置情報の共有を許可してください。'
-        if (code === 3) msg = '位置情報の取得がタイムアウトしました。屋外や窓際で再度お試しください。'
-        return { ok: false, message: msg }
-      }
-      const loc: QrSupervisorLocationInput = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-      }
-      const result = await invokeQrCreateSession(p, loc)
-      if (result.ok === false) {
-        return { ok: false, message: result.message || 'QR セッションの作成に失敗しました' }
-      }
-      setSessionId(result.sessionId)
-      setToken(result.token)
-      return { ok: true }
-    },
-    [],
-  )
+  const createQrSessionCore = useCallback(async (p: QrPunchPurpose): Promise<{ ok: true } | { ok: false; message: string }> => {
+    const result = await invokeQrCreateSession(p)
+    if (result.ok === false) {
+      return { ok: false, message: result.message || 'QR セッションの作成に失敗しました' }
+    }
+    setSessionId(result.sessionId)
+    setToken(result.token)
+    return { ok: true }
+  }, [])
 
   const loadTodayPunchesRef = useRef(loadTodayPunches)
   loadTodayPunchesRef.current = loadTodayPunches
@@ -219,7 +185,7 @@ export function QrPunchSupervisorClient() {
             setRegenerating(true)
             setToken(null)
             try {
-              const r = await createSessionWithLocation(p)
+              const r = await createQrSessionCore(p)
               if (r.ok === false) {
                 setError(r.message)
                 return
@@ -239,13 +205,13 @@ export function QrPunchSupervisorClient() {
       void supabase.removeChannel(ch)
       channelRef.current = null
     }
-  }, [sessionId, supabase, createSessionWithLocation])
+  }, [sessionId, supabase, createQrSessionCore])
 
   const createQrSession = async () => {
     setError(null)
     setLoadingQr(true)
     try {
-      const r = await createSessionWithLocation(purpose)
+      const r = await createQrSessionCore(purpose)
       if (r.ok === false) {
         setError(r.message)
         return
@@ -271,7 +237,7 @@ export function QrPunchSupervisorClient() {
               <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">QR 打刻（監督者）</h1>
               <p className="mt-1 text-sm text-white/85">現場で QR を表示し、従業員の打刻を受け付けます</p>
               <p className="mt-2 text-xs leading-snug text-white/65">
-                PC では位置が粗くなることがあります。打刻が弾かれるときは、監督者もスマホのブラウザで QR を表示してください。
+                QR の有効期限は約 5 分です。期限切れの場合は「QRコードを生成」で再表示してください。
               </p>
             </div>
             <button
@@ -288,7 +254,7 @@ export function QrPunchSupervisorClient() {
 
         {!secure && (
           <div className="rounded-xl border border-amber-300/50 bg-black/20 px-3 py-2 text-center text-xs text-amber-100">
-            QR 生成には位置情報が必要です。<strong>HTTPS</strong> または localhost で開いてください。
+            この画面は <strong>HTTPS</strong> または localhost で開くことを推奨します。
           </div>
         )}
 

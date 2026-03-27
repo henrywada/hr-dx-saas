@@ -1,5 +1,5 @@
 /**
- * 上司用: QR セッション作成（監督者位置を metadata に保存 → ジオフェンス用）
+ * 上司用: QR セッション作成（署名付きトークンの exp はセッション有効期限と一致）
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
@@ -7,11 +7,9 @@ import { corsHeaders } from "../_shared/cors.ts"
 import { signQrToken } from "../_shared/qr-crypto.ts"
 import { resolveQrSigningSecret } from "../_shared/qr-secret.ts"
 
-// 画面にカウントダウンは出さないが、署名 exp 用に十分長く取る
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
+/** QR セッションおよびトークン署名の有効期限 */
+const SESSION_TTL_MS = 5 * 60 * 1000
 const PURPOSES = new Set(["punch_in", "punch_out"])
-
-type SupervisorLocation = { lat: number; lng: number; accuracy?: number }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -52,7 +50,6 @@ serve(async (req) => {
   let body: {
     purpose?: string
     metadata?: Record<string, unknown>
-    supervisorLocation?: SupervisorLocation
   }
   try {
     body = await req.json()
@@ -66,20 +63,6 @@ serve(async (req) => {
   const purpose = body.purpose
   if (!purpose || !PURPOSES.has(purpose)) {
     return new Response(JSON.stringify({ error: "invalid_purpose" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
-  }
-
-  const sl = body.supervisorLocation
-  if (
-    !sl ||
-    typeof sl.lat !== "number" ||
-    typeof sl.lng !== "number" ||
-    Number.isNaN(sl.lat) ||
-    Number.isNaN(sl.lng)
-  ) {
-    return new Response(JSON.stringify({ error: "missing_supervisor_location" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
@@ -111,21 +94,10 @@ serve(async (req) => {
     })
   }
 
-  const baseMeta =
+  const metadata: Record<string, unknown> =
     body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
       ? { ...body.metadata }
       : {}
-  const metadata: Record<string, unknown> = {
-    ...baseMeta,
-    supervisor_lat: sl.lat,
-    supervisor_lng: sl.lng,
-  }
-  if (typeof sl.accuracy === "number" && !Number.isNaN(sl.accuracy)) {
-    metadata.supervisor_accuracy_m = sl.accuracy
-  }
-  if (typeof metadata.radius_m !== "number" || Number.isNaN(metadata.radius_m as number)) {
-    metadata.radius_m = 200
-  }
 
   const nonce = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString()

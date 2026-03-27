@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { Database } from './types'
+import { getSupabasePublicConfig, warnIfSupabasePlaceholder } from './public-config'
 
 export const updateSession = async (request: NextRequest) => {
   let response = NextResponse.next({
@@ -9,10 +10,15 @@ export const updateSession = async (request: NextRequest) => {
     },
   })
 
+  const { url, anonKey, usesPlaceholder } = getSupabasePublicConfig()
+  if (usesPlaceholder) {
+    warnIfSupabasePlaceholder('middleware')
+  }
+
   // Next.jsのLint警告対応として未使用の options 変数を利用しない形に変更
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {

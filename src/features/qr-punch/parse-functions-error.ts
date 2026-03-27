@@ -8,9 +8,6 @@ export function userMessageFromEdgeJsonBody(j: Record<string, unknown>): string 
       ? j.detail
       : 'サーバー設定（QR 署名用シークレット）が不正です。管理者に連絡してください。'
   }
-  if (code === 'missing_supervisor_location') {
-    return '監督者端末の位置情報が取得できませんでした。位置情報を許可してから QR を再生成してください。'
-  }
   return null
 }
 
@@ -52,14 +49,7 @@ export function mapQrScanApiError(body: {
   if (code === 'session_token_mismatch') return 'QRとサーバー情報が一致しません。再スキャンしてください。'
   if (code === 'unauthorized') return 'ログインの有効期限が切れています。再ログインしてください。'
   if (code === 'employee_not_found') return '従業員情報が見つかりません。管理者に連絡してください。'
-  if (code === 'invalid_location') return '位置情報の形式が不正です。'
   if (code === 'duplicate_punch') return '本日の同じ種別の打刻はすでに記録されています。'
-  if (code === 'geo_fence_violation')
-    return '現場から離れすぎているため打刻できません。監督者の近くで再度お試しください。'
-  if (code === 'location_accuracy_too_low')
-    return '位置情報の精度が不足しています。GPS をオンにし、屋外または窓際で再度お試しください。'
-  if (code === 'geofence_not_configured')
-    return 'QR の現場位置が設定されていません。監督者に QR の再表示を依頼してください。'
   if (code === 'work_time_record_failed') return '勤怠データの保存に失敗しました。管理者に連絡してください。'
   if (code === 'invalid_purpose') return '打刻種別が不正です。'
   return body.detail ?? (code || '打刻に失敗しました。')

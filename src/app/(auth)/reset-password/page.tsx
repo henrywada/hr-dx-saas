@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { APP_ROUTES } from '@/config/routes';
+import { getSupabasePublicConfig } from '@/lib/supabase/public-config';
 import { Eye, EyeOff } from 'lucide-react';
 import { verifyToken, resetPassword } from './actions';
 
@@ -22,10 +23,10 @@ function ResetPasswordContent() {
   const [isCustomToken, setIsCustomToken] = useState(false);
 
   const supabaseRef = useRef(
-    createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    (() => {
+      const { url, anonKey } = getSupabasePublicConfig();
+      return createClient(url, anonKey);
+    })()
   );
 
   useEffect(() => {

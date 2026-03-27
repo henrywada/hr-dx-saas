@@ -18,6 +18,7 @@ import {
   getTopAnnouncements,
 } from '@/features/dashboard/queries'
 import QuickAccessCards from '../../(colored)/components/QuickAccess/QuickAccessCards.server'
+import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 
 export default async function DashboardPage() {
   const user = await getServerUser()
@@ -153,11 +154,14 @@ export default async function DashboardPage() {
 
         {/* Right: Shortcuts */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
-          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg shadow-inner">
-              <Zap className="w-5 h-5" />
+          <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg shadow-inner">
+                <Zap className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
             </div>
-            <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
+            <HrInquiryNavLink />
           </div>
           <div className="p-6 flex flex-col gap-3">
             <QuickAccessCards />

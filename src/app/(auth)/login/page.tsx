@@ -47,7 +47,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
-        <h2 className="text-3xl font-bold text-center">ログイン</h2>
+        {/* 1行目: ロゴ + HR-dx／2行目: ログイン */}
+        <div className="flex w-full flex-col items-start gap-3">
+          <div className="flex items-center gap-2" aria-label="HR-dx">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FF6B00] to-orange-600 shadow-md">
+              <span className="text-lg font-bold tracking-tight text-white">H</span>
+            </div>
+            <span className="select-none bg-gradient-to-br from-[#FF6B00] to-orange-600 bg-clip-text text-xl font-bold tracking-tighter text-transparent drop-shadow-sm">
+              HR-dx
+            </span>
+          </div>
+          <h1 className="w-full text-center text-2xl font-bold text-slate-900 md:text-3xl">ログイン</h1>
+        </div>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-6" aria-busy={loading}>
           <div>

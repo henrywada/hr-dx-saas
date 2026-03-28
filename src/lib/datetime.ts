@@ -115,3 +115,35 @@ export function formatTimeInJSTFromIso(iso: string | null | undefined): string |
   })
   return f.format(d)
 }
+
+/**
+ * ローカル暦日（YYYY-MM-DD）と時刻（HH:mm または HH:mm:ss）から、
+ * ブラウザのローカルタイムゾーンのオフセット付き ISO 8601 を返す（残業申請 API 用）
+ */
+export function toLocalOffsetIsoFromParts(dateYmd: string, timeHm: string): string {
+  const [y, m, d] = dateYmd.split('-').map(Number)
+  const tp = timeHm.split(':')
+  const hh = Number(tp[0] ?? 0)
+  const mm = Number(tp[1] ?? 0)
+  const ss = tp.length > 2 ? Number(tp[2] ?? 0) : 0
+  const local = new Date(y, (m ?? 1) - 1, d ?? 1, hh, mm, ss)
+  if (Number.isNaN(local.getTime())) {
+    throw new Error('Invalid date/time')
+  }
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const offMin = -local.getTimezoneOffset()
+  const sign = offMin >= 0 ? '+' : '-'
+  const abs = Math.abs(offMin)
+  const oh = pad(Math.floor(abs / 60))
+  const om = pad(abs % 60)
+  return `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}:${pad(local.getSeconds())}${sign}${oh}:${om}`
+}
+
+/** timestamptz ISO をブラウザローカルの HH:mm に変換（input type="time" の初期値用） */
+export function isoTimestamptzToLocalTimeInputValue(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}

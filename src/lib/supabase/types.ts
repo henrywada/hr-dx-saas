@@ -110,6 +110,53 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_new: boolean
+          published_at: string
+          sort_order: number
+          target_audience: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_new?: boolean
+          published_at?: string
+          sort_order?: number
+          target_audience?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_new?: boolean
+          published_at?: string
+          sort_order?: number
+          target_audience?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_role: {
         Row: {
           app_role: string | null
@@ -249,7 +296,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "divisions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
             foreignKeyName: "divisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability_slots: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          doctor_id: string
+          end_time: string
+          id: string
+          is_active: boolean
+          specific_date: string | null
+          start_time: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          specific_date?: string | null
+          start_time: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          specific_date?: string | null
+          start_time?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_slots_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_availability_slots_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -322,7 +430,117 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employees_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
             foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_assessments_link: {
+        Row: {
+          assessment_id: string
+          assessment_type: string
+          employee_id: string
+          id: string
+          score: number | null
+          taken_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          assessment_id: string
+          assessment_type: string
+          employee_id: string
+          id?: string
+          score?: number | null
+          taken_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          assessment_id?: string
+          assessment_type?: string
+          employee_id?: string
+          id?: string
+          score?: number | null
+          taken_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_assessments_link_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_assessments_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interventions: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          employee_id: string
+          extra: Json | null
+          id: string
+          intervention_type: string
+          reason: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          employee_id: string
+          extra?: Json | null
+          id?: string
+          intervention_type: string
+          reason?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          employee_id?: string
+          extra?: Json | null
+          id?: string
+          intervention_type?: string
+          reason?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -394,6 +612,564 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_overtime_closures: {
+        Row: {
+          closed_at: string | null
+          created_at: string | null
+          id: string
+          tenant_id: string
+          updated_at: string | null
+          year_month: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id: string
+          updated_at?: string | null
+          year_month: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string | null
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_overtime_closures_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myou_alert_logs: {
+        Row: {
+          company_id: string
+          error_message: string | null
+          id: string
+          sent_at: string
+          status: string
+          target_serials: string[]
+          tenant_id: string
+        }
+        Insert: {
+          company_id: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          target_serials: string[]
+          tenant_id?: string
+        }
+        Update: {
+          company_id?: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          target_serials?: string[]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myou_alert_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myou_companies: {
+        Row: {
+          created_at: string
+          email_address: string | null
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          name: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      myou_delivery_logs: {
+        Row: {
+          company_id: string
+          delivered_by: string | null
+          delivery_date: string
+          id: string
+          registered_at: string
+          serial_number: string
+          tenant_id: string
+        }
+        Insert: {
+          company_id: string
+          delivered_by?: string | null
+          delivery_date?: string
+          id?: string
+          registered_at?: string
+          serial_number: string
+          tenant_id?: string
+        }
+        Update: {
+          company_id?: string
+          delivered_by?: string | null
+          delivery_date?: string
+          id?: string
+          registered_at?: string
+          serial_number?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myou_delivery_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myou_products: {
+        Row: {
+          created_at: string
+          current_company_id: string | null
+          expiration_date: string | null
+          last_delivery_at: string | null
+          serial_number: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_company_id?: string | null
+          expiration_date?: string | null
+          last_delivery_at?: string | null
+          serial_number: string
+          status?: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          current_company_id?: string | null
+          expiration_date?: string | null
+          last_delivery_at?: string | null
+          serial_number?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myou_products_current_company_id_fkey"
+            columns: ["current_company_id"]
+            isOneToOne: false
+            referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_alerts: {
+        Row: {
+          alert_type: string
+          alert_value: Json | null
+          employee_id: string
+          id: string
+          resolved_at: string | null
+          tenant_id: string
+          triggered_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          alert_value?: Json | null
+          employee_id: string
+          id?: string
+          resolved_at?: string | null
+          tenant_id: string
+          triggered_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          alert_value?: Json | null
+          employee_id?: string
+          id?: string
+          resolved_at?: string | null
+          tenant_id?: string
+          triggered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_alerts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_analysis_results: {
+        Row: {
+          analysis_details: Json | null
+          created_at: string | null
+          id: string
+          is_exceeded: boolean
+          legal_limit_hours: number
+          tenant_id: string
+          total_overtime_hours: number
+          updated_at: string | null
+          year_month: string
+        }
+        Insert: {
+          analysis_details?: Json | null
+          created_at?: string | null
+          id?: string
+          is_exceeded: boolean
+          legal_limit_hours: number
+          tenant_id: string
+          total_overtime_hours: number
+          updated_at?: string | null
+          year_month: string
+        }
+        Update: {
+          analysis_details?: Json | null
+          created_at?: string | null
+          id?: string
+          is_exceeded?: boolean
+          legal_limit_hours?: number
+          tenant_id?: string
+          total_overtime_hours?: number
+          updated_at?: string | null
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_analysis_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_applications: {
+        Row: {
+          approved_at: string | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          overtime_end: string
+          overtime_start: string
+          reason: string | null
+          requested_hours: number
+          status: string
+          supervisor_id: string | null
+          tenant_id: string
+          updated_at: string | null
+          work_date: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          overtime_end: string
+          overtime_start: string
+          reason?: string | null
+          requested_hours: number
+          status?: string
+          supervisor_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          work_date: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          overtime_end?: string
+          overtime_start?: string
+          reason?: string | null
+          requested_hours?: number
+          status?: string
+          supervisor_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_applications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_applications_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_corrections: {
+        Row: {
+          application_id: string
+          corrected_at: string | null
+          corrected_by: string
+          corrected_hours: number
+          correction_reason: string | null
+          id: string
+        }
+        Insert: {
+          application_id: string
+          corrected_at?: string | null
+          corrected_by: string
+          corrected_hours: number
+          correction_reason?: string | null
+          id?: string
+        }
+        Update: {
+          application_id?: string
+          corrected_at?: string | null
+          corrected_by?: string
+          corrected_hours?: number
+          correction_reason?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_corrections_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "overtime_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_corrections_corrected_by_fkey"
+            columns: ["corrected_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_monthly_stats: {
+        Row: {
+          computed_at: string | null
+          employee_id: string
+          holiday_minutes: number
+          id: string
+          overtime_minutes: number
+          period_month: string
+          tenant_id: string
+          total_minutes: number
+        }
+        Insert: {
+          computed_at?: string | null
+          employee_id: string
+          holiday_minutes: number
+          id?: string
+          overtime_minutes: number
+          period_month: string
+          tenant_id: string
+          total_minutes: number
+        }
+        Update: {
+          computed_at?: string | null
+          employee_id?: string
+          holiday_minutes?: number
+          id?: string
+          overtime_minutes?: number
+          period_month?: string
+          tenant_id?: string
+          total_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_monthly_stats_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_monthly_stats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_settings: {
+        Row: {
+          annual_limit_hours: number
+          average_limit_hours: number
+          id: string
+          monthly_limit_hours: number
+          monthly_warning_hours: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          annual_limit_hours?: number
+          average_limit_hours?: number
+          id?: string
+          monthly_limit_hours?: number
+          monthly_warning_hours?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          annual_limit_hours?: number
+          average_limit_hours?: number
+          id?: string
+          monthly_limit_hours?: number
+          monthly_warning_hours?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      program_targets: {
+        Row: {
+          created_at: string
+          employee_id: string
+          exclusion_reason: string | null
+          id: string
+          is_eligible: boolean
+          program_instance_id: string
+          program_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          exclusion_reason?: string | null
+          id?: string
+          is_eligible?: boolean
+          program_instance_id: string
+          program_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          exclusion_reason?: string | null
+          id?: string
+          is_eligible?: boolean
+          program_instance_id?: string
+          program_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_targets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_targets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pulse_survey_periods: {
+        Row: {
+          created_at: string
+          deadline_date: string
+          description: string | null
+          id: string
+          link_path: string | null
+          sort_order: number
+          survey_period: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_date: string
+          description?: string | null
+          id?: string
+          link_path?: string | null
+          sort_order?: number
+          survey_period: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline_date?: string
+          description?: string | null
+          id?: string
+          link_path?: string | null
+          sort_order?: number
+          survey_period?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pulse_survey_periods_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -765,44 +1541,6 @@ export type Database = {
           },
         ]
       }
-      overtime_settings: {
-        Row: {
-          annual_limit_hours: number
-          average_limit_hours: number
-          id: string
-          monthly_limit_hours: number
-          monthly_warning_hours: number
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          annual_limit_hours?: number
-          average_limit_hours?: number
-          id?: string
-          monthly_limit_hours?: number
-          monthly_warning_hours?: number
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          annual_limit_hours?: number
-          average_limit_hours?: number
-          id?: string
-          monthly_limit_hours?: number
-          monthly_warning_hours?: number
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "overtime_settings_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       service: {
         Row: {
           app_role_group_id: string | null
@@ -852,6 +1590,90 @@ export type Database = {
             columns: ["service_category_id"]
             isOneToOne: false
             referencedRelation: "service_category"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          service_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          service_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          service_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_assignments_users: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          is_available: boolean
+          service_assignment_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_available?: boolean
+          service_assignment_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_available?: boolean
+          service_assignment_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_assignments_users_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_assignments_users_service_assignment_id_fkey"
+            columns: ["service_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "service_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_assignments_users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -950,6 +1772,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stress_check_group_analysis_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
             foreignKeyName: "stress_check_group_analysis_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -964,6 +1793,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stress_check_high_stress_criteria: {
+        Row: {
+          condition_1_b_threshold: number
+          condition_2_ac_threshold: number
+          condition_2_b_threshold: number
+          created_at: string | null
+          description: string | null
+          evaluation_method: string
+          id: string
+          question_count: number
+          updated_at: string | null
+        }
+        Insert: {
+          condition_1_b_threshold: number
+          condition_2_ac_threshold: number
+          condition_2_b_threshold: number
+          created_at?: string | null
+          description?: string | null
+          evaluation_method: string
+          id?: string
+          question_count: number
+          updated_at?: string | null
+        }
+        Update: {
+          condition_1_b_threshold?: number
+          condition_2_ac_threshold?: number
+          condition_2_b_threshold?: number
+          created_at?: string | null
+          description?: string | null
+          evaluation_method?: string
+          id?: string
+          question_count?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       stress_check_interviews: {
         Row: {
@@ -1150,6 +2015,33 @@ export type Database = {
         }
         Relationships: []
       }
+      stress_check_response_options: {
+        Row: {
+          created_at: string | null
+          id: string
+          label: string
+          scale_type: string
+          score: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          label: string
+          scale_type: string
+          score: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          label?: string
+          scale_type?: string
+          score?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       stress_check_responses: {
         Row: {
           answer: number
@@ -1285,101 +2177,56 @@ export type Database = {
           },
         ]
       }
-      stress_interview_records: {
+      stress_check_scale_conversions: {
         Row: {
+          formula: string
+          gender: string
           id: string
-          tenant_id: string
-          stress_result_id: string
-          doctor_id: string
-          interviewee_id: string
-          interview_date: string
-          interview_duration: number | null
-          interview_notes: string | null
-          doctor_opinion: string | null
-          measure_type: string | null
-          measure_details: string | null
-          follow_up_date: string | null
-          follow_up_status: string
-          status: string
-          created_by: string
-          created_at: string
-          updated_at: string
+          level_1_max: number
+          level_1_min: number
+          level_2_max: number
+          level_2_min: number
+          level_3_max: number
+          level_3_min: number
+          level_4_max: number
+          level_4_min: number
+          level_5_max: number
+          level_5_min: number
+          scale_name: string
         }
         Insert: {
+          formula: string
+          gender: string
           id?: string
-          tenant_id: string
-          stress_result_id: string
-          doctor_id: string
-          interviewee_id: string
-          interview_date?: string
-          interview_duration?: number | null
-          interview_notes?: string | null
-          doctor_opinion?: string | null
-          measure_type?: string | null
-          measure_details?: string | null
-          follow_up_date?: string | null
-          follow_up_status?: string
-          status?: string
-          created_by: string
-          created_at?: string
-          updated_at?: string
+          level_1_max: number
+          level_1_min: number
+          level_2_max: number
+          level_2_min: number
+          level_3_max: number
+          level_3_min: number
+          level_4_max: number
+          level_4_min: number
+          level_5_max: number
+          level_5_min: number
+          scale_name: string
         }
         Update: {
+          formula?: string
+          gender?: string
           id?: string
-          tenant_id?: string
-          stress_result_id?: string
-          doctor_id?: string
-          interviewee_id?: string
-          interview_date?: string
-          interview_duration?: number | null
-          interview_notes?: string | null
-          doctor_opinion?: string | null
-          measure_type?: string | null
-          measure_details?: string | null
-          follow_up_date?: string | null
-          follow_up_status?: string
-          status?: string
-          created_by?: string
-          created_at?: string
-          updated_at?: string
+          level_1_max?: number
+          level_1_min?: number
+          level_2_max?: number
+          level_2_min?: number
+          level_3_max?: number
+          level_3_min?: number
+          level_4_max?: number
+          level_4_min?: number
+          level_5_max?: number
+          level_5_min?: number
+          scale_name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "stress_interview_records_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stress_interview_records_stress_result_id_fkey"
-            columns: ["stress_result_id"]
-            isOneToOne: false
-            referencedRelation: "stress_check_results"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stress_interview_records_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stress_interview_records_interviewee_id_fkey"
-            columns: ["interviewee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stress_interview_records_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       stress_check_submissions: {
         Row: {
@@ -1438,6 +2285,102 @@ export type Database = {
           },
           {
             foreignKeyName: "stress_check_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stress_interview_records: {
+        Row: {
+          created_at: string
+          created_by: string
+          doctor_id: string
+          doctor_opinion: string | null
+          follow_up_date: string | null
+          follow_up_status: string | null
+          id: string
+          interview_date: string
+          interview_duration: number | null
+          interview_notes: string | null
+          interviewee_id: string
+          measure_details: string | null
+          measure_type: string | null
+          status: string
+          stress_result_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          doctor_id: string
+          doctor_opinion?: string | null
+          follow_up_date?: string | null
+          follow_up_status?: string | null
+          id?: string
+          interview_date?: string
+          interview_duration?: number | null
+          interview_notes?: string | null
+          interviewee_id: string
+          measure_details?: string | null
+          measure_type?: string | null
+          status?: string
+          stress_result_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          doctor_id?: string
+          doctor_opinion?: string | null
+          follow_up_date?: string | null
+          follow_up_status?: string | null
+          id?: string
+          interview_date?: string
+          interview_duration?: number | null
+          interview_notes?: string | null
+          interviewee_id?: string
+          measure_details?: string | null
+          measure_type?: string | null
+          status?: string
+          stress_result_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stress_interview_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_interviewee_id_fkey"
+            columns: ["interviewee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_stress_result_id_fkey"
+            columns: ["stress_result_id"]
+            isOneToOne: false
+            referencedRelation: "stress_check_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stress_interview_records_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1569,44 +2512,71 @@ export type Database = {
           },
         ]
       }
-      tenant_service: {
+      telework_activity_stats: {
         Row: {
+          active_seconds: number | null
+          date: string
           id: string
-          service_id: string | null
-          start_date: string | null
-          status: string | null
-          tenant_id: string | null
+          idle_seconds: number | null
+          last_updated: string | null
+          pc_active_seconds: number | null
+          tenant_id: string
+          user_id: string
         }
         Insert: {
+          active_seconds?: number | null
+          date: string
           id?: string
-          service_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          tenant_id?: string | null
+          idle_seconds?: number | null
+          last_updated?: string | null
+          pc_active_seconds?: number | null
+          tenant_id: string
+          user_id: string
         }
         Update: {
+          active_seconds?: number | null
+          date?: string
           id?: string
-          service_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          tenant_id?: string | null
+          idle_seconds?: number | null
+          last_updated?: string | null
+          pc_active_seconds?: number | null
+          tenant_id?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tenant_service_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "service"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tenant_service_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      telework_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string | null
+          id: string
+          payload: Json | null
+          related_id: string | null
+          related_table: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          related_id?: string | null
+          related_table?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          related_id?: string | null
+          related_table?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
       }
       telework_pc_devices: {
         Row: {
@@ -1767,11 +2737,51 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_service: {
+        Row: {
+          id: string
+          service_id: string | null
+          start_date: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          id?: string
+          service_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          id?: string
+          service_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_service_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_service_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           business_description: string | null
           company_name: string | null
           contact_date: string | null
+          contract_end_at: string | null
           created_at: string | null
           culture_and_benefits: string | null
           employee_count: number | null
@@ -1788,6 +2798,7 @@ export type Database = {
           business_description?: string | null
           company_name?: string | null
           contact_date?: string | null
+          contract_end_at?: string | null
           created_at?: string | null
           culture_and_benefits?: string | null
           employee_count?: number | null
@@ -1804,6 +2815,7 @@ export type Database = {
           business_description?: string | null
           company_name?: string | null
           contact_date?: string | null
+          contract_end_at?: string | null
           created_at?: string | null
           culture_and_benefits?: string | null
           employee_count?: number | null
@@ -1818,21 +2830,204 @@ export type Database = {
         }
         Relationships: []
       }
+      work_time_records: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number
+          employee_id: string
+          end_time: string | null
+          id: string
+          is_holiday: boolean | null
+          punch_supervisor_user_id: string | null
+          qr_session_id: string | null
+          record_date: string
+          source: string | null
+          start_time: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes: number
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          is_holiday?: boolean | null
+          punch_supervisor_user_id?: string | null
+          qr_session_id?: string | null
+          record_date: string
+          source?: string | null
+          start_time?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          is_holiday?: boolean | null
+          punch_supervisor_user_id?: string | null
+          qr_session_id?: string | null
+          record_date?: string
+          source?: string | null
+          start_time?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_time_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_time_records_qr_session_id_fkey"
+            columns: ["qr_session_id"]
+            isOneToOne: false
+            referencedRelation: "qr_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_time_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workplace_improvement_plans: {
+        Row: {
+          actual_effect_score: number | null
+          ai_generated_title: string
+          ai_reason: string
+          created_at: string | null
+          division_id: string | null
+          expected_effect: string | null
+          follow_up_date: string | null
+          id: string
+          manual_ref: string | null
+          priority: string
+          proposed_actions: Json
+          registered_by: string | null
+          source_analysis_id: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_effect_score?: number | null
+          ai_generated_title: string
+          ai_reason: string
+          created_at?: string | null
+          division_id?: string | null
+          expected_effect?: string | null
+          follow_up_date?: string | null
+          id?: string
+          manual_ref?: string | null
+          priority: string
+          proposed_actions?: Json
+          registered_by?: string | null
+          source_analysis_id?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_effect_score?: number | null
+          ai_generated_title?: string
+          ai_reason?: string
+          created_at?: string | null
+          division_id?: string | null
+          expected_effect?: string | null
+          follow_up_date?: string | null
+          id?: string
+          manual_ref?: string | null
+          priority?: string
+          proposed_actions?: Json
+          registered_by?: string | null
+          source_analysis_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplace_improvement_plans_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplace_improvement_plans_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "workplace_improvement_plans_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplace_improvement_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      stress_group_analysis: {
+        Row: {
+          colleague_support: number | null
+          control: number | null
+          division_id: string | null
+          health_risk: number | null
+          high_stress_rate: number | null
+          is_latest: boolean | null
+          member_count: number | null
+          name: string | null
+          period_name: string | null
+          previous_health_risk: number | null
+          supervisor_support: number | null
+          tenant_id: string | null
+          workload: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      create_auth_user: {
+        Args: { p_email: string; p_password: string }
+        Returns: string
+      }
       current_employee_app_role: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       fn_supervisor_qr_permission_apply: {
         Args: {
           p_actor_user_id: string
           p_audit_action: string
           p_can_display: boolean
           p_employee_user_id: string
-          p_scope: string | null
+          p_scope: string
           p_supervisor_user_id: string
           p_tenant_id: string
         }
@@ -1843,7 +3038,7 @@ export type Database = {
           p_actor_user_id: string
           p_can_display: boolean
           p_employee_user_id: string
-          p_scope: string | null
+          p_scope: string
           p_supervisor_user_id: string
           p_tenant_id: string
         }
@@ -1857,10 +3052,24 @@ export type Database = {
         Args: { p_permission_id: string }
         Returns: Json
       }
-      get_auth_user_email: { Args: { p_user_id: string }; Returns: string | null }
+      generate_recovery_token: {
+        Args: { p_expiry_hours?: number; p_user_id: string }
+        Returns: string
+      }
+      get_auth_user_email: { Args: { p_user_id: string }; Returns: string }
       get_tenant_employee_auth_email: {
         Args: { p_tenant_id: string; p_user_id: string }
-        Returns: string | null
+        Returns: string
+      }
+      sync_service_assignment_users: {
+        Args: { p_service_assignment_id: string }
+        Returns: {
+          inserted_count: number
+        }[]
+      }
+      update_user_password: {
+        Args: { p_new_password: string; p_user_id: string }
+        Returns: undefined
       }
       upsert_overtime_settings: {
         Args: {
@@ -1869,6 +3078,10 @@ export type Database = {
           p_monthly_limit_hours: number
           p_monthly_warning_hours: number
         }
+        Returns: string
+      }
+      verify_recovery_token: {
+        Args: { p_email: string; p_expiry_hours?: number; p_token: string }
         Returns: string
       }
     }

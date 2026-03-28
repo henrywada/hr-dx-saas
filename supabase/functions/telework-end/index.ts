@@ -1,9 +1,17 @@
 /**
  * テレワーク作業終了: open セッションを検証し end_at・summary・worked_seconds を保存。
  * worked_seconds は telework_pc_logs（heartbeat/activity/unlock 連鎖）から算出。0 のときは壁時計のセッション長。
+ * 終了後、勤怠原始データ work_time_records へ upsert（同日複数セッションは分数加算）。
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 import { corsHeaders } from "../_shared/cors.ts"
+import {
+  earlierIso,
+  jstDateYmdFromIso,
+  laterIso,
+  periodMonthFirstDay,
+} from "../_shared/jst-date.ts"
 import {
   createServiceClient,
   requireUserTenant,
@@ -19,6 +27,115 @@ type Body = {
   timestamp?: string
   lat?: number
   lon?: number
+}
+
+/** telework_sessions 更新成功後に勤怠行へ反映。失敗時はログのみ（セッションは既に閉じ済み） */
+async function syncWorkTimeRecord(params: {
+  admin: SupabaseClient
+  tenantId: string
+  userId: string
+  sessionStartAt: string
+  endAt: string
+  workedSeconds: number
+}): Promise<{ ok: true } | { ok: false; detail: string }> {
+  const { admin, tenantId, userId, sessionStartAt, endAt, workedSeconds } = params
+
+  const { data: emp, error: empErr } = await admin
+    .from("employees")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  if (empErr) {
+    console.error("telework-end employees lookup", empErr)
+    return { ok: false, detail: empErr.message ?? "employee_lookup_failed" }
+  }
+  if (!emp?.id) {
+    console.warn("telework-end: no employees row for user, skip work_time_records")
+    return { ok: true }
+  }
+
+  const employeeId = emp.id as string
+  const recordDate = jstDateYmdFromIso(sessionStartAt)
+  const newMinutes = Math.max(0, Math.round(workedSeconds / 60))
+
+  const { data: existingList, error: selErr } = await admin
+    .from("work_time_records")
+    .select("id, start_time, end_time, duration_minutes, source")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .eq("record_date", recordDate)
+    .limit(1)
+
+  if (selErr) {
+    console.error("telework-end work_time_records select", selErr)
+    return { ok: false, detail: selErr.message ?? "wtr_select_failed" }
+  }
+
+  const existing = (existingList as {
+    id: string
+    start_time: string | null
+    end_time: string | null
+    duration_minutes: number | null
+    source: string | null
+  }[] | null)?.[0]
+
+  const periodMonth = periodMonthFirstDay(recordDate)
+
+  if (existing) {
+    const prevDur = existing.duration_minutes ?? 0
+    const mergedSource =
+      existing.source === "telework" || !existing.source
+        ? "telework"
+        : "mixed"
+    const { error: upErr } = await admin
+      .from("work_time_records")
+      .update({
+        start_time: earlierIso(existing.start_time, sessionStartAt),
+        end_time: laterIso(existing.end_time, endAt),
+        duration_minutes: prevDur + newMinutes,
+        source: mergedSource,
+      })
+      .eq("id", existing.id)
+
+    if (upErr) {
+      console.error("telework-end work_time_records update", upErr)
+      return { ok: false, detail: upErr.message ?? "wtr_update_failed" }
+    }
+  } else {
+    const { error: insErr } = await admin.from("work_time_records").insert({
+      tenant_id: tenantId,
+      employee_id: employeeId,
+      record_date: recordDate,
+      start_time: sessionStartAt,
+      end_time: endAt,
+      duration_minutes: newMinutes,
+      is_holiday: false,
+      source: "telework",
+      qr_session_id: null,
+      punch_supervisor_user_id: null,
+    })
+
+    if (insErr) {
+      console.error("telework-end work_time_records insert", insErr)
+      return { ok: false, detail: insErr.message ?? "wtr_insert_failed" }
+    }
+  }
+
+  const { error: delErr } = await admin
+    .from("overtime_monthly_stats")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .eq("period_month", periodMonth)
+
+  if (delErr) {
+    console.error("telework-end overtime_monthly_stats delete", delErr)
+    return { ok: false, detail: delErr.message ?? "stats_delete_failed" }
+  }
+
+  return { ok: true }
 }
 
 serve(async (req) => {
@@ -178,8 +295,23 @@ serve(async (req) => {
     })
   }
 
-  return new Response(
-    JSON.stringify({ worked_seconds: workedSeconds }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  )
+  const sync = await syncWorkTimeRecord({
+    admin,
+    tenantId,
+    userId,
+    sessionStartAt: session.start_at as string,
+    endAt,
+    workedSeconds,
+  })
+
+  const payload: Record<string, unknown> = { worked_seconds: workedSeconds }
+  if (!sync.ok) {
+    payload.work_time_record_sync_failed = true
+    payload.work_time_record_sync_detail = sync.detail
+  }
+
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
 })

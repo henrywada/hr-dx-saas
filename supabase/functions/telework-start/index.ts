@@ -11,6 +11,11 @@ import {
   requireUserTenant,
 } from "../_shared/telework-auth.ts"
 import { verifyDeviceSignature } from "../_shared/telework-device-signature.ts"
+import {
+  jstDateYmdFromIso,
+  jstDayStartUtcIsoFromYmd,
+  jstNextDayStartUtcIsoFromYmd,
+} from "../_shared/jst-date.ts"
 
 type Body = {
   device_id?: string
@@ -165,6 +170,33 @@ serve(async (req) => {
 
   if (openRow?.id) {
     return new Response(JSON.stringify({ error: "session_already_open" }), {
+      status: 409,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+
+  // 1 日 1 セッション（JST）: 本日すでに開始済みの行があれば新規開始不可
+  const dayYmd = jstDateYmdFromIso(startAt)
+  const dayStartIso = jstDayStartUtcIsoFromYmd(dayYmd)
+  const dayEndIso = jstNextDayStartUtcIsoFromYmd(dayYmd)
+  const { data: todaySessions, error: todayErr } = await admin
+    .from("telework_sessions")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", userId)
+    .gte("start_at", dayStartIso)
+    .lt("start_at", dayEndIso)
+    .limit(1)
+
+  if (todayErr) {
+    console.error("telework-start today check", todayErr)
+    return new Response(JSON.stringify({ error: "today_session_check_failed" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+  if (todaySessions && todaySessions.length > 0) {
+    return new Response(JSON.stringify({ error: "session_already_recorded_today" }), {
       status: 409,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })

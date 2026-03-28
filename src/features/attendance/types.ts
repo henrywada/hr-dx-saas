@@ -8,6 +8,7 @@ export type WorkTimeRecordRow = {
   end_time: string | null
   duration_minutes: number
   is_holiday: boolean | null
+  /** csv_import / qr / telework / mixed（複数ソースの同日マージ）など */
   source: string | null
   created_at: string | null
 }

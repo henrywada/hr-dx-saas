@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { Laptop } from 'lucide-react'
 import { getServerUser } from '@/lib/auth/server-user'
-import EndForm from './components/EndForm'
 import DailyStatus from './components/DailyStatus'
+import EndWorkSection from './components/EndWorkSection'
 import StartWorkSection from './components/StartWorkSection'
 
 type Props = {
@@ -30,7 +30,7 @@ export default async function RemortWorkPage({ params, searchParams }: Props) {
             テレワーク作業
           </h1>
           <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-            作業の開始・終了を記録します。このブラウザで登録・承認された端末からのみ開始できます。位置情報は許可がある場合のみ送信されます。
+            1 日 1 回、作業の開始・終了を記録します（終了後は同日に再開できません）。このブラウザで登録・承認された端末からのみ開始できます。位置情報は許可がある場合のみ送信されます。
           </p>
         </div>
       </div>
@@ -39,10 +39,7 @@ export default async function RemortWorkPage({ params, searchParams }: Props) {
 
       <StartWorkSection />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <h2 className="font-bold text-lg text-slate-800">作業終了</h2>
-        <EndForm />
-      </section>
+      <EndWorkSection />
     </div>
   )
 }

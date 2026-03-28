@@ -2,19 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import {
-  jstDayStartUtcIso,
-  jstNextDayStartUtcIso,
-  toJSTDateString,
-} from '@/lib/datetime'
-import StartButton from './StartButton'
+import EndForm from './EndForm'
 
 /**
- * 本日（JST）にテレワークセッションが 1 件でもあるときは「作業開始」を出さない（1 日 1 行モデル）
+ * 進行中のテレワークセッションがあるときだけ「作業終了」カードを表示する（終了済みの日は非表示）
  */
-export default function StartWorkSection() {
-  const [hideStart, setHideStart] = useState<boolean | null>(null)
-  const dayYmd = toJSTDateString()
+export default function EndWorkSection() {
+  const [show, setShow] = useState<boolean | null>(null)
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -22,27 +16,25 @@ export default function StartWorkSection() {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      setHideStart(false)
+      setShow(false)
       return
     }
-
-    const startIso = jstDayStartUtcIso(dayYmd)
-    const endIso = jstNextDayStartUtcIso(dayYmd)
-
     const { data, error } = await supabase
       .from('telework_sessions')
       .select('id')
       .eq('user_id', user.id)
-      .gte('start_at', startIso)
-      .lt('start_at', endIso)
+      .eq('status', 'open')
+      .is('end_at', null)
+      .order('start_at', { ascending: false })
       .limit(1)
+      .maybeSingle()
 
     if (error) {
-      setHideStart(false)
+      setShow(false)
       return
     }
-    setHideStart((data?.length ?? 0) > 0)
-  }, [dayYmd])
+    setShow(!!data?.id)
+  }, [])
 
   useEffect(() => {
     void load()
@@ -54,15 +46,15 @@ export default function StartWorkSection() {
     return () => window.removeEventListener('telework:sessions-changed', onChange)
   }, [load])
 
-  // null: 取得中は出さない / true: 本日すでにセッションありで非表示
-  if (hideStart !== false) {
+  // 取得中は出さない（終了直後のちらつき防止）
+  if (show !== true) {
     return null
   }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-      <h2 className="font-bold text-lg text-slate-800">作業開始</h2>
-      <StartButton />
+      <h2 className="font-bold text-lg text-slate-800">作業終了</h2>
+      <EndForm />
     </section>
   )
 }

@@ -11,6 +11,10 @@ export function userMessageFromTeleworkEdgeCode(code: string): string {
       return '端末がまだ承認されていません。承認後に再度お試しください。'
     case 'session_already_open':
       return 'すでに進行中のセッションがあります。先に作業を終了してください。'
+    case 'session_already_recorded_today':
+      return '本日のテレワークはすでに記録済みです。1 日 1 回まで開始できます。'
+    case 'today_session_check_failed':
+      return '本日の記録状況を確認できませんでした。しばらくしてから再度お試しください。'
     case 'invalid_signature':
     case 'signature_mismatch':
       return '端末認証に失敗しました。端末の秘密鍵の取得状況を確認してください。'

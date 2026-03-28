@@ -366,8 +366,10 @@ deno_version = 2
 
 # QR 署名を明示したい場合: supabase/.env に QR_SIGNING_SECRET=（16文字以上）を記載。
 # 未設定でも localhost では Edge 関数内の開発用フォールバックが使われる。
+# テレワーク端末承認: TELEWORK_DEVICE_ENCRYPTION_KEY（openssl rand -base64 32）。ローカル URL では未設定でもフォールバック可。
 # [edge_runtime.secrets]
 # QR_SIGNING_SECRET = "env(QR_SIGNING_SECRET)"
+# TELEWORK_DEVICE_ENCRYPTION_KEY = "env(TELEWORK_DEVICE_ENCRYPTION_KEY)"
 
 # QR 打刻: Kong 前段の JWT 検証だけが 401 になるケース（ローカル・一部環境）を避ける。
 # いずれの関数内でも Authorization + supabase.auth.getUser() で再検証する。

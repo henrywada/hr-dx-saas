@@ -1,5 +1,7 @@
 /**
  * テレワーク作業開始: 承認済み端末を検証し telework_sessions を open で作成する。
+ * Web: device_identifier（ブラウザの登録識別子）で端末を解決。未署名の device_id 直指定は不可。
+ * エージェント: signature + device_id（HMAC）
  * 環境変数: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -12,6 +14,7 @@ import { verifyDeviceSignature } from "../_shared/telework-device-signature.ts"
 
 type Body = {
   device_id?: string
+  device_identifier?: string
   timestamp?: string
   lat?: number
   lon?: number
@@ -64,14 +67,6 @@ serve(async (req) => {
     })
   }
 
-  const deviceId = typeof body.device_id === "string" ? body.device_id : ""
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: "missing_device_id" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
-  }
-
   const startAt =
     typeof body.timestamp === "string" && body.timestamp.length > 0
       ? body.timestamp
@@ -84,14 +79,24 @@ serve(async (req) => {
       ? body.signature
       : ""
 
+  let resolvedDeviceId: string
+
   if (sig) {
+    const deviceIdForSig =
+      typeof body.device_id === "string" ? body.device_id.trim() : ""
+    if (!deviceIdForSig) {
+      return new Response(JSON.stringify({ error: "missing_device_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
     const payload =
       body.payload && typeof body.payload === "object" && !Array.isArray(body.payload)
         ? body.payload
         : {}
     const ts = body.timestamp ?? startAt
     const v = await verifyDeviceSignature(admin, {
-      deviceId,
+      deviceId: deviceIdForSig,
       timestamp: ts,
       payload,
       signature: sig,
@@ -105,28 +110,37 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
+    resolvedDeviceId = v.device.id
   } else {
+    const deviceIdentifier =
+      typeof body.device_identifier === "string" ? body.device_identifier.trim() : ""
+    if (!deviceIdentifier) {
+      return new Response(JSON.stringify({ error: "missing_device_identifier" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
     const { data: device, error: devErr } = await admin
       .from("telework_pc_devices")
-      .select("id, tenant_id, user_id, approved")
-      .eq("id", deviceId)
+      .select("id, tenant_id, user_id, approved, rejected_at")
+      .eq("device_identifier", deviceIdentifier)
+      .eq("tenant_id", tenantId)
+      .eq("user_id", userId)
       .maybeSingle()
 
     if (devErr || !device) {
-      return new Response(JSON.stringify({ error: "device_not_found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+      return new Response(
+        JSON.stringify({ error: "no_approved_device_for_this_browser" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      )
     }
 
-    if (device.tenant_id !== tenantId) {
-      return new Response(JSON.stringify({ error: "tenant_mismatch" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
-    }
-    if (device.user_id !== userId) {
-      return new Response(JSON.stringify({ error: "device_user_mismatch" }), {
+    if (device.rejected_at) {
+      return new Response(JSON.stringify({ error: "device_rejected" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
@@ -137,6 +151,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
+    resolvedDeviceId = device.id
   }
 
   const { data: openRow } = await admin
@@ -163,7 +178,7 @@ serve(async (req) => {
   const insertRow = {
     tenant_id: tenantId,
     user_id: userId,
-    device_id: deviceId,
+    device_id: resolvedDeviceId,
     start_at: startAt,
     start_lat: typeof body.lat === "number" ? body.lat : null,
     start_lon: typeof body.lon === "number" ? body.lon : null,

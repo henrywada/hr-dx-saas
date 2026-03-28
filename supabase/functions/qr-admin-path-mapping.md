@@ -20,11 +20,8 @@
 
 本番: `https://<project-ref>.supabase.co/functions/v1/qr-admin-bulkimportpermissions`
 
-### 手動確認（CSV 一括）
+### 手動確認（CSV 一括・レガシー）
 
-1. `supabase/.env.local` に `SUPABASE_SERVICE_ROLE_KEY` を設定し、`supabase functions serve --env-file supabase/.env.local` を実行。
-2. マイグレーション適用後、人事ロールで `/adm/csv-import` からテンプレート CSV をアップロード。
-3. ログ: `supabase functions logs --name qr-admin-bulkimportpermissions --since 1h`
-4. DB: `supervisor_qr_permissions` の更新と `qr_audit_logs`（`bulk_grant` / `bulk_grant_failed`）を確認。
+`qr-admin-bulkimportpermissions` は QR 表示権限の一括登録用（従業員番号キー）。アプリの人事向け画面は `/adm/csv-import` から **`/adm/csv_atendance`（勤怠実績 CSV）** に移行済みのため、本関数の UI 導線は撤去済み。直接 `curl` 等で Edge を叩く検証に限定。
 
 デプロイ: `supabase functions deploy qr-admin-bulkimportpermissions`

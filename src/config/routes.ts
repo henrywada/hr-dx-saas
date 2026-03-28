@@ -17,12 +17,14 @@ export const APP_ROUTES = {
     ADMIN_AI_WORKPLACE_IMPROVEMENT: '/adm/ai-workplace-improvement',
     /** 管理者 QR 表示権限（(qr_atendance) グループ） */
     ADMIN_QR_ATENDANCE: '/adm/qr_atendance',
-    /** 人事向け QR 表示権限 CSV 一括（従業員番号キー） */
-    ADMIN_QR_SQP_CSV_IMPORT: '/adm/csv-import',
+    /** 勤怠実績 CSV 取り込み（(csv_atendance) グループ、URL は /adm/csv_atendance） */
+    ADMIN_CSV_ATENDANCE: '/adm/csv_atendance',
     /** 残業閾値設定（ルートグループ (qr_atendance)、URL は /adm/overtime-settings） */
     ADMIN_OVERTIME_SETTINGS: '/adm/overtime-settings',
-    /** テレワーク端末ペアリング（(pc_atendance) グループ、URL は /adm/device-pairing） */
-    ADMIN_DEVICE_PAIRING: '/adm/device-pairing',
+    /** テレワーク端末登録申請（(default) ポータル、URL は /device-pairing） */
+    PORTAL_DEVICE_PAIRING: '/device-pairing',
+    /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
+    ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */
     ADMIN_MANUAL: '/adm/manual',
     /** 人事向け勤怠管理ダッシュボード */

@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
+import { APP_ROUTES } from '@/config/routes'
 import type {
   EmployeeAttendanceOverviewFilter,
   EmployeeAttendancePageResult,
@@ -62,6 +64,12 @@ export default function AttendanceDashboard({
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
           <MonthSelector year={year} month={month} />
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_CSV_ATENDANCE}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-accent-orange hover:bg-slate-50"
+          >
+            CSV 取り込み
+          </Link>
           <ExportButton year={year} month={month} />
         </div>
       </div>

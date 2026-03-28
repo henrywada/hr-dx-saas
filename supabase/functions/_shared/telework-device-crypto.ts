@@ -1,20 +1,36 @@
 /**
  * telework device_secret の AES-256-GCM 暗号化（DB 上は平文保存しない）
  * 鍵: TELEWORK_DEVICE_ENCRYPTION_KEY（32 バイトの base64url または標準 base64）
+ * 未設定時はローカル開発のみ固定フォールバック（QR と同様、本番では必ず secrets を設定すること）
  */
+import { isLikelyLocalSupabaseUrl } from "./qr-secret.ts"
+
 const PREFIX = "tw1."
+
+/** ローカル専用 32 バイト（UTF-8）。本番では必ず TELEWORK_DEVICE_ENCRYPTION_KEY を設定 */
+const DEV_LOCAL_KEY_UTF8 = "local-dev-telework-key-32bytes!!"
 
 function decodeKey(): Uint8Array {
   const b64 = Deno.env.get("TELEWORK_DEVICE_ENCRYPTION_KEY")?.trim() ?? ""
-  if (!b64) {
-    throw new Error("TELEWORK_DEVICE_ENCRYPTION_KEY is not set")
+  if (b64) {
+    const raw = Uint8Array.from(atob(b64.replace(/-/g, "+").replace(/_/g, "/")), (c) =>
+      c.charCodeAt(0))
+    if (raw.length !== 32) {
+      throw new Error("TELEWORK_DEVICE_ENCRYPTION_KEY must decode to 32 bytes")
+    }
+    return raw
   }
-  const raw = Uint8Array.from(atob(b64.replace(/-/g, "+").replace(/_/g, "/")), (c) =>
-    c.charCodeAt(0))
-  if (raw.length !== 32) {
-    throw new Error("TELEWORK_DEVICE_ENCRYPTION_KEY must decode to 32 bytes")
+
+  const url = Deno.env.get("SUPABASE_URL") ?? ""
+  if (isLikelyLocalSupabaseUrl(url)) {
+    const k = new TextEncoder().encode(DEV_LOCAL_KEY_UTF8)
+    if (k.length !== 32) {
+      throw new Error("dev telework key must be 32 bytes")
+    }
+    return k
   }
-  return raw
+
+  throw new Error("TELEWORK_DEVICE_ENCRYPTION_KEY is not set")
 }
 
 function toB64(u8: Uint8Array): string {

@@ -124,7 +124,10 @@ async function AdminSubMenuCategoryContent({ categoryId }: { categoryId: string 
               if (!targetPath.startsWith('/')) {
                 targetPath = '/' + targetPath;
               }
-              if (!targetPath.startsWith('/adm/')) {
+              if (
+                !targetPath.startsWith('/adm/') &&
+                !targetPath.startsWith('/device-pairing')
+              ) {
                 targetPath = '/adm' + targetPath;
               }
             }

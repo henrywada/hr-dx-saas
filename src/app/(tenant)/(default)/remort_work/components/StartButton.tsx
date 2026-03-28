@@ -1,34 +1,114 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Loader2, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invokeEdgeWithSession } from '@/lib/supabase/invoke-edge-with-session'
 import { toJSTISOString } from '@/lib/datetime'
-
-export type TeleworkDeviceOption = { id: string; device_name: string | null }
+import { getOrCreateDeviceIdentifier } from '@/lib/telework/device-storage'
+import { APP_ROUTES } from '@/config/routes'
+import { userMessageFromTeleworkEdgeCode } from '@/features/telework/map-telework-edge-error'
 
 function dispatchSessionsChanged() {
   window.dispatchEvent(new Event('telework:sessions-changed'))
 }
 
-type Props = {
-  devices: TeleworkDeviceOption[]
-}
+type DeviceGate =
+  | { status: 'loading' }
+  | {
+      status: 'ready'
+      deviceName: string | null
+      deviceIdentifier: string
+    }
+  | { status: 'blocked'; message: string; showPairingLink?: boolean }
 
-export default function StartButton({ devices }: Props) {
-  const [deviceId, setDeviceId] = useState(devices[0]?.id ?? '')
-  const [loading, setLoading] = useState(false)
+export default function StartButton() {
+  const [gate, setGate] = useState<DeviceGate>({ status: 'loading' })
+  const [starting, setStarting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const onStart = useCallback(async () => {
-    setMessage(null)
-    if (!deviceId) {
-      setMessage('承認済みの端末を選択してください。')
-      return
-    }
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const deviceIdentifier = getOrCreateDeviceIdentifier()
+      if (!deviceIdentifier) {
+        if (!cancelled) {
+          setGate({
+            status: 'blocked',
+            message: '端末識別子を取得できませんでした。',
+          })
+        }
+        return
+      }
 
-    setLoading(true)
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user?.id) {
+        if (!cancelled) {
+          setGate({
+            status: 'blocked',
+            message: 'ログインが必要です。',
+          })
+        }
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('telework_pc_devices')
+        .select('device_name, approved, rejected_at')
+        .eq('user_id', user.id)
+        .eq('device_identifier', deviceIdentifier)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      if (error || !data) {
+        setGate({
+          status: 'blocked',
+          message:
+            'このブラウザではまだ承認済み端末として登録されていません。端末登録と人事承認を行ってください。',
+          showPairingLink: true,
+        })
+        return
+      }
+
+      if (data.rejected_at) {
+        setGate({
+          status: 'blocked',
+          message: 'この端末の登録は却下されています。必要であれば再申請してください。',
+          showPairingLink: true,
+        })
+        return
+      }
+
+      if (!data.approved) {
+        setGate({
+          status: 'blocked',
+          message:
+            '端末の承認待ちです。人事による承認後に作業を開始できます。',
+        })
+        return
+      }
+
+      setGate({
+        status: 'ready',
+        deviceName: data.device_name,
+        deviceIdentifier,
+      })
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const onStart = useCallback(async () => {
+    if (gate.status !== 'ready') return
+    setMessage(null)
+    setStarting(true)
     try {
       const supabase = createClient()
 
@@ -52,7 +132,7 @@ export default function StartButton({ devices }: Props) {
         typeof navigator !== 'undefined' ? navigator.userAgent : undefined
 
       const body = {
-        device_id: deviceId,
+        device_identifier: gate.deviceIdentifier,
         timestamp: toJSTISOString(),
         ...(lat !== undefined && { lat }),
         ...(lon !== undefined && { lon }),
@@ -69,7 +149,7 @@ export default function StartButton({ devices }: Props) {
         return
       }
       if (data && typeof data === 'object' && 'error' in data && data.error) {
-        setMessage(String(data.error))
+        setMessage(userMessageFromTeleworkEdgeCode(String(data.error)))
         return
       }
       if (data?.session_id) {
@@ -79,43 +159,55 @@ export default function StartButton({ devices }: Props) {
       }
       setMessage('開始に失敗しました。')
     } finally {
-      setLoading(false)
+      setStarting(false)
     }
-  }, [deviceId])
+  }, [gate])
 
-  if (devices.length === 0) {
+  if (gate.status === 'loading') {
     return (
-      <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-        承認済みのテレワーク用端末がありません。管理者による端末登録・承認後にご利用ください。
-      </p>
+      <div className="flex items-center gap-2 text-slate-500 text-sm">
+        <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+        端末を確認しています…
+      </div>
     )
   }
 
+  if (gate.status === 'blocked') {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          {gate.message}
+        </p>
+        {gate.showPairingLink ? (
+          <p className="text-sm">
+            <Link
+              href={APP_ROUTES.TENANT.PORTAL_DEVICE_PAIRING}
+              className="text-indigo-600 font-medium underline hover:text-indigo-800"
+            >
+              端末登録（テレワーク用）
+            </Link>
+            へ進む
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
+  const namePart = gate.deviceName?.trim() || '（名称未設定）'
+
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-slate-700">
-        使用する端末
-        <select
-          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          value={deviceId}
-          onChange={(e) => setDeviceId(e.target.value)}
-          disabled={loading}
-        >
-          {devices.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.device_name?.trim() || '端末（名称未設定）'}
-            </option>
-          ))}
-        </select>
-      </label>
+      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900">
+        端末名：{namePart}
+      </p>
 
       <button
         type="button"
         onClick={onStart}
-        disabled={loading || !deviceId}
+        disabled={starting}
         className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-w-[200px] rounded-xl bg-indigo-600 px-6 py-3 text-white font-semibold shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none transition-colors"
       >
-        {loading ? (
+        {starting ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <Play className="w-5 h-5" />

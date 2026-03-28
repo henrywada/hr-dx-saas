@@ -2,7 +2,8 @@
  * ローカル supabase start では Edge 内の SUPABASE_URL が http://kong:8000 やプライベート IP になり、
  * "localhost" 文字列が無くフォールバックが効かないことがある。
  */
-function isLikelyLocalSupabaseUrl(url: string): boolean {
+/** ローカル supabase / Docker 内 Kong 等の判定（他 Edge 共有用） */
+export function isLikelyLocalSupabaseUrl(url: string): boolean {
   const u = url.trim()
   if (!u) return false
   if (

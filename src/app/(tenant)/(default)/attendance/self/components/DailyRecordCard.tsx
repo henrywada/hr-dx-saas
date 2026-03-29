@@ -22,21 +22,29 @@ function sourceLabel(source: string | null): string {
 type Props = {
   workDate: string | null
   record: WorkTimeRecordRow | null
+  /** true のとき Card ラッパーなし（モーダル内など） */
+  embedded?: boolean
 }
 
-export function DailyRecordCard({ workDate, record }: Props) {
+export function DailyRecordCard({ workDate, record, embedded = false }: Props) {
   if (!workDate) {
+    const empty = (
+      <p className="text-sm text-slate-500">カレンダーから日付を選択してください。</p>
+    )
+    if (embedded) return empty
     return (
       <Card variant="default" title="日別の記録">
-        <p className="text-sm text-slate-500">カレンダーから日付を選択してください。</p>
+        {empty}
       </Card>
     )
   }
 
   if (!record) {
+    const none = <p className="text-sm font-medium text-slate-600">記録なし</p>
+    if (embedded) return none
     return (
       <Card variant="default" title={`${workDate} の記録`}>
-        <p className="text-sm font-medium text-slate-600">記録なし</p>
+        {none}
       </Card>
     )
   }
@@ -46,9 +54,8 @@ export function DailyRecordCard({ workDate, record }: Props) {
   const range =
     start && end ? `${start} - ${end}` : start || end || '—'
 
-  return (
-    <Card variant="default" title={`${record.record_date} の詳細`}>
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+  const detailBody = (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-slate-500 text-xs mb-0.5">出勤時刻</dt>
           <dd className="font-medium text-slate-900">{start ?? '—'}</dd>
@@ -91,6 +98,15 @@ export function DailyRecordCard({ workDate, record }: Props) {
           時刻レンジ: {range}
         </div>
       </dl>
+  )
+
+  if (embedded) {
+    return detailBody
+  }
+
+  return (
+    <Card variant="default" title={`${record.record_date} の詳細`}>
+      {detailBody}
     </Card>
   )
 }

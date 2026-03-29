@@ -23,6 +23,8 @@ export type OvertimeMonthRow = {
   overtimeEndDisplay: string | null
   overtimeHoursDisplay: string | null
   reasonDisplay: string | null
+  /** 勤怠ソース（work_time_records.source の表示ラベル） */
+  sourceDisplay: string | null
   statusDisplay: string | null
   /** 勤怠の休暇フラグ（work_time_records.is_holiday。CSV 取り込みの「休日」列と同一） */
   isLeaveDay: boolean

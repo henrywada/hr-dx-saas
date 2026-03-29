@@ -6,6 +6,7 @@ import {
   lastDayOfMonthYmd,
 } from '@/lib/datetime'
 import type { OvertimeMonthRow } from './types'
+import { formatWorkTimeRecordSourceLabel } from './work-time-source-label'
 
 /** searchParams の ym を検証し、不正時は JST 現在月 */
 export function parseYearMonthOrDefault(ym: string | string[] | undefined | null): string {
@@ -41,7 +42,7 @@ function enumerateDaysYmdInMonth(yearMonth: string): string[] {
 
 type WtrRow = Pick<
   Database['public']['Tables']['work_time_records']['Row'],
-  'record_date' | 'start_time' | 'end_time' | 'is_holiday'
+  'record_date' | 'start_time' | 'end_time' | 'is_holiday' | 'source'
 >
 
 type OtRow = Pick<
@@ -70,7 +71,7 @@ export async function getOvertimeApplicationMonthRows(
   const [wtrRes, otRes] = await Promise.all([
     supabase
       .from('work_time_records')
-      .select('record_date, start_time, end_time, is_holiday')
+      .select('record_date, start_time, end_time, is_holiday, source')
       .eq('employee_id', employeeId)
       .gte('record_date', firstDay)
       .lte('record_date', lastDay),
@@ -132,6 +133,7 @@ export async function getOvertimeApplicationMonthRows(
     }
 
     const isLeaveDay = wtr?.is_holiday === true
+    const sourceDisplay = formatWorkTimeRecordSourceLabel(wtr?.source)
 
     return {
       workDate,
@@ -141,6 +143,7 @@ export async function getOvertimeApplicationMonthRows(
       overtimeEndDisplay,
       overtimeHoursDisplay,
       reasonDisplay,
+      sourceDisplay,
       statusDisplay,
       isLeaveDay,
       overtimeStartIso: ot?.overtime_start ?? null,

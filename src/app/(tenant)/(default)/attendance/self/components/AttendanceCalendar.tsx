@@ -91,6 +91,7 @@ export function AttendanceCalendar({
           const dow = new Date(year, month - 1, day).getDay()
           const isWeekend = dow === 0 || dow === 6
           const hasAlert = alertDates.has(key)
+          const isHolidayRecord = rec?.is_holiday === true
           const overtimeTint =
             monthlyOvertimePositive && rec != null && !isWeekend && !rec.is_holiday
 
@@ -104,9 +105,11 @@ export function AttendanceCalendar({
               className={cn(
                 'min-h-[5.5rem] rounded-xl border p-2 text-left transition-all outline-none',
                 'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-                isWeekend || rec?.is_holiday
-                  ? 'bg-gray-100 border-slate-200/80'
-                  : 'bg-white border-slate-200',
+                isHolidayRecord
+                  ? 'bg-[#fff0f5] border-rose-200/70'
+                  : isWeekend
+                    ? 'bg-gray-100 border-slate-200/80'
+                    : 'bg-white border-slate-200',
                 overtimeTint && 'bg-orange-50 border-orange-100',
                 selected && 'ring-2 ring-primary ring-offset-1',
               )}

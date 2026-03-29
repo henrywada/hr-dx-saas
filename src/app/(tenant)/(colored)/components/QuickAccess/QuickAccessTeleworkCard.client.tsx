@@ -64,7 +64,7 @@ export function QuickAccessTeleworkCard() {
   return (
     <QuickAccessCard
       href="/remort_work"
-      title="リモートワーク開始・終了"
+      title="リモートワーク開始・終了の打刻"
       subtitle="作業の開始・終了を記録"
       icon={Laptop}
       iconBoxClass="bg-indigo-100 text-indigo-700"

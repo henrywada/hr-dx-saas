@@ -104,7 +104,7 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
       </p>
 
       <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[1180px] text-left text-sm">
+        <table className="w-full min-w-[1260px] text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
             <tr>
               <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
@@ -130,6 +130,9 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
               </th>
               <th className="min-w-[120px] px-2 py-2 text-xs font-medium sm:min-w-[140px] sm:px-3 sm:text-sm">
                 残業理由
+              </th>
+              <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
+                ソース
               </th>
               <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
                 承認
@@ -172,6 +175,9 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
                     title={row.reasonDisplay ?? undefined}
                   >
                     {cell(row.reasonDisplay)}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-1 text-xs text-slate-800 sm:px-3 sm:text-sm">
+                    {cell(row.sourceDisplay)}
                   </td>
                   <td className="whitespace-nowrap px-2 py-1 text-xs text-slate-800 sm:px-3 sm:text-sm">
                     {cell(row.statusDisplay)}

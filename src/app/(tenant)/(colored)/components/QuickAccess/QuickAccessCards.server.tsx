@@ -54,7 +54,7 @@ export default async function QuickAccessCards() {
       {showClockCard && (
         <QuickAccessCard
           href="/apps/attendance/scan"
-          title="出退勤の打刻"
+          title="出退勤のQRコード打刻"
           subtitle="出退勤をQRコードのスキャンで打刻"
           icon={Clock}
           iconBoxClass="bg-sky-100 text-sky-700"
@@ -64,7 +64,7 @@ export default async function QuickAccessCards() {
       {showQrAdminCard && (
         <QuickAccessCard
           href="/apps/attendance/qr-punch"
-          title="ＱＲコード表示（管理者用）"
+          title="打刻用QRコード表示（監督者用）"
           subtitle="スキャンするQRコードを表示"
           icon={QrCode}
           iconBoxClass="bg-violet-100 text-violet-700"

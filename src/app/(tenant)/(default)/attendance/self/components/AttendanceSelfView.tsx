@@ -15,6 +15,12 @@ import { toJSTDateString } from '@/lib/datetime'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { MonthlyStats } from './MonthlyStats'
 import { AttendanceCalendar } from './AttendanceCalendar'
 import { DailyRecordCard } from './DailyRecordCard'
@@ -70,6 +76,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
   const [records, setRecords] = useState<WorkTimeRecordRow[]>([])
   const [alerts, setAlerts] = useState<OvertimeAlertRow[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -110,6 +117,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
     } else {
       setSelectedDate(null)
     }
+    setDetailModalOpen(false)
   }, [y, m])
 
   const byDate = useMemo(() => buildRecordsByDate(records), [records])
@@ -123,6 +131,16 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
   }
 
   const title = `${y}年${m}月`
+
+  const selectedRecord = selectedDate
+    ? (byDate.get(selectedDate) ?? null)
+    : null
+  const detailTitle =
+    !selectedDate
+      ? '日別の記録'
+      : !selectedRecord
+        ? `${selectedDate} の記録`
+        : `${selectedRecord.record_date} の詳細`
 
   return (
     <div className="space-y-6 pb-10">
@@ -201,14 +219,30 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
           alertDates={alertDates}
           monthlyOvertimePositive={monthlyOvertimePositive}
           selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
+          onSelectDate={(d) => {
+            setSelectedDate(d)
+            setDetailModalOpen(true)
+          }}
         />
       </Card>
 
-      <DailyRecordCard
-        workDate={selectedDate}
-        record={selectedDate ? (byDate.get(selectedDate) ?? null) : null}
-      />
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent
+          className="max-h-[90vh] max-w-lg overflow-hidden sm:max-w-lg"
+          closeButtonClassName="text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/60 focus-visible:ring-offset-0"
+        >
+          <DialogHeader className="border-b-0 bg-[#0081cc] pr-14 text-white sm:pr-16">
+            <DialogTitle className="text-white">{detailTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[min(70vh,calc(90vh-8rem))] overflow-y-auto px-6 pb-6 pt-4 sm:px-8 sm:pb-8 sm:pt-5">
+            <DailyRecordCard
+              embedded
+              workDate={selectedDate}
+              record={selectedRecord}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

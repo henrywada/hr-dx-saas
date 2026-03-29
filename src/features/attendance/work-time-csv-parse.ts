@@ -30,6 +30,37 @@ export function normalizeHeaderCell(s: string): string {
   return s.trim().toLowerCase()
 }
 
+/** 暦日として妥当か（UTC で検証しタイムゾーンずれを避ける） */
+function isValidCalendarYmd(y: number, mo: number, d: number): boolean {
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false
+  const dt = new Date(Date.UTC(y, mo - 1, d))
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d
+}
+
+/**
+ * record_date を DB 用 YYYY-MM-DD に正規化する。
+ * 受け入れ: YYYY-MM-DD、YYYY/MM/DD（月日は 1〜2 桁。全角スラッシュ可）
+ */
+export function normalizeRecordDateToYmd(raw: string): string | null {
+  const s = raw.trim().replace(/\uFF0F/g, '/')
+  const hyphen = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+  if (hyphen) {
+    const y = parseInt(hyphen[1], 10)
+    const mo = parseInt(hyphen[2], 10)
+    const d = parseInt(hyphen[3], 10)
+    return isValidCalendarYmd(y, mo, d) ? s : null
+  }
+  const slash = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(s)
+  if (slash) {
+    const y = parseInt(slash[1], 10)
+    const mo = parseInt(slash[2], 10)
+    const d = parseInt(slash[3], 10)
+    if (!isValidCalendarYmd(y, mo, d)) return null
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  }
+  return null
+}
+
 /**
  * record_date と時刻文字列から timestamptz 用 ISO を生成（DB は timestamptz）
  */
@@ -37,8 +68,8 @@ export function parseFlexibleJstTime(recordDateYmd: string, timeField: string): 
   const t = timeField.trim()
   if (!t) return null
 
-  const ymd = recordDateYmd.trim()
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  const ymd = normalizeRecordDateToYmd(recordDateYmd)
+  if (!ymd) return null
 
   // 既にオフセットまたは Z 付き
   if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(t)) {

@@ -191,6 +191,9 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">性別</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">入社日</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">部署</th>
+                <th className="text-center px-3 py-3 font-semibold text-slate-600 text-xs tracking-wide hidden md:table-cell whitespace-nowrap min-w-19">
+                  管理者
+                </th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">役職</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">アプリロール</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">ステータス</th>
@@ -200,7 +203,7 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
             <tbody>
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400">
+                  <td colSpan={10} className="text-center py-12 text-slate-400">
                     該当する従業員が見つかりません
                   </td>
                 </tr>
@@ -216,6 +219,15 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
                       <td className="px-4 py-3 text-slate-500 hidden md:table-cell">{emp.start_date || '---'}</td>
                       <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
                         {divisionObj?.name || <span className="text-amber-500 text-xs">未所属</span>}
+                      </td>
+                      <td className="px-3 py-3 text-center text-slate-900 hidden md:table-cell whitespace-nowrap min-w-19">
+                        {emp.is_manager === true ? (
+                          <span className="text-xs leading-none text-slate-700" aria-label="管理者">
+                            ●
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-slate-500 hidden lg:table-cell">{emp.job_title || '---'}</td>
                       <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">

@@ -18,6 +18,8 @@ export interface AppUser {
   employee_id?: string;
   /** employees.division_id（所属部署ID。未配属はnull、従業員レコードなしはundefined） */
   division_id?: string | null;
+  /** employees.is_manager（上長・承認者フラグ） */
+  is_manager?: boolean | null;
   /** employees.employee_no（端末登録などで使用） */
   employee_no?: string | null;
 }

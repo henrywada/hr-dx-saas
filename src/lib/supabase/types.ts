@@ -892,6 +892,7 @@ export type Database = {
           reason: string | null
           requested_hours: number
           status: string
+          supervisor_comment: string | null
           supervisor_id: string | null
           tenant_id: string
           updated_at: string | null
@@ -907,6 +908,7 @@ export type Database = {
           reason?: string | null
           requested_hours: number
           status?: string
+          supervisor_comment?: string | null
           supervisor_id?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -922,6 +924,7 @@ export type Database = {
           reason?: string | null
           requested_hours?: number
           status?: string
+          supervisor_comment?: string | null
           supervisor_id?: string | null
           tenant_id?: string
           updated_at?: string | null

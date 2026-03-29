@@ -100,7 +100,7 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
       <p className="mb-3 text-xs text-slate-500">
         土曜は水色・日曜は赤系の背景で表示します。休暇（勤怠の CSV「休日」列・
         <code className="rounded bg-slate-100 px-1">is_holiday</code>
-        が「はい」）の日は紫系で優先し、休暇列に「有」と表示します。
+        が「はい」）の日は紫系で優先し、休暇列に「●」と表示します。
       </p>
 
       <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -156,7 +156,9 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
                   </td>
                   <td className="whitespace-nowrap px-2 py-1 text-xs text-slate-800 sm:px-3 sm:text-sm">
                     {row.isLeaveDay ? (
-                      <span className="font-medium text-violet-900">有</span>
+                      <span className="font-medium text-violet-900" aria-label="休暇">
+                        ●
+                      </span>
                     ) : (
                       '-'
                     )}

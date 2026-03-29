@@ -341,7 +341,9 @@ export function WorkTimeCsvWizard() {
         >
           <FileSpreadsheet className="mx-auto h-10 w-10 text-slate-400 mb-3" />
           <p className="text-sm text-slate-600 mb-2">
-            必須列: {WORK_TIME_CSV_REQUIRED_HEADERS.join(', ')}（UTF-8、5MB 以下）
+            必須列: {WORK_TIME_CSV_REQUIRED_HEADERS.join(', ')}（
+            <code className="text-xs bg-slate-100 px-1 rounded">record_date</code> は YYYY-MM-DD または
+            YYYY/MM/DD、UTF-8、5MB 以下）
           </p>
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50">
             <Upload className="h-4 w-4" />

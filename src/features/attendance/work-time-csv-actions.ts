@@ -7,6 +7,7 @@ import { APP_ROUTES } from '@/config/routes'
 import { canAccessHrAttendanceDashboard } from './hr-dashboard-access'
 import {
   minutesBetween,
+  normalizeRecordDateToYmd,
   parseFlexibleJstTime,
   parseHolidayCell,
 } from './work-time-csv-parse'
@@ -112,22 +113,26 @@ export async function validateWorkTimeCsvRows(
     }
   }
 
-  const seen = new Map<string, number>()
+  /** 従業員 ID が解決できた行: テナント内 1 人 1 日 1 行 */
+  const seenByEmployeeDate = new Map<string, number>()
+  /** 番号未解決でも、同一従業員番号・同一日の CSV 重複を検出 */
+  const seenByEmpNoDate = new Map<string, number>()
   const out: WorkTimeCsvValidatedRow[] = []
 
   for (const r of rows) {
     const empNo = r.employee_number.trim()
     const dateStr = r.record_date.trim()
+    const recordDateYmd = normalizeRecordDateToYmd(dateStr)
     const errors: string[] = []
 
     if (!empNo) errors.push('従業員番号が空です')
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      errors.push('record_date は YYYY-MM-DD 形式で入力してください')
+    if (!recordDateYmd) {
+      errors.push('record_date は YYYY-MM-DD または YYYY/MM/DD 形式で入力してください')
     }
 
     const startIso =
-      errors.length === 0 ? parseFlexibleJstTime(dateStr, r.start_time) : null
-    const endIso = errors.length === 0 ? parseFlexibleJstTime(dateStr, r.end_time) : null
+      recordDateYmd ? parseFlexibleJstTime(recordDateYmd, r.start_time) : null
+    const endIso = recordDateYmd ? parseFlexibleJstTime(recordDateYmd, r.end_time) : null
 
     if (errors.length === 0 && !startIso) errors.push('出勤時刻を解釈できません')
     if (errors.length === 0 && !endIso) errors.push('退勤時刻を解釈できません')
@@ -139,12 +144,22 @@ export async function validateWorkTimeCsvRows(
     let emp = empNo ? empByNo.get(empNo) : undefined
     if (empNo && !emp) errors.push('従業員番号が見つかりません（テナント内）')
 
-    const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
-    const dupKey = emp && dateOk ? `${emp.id}|${dateStr}` : ''
-    if (dupKey && seen.has(dupKey)) {
-      errors.push(`同一従業員・同一日の行が複数あります（先頭は ${seen.get(dupKey)} 行目）`)
+    const dateOk = Boolean(recordDateYmd)
+    if (emp && recordDateYmd) {
+      const k = `${emp.id}|${recordDateYmd}`
+      if (seenByEmployeeDate.has(k)) {
+        errors.push(`同一従業員・同一日の行が複数あります（先頭は ${seenByEmployeeDate.get(k)} 行目）`)
+      } else {
+        seenByEmployeeDate.set(k, r.line)
+      }
+    } else if (empNo && recordDateYmd && !emp) {
+      const k = `${empNo}|${recordDateYmd}`
+      if (seenByEmpNoDate.has(k)) {
+        errors.push(`同一従業員番号・同一日の行が複数あります（先頭は ${seenByEmpNoDate.get(k)} 行目）`)
+      } else {
+        seenByEmpNoDate.set(k, r.line)
+      }
     }
-    if (dupKey && !seen.has(dupKey)) seen.set(dupKey, r.line)
 
     const duration =
       startIso && endIso && errors.length === 0 ? minutesBetween(startIso, endIso) : null
@@ -154,7 +169,7 @@ export async function validateWorkTimeCsvRows(
       employee_number: empNo,
       employee_id: emp?.id ?? null,
       employee_name: emp?.name ?? null,
-      record_date: dateStr,
+      record_date: recordDateYmd ?? dateStr,
       start_time: r.start_time,
       end_time: r.end_time,
       start_iso: startIso,
@@ -208,9 +223,22 @@ export async function commitWorkTimeCsvImport(
     if (row.employee_no) idByNo.set(String(row.employee_no).trim(), row.id)
   }
 
+  /** 同一保存リクエスト内で (employee_id, record_date) が重複すると後勝ちになり誤認しやすいため拒否 */
+  const keysWrittenInBatch = new Set<string>()
+
   for (const r of rows) {
-    const startIso = parseFlexibleJstTime(r.record_date.trim(), r.start_time)
-    const endIso = parseFlexibleJstTime(r.record_date.trim(), r.end_time)
+    const recordDate = normalizeRecordDateToYmd(r.record_date.trim())
+    if (!recordDate) {
+      failed++
+      details.push({
+        line: r.line,
+        error: 'record_date の形式が正しくありません（YYYY-MM-DD または YYYY/MM/DD）',
+      })
+      continue
+    }
+
+    const startIso = parseFlexibleJstTime(recordDate, r.start_time)
+    const endIso = parseFlexibleJstTime(recordDate, r.end_time)
     if (!startIso || !endIso) {
       failed++
       details.push({ line: r.line, error: '時刻の解釈に失敗しました' })
@@ -235,7 +263,17 @@ export async function commitWorkTimeCsvImport(
       continue
     }
 
-    const recordDate = r.record_date.trim()
+    const batchKey = `${employeeId}|${recordDate}`
+    if (keysWrittenInBatch.has(batchKey)) {
+      failed++
+      details.push({
+        line: r.line,
+        error:
+          '同一従業員・同一日の行がこの保存データ内に複数あります（1 日 1 行にまとめてから保存してください）',
+      })
+      continue
+    }
+
     const rowPayload = {
       start_time: startIso,
       end_time: endIso,
@@ -287,9 +325,10 @@ export async function commitWorkTimeCsvImport(
       }
     }
 
+    keysWrittenInBatch.add(batchKey)
     success++
     details.push({ line: r.line })
-    const pm = periodMonthDate(r.record_date.trim())
+    const pm = periodMonthDate(recordDate)
     statsKeys.set(`${employeeId}|${pm}`, { employee_id: employeeId, period_month: pm })
   }
 

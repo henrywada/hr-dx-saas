@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { isoTimestamptzToLocalTimeInputValue, toLocalOffsetIsoFromParts } from '@/lib/datetime'
@@ -70,6 +70,8 @@ export function OvertimeApplicationForm({
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  /** setState より先に効く連打対策 */
+  const submitInFlight = useRef(false)
 
   const computedHours = useMemo(() => {
     const start = parseLocalDateTime(workDate, startTime)
@@ -104,6 +106,7 @@ export function OvertimeApplicationForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submitInFlight.current) return
     setFormError(null)
     setSuccess(null)
 
@@ -136,6 +139,7 @@ export function OvertimeApplicationForm({
       reason: reason.trim(),
     }
 
+    submitInFlight.current = true
     setSubmitting(true)
     try {
       const res = await fetch('/api/overtime/applications', {
@@ -168,6 +172,7 @@ export function OvertimeApplicationForm({
     } catch {
       setFormError('通信エラーが発生しました。ネットワークを確認してください。')
     } finally {
+      submitInFlight.current = false
       setSubmitting(false)
     }
   }

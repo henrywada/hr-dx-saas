@@ -25,6 +25,7 @@ export async function getServerUser(): Promise<AppUser | null> {
       name,
       tenant_id,
       division_id,
+      is_manager,
       employee_no,
       app_role_id,
       app_role:app_role_id(app_role, name),
@@ -35,6 +36,7 @@ export async function getServerUser(): Promise<AppUser | null> {
 
   let employee_id: string | undefined;
   let division_id: string | null | undefined = undefined;
+  let is_manager: boolean | null | undefined = undefined;
   let employee_no: string | null | undefined = undefined;
   if (employee) {
     employee_id = (employee as { id?: string }).id;
@@ -76,6 +78,7 @@ export async function getServerUser(): Promise<AppUser | null> {
       maxEmployees = tenantInfo.max_employees;
     }
     division_id = (employee as { division_id?: string | null }).division_id;
+    is_manager = (employee as { is_manager?: boolean | null }).is_manager ?? null;
   }
 
   // If we couldn't get tenant_name via employee, try fetching directly if tenant_id exists
@@ -107,6 +110,7 @@ export async function getServerUser(): Promise<AppUser | null> {
     maxEmployees,
     employee_id,
     division_id,
+    is_manager,
     employee_no,
   };
 }

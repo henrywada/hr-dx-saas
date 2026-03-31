@@ -619,27 +619,123 @@ export type Database = {
           },
         ]
       }
+      monthly_employee_overtime: {
+        Row: {
+          id: string
+          tenant_id: string
+          closure_id: string | null
+          employee_id: string
+          year_month: string
+          total_work_hours: number | null
+          total_overtime_hours: number | null
+          approved_overtime_hours: number | null
+          corrections_summary: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          closure_id?: string | null
+          employee_id: string
+          year_month: string
+          total_work_hours?: number | null
+          total_overtime_hours?: number | null
+          approved_overtime_hours?: number | null
+          corrections_summary?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          closure_id?: string | null
+          employee_id?: string
+          year_month?: string
+          total_work_hours?: number | null
+          total_overtime_hours?: number | null
+          approved_overtime_hours?: number | null
+          corrections_summary?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      closure_audit_logs: {
+        Row: {
+          id: string
+          tenant_id: string
+          closure_id: string | null
+          actor_id: string
+          action: string
+          target: Json | null
+          comment: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          closure_id?: string | null
+          actor_id: string
+          action: string
+          target?: Json | null
+          comment?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          closure_id?: string | null
+          actor_id?: string
+          action?: string
+          target?: Json | null
+          comment?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       monthly_overtime_closures: {
         Row: {
+          aggregate_version: number | null
+          aggregated_at: string | null
+          approved_by: string | null
           closed_at: string | null
+          closed_by: string | null
           created_at: string | null
           id: string
+          lock_reason: string | null
+          locked_by: string | null
+          status: string | null
           tenant_id: string
           updated_at: string | null
           year_month: string
         }
         Insert: {
+          aggregate_version?: number | null
+          aggregated_at?: string | null
+          approved_by?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           created_at?: string | null
           id?: string
+          lock_reason?: string | null
+          locked_by?: string | null
+          status?: string | null
           tenant_id: string
           updated_at?: string | null
           year_month: string
         }
         Update: {
+          aggregate_version?: number | null
+          aggregated_at?: string | null
+          approved_by?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           created_at?: string | null
           id?: string
+          lock_reason?: string | null
+          locked_by?: string | null
+          status?: string | null
           tenant_id?: string
           updated_at?: string | null
           year_month?: string
@@ -2833,6 +2929,51 @@ export type Database = {
         }
         Relationships: []
       }
+      timecard_corrections: {
+        Row: {
+          id: string
+          tenant_id: string
+          employee_id: string
+          work_date: string
+          original_clock_in: string | null
+          original_clock_out: string | null
+          corrected_clock_in: string | null
+          corrected_clock_out: string | null
+          reason: string | null
+          corrected_by: string
+          correction_source: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          employee_id: string
+          work_date: string
+          original_clock_in?: string | null
+          original_clock_out?: string | null
+          corrected_clock_in?: string | null
+          corrected_clock_out?: string | null
+          reason?: string | null
+          corrected_by: string
+          correction_source?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          employee_id?: string
+          work_date?: string
+          original_clock_in?: string | null
+          original_clock_out?: string | null
+          corrected_clock_in?: string | null
+          corrected_clock_out?: string | null
+          reason?: string | null
+          corrected_by?: string
+          correction_source?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       work_time_records: {
         Row: {
           created_at: string | null
@@ -3023,6 +3164,20 @@ export type Database = {
       current_employee_app_role: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      aggregate_monthly_closure: {
+        Args: { p_closure_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      detect_timecard_anomalies: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          anomaly_type: string
+          employee_id: string
+          record_date: string
+          work_time_record_id: string
+          details: Json
+        }[]
+      }
       delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       fn_supervisor_qr_permission_apply: {
         Args: {

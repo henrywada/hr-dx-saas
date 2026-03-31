@@ -14,7 +14,7 @@ import type {
   OvertimeApplication,
   OvertimeApplicationSource,
   OvertimeApplicationStatus,
-} from '@/app/(tenant)/(colored)/adm/(overtime)/approval/types'
+} from '@/app/(tenant)/(default)/(overtime)/approval/types'
 import {
   buildEmployeeWarningsMap,
   MONTHLY_WARNING_STATUSES,

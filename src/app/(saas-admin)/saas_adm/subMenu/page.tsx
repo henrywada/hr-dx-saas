@@ -40,6 +40,7 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
     .from('service')
     .select('*')
     .eq('service_category_id', categoryId)
+    .eq('release_status', '公開')
     .order('sort_order', { ascending: true });
 
   const CARD_VARIANTS = [

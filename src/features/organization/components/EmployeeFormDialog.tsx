@@ -253,7 +253,9 @@ export function EmployeeFormDialog({
               onChange={e => setIsManager(e.target.checked)}
               className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="isManager" className="text-sm text-slate-700">管理者</label>
+            <label htmlFor="isManager" className="text-sm text-slate-700">
+              管理者（残業申請の承認権限を持ちます）
+            </label>
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">

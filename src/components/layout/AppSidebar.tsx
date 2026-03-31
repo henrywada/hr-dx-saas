@@ -18,7 +18,8 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
     const { data: services } = await supabase
       .from('service')
       .select(`id, service_category:service_category_id(id, name, sort_order)`)
-      .eq('target_audience', 'saas_adm');
+      .eq('target_audience', 'saas_adm')
+      .eq('release_status', '公開');
 
     if (services) {
       const categoryMap = new Map<string, { id: string; name: string; sort_order: number }>();

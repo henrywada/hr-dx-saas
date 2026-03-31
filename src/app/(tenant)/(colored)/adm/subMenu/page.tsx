@@ -54,6 +54,7 @@ async function AdminSubMenuCategoryContent({ categoryId }: { categoryId: string 
       .from('service')
       .select('*')
       .eq('service_category_id', categoryId)
+      .eq('release_status', '公開')
       .in('id', tenantServiceIds)
       .order('sort_order', { ascending: true });
     services = data;

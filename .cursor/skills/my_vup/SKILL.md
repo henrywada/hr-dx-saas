@@ -1,12 +1,12 @@
 ---
-name: vup
+name: my_vup
 description: >-
   Increments the semver display string (vX.Y.Z) in src/components/layout/Footer.tsx.
-  Use when the user invokes /vup, asks to bump the footer version, or to raise the
+  Use when the user invokes /my_vup, asks to bump the footer version, or to raise the
   displayed app version in the layout footer.
 ---
 
-# vup（フッター表示バージョンの更新）
+# my_vup（フッター表示バージョンの更新）
 
 ## 対象
 

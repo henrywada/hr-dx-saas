@@ -29,8 +29,7 @@ export async function getEmployees() {
       *,
       division:division_id(id, name),
       app_role:app_role_id(id, app_role, name)
-    `)
-    .order('employee_no', { ascending: true });
+    `);
 
   if (error) {
     console.error('getEmployees error:', error);

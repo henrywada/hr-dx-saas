@@ -34,7 +34,12 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
   const [resendResult, setResendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter(emp => {
+    const divisionSortKey = (emp: Employee) => {
+      const n = emp.division?.name?.trim()
+      return n && n.length > 0 ? n : '\uffff'
+    }
+
+    const list = employees.filter((emp) => {
       // 検索フィルタ
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -55,7 +60,20 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
       // ステータスフィルタ
       if (filterStatus && emp.active_status !== filterStatus) return false;
       return true;
-    });
+    })
+
+    return [...list].sort((a, b) => {
+      const dd = divisionSortKey(a).localeCompare(divisionSortKey(b), 'ja')
+      if (dd !== 0) return dd
+      const ma = a.is_manager === true ? 1 : 0
+      const mb = b.is_manager === true ? 1 : 0
+      if (ma !== mb) return mb - ma
+      const na = (a.employee_no ?? '').trim()
+      const nb = (b.employee_no ?? '').trim()
+      const naKey = na === '' ? '\uffff' : na
+      const nbKey = nb === '' ? '\uffff' : nb
+      return naKey.localeCompare(nbKey, 'ja', { numeric: true })
+    })
   }, [employees, searchQuery, filterDivision, filterStatus]);
 
   const handleDelete = (employee: Employee) => {
@@ -186,11 +204,11 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/30">
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">部署</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">社員番号</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">氏名</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">性別</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">入社日</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">部署</th>
                 <th className="text-center px-3 py-3 font-semibold text-slate-600 text-xs tracking-wide hidden md:table-cell whitespace-nowrap min-w-19">
                   管理者
                 </th>
@@ -212,14 +230,17 @@ export function EmployeeTable({ employees, divisions, appRoles, tenantId, employ
                   const status = ACTIVE_STATUS_LABELS[emp.active_status || ''] || { label: emp.active_status || '---', color: 'bg-slate-100 text-slate-600' };
                   const divisionObj = emp.division as { id: string; name: string | null } | null | undefined;
                   return (
-                    <tr key={emp.id} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                    <tr
+                      key={emp.id}
+                      className="border-b border-slate-50 bg-white transition-[background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none hover:bg-sky-50/90 hover:shadow-[inset_4px_0_0_0_#0ea5e9]"
+                    >
+                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
+                        {divisionObj?.name || <span className="text-amber-500 text-xs">未所属</span>}
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{emp.employee_no || '---'}</td>
                       <td className="px-4 py-3 font-medium text-slate-800">{emp.name || '名前未設定'}</td>
                       <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{emp.sex || '---'}</td>
                       <td className="px-4 py-3 text-slate-500 hidden md:table-cell">{emp.start_date || '---'}</td>
-                      <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
-                        {divisionObj?.name || <span className="text-amber-500 text-xs">未所属</span>}
-                      </td>
                       <td className="px-3 py-3 text-center text-slate-900 hidden md:table-cell whitespace-nowrap min-w-19">
                         {emp.is_manager === true ? (
                           <span className="text-xs leading-none text-slate-700" aria-label="管理者">

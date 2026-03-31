@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         destination: "/device-pairing",
         permanent: true,
       },
+      {
+        source: "/adm/approval",
+        destination: "/approval",
+        permanent: true,
+      },
     ];
   },
   // Turbopack 既定の `next dev` でも .md を文字列として取り込む（webpack 設定との衝突も解消）

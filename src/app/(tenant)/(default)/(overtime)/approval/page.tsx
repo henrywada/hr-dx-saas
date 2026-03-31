@@ -1,5 +1,5 @@
 /**
- * 残業申請一覧（上長・同一部署）/adm/approval
+ * 残業申請一覧（上長・同一部署）/approval
  */
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
@@ -11,6 +11,10 @@ import {
   canApproveOvertimeInDivision,
   type OvertimeApprovalTargetPeer,
 } from './types'
+
+export const metadata = {
+  title: '残業申請の承認',
+}
 
 export default async function OvertimeApprovalPage() {
   const user = await getServerUser()

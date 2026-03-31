@@ -1,6 +1,9 @@
-import { Clock, QrCode } from 'lucide-react'
+import { ClipboardCheck, Clock, QrCode } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
+import { APP_ROUTES } from '@/config/routes'
+import { fetchEmployeeIdsInDivision } from '@/app/api/overtime/_approver-auth'
+import { getJSTYearMonth, lastDayOfMonthYmd } from '@/lib/datetime'
 import { QuickAccessCard } from './QuickAccessCard'
 import { QuickAccessTeleworkCard } from './QuickAccessTeleworkCard.client'
 
@@ -48,6 +51,36 @@ export default async function QuickAccessCards() {
   const showClockCard = !!svc?.id && (tenantSvcCount ?? 0) > 0
   const showQrAdminCard = !permErr && !!permRow
 
+  /**
+   * 上長向け: 承認画面（/approval）と同じく同一部署の peer 範囲かつ JST 当月の勤務日に限定し、
+   * status=申請中 の件数を表示（一覧の「申請中」フィルタ相当。上長本人の申請も含む）
+   */
+  let overtimePendingBadgeLabel: string | null = null
+  if (user.is_manager === true && user.division_id) {
+    const { ids: peerIds, error: peerFetchErr } = await fetchEmployeeIdsInDivision(
+      supabase,
+      tenantId,
+      user.division_id,
+    )
+    if (!peerFetchErr && peerIds.length > 0) {
+      const month = getJSTYearMonth()
+      const firstDay = `${month}-01`
+      const lastDay = lastDayOfMonthYmd(month)
+      const { count, error } = await supabase
+        .from('overtime_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', '申請中')
+        .in('employee_id', peerIds)
+        .gte('work_date', firstDay)
+        .lte('work_date', lastDay)
+      if (!error && (count ?? 0) > 0) {
+        const n = count ?? 0
+        overtimePendingBadgeLabel = n > 99 ? '99+件' : `${n}件`
+      }
+    }
+  }
+
   return (
     <>
       <QuickAccessTeleworkCard />
@@ -69,6 +102,17 @@ export default async function QuickAccessCards() {
           icon={QrCode}
           iconBoxClass="bg-violet-100 text-violet-700"
           titleHoverClass="group-hover:text-violet-600"
+        />
+      )}
+      {user.is_manager === true && (
+        <QuickAccessCard
+          href={APP_ROUTES.TENANT.OVERTIME_APPROVAL}
+          title="残業申請の承認"
+          subtitle="あなたの部下からの残業申請を承認・確認"
+          icon={ClipboardCheck}
+          iconBoxClass="bg-orange-50 text-orange-700"
+          titleHoverClass="group-hover:text-orange-700"
+          badgeLabel={overtimePendingBadgeLabel}
         />
       )}
     </>

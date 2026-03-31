@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock } from 'lucide-react';
 // インポート元を actions に変更
 import { signInAction } from '@/lib/auth/actions';
 
@@ -57,7 +57,10 @@ export default function LoginPage() {
               HR-dx
             </span>
           </div>
-          <h1 className="w-full text-center text-2xl font-bold text-slate-900 md:text-3xl">ログイン</h1>
+          <h1 className="w-full flex items-center justify-center gap-2 text-2xl font-bold text-slate-900 md:text-3xl">
+            <Lock className="h-7 w-7 shrink-0 text-slate-500 md:h-8 md:w-8" aria-hidden />
+            ログイン
+          </h1>
         </div>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-6" aria-busy={loading}>

@@ -8,6 +8,7 @@ import {
   assertApplicantInManagerDivision,
   getApproverContext,
 } from '@/app/api/overtime/_approver-auth'
+import { assertOvertimeApplicationMonthOpenForManagerAction } from '@/app/api/overtime/_month-closure-guard'
 
 const bodySchema = z.object({
   supervisor_id: z.string().uuid('supervisor_id が不正です'),
@@ -47,7 +48,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const { data: row, error: fetchErr } = await supabase
     .from('overtime_applications')
-    .select('id, tenant_id, status, employee_id')
+    .select('id, tenant_id, status, employee_id, work_date')
     .eq('id', id)
     .maybeSingle()
 
@@ -70,6 +71,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       { status: 403 },
     )
   }
+
+  const monthGuard = await assertOvertimeApplicationMonthOpenForManagerAction(
+    supabase,
+    row.tenant_id,
+    row.work_date,
+  )
+  if (monthGuard.ok === false) return monthGuard.response
 
   if (row.status !== '申請中') {
     return NextResponse.json({ error: '申請中の申請のみ却下できます' }, { status: 409 })

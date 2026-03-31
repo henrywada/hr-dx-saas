@@ -90,6 +90,8 @@ export type OvertimeApplicationsListResponse = {
   employee_overtime_warnings?: Record<string, EmployeeOvertimeWarningPayload>
   /** 当該ページの行に含まれる従業員のみ（閾値判定と同じ集計定義） */
   employee_overtime_aggs?: Record<string, EmployeeOvertimeAggPayload>
+  /** 当該月が月次締め（集計済以降）なら上長の承認・却下・修正依頼を UI でも不可にする */
+  month_closure_blocks_overtime_approval?: boolean
 }
 
 /** POST .../approve | .../reject のボディ */

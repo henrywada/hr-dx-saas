@@ -90,8 +90,10 @@ export function ClosureListClient() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">月次締め管理</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            月ごとの残業締めの状況を確認し、集計・承認・ロックを行います。
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-neutral-500">
+            月ごとの残業締めの状況を確認し、集計・承認・ロックを行います。対象月が集計済み以降になると、上長向け「残業申請の承認」画面では
+            <span className="font-bold text-red-600">その月の申請に対する承認・却下・修正依頼はできず</span>
+            、詳細の閲覧のみとなります。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

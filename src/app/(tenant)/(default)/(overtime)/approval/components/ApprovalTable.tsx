@@ -274,6 +274,8 @@ export function OvertimeApprovalClient({
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1
   const items = data?.items ?? []
   const pageLimit = data?.limit ?? 10
+  /** 月次締め（集計済・人事承認・ロック）済みの月は上長操作のみ抑止 */
+  const monthClosureBlocks = data?.month_closure_blocks_overtime_approval === true
 
   return (
     <div className="mx-auto max-w-[1920px] space-y-6 pb-10">
@@ -290,8 +292,11 @@ export function OvertimeApprovalClient({
         </div>
       )}
 
-      <header>
+      <header className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">残業申請の承認</h1>
+        <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
+          管理メニュー「月次締め管理」で、対象月の締めが集計済み以降（集計済・人事による承認・ロック）まで進んだ月は、集計結果と申請内容の食い違いを防ぐため、上長による承認・却下・修正依頼はできません。該当する月では操作欄に「詳細（締め済）」のみ表示され、内容の確認のみ可能です。締めが未完了の月は従来どおり承認操作ができます。
+        </p>
       </header>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-4">
@@ -507,9 +512,12 @@ export function OvertimeApprovalClient({
                     {app.status !== '未申請' && (
                       <>
                         <button type="button" className={outlineBtn} onClick={() => openDetail(app)}>
-                          詳細
+                          {monthClosureBlocks ? '詳細（締め済）' : '詳細'}
                         </button>
-                        {canApprove && app.status === '申請中' && !!supervisorEmployeeId && (
+                        {canApprove &&
+                          app.status === '申請中' &&
+                          !!supervisorEmployeeId &&
+                          !monthClosureBlocks && (
                           <>
                             <button
                               type="button"
@@ -606,9 +614,12 @@ export function OvertimeApprovalClient({
               {app.status !== '未申請' && (
                 <>
                   <button type="button" className={outlineBtn} onClick={() => openDetail(app)}>
-                    詳細
+                    {monthClosureBlocks ? '詳細（締め済）' : '詳細'}
                   </button>
-                  {canApprove && app.status === '申請中' && !!supervisorEmployeeId && (
+                  {canApprove &&
+                    app.status === '申請中' &&
+                    !!supervisorEmployeeId &&
+                    !monthClosureBlocks && (
                     <>
                       <button
                         type="button"

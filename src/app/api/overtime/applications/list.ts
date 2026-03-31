@@ -21,6 +21,7 @@ import {
   resolveOvertimeThresholds,
   type OvertimeSettingsRow,
 } from '@/lib/overtime/thresholds'
+import { monthlyClosureBlocksOvertimeApproval } from '@/lib/overtime/month-closure'
 
 type WtrLite = {
   employee_id: string
@@ -145,6 +146,11 @@ export async function handleOvertimeApplicationsList(
     return NextResponse.json({ error: 'テナントが一致しません' }, { status: 403 })
   }
 
+  const firstDay = `${month}-01`
+  const lastDay = lastDayOfMonthYmd(month)
+  const year = month.slice(0, 4)
+  const yearFirstDay = `${year}-01-01`
+
   const page = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1)
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') ?? '10') || 10))
   /** 一覧空応答・非管理者応答で返す閾値（行なし＝労基法デフォルト） */
@@ -167,6 +173,7 @@ export async function handleOvertimeApplicationsList(
       },
       employee_overtime_warnings: {},
       employee_overtime_aggs: {},
+      month_closure_blocks_overtime_approval: false,
     })
   }
   if (!ctx.divisionId) {
@@ -186,6 +193,7 @@ export async function handleOvertimeApplicationsList(
       },
       employee_overtime_warnings: {},
       employee_overtime_aggs: {},
+      month_closure_blocks_overtime_approval: false,
     })
   }
 
@@ -197,6 +205,23 @@ export async function handleOvertimeApplicationsList(
   if (peerErr) {
     return NextResponse.json({ error: peerErr }, { status: 500 })
   }
+
+  const { data: closureForMonth, error: closureErr } = await supabase
+    .from('monthly_overtime_closures')
+    .select('status')
+    .eq('tenant_id', ctx.tenantId)
+    .eq('year_month', firstDay)
+    .maybeSingle()
+
+  if (closureErr) {
+    console.error('monthly_overtime_closures list:', closureErr)
+    return NextResponse.json({ error: '月次締め状態の取得に失敗しました' }, { status: 500 })
+  }
+
+  const month_closure_blocks_overtime_approval = monthlyClosureBlocksOvertimeApproval(
+    closureForMonth?.status,
+  )
+
   if (peerIds.length === 0) {
     return NextResponse.json({
       items: [],
@@ -214,6 +239,7 @@ export async function handleOvertimeApplicationsList(
       },
       employee_overtime_warnings: {},
       employee_overtime_aggs: {},
+      month_closure_blocks_overtime_approval,
     })
   }
 
@@ -228,11 +254,6 @@ export async function handleOvertimeApplicationsList(
   const allDivisionEmployees =
     url.searchParams.get('all_division_employees') === '1' ||
     url.searchParams.get('all_division_employees') === 'true'
-
-  const firstDay = `${month}-01`
-  const lastDay = lastDayOfMonthYmd(month)
-  const year = month.slice(0, 4)
-  const yearFirstDay = `${year}-01-01`
 
   /** 警告用集計は一覧のステータスフィルタに依存しない（承認判断の参考） */
   const overtimeSettingsPromise = supabase
@@ -563,5 +584,6 @@ export async function handleOvertimeApplicationsList(
     },
     employee_overtime_warnings: employeeOvertimeWarnings,
     employee_overtime_aggs: employeeOvertimeAggs,
+    month_closure_blocks_overtime_approval,
   })
 }

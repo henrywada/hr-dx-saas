@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState, useTransition } from 'react'
-import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { APP_ROUTES } from '@/config/routes'
 import { getEmployeeAttendanceList } from '@/features/attendance/actions'
 import type {
   AttendanceStatusTier,
@@ -12,6 +11,7 @@ import type {
   EmployeeAttendancePageResult,
 } from '@/features/attendance/types'
 import { STATUS_TIER_LABEL } from '@/features/attendance/status'
+import { EmployeeWorkTimeDetailDialog } from './EmployeeWorkTimeDetailDialog'
 
 const PAGE_SIZE = 20
 
@@ -36,6 +36,8 @@ type EmployeeTableProps = {
   overviewFilter: EmployeeAttendanceOverviewFilter
   initialList: EmployeeAttendancePageResult
   divisions: { id: string; name: string }[]
+  /** URL `highlightEmployeeId` から渡すと初回から詳細モーダルを開く */
+  initialDetailEmployee?: { id: string; name: string } | null
 }
 
 export function EmployeeTable({
@@ -44,7 +46,13 @@ export function EmployeeTable({
   overviewFilter,
   initialList,
   divisions,
+  initialDetailEmployee = null,
 }: EmployeeTableProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [detailTarget, setDetailTarget] = useState<{ employeeId: string; name: string } | null>(
+    () => (initialDetailEmployee ? { employeeId: initialDetailEmployee.id, name: initialDetailEmployee.name } : null),
+  )
   const [result, setResult] = useState(initialList)
   const [isPending, startTransition] = useTransition()
   const [page, setPage] = useState(0)
@@ -117,6 +125,33 @@ export function EmployeeTable({
     setPage(0)
   }
 
+  const openEmployeeDetail = (employeeId: string, name: string) => {
+    setDetailTarget({ employeeId, name })
+    const qs = new URLSearchParams()
+    qs.set('year', String(year))
+    qs.set('month', String(month))
+    qs.set('highlightEmployeeId', employeeId)
+    router.replace(`${pathname}?${qs.toString()}`)
+  }
+
+  const closeEmployeeDetail = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setDetailTarget(null)
+      router.replace(`${pathname}?year=${year}&month=${month}`)
+    }
+  }
+
+  /** URL の highlight だけ変わったとき（同一テーブルキーでマウントが残る）にモーダルを開く */
+  useEffect(() => {
+    if (!initialDetailEmployee) {
+      return
+    }
+    setDetailTarget({
+      employeeId: initialDetailEmployee.id,
+      name: initialDetailEmployee.name,
+    })
+  }, [initialDetailEmployee?.id, initialDetailEmployee?.name])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-end gap-3 lg:justify-between">
@@ -171,79 +206,81 @@ export function EmployeeTable({
       <div
         className={`overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm ${isPending ? 'opacity-70' : ''} transition-opacity`}
       >
-        <table className="min-w-[720px] w-full text-sm">
+        <table className="min-w-[720px] w-full text-sm leading-snug">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-600">
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('name')}>
                   従業員名 {sortIndicator('name')}
                 </button>
               </th>
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('division')}>
                   部署 {sortIndicator('division')}
                 </button>
               </th>
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('total_minutes')}>
                   総労働(h:mm) {sortIndicator('total_minutes')}
                 </button>
               </th>
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('overtime_minutes')}>
                   残業(h:mm) {sortIndicator('overtime_minutes')}
                 </button>
               </th>
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('holiday_minutes')}>
                   休出(h:mm) {sortIndicator('holiday_minutes')}
                 </button>
               </th>
-              <th className="p-3" title="選択月に発生したアラート件数">
+              <th className="py-2 px-2.5" title="選択月に発生したアラート件数">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('alert_count')}>
                   アラート {sortIndicator('alert_count')}
                 </button>
               </th>
-              <th className="p-3">
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('status')}>
                   ステータス {sortIndicator('status')}
                 </button>
               </th>
-              <th className="p-3 w-24">操作</th>
+              <th className="w-24 py-2 px-2.5">操作</th>
             </tr>
           </thead>
           <tbody>
             {result.rows.map((row) => {
-              const href = `${APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}?highlightEmployeeId=${row.employeeId}`
               return (
                 <tr key={row.employeeId} className="border-b border-slate-100 hover:bg-slate-50/80">
-                  <td className="p-3 font-medium text-slate-900">{row.name}</td>
-                  <td className="p-3 text-slate-600">{row.divisionName}</td>
-                  <td className="p-3 font-mono text-slate-700">{formatMinutesJp(row.totalMinutes)}</td>
-                  <td className="p-3 font-mono text-slate-700">{formatMinutesJp(row.overtimeMinutes)}</td>
-                  <td className="p-3 font-mono text-slate-700">{formatMinutesJp(row.holidayMinutes)}</td>
-                  <td className="p-3 text-center">{row.alertCountInMonth}</td>
-                  <td className="p-3">
+                  <td className="py-1.5 px-2.5 font-medium text-slate-900">{row.name}</td>
+                  <td className="py-1.5 px-2.5 text-slate-600">{row.divisionName}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.totalMinutes)}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.overtimeMinutes)}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.holidayMinutes)}</td>
+                  <td className="py-1.5 px-2.5 text-center">{row.alertCountInMonth}</td>
+                  <td className="py-1.5 px-2.5">
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${TIER_CLASS[row.statusTier]}`}
+                      className={`inline-flex rounded-full px-2 py-px text-[11px] font-semibold leading-tight ${TIER_CLASS[row.statusTier]}`}
                     >
                       {STATUS_TIER_LABEL[row.statusTier]}
                     </span>
                   </td>
-                  <td className="p-3">
-                    <Link
-                      href={href}
-                      className="inline-flex items-center justify-center font-medium rounded-lg border-2 border-primary text-primary hover:bg-primary-light px-4 py-2 text-sm transition-all"
-                    >
-                      詳細
-                    </Link>
+                  <td className="py-1 px-2.5 align-middle">
+                    {row.hasWorkTimeRecordsInMonth ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-lg border-2 border-primary px-2.5 py-1 text-xs font-medium text-primary transition-all hover:bg-primary-light"
+                        onClick={() => openEmployeeDetail(row.employeeId, row.name)}
+                      >
+                        詳細
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               )
             })}
             {result.rows.length === 0 && !isPending ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-slate-500">
+                <td colSpan={8} className="p-6 text-center text-slate-500">
                   該当する従業員がありません
                 </td>
               </tr>
@@ -278,6 +315,15 @@ export function EmployeeTable({
           </Button>
         </div>
       </div>
+
+      <EmployeeWorkTimeDetailDialog
+        open={detailTarget != null}
+        onOpenChange={closeEmployeeDetail}
+        year={year}
+        month={month}
+        employeeId={detailTarget?.employeeId ?? ''}
+        employeeName={detailTarget?.name ?? ''}
+      />
     </div>
   )
 }

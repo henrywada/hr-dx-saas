@@ -106,7 +106,12 @@ function editableToCommit(rows: EditableRow[]): WorkTimeCsvCommitRow[] {
     }))
 }
 
-export function WorkTimeCsvWizard() {
+type WorkTimeCsvWizardProps = {
+  /** 確定保存で 1 件以上成功したあとに月次一覧などを再取得するため */
+  onRecordsMutated?: () => void
+}
+
+export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) {
   const [step, setStep] = useState<Step>(1)
   const [fileName, setFileName] = useState<string | null>(null)
   const [rawInputs, setRawInputs] = useState<WorkTimeCsvRawInput[] | null>(null)
@@ -245,6 +250,9 @@ export function WorkTimeCsvWizard() {
     try {
       const res = await commitWorkTimeCsvImport(rows)
       setCommitResult(res)
+      if (res.ok === true && res.data.summary.success > 0) {
+        onRecordsMutated?.()
+      }
       if (res.ok === true && res.data.summary.failed === 0) {
         setStep('done')
       } else if (res.ok === true) {

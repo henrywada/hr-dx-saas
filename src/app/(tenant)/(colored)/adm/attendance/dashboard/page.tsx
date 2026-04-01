@@ -11,6 +11,17 @@ import { canAccessHrAttendanceDashboard } from '@/features/attendance/hr-dashboa
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import AttendanceDashboard from './components/AttendanceDashboard'
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function parseHighlightEmployeeId(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') {
+    return undefined
+  }
+  const t = raw.trim()
+  return UUID_RE.test(t) ? t : undefined
+}
+
 function parseYearMonth(search: { year?: string; month?: string } | undefined): {
   year: number
   month: number
@@ -28,7 +39,7 @@ function parseYearMonth(search: { year?: string; month?: string } | undefined): 
 export default async function AttendanceDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; month?: string }>
+  searchParams: Promise<{ year?: string; month?: string; highlightEmployeeId?: string }>
 }) {
   const user = await getServerUser()
   if (!user?.tenant_id) {
@@ -90,6 +101,37 @@ export default async function AttendanceDashboardPage({
 
   const divisions = (divs ?? []) as { id: string; name: string }[]
 
+  const highlightId = parseHighlightEmployeeId(sp.highlightEmployeeId)
+  let initialDetailEmployee: { id: string; name: string } | null = null
+  if (highlightId) {
+    const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const periodEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    const { count: wtrCount, error: wtrCntErr } = await supabase
+      .from('work_time_records')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', user.tenant_id)
+      .eq('employee_id', highlightId)
+      .gte('record_date', periodStart)
+      .lte('record_date', periodEnd)
+
+    if (!wtrCntErr && (wtrCount ?? 0) > 0) {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id, name')
+        .eq('tenant_id', user.tenant_id)
+        .eq('id', highlightId)
+        .maybeSingle()
+      if (emp?.id) {
+        initialDetailEmployee = {
+          id: emp.id,
+          name: (emp.name ?? '').trim() || '—',
+        }
+      }
+    }
+  }
+
   return (
     <AttendanceDashboard
       year={year}
@@ -98,6 +140,7 @@ export default async function AttendanceDashboardPage({
       alertsPreview={alerts.data}
       initialList={bundle.data.initialList}
       divisions={divisions}
+      initialDetailEmployee={initialDetailEmployee}
     />
   )
 }

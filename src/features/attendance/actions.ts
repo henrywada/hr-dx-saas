@@ -450,16 +450,19 @@ async function buildEmployeeAttendanceRows(
 
     type WorkAgg = { total: number; holiday: number }
     const workAgg = new Map<string, WorkAgg>()
+    const workRecordCountByEmp = new Map<string, number>()
     for (const w of (workRows ?? []) as {
       employee_id: string
       duration_minutes: number
       is_holiday: boolean | null
     }[]) {
-      const cur = workAgg.get(w.employee_id) ?? { total: 0, holiday: 0 }
+      const eid = w.employee_id
+      workRecordCountByEmp.set(eid, (workRecordCountByEmp.get(eid) ?? 0) + 1)
+      const cur = workAgg.get(eid) ?? { total: 0, holiday: 0 }
       const dm = Number(w.duration_minutes ?? 0)
       cur.total += dm
       if (w.is_holiday) cur.holiday += dm
-      workAgg.set(w.employee_id, cur)
+      workAgg.set(eid, cur)
     }
 
     const { data: alertsMonth, error: amErr } = await db(supabase)
@@ -562,6 +565,7 @@ async function buildEmployeeAttendanceRows(
         totalMinutes,
         overtimeMinutes,
         holidayMinutes,
+        hasWorkTimeRecordsInMonth: (workRecordCountByEmp.get(emp.id) ?? 0) > 0,
         alertCountInMonth: alertCountInMonth.get(emp.id) ?? 0,
         unresolvedAlertCount: unresolvedCountByEmp.get(emp.id) ?? 0,
         statusTier,

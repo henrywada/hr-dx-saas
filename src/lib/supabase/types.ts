@@ -3253,6 +3253,13 @@ export type Database = {
           violation_count: number
         }[]
       }
+      list_work_time_record_monthly_counts: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          year_month: string
+          row_count: number
+        }[]
+      }
       delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       fn_supervisor_qr_permission_apply: {
         Args: {

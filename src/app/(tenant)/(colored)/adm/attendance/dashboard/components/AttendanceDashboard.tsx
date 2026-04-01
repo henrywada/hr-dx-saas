@@ -24,6 +24,7 @@ type AttendanceDashboardProps = {
   alertsPreview: HrOvertimeAlertView[]
   initialList: EmployeeAttendancePageResult
   divisions: { id: string; name: string }[]
+  initialDetailEmployee?: { id: string; name: string } | null
 }
 
 export default function AttendanceDashboard({
@@ -33,6 +34,7 @@ export default function AttendanceDashboard({
   alertsPreview,
   initialList,
   divisions,
+  initialDetailEmployee = null,
 }: AttendanceDashboardProps) {
   const [overviewFilter, setOverviewFilter] =
     useState<EmployeeAttendanceOverviewFilter>('all')
@@ -93,6 +95,7 @@ export default function AttendanceDashboard({
             : { rows: [], total: 0 }
         }
         divisions={divisions}
+        initialDetailEmployee={initialDetailEmployee}
       />
     </div>
   )

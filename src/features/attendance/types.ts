@@ -93,6 +93,8 @@ export type EmployeeAttendanceRow = {
   totalMinutes: number
   overtimeMinutes: number
   holidayMinutes: number
+  /** 選択月に work_time_records が1件以上ある（詳細モーダル用の日次データあり） */
+  hasWorkTimeRecordsInMonth: boolean
   /** 選択月に triggered_at があるアラート件数（解決済み含む） */
   alertCountInMonth: number
   /** 未解決アラート件数（全期間） */

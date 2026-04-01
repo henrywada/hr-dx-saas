@@ -2,7 +2,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import { canAccessHrAttendanceDashboard } from '@/features/attendance/hr-dashboard-access'
-import { WorkTimeCsvWizard } from '../components/WorkTimeCsvWizard'
+import { CsvAttendanceImportContent } from '../components/CsvAttendanceImportContent'
 
 export const metadata = {
   title: '勤怠実績 CSV 取り込み',
@@ -38,7 +38,7 @@ export default async function CsvAtendanceImportPage() {
           に反映されます。
         </p>
       </div>
-      <WorkTimeCsvWizard />
+      <CsvAttendanceImportContent tenantId={user.tenant_id} />
     </div>
   )
 }

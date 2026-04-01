@@ -694,6 +694,36 @@ export type Database = {
         }
         Relationships: []
       }
+      closure_warnings: {
+        Row: {
+          id: string
+          tenant_id: string
+          closure_id: string | null
+          employee_id: string | null
+          warning_type: string | null
+          details: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          closure_id?: string | null
+          employee_id?: string | null
+          warning_type?: string | null
+          details?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          closure_id?: string | null
+          employee_id?: string | null
+          warning_type?: string | null
+          details?: Json | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       monthly_overtime_closures: {
         Row: {
           aggregate_version: number | null
@@ -3176,6 +3206,51 @@ export type Database = {
           record_date: string
           work_time_record_id: string
           details: Json
+        }[]
+      }
+      get_36_risk_employees: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          employee_id: string
+          employee_name: string | null
+          department_name: string | null
+          total_overtime_hours: number | null
+          monthly_limit: number | null
+          usage_rate: number | null
+          risk_level: string | null
+        }[]
+      }
+      get_department_overtime_summary: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          department_id: string | null
+          department_name: string | null
+          employee_count: number
+          avg_overtime: number | null
+          max_overtime: number | null
+          violation_count: number
+          warning_count: number
+        }[]
+      }
+      get_overtime_gap_analysis: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          employee_id: string
+          employee_name: string | null
+          approved_hours: number | null
+          actual_hours: number | null
+          gap_hours: number | null
+          gap_type: string | null
+        }[]
+      }
+      get_overtime_trend: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          year_month: string
+          avg_overtime: number | null
+          max_overtime: number | null
+          total_employees: number
+          violation_count: number
         }[]
       }
       delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }

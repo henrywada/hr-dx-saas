@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Info } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -51,12 +52,23 @@ function formatTableDate(ymd: string) {
 type Props = {
   yearMonth: string
   rows: OvertimeMonthRow[]
+  /** 月次締め（集計済〜締処理済）で申請列を出さない */
+  monthClosureBlocksApplications?: boolean
 }
 
-export function OvertimeMonthTable({ yearMonth, rows }: Props) {
+export function OvertimeMonthTable({
+  yearMonth,
+  rows,
+  monthClosureBlocksApplications = false,
+}: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [modalWorkDate, setModalWorkDate] = useState<string | null>(null)
+  const [otDetailOpen, setOtDetailOpen] = useState(false)
+  const [otDetail, setOtDetail] = useState<{
+    reason: string
+    comment: string
+  } | null>(null)
 
   const prevYm = shiftYearMonth(yearMonth, -1)
   const nextYm = shiftYearMonth(yearMonth, 1)
@@ -104,7 +116,9 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
       </p>
 
       <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[1260px] text-left text-sm">
+        <table
+          className={`w-full text-left text-sm ${monthClosureBlocksApplications ? 'min-w-[1140px]' : 'min-w-[1260px]'}`}
+        >
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
             <tr>
               <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
@@ -137,9 +151,11 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
               <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
                 承認
               </th>
-              <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
-                申請
-              </th>
+              {!monthClosureBlocksApplications ? (
+                <th className="whitespace-nowrap px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">
+                  申請
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -172,11 +188,31 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
                   <td className="whitespace-nowrap px-2 py-1 text-xs tabular-nums text-slate-800 sm:px-3 sm:text-sm">
                     {cell(row.overtimeHoursDisplay)}
                   </td>
-                  <td
-                    className="max-w-[200px] truncate px-2 py-1 text-xs text-slate-700 sm:max-w-[220px] sm:px-3 sm:text-sm"
-                    title={row.reasonDisplay ?? undefined}
-                  >
-                    {cell(row.reasonDisplay)}
+                  <td className="max-w-[240px] px-2 py-1 text-xs text-slate-700 sm:max-w-[260px] sm:px-3 sm:text-sm">
+                    <div className="flex min-w-0 items-center gap-1">
+                      <span
+                        className="min-w-0 flex-1 truncate"
+                        title={row.reasonDisplay?.trim() ? row.reasonDisplay : undefined}
+                      >
+                        {cell(row.reasonDisplay)}
+                      </span>
+                      {row.hasOvertimeApplication ? (
+                        <button
+                          type="button"
+                          className="inline-flex shrink-0 rounded p-0.5 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                          aria-label="残業理由・承認者コメントを表示"
+                          onClick={() => {
+                            setOtDetail({
+                              reason: row.reasonRaw?.trim() ?? '',
+                              comment: row.supervisorCommentRaw?.trim() ?? '',
+                            })
+                            setOtDetailOpen(true)
+                          }}
+                        >
+                          <Info className="h-4 w-4" aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-2 py-1 text-xs text-slate-800 sm:px-3 sm:text-sm">
                     {cell(row.sourceDisplay)}
@@ -184,18 +220,20 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
                   <td className="whitespace-nowrap px-2 py-1 text-xs text-slate-800 sm:px-3 sm:text-sm">
                     {cell(row.statusDisplay)}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-1 sm:px-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="!px-2 !py-1 text-xs"
-                      disabled={row.statusDisplay === '承認済'}
-                      onClick={() => openApply(row.workDate)}
-                    >
-                      申請
-                    </Button>
-                  </td>
+                  {!monthClosureBlocksApplications ? (
+                    <td className="whitespace-nowrap px-2 py-1 sm:px-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="!px-2 !py-1 text-xs"
+                        disabled={row.statusDisplay === '承認済'}
+                        onClick={() => openApply(row.workDate)}
+                      >
+                        申請
+                      </Button>
+                    </td>
+                  ) : null}
                 </tr>
             ))}
           </tbody>
@@ -224,6 +262,34 @@ export function OvertimeMonthTable({ yearMonth, rows }: Props) {
                 onSuccess={handleSuccess}
               />
             ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={otDetailOpen}
+        onOpenChange={(v) => {
+          setOtDetailOpen(v)
+          if (!v) setOtDetail(null)
+        }}
+      >
+        <DialogContent className="max-w-md gap-0 p-0 sm:max-w-md">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>残業理由・承認者コメント</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-6 pb-6 pt-2">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">残業理由</p>
+              <p className="mt-1 min-h-5 whitespace-pre-wrap text-sm text-slate-800">
+                {otDetail?.reason ?? ''}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">承認者コメント</p>
+              <p className="mt-1 min-h-5 whitespace-pre-wrap text-sm text-slate-800">
+                {otDetail?.comment ?? ''}
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

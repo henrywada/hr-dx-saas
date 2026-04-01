@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireClosureHrContext, insertClosureAuditLog, normalizeYearMonthToFirstDay } from './_context'
+import { fetchMonthlyClosureListWithCounts } from '@/lib/overtime/closure-list'
+import {
+  insertClosureAuditLog,
+  normalizeYearMonthToFirstDay,
+  requireClosureHrContext,
+} from './_context'
 
 /**
- * GET: 当テナントの月次締め一覧
+ * GET: 当テナントの月次締め一覧（各行に申請件数・承認件数を付与）
  * POST: 新規締め（対象月）のレコード作成
  */
 export async function GET() {
@@ -12,18 +17,12 @@ export async function GET() {
 
   const { supabase, tenantId } = ctx
 
-  const { data, error } = await supabase
-    .from('monthly_overtime_closures')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .order('year_month', { ascending: false })
-
-  if (error) {
-    console.error('monthly_overtime_closures list', error)
-    return NextResponse.json({ error: '一覧の取得に失敗しました' }, { status: 500 })
+  const result = await fetchMonthlyClosureListWithCounts(supabase, tenantId)
+  if (result.ok === false) {
+    return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  return NextResponse.json({ items: data ?? [] })
+  return NextResponse.json({ items: result.items })
 }
 
 const postSchema = z.object({

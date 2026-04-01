@@ -54,6 +54,7 @@ type OtRow = Pick<
   | 'reason'
   | 'status'
   | 'created_at'
+  | 'supervisor_comment'
 >
 
 /**
@@ -78,7 +79,7 @@ export async function getOvertimeApplicationMonthRows(
     supabase
       .from('overtime_applications')
       .select(
-        'work_date, overtime_start, overtime_end, requested_hours, reason, status, created_at',
+        'work_date, overtime_start, overtime_end, requested_hours, reason, status, created_at, supervisor_comment',
       )
       .eq('employee_id', employeeId)
       .gte('work_date', firstDay)
@@ -149,6 +150,10 @@ export async function getOvertimeApplicationMonthRows(
       overtimeStartIso: ot?.overtime_start ?? null,
       overtimeEndIso: ot?.overtime_end ?? null,
       reasonRaw: ot?.reason ?? null,
+      supervisorCommentRaw: ot?.supervisor_comment?.trim()
+        ? ot.supervisor_comment
+        : null,
+      hasOvertimeApplication: Boolean(ot),
     }
   })
 }

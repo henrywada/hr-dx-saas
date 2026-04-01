@@ -3,7 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { fetchEmployeeIdsInDivision } from '@/app/api/overtime/_approver-auth'
-import { getJSTYearMonth, lastDayOfMonthYmd } from '@/lib/datetime'
+import {
+  MONTHLY_CLOSURE_STATUSES_BLOCKING_OVERTIME_APPROVAL,
+  yearMonthFirstDayFromWorkDate,
+} from '@/lib/overtime/month-closure'
 import { QuickAccessCard } from './QuickAccessCard'
 import { QuickAccessTeleworkCard } from './QuickAccessTeleworkCard.client'
 
@@ -52,8 +55,9 @@ export default async function QuickAccessCards() {
   const showQrAdminCard = !permErr && !!permRow
 
   /**
-   * 上長向け: 承認画面（/approval）と同じく同一部署の peer 範囲かつ JST 当月の勤務日に限定し、
-   * status=申請中 の件数を表示（一覧の「申請中」フィルタ相当。上長本人の申請も含む）
+   * 上長向け: /approval と同じ同一部署 peer の「申請中」のうち、勤務日が属する月が
+   * 月次締め（/adm/closure）で承認操作ブロック済み（aggregated / approved / locked）でない件数。
+   * 全期間対象。上長本人の申請も含む。
    */
   let overtimePendingBadgeLabel: string | null = null
   if (user.is_manager === true && user.division_id) {
@@ -63,20 +67,38 @@ export default async function QuickAccessCards() {
       user.division_id,
     )
     if (!peerFetchErr && peerIds.length > 0) {
-      const month = getJSTYearMonth()
-      const firstDay = `${month}-01`
-      const lastDay = lastDayOfMonthYmd(month)
-      const { count, error } = await supabase
+      const blockingStatuses = [...MONTHLY_CLOSURE_STATUSES_BLOCKING_OVERTIME_APPROVAL]
+      const { data: closureRows, error: closureErr } = await supabase
+        .from('monthly_overtime_closures')
+        .select('year_month')
+        .eq('tenant_id', tenantId)
+        .in('status', blockingStatuses)
+
+      const { data: pendingRows, error: pendingErr } = await supabase
         .from('overtime_applications')
-        .select('id', { count: 'exact', head: true })
+        .select('work_date')
         .eq('tenant_id', tenantId)
         .eq('status', '申請中')
         .in('employee_id', peerIds)
-        .gte('work_date', firstDay)
-        .lte('work_date', lastDay)
-      if (!error && (count ?? 0) > 0) {
-        const n = count ?? 0
-        overtimePendingBadgeLabel = n > 99 ? '99+件' : `${n}件`
+
+      if (closureErr) {
+        console.error('QuickAccess monthly_overtime_closures', closureErr)
+      } else if (pendingErr) {
+        console.error('QuickAccess overtime_applications pending', pendingErr)
+      } else {
+        const blockedYearMonthFirstDays = new Set(
+          (closureRows ?? []).map((r) => r.year_month).filter((ym): ym is string => Boolean(ym)),
+        )
+        let n = 0
+        for (const row of pendingRows ?? []) {
+          const ym = yearMonthFirstDayFromWorkDate(row.work_date)
+          if (ym != null && !blockedYearMonthFirstDays.has(ym)) {
+            n += 1
+          }
+        }
+        if (n > 0) {
+          overtimePendingBadgeLabel = n > 99 ? '99+件' : `${n}件`
+        }
       }
     }
   }

@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { handleOvertimeApplicationsList } from '@/app/api/overtime/applications/list'
+import {
+  monthlyClosureBlocksOvertimeApproval,
+  yearMonthFirstDayFromWorkDate,
+} from '@/lib/overtime/month-closure'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -81,6 +85,28 @@ export async function POST(request: Request) {
 
   if (!employee.tenant_id) {
     return NextResponse.json({ error: 'テナント情報が見つかりません' }, { status: 403 })
+  }
+
+  const closureMonthKey = yearMonthFirstDayFromWorkDate(work_date)
+  if (closureMonthKey) {
+    const { data: closureForMonth, error: closureErr } = await supabase
+      .from('monthly_overtime_closures')
+      .select('status')
+      .eq('tenant_id', employee.tenant_id)
+      .eq('year_month', closureMonthKey)
+      .maybeSingle()
+
+    if (closureErr) {
+      console.error('monthly_overtime_closures application POST:', closureErr)
+      return NextResponse.json({ error: '月次締め状態の確認に失敗しました' }, { status: 500 })
+    }
+
+    if (monthlyClosureBlocksOvertimeApproval(closureForMonth?.status)) {
+      return NextResponse.json(
+        { error: 'この月は月次締め処理が完了しているため、残業を申請できません' },
+        { status: 403 },
+      )
+    }
   }
 
   const updatePayload = {

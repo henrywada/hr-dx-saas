@@ -53,6 +53,8 @@ export async function POST(request: Request, context: { params: Promise<{ closur
       status: 'open',
       locked_by: null,
       lock_reason: null,
+      closed_at: null,
+      closed_by: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', closure_id)

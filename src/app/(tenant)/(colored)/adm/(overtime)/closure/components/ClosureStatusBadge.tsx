@@ -14,7 +14,7 @@ export function closureStatusLabel(status: string | null | undefined): string {
     case 'approved':
       return '承認済'
     case 'locked':
-      return 'ロック済'
+      return '締処理済'
     default:
       return s
   }

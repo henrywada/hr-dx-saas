@@ -6,6 +6,10 @@ import {
   getOvertimeApplicationMonthRows,
   parseYearMonthOrDefault,
 } from '@/features/overtime/queries'
+import {
+  monthlyClosureBlocksOvertimeApproval,
+  yearMonthToClosureYearMonthKey,
+} from '@/lib/overtime/month-closure'
 import { OvertimeMonthTable } from './OvertimeMonthTable'
 
 type Props = {
@@ -34,10 +38,20 @@ export default async function OvertimeApplicationPage({ params, searchParams }: 
   }
 
   const supabase = await createClient()
-  const rows = await getOvertimeApplicationMonthRows(
-    supabase,
-    user.employee_id,
-    yearMonth,
+  const [rows, closureRes] = await Promise.all([
+    getOvertimeApplicationMonthRows(supabase, user.employee_id, yearMonth),
+    user.tenant_id
+      ? supabase
+          .from('monthly_overtime_closures')
+          .select('status')
+          .eq('tenant_id', user.tenant_id)
+          .eq('year_month', yearMonthToClosureYearMonthKey(yearMonth))
+          .maybeSingle()
+      : Promise.resolve({ data: null as { status: string | null } | null }),
+  ])
+
+  const monthClosureBlocksApplications = monthlyClosureBlocksOvertimeApproval(
+    closureRes.data?.status,
   )
 
   return (
@@ -49,12 +63,19 @@ export default async function OvertimeApplicationPage({ params, searchParams }: 
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">残業申請</h1>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            月次の出退勤・残業申請状況を確認できます。行の「申請」から残業を申請してください（残業時間はモーダル内で入力します）。
+            月次の出退勤・残業申請状況を確認できます。
+            {monthClosureBlocksApplications
+              ? ' この対象月は月次締め処理が完了しているため、新規の残業申請はできません。'
+              : ' 行の「申請」から残業を申請してください（残業時間はモーダル内で入力します）。'}
           </p>
         </div>
       </div>
 
-      <OvertimeMonthTable yearMonth={yearMonth} rows={rows} />
+      <OvertimeMonthTable
+        yearMonth={yearMonth}
+        rows={rows}
+        monthClosureBlocksApplications={monthClosureBlocksApplications}
+      />
     </div>
   )
 }

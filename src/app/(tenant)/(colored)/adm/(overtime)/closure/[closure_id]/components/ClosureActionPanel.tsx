@@ -114,7 +114,7 @@ export function ClosureActionPanel({ closureId, status }: Props) {
             disabled={busy !== null}
             onClick={() => setReopenOpen(true)}
           >
-            {busy === 'reopen' ? <Loader2 className="h-4 w-4 animate-spin" /> : '再オープン'}
+            {busy === 'reopen' ? <Loader2 className="h-4 w-4 animate-spin" /> : '締め取消し'}
           </Button>
         )}
       </div>
@@ -214,8 +214,8 @@ export function ClosureActionPanel({ closureId, status }: Props) {
       <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
         <DialogContent className="max-w-md gap-0 p-0 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>再オープン</DialogTitle>
-            <p className="text-sm text-neutral-500">ロックを解除し、未完了状態に戻します。</p>
+            <DialogTitle>締め取消し</DialogTitle>
+            <p className="text-sm text-neutral-500">締処理を取り消し、ロックを解除して未完了状態に戻します。</p>
           </DialogHeader>
           <form
             className="space-y-4 px-6 pb-6 pt-2 sm:px-8"
@@ -242,7 +242,7 @@ export function ClosureActionPanel({ closureId, status }: Props) {
                 キャンセル
               </Button>
               <Button type="submit" variant="primary" disabled={busy !== null}>
-                {busy === 'reopen' ? '処理中…' : '再オープンする'}
+                {busy === 'reopen' ? '処理中…' : '締め取消しを実行'}
               </Button>
             </div>
           </form>

@@ -16,7 +16,7 @@ type Props = {
 }
 
 function fmtHours(n: number | null | undefined) {
-  if (n === null || n === undefined) return '—'
+  if (n === null || n === undefined) return ''
   return Number(n).toFixed(2)
 }
 
@@ -44,16 +44,16 @@ export function ClosureDetailClient({ closure, aggregateRows }: Props) {
             <div>
               <dt className="text-neutral-500">集計日時</dt>
               <dd className="font-mono text-neutral-800">
-                {closure.aggregated_at ? formatDateTimeInJST(closure.aggregated_at) : '—'}
+                {closure.aggregated_at ? formatDateTimeInJST(closure.aggregated_at) : ''}
               </dd>
             </div>
             <div>
               <dt className="text-neutral-500">集計バージョン</dt>
-              <dd className="font-mono text-neutral-800">{closure.aggregate_version ?? '—'}</dd>
+              <dd className="font-mono text-neutral-800">{closure.aggregate_version ?? ''}</dd>
             </div>
             <div>
               <dt className="text-neutral-500">ロック理由</dt>
-              <dd className="text-neutral-800">{closure.lock_reason ?? '—'}</dd>
+              <dd className="text-neutral-800">{closure.lock_reason?.trim() ? closure.lock_reason : ''}</dd>
             </div>
           </dl>
         </div>
@@ -65,6 +65,7 @@ export function ClosureDetailClient({ closure, aggregateRows }: Props) {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-neutral-900">社員別集計</h2>
+        <p className="text-sm text-neutral-500">残業(h) は承認済み残業申請に基づく時間です。</p>
         {aggregateRows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
             集計データがありません。「集計を実行」で作成されます。
@@ -75,8 +76,7 @@ export function ClosureDetailClient({ closure, aggregateRows }: Props) {
               <TableRow>
                 <TableHead>社員</TableHead>
                 <TableHead className="text-right">総労働(h)</TableHead>
-                <TableHead className="text-right">残業(h)</TableHead>
-                <TableHead className="text-right">承認済残業(h)</TableHead>
+                <TableHead className="text-center">残業(h)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,8 +84,9 @@ export function ClosureDetailClient({ closure, aggregateRows }: Props) {
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.employee_name}</TableCell>
                   <TableCell className="text-right font-mono text-sm">{fmtHours(row.total_work_hours)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{fmtHours(row.total_overtime_hours)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{fmtHours(row.approved_overtime_hours)}</TableCell>
+                  <TableCell className="text-center font-mono text-sm">
+                    {fmtHours(row.approved_overtime_hours)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -31,6 +31,10 @@ export type OvertimeMonthRow = {
   /** 既存残業申請があるときモーダル初期値用（timestamptz ISO） */
   overtimeStartIso: string | null
   overtimeEndIso: string | null
-  /** 既存申請の理由（初期表示） */
+  /** 既存申請の理由（初期表示・詳細モーダル用の全文） */
   reasonRaw: string | null
+  /** 承認者コメント（詳細モーダル用） */
+  supervisorCommentRaw: string | null
+  /** その日に残業申請レコードがある（理由列に詳細アイコンを出す） */
+  hasOvertimeApplication: boolean
 }

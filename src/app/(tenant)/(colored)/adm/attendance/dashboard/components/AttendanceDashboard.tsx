@@ -46,7 +46,7 @@ export default function AttendanceDashboard({
           <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full" />
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-              勤怠管理ダッシュボード
+              勤怠管理一覧（人事）
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               テナント内の勤怠・残業・アラートを一覧します（人事専用）。
@@ -58,7 +58,7 @@ export default function AttendanceDashboard({
               variant="outline"
               size="sm"
               className="shrink-0"
-              aria-label="勤怠ダッシュボードの統計カードの説明を開く"
+              aria-label="勤怠管理一覧（人事）の統計カードの説明を開く"
             >
               カード説明
             </Button>

@@ -1,0 +1,32 @@
+---
+description: ドキュメント／ガイド／マニュアル表示向けモーダルは HelpMarkdownModal と MarkdownHelpBody のデザイン言語に統一する
+globs: src/components/help/**,src/components/**/*Modal*.tsx
+alwaysApply: false
+---
+
+# ヘルプ／ガイド系モーダル
+
+対象は **長文の説明・手順・Markdown 本文** を載せるモーダル。フォーム中心のダイアログ（テナント編集など）は別パターン（`dialog.tsx` の既定ヘッダー）とする。
+
+## 正（実装の単一ソース）
+
+- シェル＋青ヘッダー＋白い閉じるボタン: `src/components/help/HelpMarkdownModal.tsx`
+- 本文の見出し・リスト・帯見出し（`h3`）: `src/components/help/MarkdownHelpBody.tsx` の `markdownHelpComponents`
+- マニュアル本文の編集手順: `src/content/help/README.md`
+
+## 必須ルール
+
+1. **新規のガイド系モーダル**は可能なら `HelpMarkdownModal` をそのまま使う。`open` / `title` / `markdown`（または `getHelpMarkdown` で取得）で足りる。
+2. **独自に `Dialog` を組む場合**は、`HelpMarkdownModal` と同じ `DialogContent` / `DialogHeader` / スクロール領域のクラスを踏襲する（`bg-sky-600`、閉じるボタンは `[&>button]:text-white` 系、`max-h-[80vh] max-w-[800px]`、`rounded-lg`、`p-0` など）。
+3. **Markdown 本文**は `MarkdownHelpBody` を使うか、`markdownHelpComponents` を `ReactMarkdown` に渡す。`CardExplanationModal` のようにコンポーネントだけ複製すると見出し帯や行間がズレる。
+4. **色**は既存トークンに揃える。ヘッダーは `bg-sky-600`、小見出し帯は `border-indigo-400` + `bg-indigo-50`（`h3`）。任意の青（例 `#0088CC`）にだけ寄せた one-off は避け、変更するなら上記を一括で更新する。
+5. **a11y**: `DialogTitle` にタイトル。`DialogPrimitive.Description` は `HelpMarkdownModal` と同様 `sr-only` で短い説明を付ける。
+
+## 最小コード参照（シェル）
+
+新規実装時は次をコピー元にする（変更はデザイン合意のうえで一括）。
+
+```tsx
+<DialogContent className="max-h-[80vh] max-w-[800px] flex flex-col gap-0 overflow-hidden rounded-lg border border-neutral-200 bg-white p-0 shadow-lg [&>button]:text-white [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:focus-visible:ring-white/40">
+  <DialogHeader className="rounded-t-lg border-0 bg-sky-600 ... text-white ...">
+```

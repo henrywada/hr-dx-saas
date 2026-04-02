@@ -1,7 +1,7 @@
 import type { AppUser } from '@/types/auth'
 
 /**
- * 勤怠管理ダッシュボード（テナント全員分）へのアクセス可否。
+ * 勤怠管理一覧（人事）（テナント全員分）へのアクセス可否。
  * RLS は DB 側の current_employee_app_role 等に依存するため、アプリ側は運用上のゲートとして広めに許可する。
  */
 export function canAccessHrAttendanceDashboard(user: AppUser | null): boolean {

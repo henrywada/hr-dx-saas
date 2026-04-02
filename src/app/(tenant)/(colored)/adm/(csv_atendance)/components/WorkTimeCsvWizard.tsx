@@ -20,7 +20,6 @@ import {
   type WorkTimeCsvValidatedRow,
 } from '@/features/attendance/work-time-csv-actions'
 import {
-  buildTemplateCsv,
   normalizeHeaderCell,
   stripBom,
   WORK_TIME_CSV_REQUIRED_HEADERS,
@@ -182,16 +181,6 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
     [parseFile],
   )
 
-  const downloadTemplate = () => {
-    const blob = new Blob([buildTemplateCsv()], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'work_time_records_template.csv'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   const step2Validate = async () => {
     if (!rawInputs?.length) return
     setLoading(true)
@@ -315,15 +304,15 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
           href={APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}
           className="text-sm text-slate-600 hover:text-accent-orange underline-offset-2 hover:underline"
         >
-          勤怠ダッシュボードへ戻る
+          出勤・退勤データの明細一覧へ戻る
         </Link>
-        <button
-          type="button"
-          onClick={downloadTemplate}
+        <a
+          href="/doc/overtime/work_time_records_template.csv"
+          download="work_time_records_template.csv"
           className="text-sm font-medium text-accent-orange hover:underline"
         >
           テンプレート CSV をダウンロード
-        </button>
+        </a>
         <button
           type="button"
           onClick={resetFlow}

@@ -18,7 +18,7 @@ export function Footer() {
         {/* Right: Version */}
         <div className="ml-auto flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span className="text-slate-400 lowercase font-mono">v2.4.33</span>
+            <span className="text-slate-400 lowercase font-mono">v2.4.34</span>
         </div>
     </footer>
   );

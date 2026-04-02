@@ -1,6 +1,8 @@
 /**
  * 勤怠実績 CSV（クライアント・サーバ共用）パース・時刻解釈
  * 日付・時刻は原則 Asia/Tokyo（+09:00）として解釈
+ *
+ * ダウンロード用テンプレート: `public/doc/overtime/work_time_records_template.csv`（`docs/overtime/work_time_records_template.csv` と同一内容を維持）
  */
 
 export const WORK_TIME_CSV_TEMPLATE_HEADERS = [
@@ -104,15 +106,4 @@ export function parseHolidayCell(raw: string | undefined): boolean {
   if (raw == null || String(raw).trim() === '') return false
   const v = String(raw).trim().toLowerCase()
   return v === '1' || v === 'true' || v === 'yes' || v === 'はい'
-}
-
-/** Excel が UTF-8 と認識しやすいよう BOM 付き（日本語版 Excel の文字化け対策） */
-export function buildTemplateCsv(): string {
-  const header = WORK_TIME_CSV_TEMPLATE_HEADERS.join(',')
-  // is_holiday: 休日でない行は空欄（0 省略可）、休日の例は「はい」
-  const body =
-    `${header}\n` +
-    'E001,2026-03-15,09:00,18:00,\n' +
-    'E002,2026-03-16,09:30,17:45,はい\n'
-  return `\uFEFF${body}`
 }

@@ -468,7 +468,7 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
             href={APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}
             className="inline-block text-sm font-medium text-accent-orange hover:underline"
           >
-            勤怠ダッシュボードを開く
+            出勤・退勤データの明細一覧を開く
           </Link>
         </div>
       )}

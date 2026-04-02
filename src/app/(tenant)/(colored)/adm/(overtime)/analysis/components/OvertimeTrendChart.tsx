@@ -15,6 +15,7 @@ import {
 } from 'recharts'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { AnalysisCardHeaderRow } from './AnalysisCardHeaderRow'
 import type { TrendItem } from '@/app/api/analysis/trend/route'
 import { analysisJsonFetcher } from './analysis-fetcher'
 
@@ -31,14 +32,30 @@ export function OvertimeTrendChart({ yearMonth }: OvertimeTrendChartProps) {
   )
 
   if (isLoading) {
-    return <Skeleton className="h-80 w-full" />
+    return (
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow
+          title="月次トレンド（過去12ヶ月）"
+          yearMonth={yearMonth}
+          showYearMonth={false}
+        />
+        <Skeleton className="h-72 w-full md:h-80" />
+      </Card>
+    )
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {error.message}
-      </div>
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow
+          title="月次トレンド（過去12ヶ月）"
+          yearMonth={yearMonth}
+          showYearMonth={false}
+        />
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error.message}
+        </div>
+      </Card>
     )
   }
 
@@ -49,7 +66,12 @@ export function OvertimeTrendChart({ yearMonth }: OvertimeTrendChartProps) {
   }))
 
   return (
-    <Card title="月次トレンド（過去12ヶ月）" className="!p-4">
+    <Card className="!p-4">
+      <AnalysisCardHeaderRow
+        title="月次トレンド（過去12ヶ月）"
+        yearMonth={yearMonth}
+        showYearMonth={false}
+      />
       <div className="h-72 w-full min-w-0 md:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

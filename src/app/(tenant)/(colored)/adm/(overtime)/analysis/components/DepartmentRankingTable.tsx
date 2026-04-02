@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { AnalysisCardHeaderRow } from './AnalysisCardHeaderRow'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { DepartmentSummary } from '@/app/api/analysis/departments/route'
 import { analysisJsonFetcher } from './analysis-fetcher'
@@ -20,21 +21,30 @@ export function DepartmentRankingTable({ yearMonth }: DepartmentRankingTableProp
   )
 
   if (isLoading) {
-    return <Skeleton className="h-64 w-full" />
+    return (
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title="部署別ランキング" yearMonth={yearMonth} />
+        <Skeleton className="h-52 w-full" />
+      </Card>
+    )
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {error.message}
-      </div>
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title="部署別ランキング" yearMonth={yearMonth} />
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error.message}
+        </div>
+      </Card>
     )
   }
 
   const sorted = [...(data?.departments ?? [])].sort((a, b) => b.avg_overtime - a.avg_overtime)
 
   return (
-    <Card title="部署別ランキング" className="!p-4">
+    <Card className="!p-4">
+      <AnalysisCardHeaderRow title="部署別ランキング" yearMonth={yearMonth} />
       <Table>
         <TableHeader>
           <TableRow>

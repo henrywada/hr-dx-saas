@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/utils'
+import { AnalysisCardHeaderRow } from './AnalysisCardHeaderRow'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -50,14 +51,22 @@ export function RiskEmployeeTable({ yearMonth }: RiskEmployeeTableProps) {
   const rows = useMemo(() => data?.employees ?? [], [data?.employees])
 
   if (isLoading) {
-    return <Skeleton className="h-72 w-full" />
+    return (
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title="36協定リスク社員" yearMonth={yearMonth} />
+        <Skeleton className="h-64 w-full" />
+      </Card>
+    )
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {error.message}
-      </div>
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title="36協定リスク社員" yearMonth={yearMonth} />
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error.message}
+        </div>
+      </Card>
     )
   }
 
@@ -69,7 +78,8 @@ export function RiskEmployeeTable({ yearMonth }: RiskEmployeeTableProps) {
   ]
 
   return (
-    <Card title="36協定リスク社員" className="!p-4">
+    <Card className="!p-4">
+      <AnalysisCardHeaderRow title="36協定リスク社員" yearMonth={yearMonth} />
       <div className="mb-4">
         <TabsList>
           {tabs.map((t) => (

@@ -224,7 +224,7 @@ export default function HrDashboardPage() {
               <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
             </button>
 
-            {/* 勤怠管理一覧（人事） */}
+            {/* 出勤・退勤データの明細一覧 */}
             <Link
               href={APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}
               className="w-full bg-white border border-slate-200 hover:border-slate-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50/40 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400"
@@ -235,7 +235,7 @@ export default function HrDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-slate-900 transition-colors">
-                    勤怠管理一覧（人事）
+                    出勤・退勤データの明細一覧
                   </h3>
                   <p className="text-slate-500 text-xs">残業・アラート・従業員別一覧（人事）</p>
                 </div>

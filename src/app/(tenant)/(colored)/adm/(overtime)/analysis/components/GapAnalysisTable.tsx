@@ -3,11 +3,16 @@
 import useSWR from 'swr'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { AnalysisCardHeaderRow } from './AnalysisCardHeaderRow'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { GapItem } from '@/app/api/analysis/gap/route'
 import { analysisJsonFetcher } from './analysis-fetcher'
 
 type GapResponse = { gaps: GapItem[] }
+
+const GAP_CARD_TITLE = '残業（申請 vs 実績）乖離'
+const GAP_SUBLINE =
+  '残業（実績）= (開始時間 - 終了時間)ー(８時間)'
 
 type GapAnalysisTableProps = {
   yearMonth: string
@@ -18,27 +23,36 @@ export function GapAnalysisTable({ yearMonth }: GapAnalysisTableProps) {
   const { data, error, isLoading } = useSWR<GapResponse>(key, () => analysisJsonFetcher<GapResponse>(key))
 
   if (isLoading) {
-    return <Skeleton className="h-64 w-full" />
+    return (
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title={GAP_CARD_TITLE} yearMonth={yearMonth} sublineRight={GAP_SUBLINE} />
+        <Skeleton className="h-52 w-full" />
+      </Card>
+    )
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {error.message}
-      </div>
+      <Card className="!p-4">
+        <AnalysisCardHeaderRow title={GAP_CARD_TITLE} yearMonth={yearMonth} sublineRight={GAP_SUBLINE} />
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error.message}
+        </div>
+      </Card>
     )
   }
 
   const rows = [...(data?.gaps ?? [])].sort((a, b) => Math.abs(b.gap_hours) - Math.abs(a.gap_hours))
 
   return (
-    <Card title="申請 vs 実績 乖離" className="!p-4">
+    <Card className="!p-4">
+      <AnalysisCardHeaderRow title={GAP_CARD_TITLE} yearMonth={yearMonth} sublineRight={GAP_SUBLINE} />
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>社員名</TableHead>
-            <TableHead className="text-right">申請時間</TableHead>
-            <TableHead className="text-right">実績時間</TableHead>
+            <TableHead className="text-right">残業時間（申請）</TableHead>
+            <TableHead className="text-right">残業時間（実績）</TableHead>
             <TableHead className="text-right">乖離</TableHead>
             <TableHead>判定</TableHead>
           </TableRow>

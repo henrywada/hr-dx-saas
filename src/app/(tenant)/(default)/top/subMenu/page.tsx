@@ -1,8 +1,8 @@
 import React, { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getServerUser } from '@/lib/auth/server-user';
-import Link from 'next/link';
 import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading';
+import { SubMenuServiceCard } from '@/components/submenu/SubMenuServiceCard';
 
 export default async function SubMenuPage({
   searchParams,
@@ -89,42 +89,15 @@ async function PortalSubMenuCategoryContent({ categoryId }: { categoryId: string
             const variant = CARD_VARIANTS[index % CARD_VARIANTS.length];
 
             return (
-              <Link
+              <SubMenuServiceCard
                 key={service.id}
                 href={service.route_path || '#'}
-                className={`
-                  flex flex-col text-left group
-                  bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 
-                  border border-slate-100 hover:border-slate-200 hover:-translate-y-1
-                  overflow-hidden relative h-full
-                `}
-              >
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${variant.bar}`} />
-
-                <div className="p-5 pl-7 w-full flex flex-col h-full">
-                  {service.title ? (
-                    <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${variant.text}`}>
-                      {service.title}
-                    </div>
-                  ) : (
-                    <div className="h-4 mb-2" />
-                  )}
-
-                  <h3 className={`text-lg font-bold text-slate-900 mb-2 transition-colors ${variant.hover}`}>
-                    {service.name}
-                  </h3>
-
-                  {service.description && (
-                    <p className="text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1 whitespace-pre-line">
-                      {service.description}
-                    </p>
-                  )}
-
-                  <div className="mt-auto pt-4 flex justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                    <span className={`${variant.text}`}>→</span>
-                  </div>
-                </div>
-              </Link>
+                variant={variant}
+                layout="portal"
+                title={service.title}
+                name={service.name}
+                description={service.description}
+              />
             );
           })}
         </div>

@@ -27,7 +27,7 @@ type MonthDetailRow = {
   overtimeApplicationStatus: string | null
   approverName: string | null
   overtimeReason: string | null
-  supervisorComment: string | null
+  supervisorRecommend: string | null
 }
 
 type Props = {
@@ -61,7 +61,9 @@ export function ClosureListClient({
   const [cancelingId, setCancelingId] = useState<string | null>(null)
 
   const [otDetailOpen, setOtDetailOpen] = useState(false)
-  const [otDetail, setOtDetail] = useState<{ reason: string; comment: string } | null>(null)
+  const [otDetail, setOtDetail] = useState<{ reason: string; supervisorRecommend: string } | null>(
+    null,
+  )
 
   /** 締処理済（locked）のうち、対象月が最も新しい行（一覧は対象月降順のため 1 件） */
   const latestLockedClosureId = useMemo(() => {
@@ -230,13 +232,14 @@ export function ClosureListClient({
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">月次締め管理</h1>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-neutral-500">
-            月ごとの残業締めの状況を確認し、集計・承認・ロックを行います。対象月が集計済み以降になると、上長向け「残業申請の承認」画面では
-            <span className="font-bold text-red-600">その月の申請に対する承認・却下・修正依頼はできず</span>
-            、詳細の閲覧のみとなります。
+            月次の集計・承認・ロックを行います。
+          </p>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-neutral-500">
+            締め処理の完了後は、「承認・却下・修正依頼」はできず、詳細の閲覧のみとなります。
           </p>
         </div>
         <Button type="button" variant="primary" size="sm" className="shrink-0" onClick={openNewClosureModal}>
-          新規締め
+          月次締め処理の実行
         </Button>
       </div>
 
@@ -256,18 +259,19 @@ export function ClosureListClient({
                 <TableHead className="h-auto py-2 px-3">ステータス</TableHead>
                 <TableHead className="h-auto py-2 px-3">締め年月日時</TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right tabular-nums">データ件数</TableHead>
-                <TableHead className="h-auto py-2 px-3 text-right tabular-nums">申請件数</TableHead>
+                <TableHead className="h-auto py-2 px-3 text-right tabular-nums">申請中</TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right tabular-nums">承認件数</TableHead>
+                <TableHead className="h-auto py-2 px-3 text-right tabular-nums">却下件数</TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="px-4 py-12 text-center text-neutral-600">
+                  <TableCell colSpan={8} className="px-4 py-12 text-center text-neutral-600">
                     <p className="font-medium text-neutral-800">締めデータがありません</p>
                     <p className="mt-2 text-sm text-neutral-500">
-                      右上の「新規締め」で対象月を入力し、「締め処理の実行」から集計〜ロックまで一括で行ってください。
+                      右上の「月次締め処理の実行」で対象月を入力し、ダイアログから集計〜ロックまで一括で行ってください。
                     </p>
                   </TableCell>
                 </TableRow>
@@ -286,6 +290,9 @@ export function ClosureListClient({
                     <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.data_count}</TableCell>
                     <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.application_count}</TableCell>
                     <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.approved_count}</TableCell>
+                    <TableCell className="px-3 py-1.5 text-right tabular-nums">
+                      {row.rejected_count === 0 ? '' : row.rejected_count}
+                    </TableCell>
                     <TableCell className="px-3 py-1.5 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1.5">
                         {!row.isPendingMonth &&
@@ -389,7 +396,7 @@ export function ClosureListClient({
           <DialogHeader className="shrink-0 border-b border-neutral-200 px-6 py-4">
             <DialogTitle>月次詳細（{detailYm}）</DialogTitle>
             <p className="text-sm text-neutral-500">
-              打刻と残業申請を日付・社員単位で表示します。残業時間は申請の requested_hours を合計し h:mm で表示します（理由・承認者コメントは承認済み申請に基づきます）。
+              打刻と残業申請を日付・社員単位で表示します。残業時間は申請の requested_hours を合計し h:mm で表示します。残業理由は reason、承認者コメントは supervisor_comment を表示します。
             </p>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-2 sm:px-6">
@@ -443,7 +450,7 @@ export function ClosureListClient({
                             {detailModalOvertimeHm(r.overtimeRequestedTotalMinutes)}
                             {(r.overtimeRequestedTotalMinutes ?? 0) > 0 ||
                             (r.overtimeReason?.trim() ?? '') !== '' ||
-                            (r.supervisorComment?.trim() ?? '') !== '' ? (
+                            (r.supervisorRecommend?.trim() ?? '') !== '' ? (
                               <button
                                 type="button"
                                 className="inline-flex shrink-0 rounded p-0.5 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -452,7 +459,7 @@ export function ClosureListClient({
                                   e.stopPropagation()
                                   setOtDetail({
                                     reason: r.overtimeReason ?? '',
-                                    comment: r.supervisorComment ?? '',
+                                    supervisorRecommend: r.supervisorRecommend ?? '',
                                   })
                                   setOtDetailOpen(true)
                                 }}
@@ -487,15 +494,15 @@ export function ClosureListClient({
           </DialogHeader>
           <div className="space-y-4 px-6 pb-6 pt-2">
             <div>
-              <p className="text-xs font-semibold text-neutral-500">残業理由</p>
+              <p className="text-xs font-semibold text-neutral-500">【残業理由】</p>
               <p className="mt-1 min-h-5 whitespace-pre-wrap text-sm text-neutral-800">
                 {otDetail?.reason?.trim() ?? ''}
               </p>
             </div>
             <div>
-              <p className="text-xs font-semibold text-neutral-500">承認者コメント</p>
+              <p className="text-xs font-semibold text-neutral-500">【承認者コメント】</p>
               <p className="mt-1 min-h-5 whitespace-pre-wrap text-sm text-neutral-800">
-                {otDetail?.comment?.trim() ?? ''}
+                {otDetail?.supervisorRecommend?.trim() ?? ''}
               </p>
             </div>
           </div>

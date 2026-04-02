@@ -5,8 +5,11 @@ import type { Database, Tables } from '@/lib/supabase/types'
 export type MonthlyClosureListRow = Tables<'monthly_overtime_closures'> & {
   /** 当該月の work_time_records 件数 */
   data_count: number
+  /** overtime_applications で status=申請中 の件数（一覧列「申請中」） */
   application_count: number
   approved_count: number
+  /** 当該月の overtime_applications で status=却下 の件数 */
+  rejected_count: number
   /** monthly_overtime_closures に行がまだ無い月（勤怠・申請のみで検出） */
   isPendingMonth?: boolean
 }
@@ -52,6 +55,7 @@ function buildPendingClosureRow(
   dataCount: number,
   applicationCount: number,
   approvedCount: number,
+  rejectedCount: number,
 ): MonthlyClosureListRow {
   return {
     id: `pending:${monthKey}`,
@@ -70,12 +74,13 @@ function buildPendingClosureRow(
     data_count: dataCount,
     application_count: applicationCount,
     approved_count: approvedCount,
+    rejected_count: rejectedCount,
     isPendingMonth: true,
   }
 }
 
 /**
- * 月次締め一覧 + 当月の打刻件数・残業申請件数・承認済件数（サーバー・API 共用）
+ * 月次締め一覧 + 当月の打刻件数・申請中件数・承認済件数（サーバー・API 共用）
  * 締めマスタが無い月も、勤怠・申請がある月は行として表示する。
  */
 export async function fetchMonthlyClosureListWithCounts(
@@ -180,23 +185,31 @@ export async function fetchMonthlyClosureListWithCounts(
 
   if (appResult.error) {
     console.error('overtime_applications closure list aggregate', appResult.error)
-    return { ok: false, error: '申請件数の集計に失敗しました' }
+    return { ok: false, error: '残業申請の集計に失敗しました' }
   }
   if (wtrResult.error) {
     console.error('work_time_records closure list count', wtrResult.error)
     return { ok: false, error: 'データ件数の集計に失敗しました' }
   }
 
-  const totalByMonth = new Map<string, number>()
+  const pendingByMonth = new Map<string, number>()
+  const monthsWithAnyOa = new Set<string>()
   const approvedByMonth = new Map<string, number>()
+  const rejectedByMonth = new Map<string, number>()
   for (const ar of appResult.data ?? []) {
     const wd = ar.work_date
     const wdStr = typeof wd === 'string' ? wd : wd != null ? String(wd) : ''
     if (wdStr.length < 7) continue
     const mk = wdStr.slice(0, 7)
-    totalByMonth.set(mk, (totalByMonth.get(mk) ?? 0) + 1)
+    monthsWithAnyOa.add(mk)
+    if (ar.status === '申請中') {
+      pendingByMonth.set(mk, (pendingByMonth.get(mk) ?? 0) + 1)
+    }
     if (ar.status === '承認済') {
       approvedByMonth.set(mk, (approvedByMonth.get(mk) ?? 0) + 1)
+    }
+    if (ar.status === '却下') {
+      rejectedByMonth.set(mk, (rejectedByMonth.get(mk) ?? 0) + 1)
     }
   }
 
@@ -210,7 +223,7 @@ export async function fetchMonthlyClosureListWithCounts(
   }
 
   const activityMonthKeys = new Set<string>()
-  for (const mk of totalByMonth.keys()) activityMonthKeys.add(mk)
+  for (const mk of monthsWithAnyOa) activityMonthKeys.add(mk)
   for (const mk of dataCountByMonth.keys()) activityMonthKeys.add(mk)
 
   const closureByMonth = new Map<string, Tables<'monthly_overtime_closures'>>()
@@ -225,8 +238,9 @@ export async function fetchMonthlyClosureListWithCounts(
   const items: MonthlyClosureListRow[] = sortedDescending.map((mk) => {
     const existing = closureByMonth.get(mk)
     const data_count = dataCountByMonth.get(mk) ?? 0
-    const application_count = totalByMonth.get(mk) ?? 0
+    const application_count = pendingByMonth.get(mk) ?? 0
     const approved_count = approvedByMonth.get(mk) ?? 0
+    const rejected_count = rejectedByMonth.get(mk) ?? 0
 
     if (existing) {
       return {
@@ -234,11 +248,19 @@ export async function fetchMonthlyClosureListWithCounts(
         data_count,
         application_count,
         approved_count,
+        rejected_count,
         isPendingMonth: false,
       }
     }
 
-    return buildPendingClosureRow(tenantId, mk, data_count, application_count, approved_count)
+    return buildPendingClosureRow(
+      tenantId,
+      mk,
+      data_count,
+      application_count,
+      approved_count,
+      rejected_count,
+    )
   })
 
   return { ok: true, items }

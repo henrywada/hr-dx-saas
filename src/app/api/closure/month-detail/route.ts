@@ -15,10 +15,10 @@ export type ClosureMonthDetailRow = {
   /** 同一日・同一社員の残業申請の status（複数は「・」区切り） */
   overtimeApplicationStatus: string | null
   approverName: string | null
-  /** 残業申請の理由（同一日複数申請時は改行で連結） */
+  /** overtime_applications.reason（同一日複数申請時は改行で連結） */
   overtimeReason: string | null
-  /** 承認者コメント */
-  supervisorComment: string | null
+  /** 承認者コメント（DB: supervisor_comment。同一日複数申請時は改行で連結） */
+  supervisorRecommend: string | null
 }
 
 /** 一覧表示用: 複数ステータスの並び */
@@ -124,12 +124,18 @@ export async function GET(request: Request) {
     supervisor: { name: string | null } | null
   }
 
+  /** 承認者コメント（DB 列 supervisor_comment） */
+  function supervisorRecommendFromOa(oa: OaRow): string | null {
+    const t = oa.supervisor_comment?.trim()
+    return t || null
+  }
+
   type OtAgg = {
     /** 同一キーに紐づく全申請の requested_hours 合計（時間） */
     totalRequestedHours: number
     approverName: string | null
     reasons: string[]
-    comments: string[]
+    supervisorRecommends: string[]
     statuses: Set<string>
   }
 
@@ -143,8 +149,8 @@ export async function GET(request: Request) {
     const reqH = Number(oa.requested_hours ?? 0)
     const isApproved = oa.status === '承認済'
     const sup = isApproved ? (oa.supervisor?.name ?? null) : null
-    const r = isApproved && oa.reason?.trim() ? oa.reason.trim() : null
-    const c = isApproved && oa.supervisor_comment?.trim() ? oa.supervisor_comment.trim() : null
+    const r = oa.reason?.trim() ? oa.reason.trim() : null
+    const c = supervisorRecommendFromOa(oa)
     const prev = otMap.get(key)
     const st = new Set(prev?.statuses ?? [])
     st.add(oa.status)
@@ -154,7 +160,7 @@ export async function GET(request: Request) {
         totalRequestedHours: totalReq,
         approverName: prev.approverName ?? sup,
         reasons: r ? [...prev.reasons, r] : prev.reasons,
-        comments: c ? [...prev.comments, c] : prev.comments,
+        supervisorRecommends: c ? [...prev.supervisorRecommends, c] : prev.supervisorRecommends,
         statuses: st,
       })
     } else {
@@ -162,17 +168,18 @@ export async function GET(request: Request) {
         totalRequestedHours: reqH,
         approverName: sup,
         reasons: r ? [r] : [],
-        comments: c ? [c] : [],
+        supervisorRecommends: c ? [c] : [],
         statuses: st,
       })
     }
   }
 
-  function otTexts(ot: OtAgg | undefined): { reason: string | null; comment: string | null } {
-    if (!ot) return { reason: null, comment: null }
+  function otTexts(ot: OtAgg | undefined): { reason: string | null; supervisorRecommend: string | null } {
+    if (!ot) return { reason: null, supervisorRecommend: null }
     const reason = ot.reasons.length > 0 ? ot.reasons.join('\n') : null
-    const comment = ot.comments.length > 0 ? ot.comments.join('\n') : null
-    return { reason, comment }
+    const supervisorRecommend =
+      ot.supervisorRecommends.length > 0 ? ot.supervisorRecommends.join('\n') : null
+    return { reason, supervisorRecommend }
   }
 
   function empFromWtr(w: WtrRow): { no: string; name: string } {
@@ -209,7 +216,7 @@ export async function GET(request: Request) {
       overtimeApplicationStatus: ot ? formatOvertimeStatuses(ot.statuses) : null,
       approverName: ot?.approverName ?? null,
       overtimeReason: texts.reason,
-      supervisorComment: texts.comment,
+      supervisorRecommend: texts.supervisorRecommend,
     })
   }
 
@@ -234,7 +241,7 @@ export async function GET(request: Request) {
       overtimeApplicationStatus: formatOvertimeStatuses(agg.statuses),
       approverName: agg.approverName,
       overtimeReason: tx.reason,
-      supervisorComment: tx.comment,
+      supervisorRecommend: tx.supervisorRecommend,
     })
   }
 

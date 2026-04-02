@@ -61,7 +61,7 @@ export type AttendanceStatusTier = 'normal' | 'caution' | 'warning' | 'danger'
 
 export type OverviewStats = {
   totalEmployees: number
-  /** 全従業員の平均残業（分） */
+  /** 全従業員の「残業（承認）」合計の平均（分）— overtime_applications・承認済 */
   avgOvertimeMinutes: number
   unresolvedAlertCount: number
   legalRiskEmployeeCount: number
@@ -86,13 +86,18 @@ export type HrOvertimeAlertView = {
 
 export type EmployeeAttendanceRow = {
   employeeId: string
+  /** employees.employee_no */
+  employeeNo: string | null
   name: string
   divisionId: string | null
   divisionName: string
   jobTitle: string | null
-  totalMinutes: number
-  overtimeMinutes: number
-  holidayMinutes: number
+  /** 選択月・status=承認済 の requested_hours 合計（分）— 一覧「残業（承認）」 */
+  otApprovedMinutes: number
+  /** 選択月・status=却下 の requested_hours 合計（分）— 「残業（却下）」 */
+  otRejectedMinutes: number
+  /** 選択月・status=申請中 の requested_hours 合計（分）— 「残業（申請中）」 */
+  otPendingMinutes: number
   /** 選択月に work_time_records が1件以上ある（詳細モーダル用の日次データあり） */
   hasWorkTimeRecordsInMonth: boolean
   /** 選択月に triggered_at があるアラート件数（解決済み含む） */
@@ -116,6 +121,7 @@ export type EmployeeAttendanceListFilters = {
   overviewFilter?: EmployeeAttendanceOverviewFilter
   sortKey?:
     | 'name'
+    | 'employee_no'
     | 'division'
     | 'total_minutes'
     | 'overtime_minutes'

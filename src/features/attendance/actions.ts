@@ -343,6 +343,7 @@ const M360Y = 360 * 60
 
 type EmpRow = {
   id: string
+  employeeNo: string | null
   name: string
   divisionId: string | null
   divisionName: string
@@ -405,7 +406,7 @@ async function buildEmployeeAttendanceRows(
   try {
     const { data: empRows, error: empErr } = await db(supabase)
       .from('employees')
-      .select('id, name, job_title, division_id, divisions:division_id(name)')
+      .select('id, employee_no, name, job_title, division_id, divisions:division_id(name)')
     if (empErr) {
       return { ok: false, error: empErr.message }
     }
@@ -413,12 +414,14 @@ async function buildEmployeeAttendanceRows(
     const employees: EmpRow[] = (empRows ?? []).map(
       (r: {
         id: string
+        employee_no: string | null
         name: string | null
         division_id: string | null
         job_title: string | null
         divisions: { name: string | null } | null
       }) => ({
         id: r.id,
+        employeeNo: r.employee_no?.trim() ? r.employee_no.trim() : null,
         name: r.name ?? '（無名）',
         divisionId: r.division_id,
         divisionName: r.divisions?.name ?? '—',
@@ -446,6 +449,37 @@ async function buildEmployeeAttendanceRows(
       .lte('record_date', end)
     if (workErr) {
       return { ok: false, error: workErr.message }
+    }
+
+    const { data: otAppRows, error: otAppErr } = await db(supabase)
+      .from('overtime_applications')
+      .select('employee_id, status, requested_hours')
+      .gte('work_date', start)
+      .lte('work_date', end)
+    if (otAppErr) {
+      return { ok: false, error: otAppErr.message }
+    }
+
+    /** 従業員別: 承認済 / 却下 / 申請中 の requested_hours（時間）合計 */
+    const otHoursByEmp = new Map<
+      string,
+      { approved: number; rejected: number; pending: number }
+    >()
+    for (const o of (otAppRows ?? []) as {
+      employee_id: string
+      status: string
+      requested_hours: number | null
+    }[]) {
+      const h = Number(o.requested_hours ?? 0)
+      const cur = otHoursByEmp.get(o.employee_id) ?? {
+        approved: 0,
+        rejected: 0,
+        pending: 0,
+      }
+      if (o.status === '承認済') cur.approved += h
+      else if (o.status === '却下') cur.rejected += h
+      else if (o.status === '申請中') cur.pending += h
+      otHoursByEmp.set(o.employee_id, cur)
     }
 
     type WorkAgg = { total: number; holiday: number }
@@ -521,22 +555,12 @@ async function buildEmployeeAttendanceRows(
 
     for (const emp of employees) {
       const st = statByEmp.get(emp.id)
-      const wa = workAgg.get(emp.id)
-      let totalMinutes: number
-      let overtimeMinutes: number
-      let holidayMinutes: number
+      /** ステータス tier・法令リスク用（overtime_monthly_stats の当月残業分） */
+      let tierOvertimeMinutes: number
       if (st) {
-        totalMinutes = Number(st.total_minutes ?? 0)
-        overtimeMinutes = Number(st.overtime_minutes ?? 0)
-        holidayMinutes = Number(st.holiday_minutes ?? 0)
-      } else if (wa) {
-        totalMinutes = wa.total
-        overtimeMinutes = 0
-        holidayMinutes = wa.holiday
+        tierOvertimeMinutes = Number(st.overtime_minutes ?? 0)
       } else {
-        totalMinutes = 0
-        overtimeMinutes = 0
-        holidayMinutes = 0
+        tierOvertimeMinutes = 0
       }
 
       const inner = otByEmpPeriod.get(emp.id)
@@ -552,19 +576,25 @@ async function buildEmployeeAttendanceRows(
       }
 
       const legalRisk =
-        overtimeMinutes > M45 || sixMonthAvg > M80 || sumYear > M360Y
+        tierOvertimeMinutes > M45 || sixMonthAvg > M80 || sumYear > M360Y
 
-      const statusTier = getAttendanceStatusTier(overtimeMinutes, legalRisk)
+      const statusTier = getAttendanceStatusTier(tierOvertimeMinutes, legalRisk)
+
+      const otH = otHoursByEmp.get(emp.id)
+      const otApprovedMinutes = Math.round((otH?.approved ?? 0) * 60)
+      const otRejectedMinutes = Math.round((otH?.rejected ?? 0) * 60)
+      const otPendingMinutes = Math.round((otH?.pending ?? 0) * 60)
 
       rows.push({
         employeeId: emp.id,
+        employeeNo: emp.employeeNo,
         name: emp.name,
         divisionId: emp.divisionId,
         divisionName: emp.divisionName,
         jobTitle: emp.jobTitle,
-        totalMinutes,
-        overtimeMinutes,
-        holidayMinutes,
+        otApprovedMinutes,
+        otRejectedMinutes,
+        otPendingMinutes,
         hasWorkTimeRecordsInMonth: (workRecordCountByEmp.get(emp.id) ?? 0) > 0,
         alertCountInMonth: alertCountInMonth.get(emp.id) ?? 0,
         unresolvedAlertCount: unresolvedCountByEmp.get(emp.id) ?? 0,
@@ -588,7 +618,7 @@ async function computeOverviewFromRows(
   list: EmployeeAttendanceRow[],
 ): Promise<AttendanceActionResult<OverviewStats>> {
   const n = list.length
-  const sumOt = list.reduce((a, r) => a + r.overtimeMinutes, 0)
+  const sumOt = list.reduce((a, r) => a + r.otApprovedMinutes, 0)
   const avgOvertimeMinutes = n > 0 ? Math.round(sumOt / n) : 0
 
   let unresolvedAlertCount = 0
@@ -611,7 +641,7 @@ async function computeOverviewFromRows(
     .filter((r) => r.unresolvedAlertCount > 0)
     .map((r) => r.employeeId)
   const employeeIdsAboveAvgOvertime = list
-    .filter((r) => r.overtimeMinutes > avgOvertimeMinutes)
+    .filter((r) => r.otApprovedMinutes > avgOvertimeMinutes)
     .map((r) => r.employeeId)
 
   const data: OverviewStats = {
@@ -757,7 +787,7 @@ function matchesOverviewFilter(
   if (!filter || filter === 'all') return true
   if (filter === 'legal_risk') return row.legalRisk
   if (filter === 'unresolved_alerts') return row.unresolvedAlertCount > 0
-  if (filter === 'above_avg_ot') return row.overtimeMinutes > avgOvertimeMinutes
+  if (filter === 'above_avg_ot') return row.otApprovedMinutes > avgOvertimeMinutes
   return true
 }
 
@@ -773,17 +803,26 @@ function sortEmployeeRows(
       case 'name':
         cmp = a.name.localeCompare(b.name, 'ja')
         break
+      case 'employee_no': {
+        const an = (a.employeeNo ?? '').trim()
+        const bn = (b.employeeNo ?? '').trim()
+        if (!an && !bn) cmp = 0
+        else if (!an) cmp = 1
+        else if (!bn) cmp = -1
+        else cmp = an.localeCompare(bn, 'ja', { numeric: true })
+        break
+      }
       case 'division':
         cmp = a.divisionName.localeCompare(b.divisionName, 'ja')
         break
       case 'total_minutes':
-        cmp = a.totalMinutes - b.totalMinutes
+        cmp = a.otApprovedMinutes - b.otApprovedMinutes
         break
       case 'overtime_minutes':
-        cmp = a.overtimeMinutes - b.overtimeMinutes
+        cmp = a.otRejectedMinutes - b.otRejectedMinutes
         break
       case 'holiday_minutes':
-        cmp = a.holidayMinutes - b.holidayMinutes
+        cmp = a.otPendingMinutes - b.otPendingMinutes
         break
       case 'alert_count':
         cmp = a.alertCountInMonth - b.alertCountInMonth
@@ -815,7 +854,7 @@ export async function getEmployeeAttendanceList(
   }
   let rows = built.data
   const nAll = rows.length
-  const sumOt = rows.reduce((a, r) => a + r.overtimeMinutes, 0)
+  const sumOt = rows.reduce((a, r) => a + r.otApprovedMinutes, 0)
   const avgOvertimeMinutes = nAll > 0 ? Math.round(sumOt / nAll) : 0
 
   const f = filters ?? {}
@@ -901,9 +940,9 @@ export async function exportAttendanceCSV(
   const header = [
     '従業員名',
     '部署',
-    '総労働時間(時間:分)',
-    '残業時間(時間:分)',
-    '休日出勤時間(時間:分)',
+    '残業（承認）(時間:分)',
+    '残業（却下）(時間:分)',
+    '残業（申請中）(時間:分)',
     'アラート件数',
   ]
   const lines = [header.join(',')]
@@ -911,9 +950,9 @@ export async function exportAttendanceCSV(
     const line = [
       escapeCsvField(r.name),
       escapeCsvField(r.divisionName),
-      escapeCsvField(minutesToHoursLabel(r.totalMinutes)),
-      escapeCsvField(minutesToHoursLabel(r.overtimeMinutes)),
-      escapeCsvField(minutesToHoursLabel(r.holidayMinutes)),
+      escapeCsvField(minutesToHoursLabel(r.otApprovedMinutes)),
+      escapeCsvField(minutesToHoursLabel(r.otRejectedMinutes)),
+      escapeCsvField(minutesToHoursLabel(r.otPendingMinutes)),
       String(r.alertCountInMonth),
     ].join(',')
     lines.push(line)

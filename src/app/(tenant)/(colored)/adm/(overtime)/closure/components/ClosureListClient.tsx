@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Info, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -23,7 +23,8 @@ type MonthDetailRow = {
   employeeName: string
   clockIn: string | null
   clockOut: string | null
-  approvedOvertimeHours: number | null
+  overtimeRequestedTotalMinutes: number | null
+  overtimeApplicationStatus: string | null
   approverName: string | null
   overtimeReason: string | null
   supervisorComment: string | null
@@ -180,10 +181,12 @@ export function ClosureListClient({
     }
   }
 
-  /** 月次詳細モーダル: 残業時間（未設定はブランク） */
-  function detailModalOvertimeText(n: number | null | undefined): string {
-    if (n == null || Number.isNaN(n)) return ''
-    return Number(n).toFixed(2)
+  /** 月次詳細モーダル: requested_hours 合計を h:mm（0 はブランク） */
+  function detailModalOvertimeHm(m: number | null | undefined): string {
+    if (m == null || Number.isNaN(m) || m === 0) return ''
+    const h = Math.floor(m / 60)
+    const mm = m % 60
+    return `${h}:${String(mm).padStart(2, '0')}`
   }
 
   /** 「—」や空はセルをブランク表示 */
@@ -191,6 +194,34 @@ export function ClosureListClient({
     const t = s?.trim() ?? ''
     if (t === '' || t === '—') return ''
     return s ?? ''
+  }
+
+  /** ステータス列: 「申請中」はバッジで強調（複数は「・」区切りで分割） */
+  function detailModalStatusDisplay(raw: string | null | undefined): ReactNode {
+    const t = raw?.trim() ?? ''
+    if (t === '' || t === '—') return null
+    const parts = t.split('・').map((p) => p.trim()).filter(Boolean)
+    if (parts.length === 0) return null
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+        {parts.map((part, i) => (
+          <span key={`${i}-${part}`} className="inline-flex items-center">
+            {i > 0 ? (
+              <span className="mx-0.5 text-neutral-300" aria-hidden>
+                ・
+              </span>
+            ) : null}
+            {part === '申請中' ? (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold leading-tight text-amber-950 ring-1 ring-amber-300/90 shadow-sm">
+                申請中
+              </span>
+            ) : (
+              <span className="text-neutral-800">{part}</span>
+            )}
+          </span>
+        ))}
+      </span>
+    )
   }
 
   return (
@@ -358,7 +389,7 @@ export function ClosureListClient({
           <DialogHeader className="shrink-0 border-b border-neutral-200 px-6 py-4">
             <DialogTitle>月次詳細（{detailYm}）</DialogTitle>
             <p className="text-sm text-neutral-500">
-              打刻と承認済み残業申請を日付・社員単位で表示します。残業時間は承認済み申請の時間を正とします。
+              打刻と残業申請を日付・社員単位で表示します。残業時間は申請の requested_hours を合計し h:mm で表示します（理由・承認者コメントは承認済み申請に基づきます）。
             </p>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-2 sm:px-6">
@@ -375,7 +406,7 @@ export function ClosureListClient({
               <p className="py-12 text-center text-sm text-neutral-500">該当する行がありません。</p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full min-w-[880px] text-left text-xs leading-snug sm:text-sm">
+                <table className="w-full min-w-[960px] text-left text-xs leading-snug sm:text-sm">
                   <thead className="sticky top-0 z-10 bg-neutral-50 text-neutral-700 shadow-[0_1px_0_0_rgb(229_229_229)]">
                     <tr>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">No</th>
@@ -385,6 +416,7 @@ export function ClosureListClient({
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">出勤時間</th>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">退勤時間</th>
                       <th className="whitespace-nowrap px-2 py-1.5 text-center font-medium sm:px-3">残業時間</th>
+                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">ステータス</th>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">承認者</th>
                     </tr>
                   </thead>
@@ -408,8 +440,10 @@ export function ClosureListClient({
                         </td>
                         <td className="px-2 py-1 text-center sm:px-3">
                           <span className="inline-flex items-center justify-center gap-1 tabular-nums">
-                            {detailModalOvertimeText(r.approvedOvertimeHours)}
-                            {r.approvedOvertimeHours != null && !Number.isNaN(r.approvedOvertimeHours) ? (
+                            {detailModalOvertimeHm(r.overtimeRequestedTotalMinutes)}
+                            {(r.overtimeRequestedTotalMinutes ?? 0) > 0 ||
+                            (r.overtimeReason?.trim() ?? '') !== '' ||
+                            (r.supervisorComment?.trim() ?? '') !== '' ? (
                               <button
                                 type="button"
                                 className="inline-flex shrink-0 rounded p-0.5 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -428,6 +462,7 @@ export function ClosureListClient({
                             ) : null}
                           </span>
                         </td>
+                        <td className="px-2 py-1 sm:px-3">{detailModalStatusDisplay(r.overtimeApplicationStatus)}</td>
                         <td className="px-2 py-1 sm:px-3">{detailModalBlankDash(r.approverName)}</td>
                       </tr>
                     ))}

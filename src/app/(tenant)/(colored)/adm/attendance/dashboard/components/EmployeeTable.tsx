@@ -21,6 +21,12 @@ function formatMinutesJp(m: number): string {
   return `${h}:${String(mm).padStart(2, '0')}`
 }
 
+/** 0:00 は一覧ではブランク表示 */
+function formatMinutesJpOrBlank(m: number): string {
+  if (m === 0) return ''
+  return formatMinutesJp(m)
+}
+
 const TIER_CLASS: Record<AttendanceStatusTier, string> = {
   normal: 'bg-green-50 text-green-700',
   caution: 'bg-yellow-50 text-yellow-700',
@@ -209,29 +215,35 @@ export function EmployeeTable({
         <table className="min-w-[720px] w-full text-sm leading-snug">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-600">
-              <th className="py-2 px-2.5">
-                <button type="button" className="hover:text-primary" onClick={() => toggleSort('name')}>
-                  従業員名 {sortIndicator('name')}
-                </button>
-              </th>
+              <th className="w-12 py-2 px-2.5 text-center tabular-nums">No</th>
               <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('division')}>
                   部署 {sortIndicator('division')}
                 </button>
               </th>
               <th className="py-2 px-2.5">
+                <button type="button" className="hover:text-primary" onClick={() => toggleSort('employee_no')}>
+                  従業員番号 {sortIndicator('employee_no')}
+                </button>
+              </th>
+              <th className="py-2 px-2.5">
+                <button type="button" className="hover:text-primary" onClick={() => toggleSort('name')}>
+                  従業員名 {sortIndicator('name')}
+                </button>
+              </th>
+              <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('total_minutes')}>
-                  総労働(h:mm) {sortIndicator('total_minutes')}
+                  残業（承認） {sortIndicator('total_minutes')}
                 </button>
               </th>
               <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('overtime_minutes')}>
-                  残業(h:mm) {sortIndicator('overtime_minutes')}
+                  残業（却下） {sortIndicator('overtime_minutes')}
                 </button>
               </th>
               <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('holiday_minutes')}>
-                  休出(h:mm) {sortIndicator('holiday_minutes')}
+                  残業（申請中） {sortIndicator('holiday_minutes')}
                 </button>
               </th>
               <th className="py-2 px-2.5" title="選択月に発生したアラート件数">
@@ -248,14 +260,20 @@ export function EmployeeTable({
             </tr>
           </thead>
           <tbody>
-            {result.rows.map((row) => {
+            {result.rows.map((row, index) => {
               return (
                 <tr key={row.employeeId} className="border-b border-slate-100 hover:bg-slate-50/80">
-                  <td className="py-1.5 px-2.5 font-medium text-slate-900">{row.name}</td>
+                  <td className="py-1.5 px-2.5 text-center tabular-nums text-slate-600">
+                    {page * PAGE_SIZE + index + 1}
+                  </td>
                   <td className="py-1.5 px-2.5 text-slate-600">{row.divisionName}</td>
-                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.totalMinutes)}</td>
-                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.overtimeMinutes)}</td>
-                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJp(row.holidayMinutes)}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-xs text-slate-600">
+                    {row.employeeNo?.trim() ? row.employeeNo.trim() : '—'}
+                  </td>
+                  <td className="py-1.5 px-2.5 font-medium text-slate-900">{row.name}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otApprovedMinutes)}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otRejectedMinutes)}</td>
+                  <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otPendingMinutes)}</td>
                   <td className="py-1.5 px-2.5 text-center">{row.alertCountInMonth}</td>
                   <td className="py-1.5 px-2.5">
                     <span
@@ -280,7 +298,7 @@ export function EmployeeTable({
             })}
             {result.rows.length === 0 && !isPending ? (
               <tr>
-                <td colSpan={8} className="p-6 text-center text-slate-500">
+                <td colSpan={10} className="p-6 text-center text-slate-500">
                   該当する従業員がありません
                 </td>
               </tr>

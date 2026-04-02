@@ -62,12 +62,33 @@ export default async function OvertimeApplicationPage({ params, searchParams }: 
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">残業申請</h1>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            月次の出退勤・残業申請状況を確認できます。
-            {monthClosureBlocksApplications
-              ? ' この対象月は月次締め処理が完了しているため、新規の残業申請はできません。'
-              : ' 行の「申請」から残業を申請してください（残業時間はモーダル内で入力します）。'}
-          </p>
+          <div className="mt-2 max-w-3xl space-y-2 text-sm leading-relaxed text-slate-600">
+            {monthClosureBlocksApplications ? (
+              <>
+                <p>
+                  この対象月は月次締め処理が完了しています。一覧は閲覧のみで、新規の残業申請や申請内容の変更はできません。
+                </p>
+                <p className="text-xs text-slate-500">
+                  承認済みの残業や勤怠の詳細は、必要に応じて管理者・上長へお問い合わせください。
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  月次の出退勤・残業申請の状況を、日付ごとに一覧できます。表示月は上部の「前月」「翌月」で切り替え、各行で出勤・退勤・残業の内容と承認状況を確認できます。
+                </p>
+                <p>
+                  残業の新規申請や変更が必要な日は、行末の「申請」を押してモーダルを開き、残業の開始・終了時刻と理由を入力してください。残業時間はモーダル内の入力から算出されます。
+                </p>
+                <p>
+                  残業理由が表では省略される場合は、同じ行の情報アイコンから全文の理由と承認者コメントを表示できます。
+                </p>
+                <p className="text-xs text-slate-500">
+                  土日や休暇に該当する行の色分けなど、表の見方の詳細は一覧の直下の説明を参照してください。
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

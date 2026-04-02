@@ -10,7 +10,10 @@ export type ClosureMonthDetailRow = {
   employeeName: string
   clockIn: string | null
   clockOut: string | null
-  approvedOvertimeHours: number | null
+  /** requested_hours 合計（全ステータス）を分に換算 — 表示は h:mm */
+  overtimeRequestedTotalMinutes: number | null
+  /** 同一日・同一社員の残業申請の status（複数は「・」区切り） */
+  overtimeApplicationStatus: string | null
   approverName: string | null
   /** 残業申請の理由（同一日複数申請時は改行で連結） */
   overtimeReason: string | null
@@ -18,8 +21,23 @@ export type ClosureMonthDetailRow = {
   supervisorComment: string | null
 }
 
+/** 一覧表示用: 複数ステータスの並び */
+const OA_STATUS_ORDER = ['申請中', '修正依頼', '承認済', '却下'] as const
+
+function formatOvertimeStatuses(statuses: Set<string>): string {
+  const arr = [...statuses].sort((a, b) => {
+    const ia = OA_STATUS_ORDER.indexOf(a as (typeof OA_STATUS_ORDER)[number])
+    const ib = OA_STATUS_ORDER.indexOf(b as (typeof OA_STATUS_ORDER)[number])
+    if (ia !== -1 || ib !== -1) {
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib)
+    }
+    return a.localeCompare(b, 'ja')
+  })
+  return arr.join('・')
+}
+
 /**
- * GET: 対象月の打刻・承認済み残業を一覧（月次締め一覧の詳細モーダル用）
+ * GET: 対象月の打刻・残業申請を一覧（月次締め一覧の詳細モーダル用）
  */
 export async function GET(request: Request) {
   const ctx = await requireClosureHrContext()
@@ -63,6 +81,7 @@ export async function GET(request: Request) {
         id,
         work_date,
         requested_hours,
+        status,
         employee_id,
         reason,
         supervisor_comment,
@@ -71,7 +90,6 @@ export async function GET(request: Request) {
       `,
       )
       .eq('tenant_id', tenantId)
-      .eq('status', '承認済')
       .gte('work_date', ymd)
       .lte('work_date', monthEnd),
   ])
@@ -98,6 +116,7 @@ export async function GET(request: Request) {
   type OaRow = {
     work_date: string
     requested_hours: number
+    status: string
     employee_id: string
     reason: string | null
     supervisor_comment: string | null
@@ -106,10 +125,12 @@ export async function GET(request: Request) {
   }
 
   type OtAgg = {
-    hours: number
+    /** 同一キーに紐づく全申請の requested_hours 合計（時間） */
+    totalRequestedHours: number
     approverName: string | null
     reasons: string[]
     comments: string[]
+    statuses: Set<string>
   }
 
   const wtrRows = (wtrResult.data ?? []) as WtrRow[]
@@ -119,24 +140,30 @@ export async function GET(request: Request) {
   for (const oa of oaRows) {
     const wd = String(oa.work_date).slice(0, 10)
     const key = `${oa.employee_id}|${wd}`
-    const sup = oa.supervisor?.name ?? null
-    const r = oa.reason?.trim() || null
-    const c = oa.supervisor_comment?.trim() || null
+    const reqH = Number(oa.requested_hours ?? 0)
+    const isApproved = oa.status === '承認済'
+    const sup = isApproved ? (oa.supervisor?.name ?? null) : null
+    const r = isApproved && oa.reason?.trim() ? oa.reason.trim() : null
+    const c = isApproved && oa.supervisor_comment?.trim() ? oa.supervisor_comment.trim() : null
     const prev = otMap.get(key)
-    const hrs = Number(oa.requested_hours)
+    const st = new Set(prev?.statuses ?? [])
+    st.add(oa.status)
+    const totalReq = (prev?.totalRequestedHours ?? 0) + reqH
     if (prev) {
       otMap.set(key, {
-        hours: prev.hours + hrs,
+        totalRequestedHours: totalReq,
         approverName: prev.approverName ?? sup,
         reasons: r ? [...prev.reasons, r] : prev.reasons,
         comments: c ? [...prev.comments, c] : prev.comments,
+        statuses: st,
       })
     } else {
       otMap.set(key, {
-        hours: hrs,
+        totalRequestedHours: reqH,
         approverName: sup,
         reasons: r ? [r] : [],
         comments: c ? [c] : [],
+        statuses: st,
       })
     }
   }
@@ -177,7 +204,9 @@ export async function GET(request: Request) {
       employeeName: emp.name,
       clockIn: w.start_time ? formatTimeInJSTFromIso(w.start_time) : null,
       clockOut: w.end_time ? formatTimeInJSTFromIso(w.end_time) : null,
-      approvedOvertimeHours: ot != null ? ot.hours : null,
+      overtimeRequestedTotalMinutes:
+        ot != null ? Math.round(ot.totalRequestedHours * 60) : null,
+      overtimeApplicationStatus: ot ? formatOvertimeStatuses(ot.statuses) : null,
       approverName: ot?.approverName ?? null,
       overtimeReason: texts.reason,
       supervisorComment: texts.comment,
@@ -201,7 +230,8 @@ export async function GET(request: Request) {
       employeeName: emp?.name ?? '—',
       clockIn: null,
       clockOut: null,
-      approvedOvertimeHours: agg.hours,
+      overtimeRequestedTotalMinutes: Math.round(agg.totalRequestedHours * 60),
+      overtimeApplicationStatus: formatOvertimeStatuses(agg.statuses),
       approverName: agg.approverName,
       overtimeReason: tx.reason,
       supervisorComment: tx.comment,

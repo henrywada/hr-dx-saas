@@ -157,3 +157,53 @@ export async function getOvertimeApplicationMonthRows(
     }
   })
 }
+
+/**
+ * 承認対象者モーダル用の同一部署従業員一覧を取得する
+ * カラム順・ソート順は「社員番号、氏名」の順。重複は名前ベースで排除（社員番号あり優先）
+ */
+export async function getOvertimeApprovalTargetPeers(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  divisionId: string,
+) {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name, employee_no')
+    .eq('tenant_id', tenantId)
+    .eq('division_id', divisionId)
+    .order('employee_no', { ascending: true, nullsFirst: false }) // 社員番号順（NULLは後ろ）
+    .order('name', { ascending: true })
+
+  if (error) throw error
+  if (!data) return []
+
+  // 重複排除（名前ベース。社員番号がある方を優先して保持）
+  const uniqueMap = new Map<string, { id: string; name: string; employee_no: string | null }>()
+  for (const row of data) {
+    const name = row.name ?? ''
+    const existing = uniqueMap.get(name)
+    if (!existing || (!existing.employee_no && row.employee_no)) {
+      uniqueMap.set(name, {
+        id: row.id,
+        name,
+        employee_no: row.employee_no ?? null,
+      })
+    }
+  }
+
+  // ソート順を維持（Mapは挿入順を保持するが、再挿入（replace）すると順序が壊れる可能性があるため、最後に社員番号+氏名で再度ソートする）
+  return Array.from(uniqueMap.values()).sort((a, b) => {
+    // 社員番号：NULLは後ろ
+    if (a.employee_no && !b.employee_no) return -1
+    if (!a.employee_no && b.employee_no) return 1
+    if (a.employee_no && b.employee_no) {
+      if (a.employee_no < b.employee_no) return -1
+      if (a.employee_no > b.employee_no) return 1
+    }
+    // 氏名
+    if (a.name < b.name) return -1
+    if (a.name > b.name) return 1
+    return 0
+  })
+}

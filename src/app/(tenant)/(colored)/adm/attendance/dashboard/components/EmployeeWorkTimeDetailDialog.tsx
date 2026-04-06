@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { format, parseISO, endOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
@@ -27,7 +27,7 @@ const DETAIL_LIMIT = 2000
 /** ステータス列の並び（月次詳細と同様） */
 const OA_STATUS_ORDER = ['申請中', '修正依頼', '承認済', '却下'] as const
 
-function formatOvertimeStatuses(statuses: Set<string>): string {
+function renderOvertimeStatuses(statuses: Set<string>): ReactNode {
   const arr = [...statuses].sort((a, b) => {
     const ia = OA_STATUS_ORDER.indexOf(a as (typeof OA_STATUS_ORDER)[number])
     const ib = OA_STATUS_ORDER.indexOf(b as (typeof OA_STATUS_ORDER)[number])
@@ -36,7 +36,31 @@ function formatOvertimeStatuses(statuses: Set<string>): string {
     }
     return a.localeCompare(b, 'ja')
   })
-  return arr.join('・')
+  if (arr.length === 0) return null
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+      {arr.map((part, i) => (
+        <span key={`${i}-${part}`} className="inline-flex items-center">
+          {i > 0 ? (
+            <span className="mx-0.5 text-neutral-300" aria-hidden>
+              ・
+            </span>
+          ) : null}
+          {part === '申請中' ? (
+            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-amber-950 ring-1 ring-amber-300/90 shadow-sm">
+              申請中
+            </span>
+          ) : part === '却下' ? (
+            <span className="inline-flex items-center rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-pink-900 ring-1 ring-pink-300/90 shadow-sm">
+              却下
+            </span>
+          ) : (
+            <span className="text-neutral-800">{part}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  )
 }
 
 /** 0:00 はブランク */
@@ -55,7 +79,7 @@ type DetailRow = {
   otApprovedMinutes: number
   otRejectedMinutes: number
   otPendingMinutes: number
-  otStatusLine: string
+  otStatusLine: ReactNode
   otApproverLine: string
 }
 
@@ -216,7 +240,7 @@ export function EmployeeWorkTimeDetailDialog({
           otApprovedMinutes: o?.approved ?? 0,
           otRejectedMinutes: o?.rejected ?? 0,
           otPendingMinutes: o?.pending ?? 0,
-          otStatusLine: o && o.statuses.size > 0 ? formatOvertimeStatuses(o.statuses) : '',
+          otStatusLine: o && o.statuses.size > 0 ? renderOvertimeStatuses(o.statuses) : null,
           otApproverLine: o && o.approvers.size > 0 ? [...o.approvers].join('・') : '',
         }
       })

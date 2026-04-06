@@ -62,17 +62,17 @@ export function ApprovalTargetsModal({ open, onClose, peers, divisionLabel }: Pr
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-slate-50 text-xs text-slate-600">
                 <tr>
-                  <th className="px-3 py-2 font-medium">氏名</th>
                   <th className="px-3 py-2 font-medium">社員番号</th>
+                  <th className="px-3 py-2 font-medium">氏名</th>
                 </tr>
               </thead>
               <tbody>
                 {peers.map((p) => (
                   <tr key={p.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-3 py-2 text-slate-900">{p.name || '（未設定）'}</td>
                     <td className="px-3 py-2 tabular-nums text-slate-700">
                       {p.employee_no?.trim() ? p.employee_no : '—'}
                     </td>
+                    <td className="px-3 py-2 text-slate-900">{p.name || '（未設定）'}</td>
                   </tr>
                 ))}
               </tbody>

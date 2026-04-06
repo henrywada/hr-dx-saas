@@ -34,12 +34,6 @@ export function OverviewStats({ stats, activeFilter, onFilterChange }: OverviewS
       sub: '平均を上回る従業員で絞り込み',
     },
     {
-      key: 'unresolved_alerts',
-      label: 'アラート件数（未解決）',
-      value: `${stats.unresolvedAlertCount}件`,
-      sub: '未解決アラートのある従業員',
-    },
-    {
       key: 'legal_risk',
       label: '法令違反リスク',
       value: `${stats.legalRiskEmployeeCount}名`,
@@ -48,7 +42,7 @@ export function OverviewStats({ stats, activeFilter, onFilterChange }: OverviewS
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {cards.map((c) => {
         const selected = activeFilter === c.key
         const ring = selected ? 'ring-2 ring-primary ring-offset-2' : ''

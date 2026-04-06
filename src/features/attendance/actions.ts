@@ -555,13 +555,16 @@ async function buildEmployeeAttendanceRows(
 
     for (const emp of employees) {
       const st = statByEmp.get(emp.id)
-      /** ステータス tier・法令リスク用（overtime_monthly_stats の当月残業分） */
-      let tierOvertimeMinutes: number
-      if (st) {
-        tierOvertimeMinutes = Number(st.overtime_minutes ?? 0)
-      } else {
-        tierOvertimeMinutes = 0
-      }
+      const otH = otHoursByEmp.get(emp.id)
+      const otApprovedMinutes = Math.round((otH?.approved ?? 0) * 60)
+      const otRejectedMinutes = Math.round((otH?.rejected ?? 0) * 60)
+      const otPendingMinutes = Math.round((otH?.pending ?? 0) * 60)
+
+      /** ステータス tier・法令リスク用（月次集計、または承認済申請の大きい方を採用） */
+      const currentOtMinutes = Math.max(
+        st ? Number(st.overtime_minutes ?? 0) : 0,
+        otApprovedMinutes
+      )
 
       const inner = otByEmpPeriod.get(emp.id)
       let sum6 = 0
@@ -576,14 +579,9 @@ async function buildEmployeeAttendanceRows(
       }
 
       const legalRisk =
-        tierOvertimeMinutes > M45 || sixMonthAvg > M80 || sumYear > M360Y
+        currentOtMinutes > M45 || sixMonthAvg > M80 || sumYear > M360Y
 
-      const statusTier = getAttendanceStatusTier(tierOvertimeMinutes, legalRisk)
-
-      const otH = otHoursByEmp.get(emp.id)
-      const otApprovedMinutes = Math.round((otH?.approved ?? 0) * 60)
-      const otRejectedMinutes = Math.round((otH?.rejected ?? 0) * 60)
-      const otPendingMinutes = Math.round((otH?.pending ?? 0) * 60)
+      const statusTier = getAttendanceStatusTier(currentOtMinutes, legalRisk)
 
       rows.push({
         employeeId: emp.id,

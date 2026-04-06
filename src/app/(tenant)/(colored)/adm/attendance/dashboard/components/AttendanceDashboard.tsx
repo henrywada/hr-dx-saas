@@ -10,7 +10,6 @@ import type {
   OverviewStats as OverviewStatsData,
 } from '@/features/attendance/types'
 import { Button } from '@/components/ui/Button'
-import { AlertList } from './AlertList'
 import { CardExplanationModal } from './CardExplanationModal'
 import { EmployeeTable } from './EmployeeTable'
 import { ExportButton } from './ExportButton'
@@ -21,7 +20,6 @@ type AttendanceDashboardProps = {
   year: number
   month: number
   overview: OverviewStatsData
-  alertsPreview: HrOvertimeAlertView[]
   initialList: EmployeeAttendancePageResult
   divisions: { id: string; name: string }[]
   initialDetailEmployee?: { id: string; name: string } | null
@@ -31,7 +29,6 @@ export default function AttendanceDashboard({
   year,
   month,
   overview,
-  alertsPreview,
   initialList,
   divisions,
   initialDetailEmployee = null,
@@ -49,7 +46,7 @@ export default function AttendanceDashboard({
               出勤・退勤データの明細一覧
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              テナント内の勤怠・残業・アラートを一覧します（人事専用）。
+              テナント内の勤怠・残業状況を一覧します（人事専用）。
             </p>
           </div>
           <CardExplanationModal>
@@ -81,8 +78,6 @@ export default function AttendanceDashboard({
         activeFilter={overviewFilter}
         onFilterChange={setOverviewFilter}
       />
-
-      <AlertList initialAlerts={alertsPreview} />
 
       <EmployeeTable
         key={`${year}-${month}-${overview.unresolvedAlertCount}-${overviewFilter}`}

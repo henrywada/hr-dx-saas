@@ -217,6 +217,10 @@ export function ClosureListClient({
               <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold leading-tight text-amber-950 ring-1 ring-amber-300/90 shadow-sm">
                 申請中
               </span>
+            ) : part === '却下' ? (
+              <span className="inline-flex items-center rounded-full bg-pink-100 px-2 py-0.5 text-[11px] font-semibold leading-tight text-pink-900 ring-1 ring-pink-300/90 shadow-sm">
+                却下
+              </span>
             ) : (
               <span className="text-neutral-800">{part}</span>
             )}
@@ -396,7 +400,7 @@ export function ClosureListClient({
           <DialogHeader className="shrink-0 border-b border-neutral-200 px-6 py-4">
             <DialogTitle>月次詳細（{detailYm}）</DialogTitle>
             <p className="text-sm text-neutral-500">
-              打刻と残業申請を日付・社員単位で表示します。残業時間は申請の requested_hours を合計し h:mm で表示します。残業理由は reason、承認者コメントは supervisor_comment を表示します。
+              日別の打刻記録と残業申請内容を、従業員ごとに一覧で表示します。残業時間は、申請された時間の合計を「時間:分」の形式で表示します。また、残業の理由や承認時に入力されたコメントもあわせて確認できます。
             </p>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-2 sm:px-6">

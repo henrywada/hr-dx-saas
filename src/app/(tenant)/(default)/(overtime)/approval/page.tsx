@@ -11,6 +11,7 @@ import {
   canApproveOvertimeInDivision,
   type OvertimeApprovalTargetPeer,
 } from './types'
+import { getOvertimeApprovalTargetPeers } from '@/features/overtime/queries'
 
 export const metadata = {
   title: '残業申請の承認',
@@ -27,23 +28,12 @@ export default async function OvertimeApprovalPage() {
 
   if (user.is_manager === true && user.division_id) {
     const supabase = await createClient()
-    const [empsRes, divRes] = await Promise.all([
-      supabase
-        .from('employees')
-        .select('id, name, employee_no')
-        .eq('tenant_id', user.tenant_id)
-        .eq('division_id', user.division_id)
-        .order('name', { ascending: true }),
+    const [peers, divRes] = await Promise.all([
+      getOvertimeApprovalTargetPeers(supabase, user.tenant_id, user.division_id),
       supabase.from('divisions').select('name').eq('id', user.division_id).maybeSingle(),
     ])
 
-    if (empsRes.data) {
-      approvalTargetPeers = empsRes.data.map((r) => ({
-        id: r.id,
-        name: r.name ?? '',
-        employee_no: r.employee_no ?? null,
-      }))
-    }
+    approvalTargetPeers = peers
     if (divRes.data?.name) {
       divisionLabel = divRes.data.name
     }

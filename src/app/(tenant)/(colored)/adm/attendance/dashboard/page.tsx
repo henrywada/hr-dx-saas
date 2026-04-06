@@ -5,7 +5,6 @@ import { getJSTYearMonth } from '@/lib/datetime'
 import { APP_ROUTES } from '@/config/routes'
 import {
   getAttendanceDashboardBundle,
-  getUnresolvedAlertsList,
 } from '@/features/attendance/actions'
 import { canAccessHrAttendanceDashboard } from '@/features/attendance/hr-dashboard-access'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -54,7 +53,6 @@ export default async function AttendanceDashboardPage({
   const { year, month } = parseYearMonth(sp)
 
   const bundle = await getAttendanceDashboardBundle(year, month)
-  const alerts = await getUnresolvedAlertsList(10)
 
   if (bundle.ok === false) {
     return (
@@ -71,16 +69,6 @@ export default async function AttendanceDashboardPage({
     )
   }
 
-  if (alerts.ok === false) {
-    return (
-      <div className="max-w-3xl mx-auto py-10 px-4">
-        <Alert variant="destructive">
-          <AlertTitle>アラートを読み込めませんでした</AlertTitle>
-          <AlertDescription>{alerts.error}</AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
 
   const supabase = await createClient()
   const { data: divs, error: divErr } = await supabase
@@ -137,7 +125,6 @@ export default async function AttendanceDashboardPage({
       year={year}
       month={month}
       overview={bundle.data.overview}
-      alertsPreview={alerts.data}
       initialList={bundle.data.initialList}
       divisions={divisions}
       initialDetailEmployee={initialDetailEmployee}

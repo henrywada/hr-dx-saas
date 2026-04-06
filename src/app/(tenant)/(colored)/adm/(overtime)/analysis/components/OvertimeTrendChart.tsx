@@ -23,19 +23,31 @@ type TrendResponse = { trend: TrendItem[] }
 
 type OvertimeTrendChartProps = {
   yearMonth: string
+  startYm?: string
+  endYm?: string
 }
 
-export function OvertimeTrendChart({ yearMonth }: OvertimeTrendChartProps) {
-  const swrKey = ['analysis-trend', yearMonth] as const
-  const { data, error, isLoading } = useSWR<TrendResponse>(swrKey, () =>
-    analysisJsonFetcher<TrendResponse>('/api/analysis/trend'),
-  )
+export function OvertimeTrendChart({ yearMonth, startYm, endYm }: OvertimeTrendChartProps) {
+  const swrKey = ['analysis-trend', startYm ?? 'none', endYm ?? 'none'] as const
+  const { data, error, isLoading } = useSWR<TrendResponse>(swrKey, () => {
+    let url = '/api/analysis/trend'
+    const query = new URLSearchParams()
+    if (startYm) query.set('start_date', `${startYm}-01`)
+    if (endYm) query.set('end_date', `${endYm}-01`)
+    const queryString = query.toString()
+    if (queryString) url += `?${queryString}`
+    return analysisJsonFetcher<TrendResponse>(url)
+  })
+
+  const title = startYm && endYm 
+    ? `月次トレンド（${startYm.replace('-', '/')} 〜 ${endYm.replace('-', '/')}）`
+    : '月次トレンド（過去12ヶ月）'
 
   if (isLoading) {
     return (
       <Card className="!p-4">
         <AnalysisCardHeaderRow
-          title="月次トレンド（過去12ヶ月）"
+          title={title}
           yearMonth={yearMonth}
           showYearMonth={false}
         />
@@ -48,7 +60,7 @@ export function OvertimeTrendChart({ yearMonth }: OvertimeTrendChartProps) {
     return (
       <Card className="!p-4">
         <AnalysisCardHeaderRow
-          title="月次トレンド（過去12ヶ月）"
+          title={title}
           yearMonth={yearMonth}
           showYearMonth={false}
         />
@@ -68,7 +80,7 @@ export function OvertimeTrendChart({ yearMonth }: OvertimeTrendChartProps) {
   return (
     <Card className="!p-4">
       <AnalysisCardHeaderRow
-        title="月次トレンド（過去12ヶ月）"
+        title={title}
         yearMonth={yearMonth}
         showYearMonth={false}
       />

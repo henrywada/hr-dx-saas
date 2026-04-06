@@ -205,9 +205,6 @@ export function EmployeeTable({
         </div>
       </div>
 
-      <p className="text-xs text-slate-500">
-        アラート件数は<strong>選択月の発生件数</strong>（解決済み含む）です。
-      </p>
 
       <div
         className={`overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm ${isPending ? 'opacity-70' : ''} transition-opacity`}
@@ -246,11 +243,6 @@ export function EmployeeTable({
                   残業（申請中） {sortIndicator('holiday_minutes')}
                 </button>
               </th>
-              <th className="py-2 px-2.5" title="選択月に発生したアラート件数">
-                <button type="button" className="hover:text-primary" onClick={() => toggleSort('alert_count')}>
-                  アラート {sortIndicator('alert_count')}
-                </button>
-              </th>
               <th className="py-2 px-2.5">
                 <button type="button" className="hover:text-primary" onClick={() => toggleSort('status')}>
                   ステータス {sortIndicator('status')}
@@ -274,7 +266,6 @@ export function EmployeeTable({
                   <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otApprovedMinutes)}</td>
                   <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otRejectedMinutes)}</td>
                   <td className="py-1.5 px-2.5 font-mono text-slate-700">{formatMinutesJpOrBlank(row.otPendingMinutes)}</td>
-                  <td className="py-1.5 px-2.5 text-center">{row.alertCountInMonth}</td>
                   <td className="py-1.5 px-2.5">
                     <span
                       className={`inline-flex rounded-full px-2 py-px text-[11px] font-semibold leading-tight ${TIER_CLASS[row.statusTier]}`}

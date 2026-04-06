@@ -352,6 +352,50 @@ export function EmployeeMonthlyTable({
                 </React.Fragment>
               )
             })}
+
+            {/* ─── 月別合計 行 ─── */}
+            {employees.length > 0 && (
+              <tr className="bg-slate-100/80 font-bold border-t-[3px] border-slate-300">
+                <td
+                  className="sticky left-0 z-10 px-4 py-3 text-slate-800 whitespace-nowrap border-r border-slate-300"
+                  style={{ background: 'rgb(241 245 249 / 0.8)' }}
+                >
+                  月別合計
+                </td>
+                <td className="border-r border-slate-200" />
+                {months.map((ym) => {
+                  let monthlySum = 0
+                  let hasData = false
+                  for (const emp of employees) {
+                    const h = hoursMap.get(emp.employeeId)?.get(ym)
+                    if (h != null) {
+                      monthlySum += h
+                      hasData = true
+                    }
+                  }
+                  return (
+                    <td
+                      key={ym}
+                      className="px-1 py-3 text-center tabular-nums text-slate-800 border-r border-slate-200"
+                    >
+                      {hasData ? Math.round(monthlySum) : <span className="text-slate-400">–</span>}
+                    </td>
+                  )
+                })}
+                <td className="px-3 py-3 text-center tabular-nums text-slate-800">
+                  {Math.round(
+                    months.reduce((acc, ym) => {
+                      let s = 0
+                      for (const emp of employees) {
+                        const h = hoursMap.get(emp.employeeId)?.get(ym)
+                        if (h != null) s += h
+                      }
+                      return acc + s
+                    }, 0)
+                  )}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

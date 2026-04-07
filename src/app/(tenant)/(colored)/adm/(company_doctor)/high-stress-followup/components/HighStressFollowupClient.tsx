@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Calendar, History, Bell, FileDown } from 'lucide-react';
+import { FileText, Calendar, History, Bell, FileDown, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { HighStressListItem } from '@/features/adm/high-stress-followup/types';
@@ -11,8 +11,9 @@ import { DetailPane } from './DetailPane';
 import { InterviewCalendar } from './InterviewCalendar';
 import { MeasureHistoryTable } from './MeasureHistoryTable';
 import { ReminderSettings } from './ReminderSettings';
+import { AvailabilitySettings } from './AvailabilitySettings';
 
-type TabId = 'list' | 'calendar' | 'history' | 'reminder';
+type TabId = 'list' | 'calendar' | 'history' | 'availability' | 'reminder';
 
 interface Props {
   periodId: string;
@@ -24,6 +25,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'list', label: '高ストレス者リスト', icon: FileText },
   { id: 'calendar', label: '面接予約カレンダー', icon: Calendar },
   { id: 'history', label: '実施・措置履歴', icon: History },
+  { id: 'availability', label: '稼働日時設定', icon: Clock },
   { id: 'reminder', label: 'リマインダー設定', icon: Bell },
 ];
 
@@ -123,6 +125,7 @@ export function HighStressFollowupClient({ periodId, periodTitle, initialList }:
           {activeTab === 'history' && (
             <MeasureHistoryTable periodId={periodId} onSaved={handleRecordSaved} />
           )}
+          {activeTab === 'availability' && <AvailabilitySettings />}
           {activeTab === 'reminder' && <ReminderSettings />}
         </div>
       )}

@@ -14,20 +14,33 @@ import {
 } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { HighStressListItem } from '@/features/adm/high-stress-followup/types';
-import type { ScheduledInterviewItem } from '@/features/adm/high-stress-followup/types';
-import { fetchScheduledInterviews } from '@/features/adm/high-stress-followup/actions';
+import { fetchScheduledInterviews, fetchDoctorAvailabilitySlots } from '@/features/adm/high-stress-followup/actions';
 import { AppointmentModal } from './AppointmentModal';
+import type { DoctorAvailabilitySlot, HighStressListItem, ScheduledInterviewItem } from '@/features/adm/high-stress-followup/types';
 
 interface Props {
   periodId: string;
   highStressList: HighStressListItem[];
   onSaved?: () => void;
+  // 追加属性
+  mode?: 'admin' | 'employee';
+  doctorId?: string;
+  employeeId?: string;
+  stressResultId?: string;
 }
 
-export function InterviewCalendar({ periodId, highStressList, onSaved }: Props) {
+export function InterviewCalendar({
+  periodId,
+  highStressList,
+  onSaved,
+  mode = 'admin',
+  doctorId,
+  employeeId,
+  stressResultId,
+}: Props) {
   const [viewDate, setViewDate] = useState(() => new Date());
   const [interviews, setInterviews] = useState<ScheduledInterviewItem[]>([]);
+  const [availability, setAvailability] = useState<DoctorAvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -36,10 +49,16 @@ export function InterviewCalendar({ periodId, highStressList, onSaved }: Props) 
 
   useEffect(() => {
     setLoading(true);
-    fetchScheduledInterviews(periodId, yearMonth)
-      .then(setInterviews)
+    Promise.all([
+      fetchScheduledInterviews(periodId, yearMonth),
+      fetchDoctorAvailabilitySlots(doctorId),
+    ])
+      .then(([ints, slots]) => {
+        setInterviews(ints);
+        setAvailability(slots);
+      })
       .finally(() => setLoading(false));
-  }, [periodId, yearMonth]);
+  }, [periodId, yearMonth, doctorId]);
 
   const interviewsByDate = useMemo(() => {
     const map = new Map<string, ScheduledInterviewItem[]>();
@@ -126,37 +145,76 @@ export function InterviewCalendar({ periodId, highStressList, onSaved }: Props) 
               const dayInterviews = interviewsByDate.get(key) ?? [];
               const isCurrentMonth = isSameMonth(day, viewDate);
 
+              // 稼働枠があるかチェック
+              const dayOfWeek = day.getDay();
+              const hasAvailability = availability.some(s => 
+                s.isActive && (
+                  (s.specificDate === key) || 
+                  (s.dayOfWeek === dayOfWeek && s.specificDate === null)
+                )
+              );
+
               return (
                 <div
                   key={key}
                   onClick={() => handleDayClick(day)}
-                  className={`min-h-[80px] bg-white p-2 cursor-pointer hover:bg-blue-50/50 transition-colors ${
-                    !isCurrentMonth ? 'opacity-40' : ''
-                  }`}
+                  className={`min-h-[110px] bg-white p-2 cursor-pointer transition-all border-b border-r border-slate-100 relative group ${
+                    !isCurrentMonth ? 'bg-slate-50 opacity-40' : 'hover:bg-blue-50/80 hover:shadow-inner'
+                  } ${hasAvailability && isCurrentMonth ? 'bg-blue-50/40' : ''}`}
                 >
-                  <div className="text-sm font-semibold text-slate-700 mb-1">
-                    {format(day, 'd')}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-[13px] font-black ${
+                      isSameMonth(day, new Date()) && format(day, 'd') === format(new Date(), 'd')
+                        ? 'w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-sm'
+                        : 'text-slate-700'
+                    }`}>
+                      {format(day, 'd')}
+                    </span>
+                    {hasAvailability && isCurrentMonth && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-blue-500 bg-blue-100/50 px-1.5 py-0.5 rounded leading-none">
+                          稼働
+                        </span>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    {dayInterviews.slice(0, 3).map((i) => (
-                      <div
-                        key={i.id}
-                        className={`text-[10px] px-1.5 py-0.5 rounded truncate ${
-                          i.status === 'scheduled'
-                            ? 'bg-blue-100 text-blue-700'
-                            : i.status === 'completed'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 text-slate-600'
-                        }`}
-                        title={`${i.anonymousId} ${i.doctorName}`}
-                      >
-                        {i.anonymousId}
-                      </div>
-                    ))}
-                    {dayInterviews.length > 3 && (
-                      <div className="text-[10px] text-slate-500">
-                        +{dayInterviews.length - 3}件
-                      </div>
+                    {mode === 'admin' ? (
+                      <>
+                        {dayInterviews.slice(0, 3).map((i) => (
+                          <div
+                            key={i.id}
+                            className={`text-[10px] px-1.5 py-0.5 rounded truncate ${
+                              i.status === 'scheduled'
+                                ? 'bg-blue-100 text-blue-700'
+                                : i.status === 'completed'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-600'
+                            }`}
+                            title={`${i.anonymousId} ${i.doctorName}`}
+                          >
+                            {i.anonymousId}
+                          </div>
+                        ))}
+                        {dayInterviews.length > 3 && (
+                          <div className="text-[10px] text-slate-500">
+                            +{dayInterviews.length - 3}件
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // 従業員モード：自分の予約のみ表示（または単に非表示）
+                      dayInterviews
+                        .filter((i) => i.intervieweeId === employeeId)
+                        .map((i) => (
+                          <div
+                            key={i.id}
+                            className="text-[10px] px-1.5 py-0.5 rounded truncate bg-orange-100 text-orange-700 font-bold"
+                          >
+                            予約中
+                          </div>
+                        ))
                     )}
                   </div>
                 </div>
@@ -176,6 +234,10 @@ export function InterviewCalendar({ periodId, highStressList, onSaved }: Props) 
             setSelectedDate(null);
           }}
           onSaved={handleSaved}
+          mode={mode}
+          doctorId={doctorId}
+          employeeId={employeeId}
+          stressResultId={stressResultId}
         />
       )}
     </div>

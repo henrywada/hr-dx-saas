@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useCallback } from 'react'
 import { Shield, ChevronDown } from 'lucide-react'
 import { KpiCards } from './KpiCards'
 import { DeptGroupedBarChart, type DeptGroupData } from './DeptGroupedBarChart'
-import { OvertimeTrendChart } from '../../analysis/components/OvertimeTrendChart'
+import { OvertimeTrendChart } from './OvertimeTrendChart'
 import {
   EmployeeMonthlyTable,
   type EmpMonthlyRow,
@@ -423,12 +423,12 @@ export function AnalysisDashboard({
 
   return (
 
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto pt-6 pb-12">
       {/* ===== ページヘッダー ===== */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl shadow-sm">
               <Shield className="w-5 h-5" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">

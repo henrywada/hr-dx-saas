@@ -46,3 +46,20 @@ export interface ScheduledInterviewItem {
   doctorName: string;
   status: string;
 }
+
+/** 産業医の予約可能日時スロット */
+export interface DoctorAvailabilitySlot {
+  id: string;
+  tenantId: string;
+  doctorId: string;
+  /** 曜日（0=日, 1=月, ..., 6=土）。繰り返し用 */
+  dayOfWeek: number | null;
+  /** 特定日。日付指定用 */
+  specificDate: string | null;
+  /** 稼働開始・終了時刻（例: '09:00', '18:00'） */
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import type { HighStressListItem, StressInterviewRecord, ScheduledInterviewItem } from './types';
+import { format } from 'date-fns';
+import type { HighStressListItem, StressInterviewRecord, ScheduledInterviewItem, DoctorAvailabilitySlot } from './types';
 import { generateAnonymousId, getAnonymousDivisionLabel } from './utils';
 
 export interface ListFilters {
@@ -291,4 +292,182 @@ export async function getAllInterviewRecords(
       anonymousId: generateAnonymousId(r.stress_result_id, idx),
     };
   });
+}
+
+/**
+ * 指定日の予約済み時間を取得
+ */
+export async function getOccupiedTimesForDoctor(
+  doctorId: string,
+  date: string
+): Promise<string[]> {
+  const supabase = await createClient();
+  const start = `${date}T00:00:00Z`;
+  const end = `${date}T23:59:59Z`;
+
+  const { data, error } = await supabase
+    .from('stress_interview_records')
+    .select('interview_date')
+    .eq('doctor_id', doctorId)
+    .gte('interview_date', start)
+    .lte('interview_date', end)
+    .neq('status', 'cancelled');
+
+  if (error) {
+    console.error('getOccupiedTimesForDoctor error:', error.message);
+    return [];
+  }
+
+  // JSTでの09:00形式の文字列リストを返す
+  return (data ?? []).map((r) => format(new Date(r.interview_date), 'HH:mm'));
+}
+
+/**
+ * 産業医の予約可能日時スロットを全件取得
+ */
+export async function getDoctorAvailabilitySlots(
+  doctorId: string
+): Promise<DoctorAvailabilitySlot[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('doctor_availability_slots')
+    .select('*')
+    .eq('doctor_id', doctorId);
+
+  if (error) {
+    console.error('getDoctorAvailabilitySlots error:', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    tenantId: s.tenant_id,
+    doctorId: s.doctor_id,
+    dayOfWeek: s.day_of_week,
+    specificDate: s.specific_date,
+    startTime: s.start_time,
+    endTime: s.end_time,
+    isActive: s.is_active,
+    createdAt: s.created_at,
+    updatedAt: s.updated_at,
+  }));
+}
+
+/**
+ * 特定の日付において有効な予約可能スロットを取得
+ * (特定日設定がある場合はそれを優先し、なければ曜日設定を返す)
+ */
+export async function getAvailableSlotsForDate(
+  doctorId: string,
+  date: string // 'YYYY-MM-DD'
+): Promise<{ startTime: string; endTime: string; id: string }[]> {
+  const slots = await getDoctorAvailabilitySlots(doctorId);
+  const activeSlots = slots.filter((s) => s.isActive);
+
+  // 1. 特定日の設定があるか確認
+  const specificSlots = activeSlots.filter((s) => s.specificDate === date);
+  if (specificSlots.length > 0) {
+    return specificSlots.map((s) => ({
+      startTime: s.startTime,
+      endTime: s.endTime,
+      id: s.id,
+    }));
+  }
+
+  // 2. 曜日設定を確認
+  const d = new Date(date);
+  const dayOfWeek = d.getDay();
+  const weeklySlots = activeSlots.filter(
+    (s) => s.dayOfWeek === dayOfWeek && s.specificDate === null
+  );
+
+  return weeklySlots.map((s) => ({
+    startTime: s.startTime,
+    endTime: s.endTime,
+    id: s.id,
+  }));
+}
+
+/**
+ * スロット情報と予約状況を組み合わせて、本当に空いているスロットを返す
+ */
+export async function getActuallyAvailableSlotsForDate(
+  doctorId: string,
+  date: string
+): Promise<{ startTime: string; endTime: string; id: string; isBooked: boolean }[]> {
+  const [slots, occupiedTimes] = await Promise.all([
+    getAvailableSlotsForDate(doctorId, date),
+    getOccupiedTimesForDoctor(doctorId, date),
+  ]);
+
+  return slots.map((s) => {
+    const start = s.startTime.slice(0, 5);
+    // スロットの開始位置、またはスロット時間内に予約があるかチェック
+    // 1スロット1予約の制約に従い、開始時刻が一致する予約があればBookedとする
+    const isBooked = occupiedTimes.includes(start);
+    return {
+      ...s,
+      isBooked,
+    };
+  });
+}
+
+/**
+ * テナント内の医師一覧を取得
+ */
+export async function getTenantDoctors(tenantId: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name')
+    .eq('tenant_id', tenantId)
+    .in('app_role', ['company_doctor', 'company_nurse'])
+    .eq('is_active', true);
+
+  if (error || !data) {
+    console.error('getTenantDoctors error:', error?.message);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * 特定の従業員の最新ストレスチェック結果を取得
+ */
+export async function getLatestStressResult(employeeId: string): Promise<{ id: string } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('stress_check_results')
+    .select('id')
+    .eq('employee_id', employeeId)
+    .order('calculated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getLatestStressResult error:', error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * テナントの最新ストレスチェック実施期間IDを取得
+ */
+export async function getLatestActivePeriod(tenantId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('stress_check_periods')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('getLatestActivePeriod error:', error?.message);
+    return null;
+  }
+  return data.id;
 }

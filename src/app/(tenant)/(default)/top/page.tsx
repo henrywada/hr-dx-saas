@@ -15,6 +15,7 @@ import {
 } from '@/features/dashboard/queries'
 import QuickAccessCards from '../../(colored)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
+import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
 
 export default async function DashboardPage() {
   const user = await getServerUser()
@@ -49,6 +50,10 @@ export default async function DashboardPage() {
             </span>{' '}
             {displayName} さん、お疲れ様です！
           </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-500">
+          <InterviewBookingService />
+          <HrInquiryNavLink />
         </div>
       </div>
 
@@ -157,7 +162,6 @@ export default async function DashboardPage() {
               </div>
               <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
             </div>
-            <HrInquiryNavLink />
           </div>
           <div className="p-6 flex flex-col gap-3">
             <QuickAccessCards />

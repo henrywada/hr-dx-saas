@@ -30,7 +30,7 @@ export const APP_ROUTES = {
     /** 人事向け 出勤・退勤データの明細一覧（/adm/attendance/dashboard） */
     ADMIN_ATTENDANCE_DASHBOARD: '/adm/attendance/dashboard',
     /** 勤務状況分析（残業集計・リスク・乖離） */
-    ADMIN_WORK_ANALYSIS: '/adm/analysis',
+
     /** 残業申請の承認（上長・同一部署）— (default)/(overtime) */
     OVERTIME_APPROVAL: '/approval',
   },

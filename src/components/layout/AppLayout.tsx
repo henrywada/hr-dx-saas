@@ -30,7 +30,7 @@ export async function AppLayout({ children, variant }: AppLayoutProps) {
               <AppSidebar variant={variant} />
               <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-hidden" style={bgStyle}>
                 <div className="flex-1 min-w-0 overflow-y-auto overflow-x-auto scroll-smooth">
-                  <div className="mx-auto w-full min-w-0 max-w-[1920px] p-4 sm:p-6 md:p-8">
+                  <div className="mx-auto w-full min-w-0 max-w-[1920px] p-4 sm:p-6 md:p-10 pt-6 sm:pt-10 md:pt-12">
                     {children}
                   </div>
                 </div>

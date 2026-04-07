@@ -418,7 +418,8 @@ export async function getActuallyAvailableSlotsForDate(
  */
 export async function getTenantDoctors(tenantId: string): Promise<{ id: string; name: string }[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  // Supabase クライアントの .in 連鎖で TS が「Type instantiation is excessively deep」になるため緩和
+  const { data, error } = await (supabase as any)
     .from('employees')
     .select('id, name')
     .eq('tenant_id', tenantId)
@@ -429,7 +430,7 @@ export async function getTenantDoctors(tenantId: string): Promise<{ id: string; 
     console.error('getTenantDoctors error:', error?.message);
     return [];
   }
-  return data;
+  return data as { id: string; name: string }[];
 }
 
 /**

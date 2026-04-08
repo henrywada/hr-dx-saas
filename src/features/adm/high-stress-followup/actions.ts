@@ -194,9 +194,15 @@ export async function createInterviewAppointment(
   stressResultId: string,
   intervieweeId: string,
   interviewDate: string,
-  doctorId: string,
-  options?: { interviewNotes?: string }
+  options?: { doctorId?: string; interviewNotes?: string }
 ) {
+  const user = await getServerUser();
+  const doctorId = options?.doctorId || user?.employee_id;
+
+  if (!doctorId) {
+    throw new Error('産業医が指定されていないか、ログインユーザーの情報が見つかりません');
+  }
+
   return createInterviewRecord({
     stressResultId,
     intervieweeId,
@@ -206,6 +212,7 @@ export async function createInterviewAppointment(
     status: 'scheduled',
   });
 }
+
 
 /**
  * テナント内の医師一覧を取得

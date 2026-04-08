@@ -92,9 +92,12 @@ export function AppointmentModal({
           targetStressResultId!,
           targetEmployeeId!,
           interviewDate,
-          doctorId!,
-          { interviewNotes: interviewNotes || undefined }
+          { 
+            doctorId: doctorId!, 
+            interviewNotes: interviewNotes || undefined 
+          }
         );
+
         onSaved();
       } catch (err) {
         alert((err as Error).message);

@@ -19,7 +19,7 @@ import { writeAuditLog } from '@/lib/log/actions';
 import { APP_ROUTES } from '@/config/routes';
 
 export interface CreateInterviewRecordPayload {
-  stressResultId: string;
+  stressResultId: string | null;
   intervieweeId: string;
   interviewDate: string;
   interviewDuration?: number | null;
@@ -191,7 +191,7 @@ export async function fetchAllInterviewRecords(periodId: string) {
  * 面接予約を登録（createInterviewRecord の status='scheduled' 版）
  */
 export async function createInterviewAppointment(
-  stressResultId: string,
+  stressResultId: string | null,
   intervieweeId: string,
   interviewDate: string,
   options?: { doctorId?: string; interviewNotes?: string }

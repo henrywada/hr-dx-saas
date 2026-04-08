@@ -79,9 +79,9 @@ export function AppointmentModal({
       targetStressResultId = selectedItem.stressResultId;
       targetEmployeeId = selectedItem.employeeId;
     } else {
-      // 従業員モードだがIDが渡されていない場合
-      if (!targetStressResultId || !targetEmployeeId) {
-        alert('予約に必要な情報が不足しています（ストレスチェック結果ID等）');
+      // 従業員モードだが従業員IDが渡されていない場合
+      if (!targetEmployeeId) {
+        alert('予約に必要な情報が不足しています（従業員ID確認エラー）');
         return;
       }
     }
@@ -89,7 +89,7 @@ export function AppointmentModal({
     startTransition(async () => {
       try {
         await createInterviewAppointment(
-          targetStressResultId!,
+          targetStressResultId || null,
           targetEmployeeId!,
           interviewDate,
           { 

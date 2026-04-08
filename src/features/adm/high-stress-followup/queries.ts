@@ -418,20 +418,41 @@ export async function getActuallyAvailableSlotsForDate(
  */
 export async function getTenantDoctors(tenantId: string): Promise<{ id: string; name: string }[]> {
   const supabase = await createClient();
-  // Supabase クライアントの .in 連鎖で TS が「Type instantiation is excessively deep」になるため緩和
-  const { data, error } = await (supabase as any)
+  
+  // ロール情報を取得するために結合する
+  // app_role_id を介した結合を明示的に指定
+  const { data, error } = await supabase
     .from('employees')
-    .select('id, name')
-    .eq('tenant_id', tenantId)
-    .in('app_role', ['company_doctor', 'company_nurse'])
-    .eq('is_active', true);
+    .select(`
+      id,
+      name,
+      active_status,
+      app_role:app_role_id (
+        app_role
+      )
+    `)
+    .eq('tenant_id', tenantId);
 
   if (error || !data) {
     console.error('getTenantDoctors error:', error?.message);
     return [];
   }
-  return data as { id: string; name: string }[];
+
+  // フィルタリング (会社医師のみ)
+  return (data as any[])
+    .filter((emp) => {
+      const ar = emp.app_role;
+      const roleSlug = Array.isArray(ar) ? ar[0]?.app_role : ar?.app_role;
+      return roleSlug === 'company_doctor';
+    })
+    .map((emp) => ({
+      id: emp.id,
+      name: emp.name || '名前なし',
+    }));
 }
+
+
+
 
 /**
  * 特定の従業員の最新ストレスチェック結果を取得

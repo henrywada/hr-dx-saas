@@ -92,6 +92,7 @@ export function AppointmentModal({
           targetStressResultId!,
           targetEmployeeId!,
           interviewDate,
+          doctorId!,
           { interviewNotes: interviewNotes || undefined }
         );
         onSaved();

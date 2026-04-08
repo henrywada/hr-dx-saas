@@ -16,6 +16,7 @@ import { ja } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchScheduledInterviews, fetchDoctorAvailabilitySlots } from '@/features/adm/high-stress-followup/actions';
 import { AppointmentModal } from './AppointmentModal';
+import { useAuth } from '@/lib/auth/context';
 import type { DoctorAvailabilitySlot, HighStressListItem, ScheduledInterviewItem } from '@/features/adm/high-stress-followup/types';
 
 interface Props {
@@ -45,13 +46,16 @@ export function InterviewCalendar({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
+  const { user } = useAuth();
+  const currentDoctorId = doctorId || user?.employee_id;
+
   const yearMonth = format(viewDate, 'yyyy-MM');
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
       fetchScheduledInterviews(periodId, yearMonth),
-      fetchDoctorAvailabilitySlots(doctorId),
+      fetchDoctorAvailabilitySlots(currentDoctorId ?? undefined),
     ])
       .then(([ints, slots]) => {
         setInterviews(ints);
@@ -157,16 +161,20 @@ export function InterviewCalendar({
               return (
                 <div
                   key={key}
-                  onClick={() => handleDayClick(day)}
-                  className={`min-h-[110px] bg-white p-2 cursor-pointer transition-all border-b border-r border-slate-100 relative group ${
-                    !isCurrentMonth ? 'bg-slate-50 opacity-40' : 'hover:bg-blue-50/80 hover:shadow-inner'
+                  onClick={() => hasAvailability && isCurrentMonth && handleDayClick(day)}
+                  className={`min-h-[110px] p-2 transition-all border-b border-r border-slate-100 relative group ${
+                    !isCurrentMonth 
+                      ? 'bg-slate-50 opacity-40' 
+                      : !hasAvailability 
+                        ? 'bg-slate-100 cursor-not-allowed' 
+                        : 'bg-white cursor-pointer hover:bg-blue-50/80 hover:shadow-inner'
                   } ${hasAvailability && isCurrentMonth ? 'bg-blue-50/40' : ''}`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-[13px] font-black ${
                       isSameMonth(day, new Date()) && format(day, 'd') === format(new Date(), 'd')
                         ? 'w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-sm'
-                        : 'text-slate-700'
+                        : !hasAvailability && isCurrentMonth ? 'text-slate-400' : 'text-slate-700'
                     }`}>
                       {format(day, 'd')}
                     </span>
@@ -235,7 +243,7 @@ export function InterviewCalendar({
           }}
           onSaved={handleSaved}
           mode={mode}
-          doctorId={doctorId}
+          doctorId={currentDoctorId ?? undefined}
           employeeId={employeeId}
           stressResultId={stressResultId}
         />

@@ -29,6 +29,7 @@ export interface CreateInterviewRecordPayload {
   measureDetails?: string | null;
   followUpDate?: string | null;
   followUpStatus?: string;
+  doctor_id?: string | null;
   status: 'pending' | 'scheduled' | 'completed' | 'cancelled';
 }
 
@@ -54,6 +55,7 @@ export async function createInterviewRecord(payload: CreateInterviewRecordPayloa
   }
 
   const supabase = await createClient();
+  const targetDoctorId = payload.doctor_id || user.employee_id;
 
   if (payload.status === 'completed' && (!payload.doctorOpinion || payload.doctorOpinion.trim() === '')) {
     throw new Error('実施済の場合は医師意見が必須です');
@@ -66,7 +68,7 @@ export async function createInterviewRecord(payload: CreateInterviewRecordPayloa
     const dateStr = format(interviewDate, 'yyyy-MM-dd');
     const timeStr = format(interviewDate, 'HH:mm');
 
-    const availableSlots = await getActuallyAvailableSlotsForDate(user.employee_id, dateStr);
+    const availableSlots = await getActuallyAvailableSlotsForDate(targetDoctorId, dateStr);
     const slot = availableSlots.find((s) => {
       const start = s.startTime.slice(0, 5);
       const end = s.endTime.slice(0, 5);
@@ -88,7 +90,7 @@ export async function createInterviewRecord(payload: CreateInterviewRecordPayloa
   const { error } = await supabase.from('stress_interview_records').insert({
     tenant_id: user.tenant_id,
     stress_result_id: payload.stressResultId,
-    doctor_id: user.employee_id,
+    doctor_id: targetDoctorId,
     interviewee_id: payload.intervieweeId,
     interview_date: payload.interviewDate,
     interview_duration: payload.interviewDuration ?? null,
@@ -192,12 +194,14 @@ export async function createInterviewAppointment(
   stressResultId: string,
   intervieweeId: string,
   interviewDate: string,
+  doctorId: string,
   options?: { interviewNotes?: string }
 ) {
   return createInterviewRecord({
     stressResultId,
     intervieweeId,
     interviewDate,
+    doctor_id: doctorId,
     interviewNotes: options?.interviewNotes ?? null,
     status: 'scheduled',
   });

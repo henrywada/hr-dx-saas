@@ -5,9 +5,10 @@ import type { HighStressListItem } from '@/features/adm/high-stress-followup/typ
 import {
   createInterviewAppointment,
   fetchActuallyAvailableSlotsForDate,
+  fetchTenantAllEmployees,
 } from '@/features/adm/high-stress-followup/actions';
 import { format } from 'date-fns';
-import { X, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { X, AlertCircle, Clock, CheckCircle2, User, Users } from 'lucide-react';
 
 interface Props {
   periodId: string;
@@ -44,40 +45,59 @@ export function AppointmentModal({
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
 
+  // 追加: 任意の従業員選択用ステート
+  const [targetType, setTargetType] = useState<'high_stress' | 'all'>('high_stress');
+  const [allEmployees, setAllEmployees] = useState<{ id: string; name: string; employee_no: string | null }[]>([]);
+  const [selectedGenericEmployeeId, setSelectedGenericEmployeeId] = useState('');
+
   const dateStr = format(initialDate, 'yyyy-MM-dd');
 
   useEffect(() => {
     setLoadingSlots(true);
-    fetchActuallyAvailableSlotsForDate(dateStr, doctorId)
-      .then((slots) => {
-        setAvailableSlots(slots);
-        // 空いている最初のスロットを探す
-        const firstFree = slots.find(s => !s.isBooked);
-        if (firstFree) {
-          const firstStart = firstFree.startTime.slice(0, 5);
-          setInterviewDate(`${dateStr}T${firstStart}`);
-        } else {
-          // すべて埋まっている場合は日付のみセット
-          setInterviewDate(`${dateStr}T09:00`);
-        }
-      })
-      .finally(() => setLoadingSlots(false));
-  }, [dateStr, doctorId]);
+    Promise.all([
+      fetchActuallyAvailableSlotsForDate(dateStr, doctorId),
+      mode === 'admin' ? fetchTenantAllEmployees() : Promise.resolve([]),
+    ]).then(([slots, employees]) => {
+      setAvailableSlots(slots);
+      if (employees) {
+        setAllEmployees(employees);
+      }
+      
+      // 空いている最初のスロットを探す
+      const firstFree = slots.find(s => !s.isBooked);
+      if (firstFree) {
+        const firstStart = firstFree.startTime.slice(0, 5);
+        setInterviewDate(`${dateStr}T${firstStart}`);
+      } else {
+        // すべて埋まっている場合は日付のみセット
+        setInterviewDate(`${dateStr}T09:00`);
+      }
+    }).finally(() => setLoadingSlots(false));
+  }, [dateStr, doctorId, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // 従業員の決定 (管理者モードなら選択肢、従業員モードなら prop または null)
-    let targetStressResultId = stressResultId;
-    let targetEmployeeId = employeeId;
+    let targetStressResultId: string | null = stressResultId || null;
+    let targetEmployeeId: string | null = employeeId || null;
 
     if (mode === 'admin') {
-      if (!selectedItem) {
-        alert('対象者を選択してください');
-        return;
+      if (targetType === 'high_stress') {
+        if (!selectedItem) {
+          alert('対象者（高ストレス者）を選択してください');
+          return;
+        }
+        targetStressResultId = selectedItem.stressResultId;
+        targetEmployeeId = selectedItem.employeeId;
+      } else {
+        if (!selectedGenericEmployeeId) {
+          alert('対象の従業員を選択してください');
+          return;
+        }
+        targetStressResultId = null; // 汎用予約のためストレスチェック結果はなし
+        targetEmployeeId = selectedGenericEmployeeId;
       }
-      targetStressResultId = selectedItem.stressResultId;
-      targetEmployeeId = selectedItem.employeeId;
     } else {
       // 従業員モードだが従業員IDが渡されていない場合
       if (!targetEmployeeId) {
@@ -136,25 +156,69 @@ export function AppointmentModal({
           </div>
 
           {mode === 'admin' && (
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">対象者（匿名ID）</label>
-              <select
-                value={selectedItem?.stressResultId ?? ''}
-                onChange={(e) => {
-                  const item = highStressList.find((i) => i.stressResultId === e.target.value);
-                  setSelectedItem(item ?? null);
-                }}
-                required
-                className="w-full text-sm rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-              >
-                <option value="">選択してください</option>
-                {highStressList.map((i) => (
-                  <option key={i.stressResultId} value={i.stressResultId}>
-                    {i.anonymousId} - {i.divisionAnonymousLabel}
-                    {i.highStressReason ? ` (${i.highStressReason.slice(0, 15)}...)` : ''}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-3">
+              <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setTargetType('high_stress')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    targetType === 'high_stress' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  高ストレス対象者
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType('all')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    targetType === 'all' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  任意の従業員
+                </button>
+              </div>
+
+              {targetType === 'high_stress' ? (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">対象者（匿名ID）</label>
+                  <select
+                    value={selectedItem?.stressResultId ?? ''}
+                    onChange={(e) => {
+                      const item = highStressList.find((i) => i.stressResultId === e.target.value);
+                      setSelectedItem(item ?? null);
+                    }}
+                    required
+                    className="w-full text-sm rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">選択してください</option>
+                    {highStressList.map((i) => (
+                      <option key={i.stressResultId} value={i.stressResultId}>
+                        {i.anonymousId} - {i.divisionAnonymousLabel}
+                        {i.highStressReason ? ` (${i.highStressReason.slice(0, 15)}...)` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">対象者（氏名・所属）</label>
+                  <select
+                    value={selectedGenericEmployeeId}
+                    onChange={(e) => setSelectedGenericEmployeeId(e.target.value)}
+                    required
+                    className="w-full text-sm rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">選択してください</option>
+                    {allEmployees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.employee_no ? `${emp.employee_no} ` : ''}{emp.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 

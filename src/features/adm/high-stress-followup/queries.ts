@@ -195,16 +195,22 @@ export async function getScheduledInterviews(
     .eq('period_id', periodId)
     .eq('is_high_stress', true);
 
-  if (!results || results.length === 0) return [];
+  const resultIds = (results || []).map((r) => r.id);
 
-  const resultIds = results.map((r) => r.id);
-  const { data: records } = await supabase
+  let query = supabase
     .from('stress_interview_records')
     .select('id, stress_result_id, interviewee_id, interview_date, status, doctor_id')
-    .in('stress_result_id', resultIds)
     .gte('interview_date', start)
     .lte('interview_date', end)
     .order('interview_date', { ascending: true });
+
+  if (resultIds.length > 0) {
+    query = query.or(`stress_result_id.in.(${resultIds.join(',')}),stress_result_id.is.null`);
+  } else {
+    query = query.is('stress_result_id', null);
+  }
+
+  const { data: records } = await query;
 
   const doctorIds = [...new Set((records ?? []).map((r) => r.doctor_id))];
   const { data: doctors } = await supabase
@@ -213,16 +219,31 @@ export async function getScheduledInterviews(
     .in('id', doctorIds);
   const doctorMap = new Map((doctors ?? []).map((d) => [d.id, d.name]));
 
+  const intervieweeIds = [...new Set((records ?? []).filter(r => !r.stress_result_id).map((r) => r.interviewee_id))];
+  const { data: interviewees } = await supabase
+    .from('employees')
+    .select('id, name, employee_no')
+    .in('id', intervieweeIds);
+  const intervieweeMap = new Map((interviewees ?? []).map((d) => [d.id, d]));
+
   const resultIndexMap = new Map<string, number>();
-  results.forEach((r, i) => resultIndexMap.set(r.id, i));
+  (results || []).forEach((r, i) => resultIndexMap.set(r.id, i));
 
   return (records ?? []).map((r) => {
-    const idx = resultIndexMap.get(r.stress_result_id) ?? 0;
+    let targetLabel = '';
+    if (r.stress_result_id) {
+      const idx = resultIndexMap.get(r.stress_result_id) ?? 0;
+      targetLabel = generateAnonymousId(r.stress_result_id, idx);
+    } else {
+      const emp = intervieweeMap.get(r.interviewee_id);
+      targetLabel = emp ? `${emp.employee_no ? emp.employee_no + ' ' : ''}${emp.name}` : '不明な従業員';
+    }
+
     return {
       id: r.id,
       stressResultId: r.stress_result_id,
       intervieweeId: r.interviewee_id,
-      anonymousId: generateAnonymousId(r.stress_result_id, idx),
+      anonymousId: targetLabel,
       interviewDate: r.interview_date,
       doctorName: doctorMap.get(r.doctor_id) ?? '産業医',
       status: r.status,
@@ -244,17 +265,22 @@ export async function getAllInterviewRecords(
     .eq('period_id', periodId)
     .eq('is_high_stress', true);
 
-  if (!results || results.length === 0) return [];
-
-  const resultIds = results.map((r) => r.id);
+  const resultIds = (results || []).map((r) => r.id);
   const resultIndexMap = new Map<string, number>();
-  results.forEach((r, i) => resultIndexMap.set(r.id, i));
+  (results || []).forEach((r, i) => resultIndexMap.set(r.id, i));
 
-  const { data: records, error } = await supabase
+  let query = supabase
     .from('stress_interview_records')
     .select('*')
-    .in('stress_result_id', resultIds)
     .order('interview_date', { ascending: false });
+
+  if (resultIds.length > 0) {
+    query = query.or(`stress_result_id.in.(${resultIds.join(',')}),stress_result_id.is.null`);
+  } else {
+    query = query.is('stress_result_id', null);
+  }
+
+  const { data: records, error } = await query;
 
   if (error) {
     console.error('getAllInterviewRecords error:', error.message);
@@ -268,8 +294,23 @@ export async function getAllInterviewRecords(
     .in('id', doctorIds);
   const doctorMap = new Map((doctors ?? []).map((d) => [d.id, d.name]));
 
+  const intervieweeIds = [...new Set((records ?? []).filter(r => !r.stress_result_id).map((r) => r.interviewee_id))];
+  const { data: interviewees } = await supabase
+    .from('employees')
+    .select('id, name, employee_no')
+    .in('id', intervieweeIds);
+  const intervieweeMap = new Map((interviewees ?? []).map((d) => [d.id, d]));
+
   return (records ?? []).map((r) => {
-    const idx = resultIndexMap.get(r.stress_result_id) ?? 0;
+    let targetLabel = '';
+    if (r.stress_result_id) {
+      const idx = resultIndexMap.get(r.stress_result_id) ?? 0;
+      targetLabel = generateAnonymousId(r.stress_result_id, idx);
+    } else {
+      const emp = intervieweeMap.get(r.interviewee_id);
+      targetLabel = emp ? `${emp.employee_no ? emp.employee_no + ' ' : ''}${emp.name}` : '不明な従業員';
+    }
+
     return {
       id: r.id,
       tenantId: r.tenant_id,
@@ -289,7 +330,7 @@ export async function getAllInterviewRecords(
       createdAt: r.created_at,
       updatedAt: r.updated_at,
       doctorName: doctorMap.get(r.doctor_id),
-      anonymousId: generateAnonymousId(r.stress_result_id, idx),
+      anonymousId: targetLabel,
     };
   });
 }
@@ -433,22 +474,68 @@ export async function getTenantDoctors(tenantId: string): Promise<{ id: string; 
     `)
     .eq('tenant_id', tenantId);
 
-  if (error || !data) {
-    console.error('getTenantDoctors error:', error?.message);
+  if (error) {
+    console.error('getTenantDoctors error:', error.message);
     return [];
   }
 
-  // フィルタリング (会社医師のみ)
-  return (data as any[])
-    .filter((emp) => {
-      const ar = emp.app_role;
-      const roleSlug = Array.isArray(ar) ? ar[0]?.app_role : ar?.app_role;
-      return roleSlug === 'company_doctor';
+  // 取得したデータから app_role の値が 'company_doctor' のものだけを抽出する
+  const doctors = (data || [])
+    .filter((emp: any) => {
+      if (!emp.app_role) return false;
+      const roleStr = Array.isArray(emp.app_role) ? emp.app_role[0]?.app_role : emp.app_role.app_role;
+      return roleStr === 'company_doctor';
     })
     .map((emp) => ({
       id: emp.id,
-      name: emp.name || '名前なし',
+      name: emp.name,
     }));
+
+  return doctors;
+}
+
+/**
+ * テナント内の全従業員（有効）を取得
+ */
+export async function getTenantAllEmployees(tenantId: string): Promise<{ id: string; name: string; employee_no: string | null }[]> {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('employees')
+    .select(`
+      id,
+      name,
+      employee_no,
+      app_role:app_role_id (
+        app_role
+      )
+    `)
+    .eq('tenant_id', tenantId)
+    .eq('active_status', 'active')
+    .order('employee_no', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    console.error('getTenantAllEmployees error:', error.message);
+    return [];
+  }
+
+  const excludedRoles = ['developer', 'test', 'company_doctor'];
+
+  const employees = (data || [])
+    .filter((emp: any) => {
+      let roleStr = '';
+      if (emp.app_role) {
+        roleStr = Array.isArray(emp.app_role) ? emp.app_role[0]?.app_role : emp.app_role.app_role;
+      }
+      return !excludedRoles.includes(roleStr);
+    })
+    .map((emp: any) => ({
+      id: emp.id,
+      name: emp.name,
+      employee_no: emp.employee_no,
+    }));
+
+  return employees;
 }
 
 

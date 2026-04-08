@@ -10,6 +10,7 @@ import {
   getDoctorAvailabilitySlots,
   getActuallyAvailableSlotsForDate,
   getTenantDoctors,
+  getTenantAllEmployees,
   getLatestStressResult,
   getLatestActivePeriod,
 } from './queries';
@@ -223,6 +224,11 @@ export async function fetchTenantDoctors() {
   return getTenantDoctors(user.tenant_id);
 }
 
+export async function fetchTenantAllEmployees() {
+  const user = await getServerUser();
+  if (!user?.tenant_id) return [];
+  return getTenantAllEmployees(user.tenant_id);
+}
 /**
  * 最新のストレスチェック結果IDを取得
  */

@@ -253,7 +253,14 @@ export async function upsertAvailabilitySlot(payload: {
   endTime: string;
   isActive: boolean;
 }) {
+  // バリデーション: 終了時刻は開始時刻より後である必要がある (DB制約の遵守)
+  // time 型 (HH:mm) の比較
+  if (payload.endTime <= payload.startTime) {
+    throw new Error('終了時刻は開始時刻より後の時間を設定してください。');
+  }
+
   const user = await getServerUser();
+
   if (!user?.tenant_id || !user?.employee_id) {
     throw new Error('Unauthorized');
   }

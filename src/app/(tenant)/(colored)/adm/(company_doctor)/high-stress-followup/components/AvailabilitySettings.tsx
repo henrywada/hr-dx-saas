@@ -165,21 +165,30 @@ export function AvailabilitySettings() {
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full pl-10 text-sm rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className={`w-full pl-10 text-sm rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                    endTime <= startTime ? 'border-red-500 bg-red-50' : 'focus:border-blue-500'
+                  }`}
                 />
               </div>
             </div>
           </div>
 
+          {endTime <= startTime && (
+            <p className="text-[10px] text-red-500 font-bold animate-in slide-in-from-top-1">
+              ※ 終了時刻は開始時刻より後の時間を設定してください
+            </p>
+          )}
+
           <Button
             onClick={handleAdd}
-            disabled={isPending || (type === 'specific' && !specificDate)}
+            disabled={isPending || (type === 'specific' && !specificDate) || endTime <= startTime}
             fullWidth
             className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
           >
             <Plus className="w-5 h-5" />
             <span>スロット登録</span>
           </Button>
+
         </div>
 
         {/* 登録済みリスト */}

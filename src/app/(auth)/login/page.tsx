@@ -48,8 +48,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         {/* 1行目: ロゴ + HR-dx／2行目: ログイン */}
-        <div className="flex w-full flex-col items-start gap-3">
-          <div className="flex items-center gap-2" aria-label="HR-dx">
+        <div className="flex w-full flex-col items-start gap-6 pb-2">
+          <div className="flex items-center gap-2 w-full justify-center lg:justify-start" aria-label="HR-dx">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FF6B00] to-orange-600 shadow-md">
               <span className="text-lg font-bold tracking-tight text-white">H</span>
             </div>
@@ -57,10 +57,18 @@ export default function LoginPage() {
               HR-dx
             </span>
           </div>
-          <h1 className="w-full flex items-center justify-center gap-2 text-2xl font-bold text-slate-900 md:text-3xl">
-            <Lock className="h-7 w-7 shrink-0 text-slate-500 md:h-8 md:w-8" aria-hidden />
-            ログイン
-          </h1>
+          
+          <div className="w-full flex flex-col items-center justify-center pt-2 pb-4 space-y-3">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-50 to-indigo-50 shadow-inner ring-1 ring-blue-100/60 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-transparent"></div>
+              <Lock className="relative h-6 w-6 text-blue-600 stroke-[1.5]" aria-hidden />
+            </div>
+            <div className="flex flex-col items-center gap-1.5">
+              <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-br from-slate-900 via-slate-800 to-slate-500 bg-clip-text text-transparent md:text-3xl">
+                ログイン
+              </h1>
+            </div>
+          </div>
         </div>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-6" aria-busy={loading}>

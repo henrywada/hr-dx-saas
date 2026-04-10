@@ -28,7 +28,7 @@ SET row_security = off;
 INSERT INTO "public"."tenants" ("id", "name", "contact_date", "paid_amount", "employee_count", "paid_date", "created_at", "plan_type", "max_employees", "company_name", "business_description", "mission_vision", "culture_and_benefits", "onboarding_completed_at") VALUES
 	('8f788279-3f9e-491f-984d-91439b582ac8', 'sample', NULL, 0, 10, NULL, '2026-03-06 11:12:22.153969+00', 'free', 30, 'ABCエンジニアリング', 'ABCエンジニアリングは、ICT・環境・省エネに関連する多彩なソリューションを通じて、企業や施設のオフィス環境の改善、ビルのスマート化、環境経営の向上を支援します。オフィスソリューションでは、企業の生産性を向上させる未来的なオフィス環境を実現し、スマートソリューションではICTを駆使してエネルギー管理や再生可能エネルギーの導入をサポートします。環境コンサルティングでは、カーボンニュートラルへの取り組みを促進します。', '「地球にやさしいエンジニアリング企業」として、持続可能な社会に貢献することを目指しています。', '技術と情熱が融合した職場環境で、未来のインフラを共に創り上げる仲間を募り、持続的な社会に貢献する活動を奨励しています。', '2026-03-06 11:18:00.833+00'),
 	('421f9b0d-5db0-47b3-8d48-203b9213dc00', 'SaaS管理会社', NULL, 0, 1000, NULL, '2026-02-17 07:24:27.616036+00', 'pro', 30, NULL, NULL, NULL, NULL, '2026-03-02 11:53:47.009+00'),
-	('5ebb9fd2-f152-4578-999f-e3b82d5d27d5', 'テスト会社', NULL, 0, 10, NULL, '2026-02-21 10:46:11.928835+00', 'free', 30, NULL, NULL, NULL, NULL, '2026-03-02 11:53:47.009+00');
+	('5ebb9fd2-f152-4578-999f-e3b82d5d27d5', 'テスト会社', NULL, 0, 10, NULL, '2026-02-21 10:46:11.928835+00', 'free', 30, NULL, NULL, NULL, NULL, '2026-03-02 11:53:47.009+00') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8417,7 +8417,7 @@ INSERT INTO "public"."app_role" ("id", "app_role", "name") VALUES
 	('b239a055-8175-43bc-acae-a7d44dff75d5', 'hsc', '安全衛生委員'),
 	('74f8e05b-c99d-45ee-b368-fdbe35ee0e52', 'developer', '開発者'),
 	('03c94882-88b0-4937-887b-c3733ab21028', 'employee', '従業員'),
-	('25d560ff-0166-49a5-b29c-24711664bd6d', 'test', 'system tester');
+	('25d560ff-0166-49a5-b29c-24711664bd6d', 'test', 'system tester') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8430,7 +8430,7 @@ INSERT INTO "public"."service_category" ("id", "sort_order", "name", "descriptio
 	('35c69c7f-6580-4250-a125-d15c28ead6b2', 900, '管理：基本登録', '', 'released'),
 	('2f310cc9-454d-4032-8e01-25a493a0a203', 100, '管理：採用支援', NULL, 'released'),
 	('2c64738f-bee1-458d-afae-67033faeceb0', 300, '管理：組織健康度', NULL, NULL),
-	('194390c5-dafd-482b-b979-60f165b7ae28', 1000, 'Saas：基本設定', '', 'released');
+	('194390c5-dafd-482b-b979-60f165b7ae28', 1000, 'Saas：基本設定', '', 'released') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8481,7 +8481,7 @@ INSERT INTO "public"."service" ("id", "service_category_id", "name", "category",
 💡 迷わない安心設計: ダウンロード後のアップロード手順も、画面内のガイドでしっかりサポートします。', 600, '/adm/hellowork', NULL, NULL, 'adm', '公開'),
 	('a1b2c3d4-e5f6-7890-abcd-ef1234567890', '1dc338ff-19d7-407e-94e4-06e60b1339a0', 'ストレスチェック', NULL, '💫【毎月10回無料】あなたの心の健康診断（ストレスチェック）', '本調査は、労働安全衛生法に基づく法定検査です。回答内容は法令に基づき厳重に管理され、本人の同意なく事業者（会社側）に結果が提供されたり、回答結果を理由に不利益な取扱いを受けることはありません。現在のありのままの状態をご回答ください。ご自身のストレス状態に気づき、メンタルヘルス不調を未然に防ぐことを目的としています。', 300, '/stress-check', NULL, NULL, 'all_users', '公開'),
 	('ecfd2d1d-45e8-4e2a-b465-e24008492d4c', '2c64738f-bee1-458d-afae-67033faeceb0', 'ストレスチェック進捗管理', NULL, 'ストレスチェック', '全従業員の受検状況をリアルタイムで可視化。未受検者へのワンクリック催促メール送信や、実施期間の自動管理により、人事担当者の事務負担を大幅に軽減し、高い受検率の達成を強力にサポートします。', 200, '/adm/stress-check/progress', NULL, NULL, 'adm', '公開'),
-	('d6717904-7ed3-44cf-bc80-c414832a23b8', '2c64738f-bee1-458d-afae-67033faeceb0', '組織健康度分析（ヒートマップ）', NULL, 'ストレスチェック', '縦軸に部署、横軸に詳細尺度を配したマトリックス形式で表示。ストレスリスクの高い箇所が「赤色」で直感的に判別できるため、経営層への報告資料としてそのまま活用でき、迅速な組織改善アクションを可能にします。', 400, '/adm/stress-check/heat-map', NULL, NULL, 'adm', '公開');
+	('d6717904-7ed3-44cf-bc80-c414832a23b8', '2c64738f-bee1-458d-afae-67033faeceb0', '組織健康度分析（ヒートマップ）', NULL, 'ストレスチェック', '縦軸に部署、横軸に詳細尺度を配したマトリックス形式で表示。ストレスリスクの高い箇所が「赤色」で直感的に判別できるため、経営層への報告資料としてそのまま活用でき、迅速な組織改善アクションを可能にします。', 400, '/adm/stress-check/heat-map', NULL, NULL, 'adm', '公開') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8532,7 +8532,7 @@ INSERT INTO "public"."app_role_service" ("id", "app_role_id", "service_id") VALU
 	('645d5f39-2046-44ba-be8a-06f7c6e4adcc', 'c50ebd55-3466-43dc-a702-5d8321908d69', '89c10335-ac97-4c7a-b83f-a7f2e51de966'),
 	('57b1bf85-6ab1-4f61-a135-e75907ed2072', 'c50ebd55-3466-43dc-a702-5d8321908d69', 'e456353b-4f4e-42e7-b2c0-595b2a844c72'),
 	('734eeeed-515a-4c6a-9138-9470dcf05118', 'c50ebd55-3466-43dc-a702-5d8321908d69', '7d3a4972-a822-4a1d-8934-76ad59cf1501'),
-	('1e0d7460-e169-46f4-acab-4daa444229a0', 'c50ebd55-3466-43dc-a702-5d8321908d69', 'ee5e31ef-60da-4dc2-a200-de50db9009fd');
+	('1e0d7460-e169-46f4-acab-4daa444229a0', 'c50ebd55-3466-43dc-a702-5d8321908d69', 'ee5e31ef-60da-4dc2-a200-de50db9009fd') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8553,7 +8553,7 @@ bbbbb', true, '2026-03-01 07:15:40.698256+00', NULL),
 	('71b9aaa0-1b51-4124-9bba-3cdcda5e087d', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'テスト４', '最終円設', 1, '{給与・待遇について}', '', true, '2026-03-01 10:18:54.70432+00', NULL),
 	('7b7ea4a1-1e37-4542-922e-e1a001626a43', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'テスト５', '内定通知書', NULL, '{}', NULL, false, '2026-03-01 11:25:12.34443+00', NULL),
 	('a9d6a858-c6f7-44e2-b536-f47e1a3ca3dc', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'テスト６', '２次面接', NULL, '{}', NULL, false, '2026-03-01 11:29:23.427333+00', NULL),
-	('81718d77-6eb9-4718-b5f4-030aa2878e44', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'テスト７', '内定通知書', NULL, '{}', NULL, false, '2026-03-01 11:49:38.925791+00', NULL);
+	('81718d77-6eb9-4718-b5f4-030aa2878e44', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'テスト７', '内定通知書', NULL, '{}', NULL, false, '2026-03-01 11:49:38.925791+00', NULL) ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8570,7 +8570,7 @@ INSERT INTO "public"."divisions" ("id", "tenant_id", "name", "parent_id", "layer
 	('e4476c2d-e661-4c82-9232-7b6adb17679f', '8f788279-3f9e-491f-984d-91439b582ac8', '営業', '8aa9727b-bce8-4b74-8497-986438f23634', 2, '010-010'),
 	('8beb2328-b178-41d1-a865-85d37bcae85f', '8f788279-3f9e-491f-984d-91439b582ac8', '技術部', '8aa9727b-bce8-4b74-8497-986438f23634', 2, '020-010'),
 	('8e1d2541-823d-4d26-aa4d-c9494cd7aaf0', '8f788279-3f9e-491f-984d-91439b582ac8', '経理・総務部', '8aa9727b-bce8-4b74-8497-986438f23634', 2, '0303-010'),
-	('c10fa486-8b16-457e-895a-320e2dbeac50', '8f788279-3f9e-491f-984d-91439b582ac8', '人事課', '8e1d2541-823d-4d26-aa4d-c9494cd7aaf0', 3, '030-010');
+	('c10fa486-8b16-457e-895a-320e2dbeac50', '8f788279-3f9e-491f-984d-91439b582ac8', '人事課', '8e1d2541-823d-4d26-aa4d-c9494cd7aaf0', 3, '030-010') ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -8585,7 +8585,7 @@ INSERT INTO "public"."employees" ("id", "tenant_id", "division_id", "active_stat
 	('d95edacd-4cd0-4443-8ae2-d65c23fbbdbd', '8f788279-3f9e-491f-984d-91439b582ac8', 'c10fa486-8b16-457e-895a-320e2dbeac50', 'active', 'sample2', true, 'c50ebd55-3466-43dc-a702-5d8321908d69', '222', NULL, '女性', '2020-04-01', NULL, NULL, '4c996fb1-6f11-46c4-bfc8-dfd2793f830b'),
 	('5fe03d2c-8287-4d75-9567-9aac55d69b27', '8f788279-3f9e-491f-984d-91439b582ac8', 'c10fa486-8b16-457e-895a-320e2dbeac50', 'active', 'sample3', false, 'f422469d-c1e0-4a10-ac6c-4b656b4fec64', '333', NULL, '男性', NULL, NULL, NULL, 'f7d8843b-059a-41e9-9e89-38b78b2ff85b'),
 	('d61efc79-f5fc-47c6-ad75-0fc118adfae8', '8f788279-3f9e-491f-984d-91439b582ac8', 'c10fa486-8b16-457e-895a-320e2dbeac50', 'active', 'sample4', false, 'f422469d-c1e0-4a10-ac6c-4b656b4fec64', '4444', NULL, '男性', NULL, NULL, NULL, '3895d2b7-7f40-45c4-a47d-47b51128ffde'),
-	('f8b350b1-9c31-4179-b702-a5f3600105aa', '8f788279-3f9e-491f-984d-91439b582ac8', 'c10fa486-8b16-457e-895a-320e2dbeac50', 'active', 'sample5', false, '03c94882-88b0-4937-887b-c3733ab21028', '55555', NULL, '男性', NULL, NULL, NULL, '3ff3aac1-ab94-4bb6-88d0-1e5502c8e5e7');
+	('f8b350b1-9c31-4179-b702-a5f3600105aa', '8f788279-3f9e-491f-984d-91439b582ac8', 'c10fa486-8b16-457e-895a-320e2dbeac50', 'active', 'sample5', false, '03c94882-88b0-4937-887b-c3733ab21028', '55555', NULL, '男性', NULL, NULL, NULL, '3ff3aac1-ab94-4bb6-88d0-1e5502c8e5e7') ON CONFLICT (id) DO NOTHING;
 
 
 --

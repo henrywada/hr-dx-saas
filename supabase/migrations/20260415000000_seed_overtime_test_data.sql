@@ -7,7 +7,30 @@
 -- ============================================================================
 
 -- ============================================================================
--- ① ダミー従業員を追加（未存在の場合のみ）
+-- ============================================================================
+-- ① 依存データの確保（seed.sql から引用）
+-- テナントと部署が存在しない場合に作成する
+-- ============================================================================
+
+INSERT INTO public.tenants (id, name, plan_type, max_employees, onboarding_completed_at)
+VALUES ('421f9b0d-5db0-47b3-8d48-203b9213dc00', 'SaaS管理会社', 'pro', 1000, '2026-03-02 11:53:47.009+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.divisions (id, tenant_id, name, parent_id, layer, code)
+VALUES
+  ('32ac01df-f38d-44de-ac7b-28fcd0daa1c5', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'SaaS開発_全社', NULL, NULL, NULL),
+  ('4b6f3bc8-5266-4de7-ba66-2d078b94cd66', '421f9b0d-5db0-47b3-8d48-203b9213dc00', '東京事務所', '32ac01df-f38d-44de-ac7b-28fcd0daa1c5', 1, '010'),
+  ('966c8f68-b823-4c12-a634-b7db08cc0c7c', '421f9b0d-5db0-47b3-8d48-203b9213dc00', '関西事務所', '32ac01df-f38d-44de-ac7b-28fcd0daa1c5', 1, '020'),
+  ('1fef60d4-df80-45b9-9da2-86a1d63b544e', '421f9b0d-5db0-47b3-8d48-203b9213dc00', '営業部', '4b6f3bc8-5266-4de7-ba66-2d078b94cd66', 2, '010'),
+  ('a92f9c97-c274-4c00-bd7a-c2581097b803', '421f9b0d-5db0-47b3-8d48-203b9213dc00', '人事部', '4b6f3bc8-5266-4de7-ba66-2d078b94cd66', 2, '020')
+ON CONFLICT (id) DO NOTHING;
+
+-- SaaS管理者 (28d3ded9) の確保
+INSERT INTO public.employees (id, tenant_id, division_id, active_status, name, is_manager, app_role_id)
+VALUES ('28d3ded9-fc50-420a-bfc0-b9b55b32f19a', '421f9b0d-5db0-47b3-8d48-203b9213dc00', 'a92f9c97-c274-4c00-bd7a-c2581097b803', 'active', 'SaaS管理者', true, '74f8e05b-c99d-45ee-b368-fdbe35ee0e52')
+ON CONFLICT (id) DO NOTHING;
+
+-- ② ダミー従業員を追加（未存在の場合のみ）
 -- テナント421f9b0d には元々 SaaS管理者(28d3ded9) 1名しかいないため、
 -- テスト用に部署別の従業員を追加する
 -- ============================================================================

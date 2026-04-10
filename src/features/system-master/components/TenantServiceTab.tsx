@@ -64,6 +64,9 @@ export default function TenantServiceTab({
     );
   };
 
+  // SaaS 管理専用サービスは一覧から除外（getServices と同じ並び）
+  const displayServices = services.filter(s => s.target_audience !== 'saas_adm');
+
   return (
     <div className="space-y-6">
       {/* テナント選択 */}
@@ -95,6 +98,9 @@ export default function TenantServiceTab({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th scope="col" className="px-3 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12 min-w-12">
+                  No
+                </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   対象(Audience)
                 </th>
@@ -113,10 +119,13 @@ export default function TenantServiceTab({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {services.filter(s => s.target_audience !== 'saas_adm').map((service) => {
+              {displayServices.map((service, rowIndex) => {
                 const enabled = isEnabled(service.id);
                 return (
                   <tr key={service.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-600 tabular-nums">
+                      {rowIndex + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                         {service.target_audience ?? 'all_users'}
@@ -165,7 +174,7 @@ export default function TenantServiceTab({
               })}
               {services.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
                     サービスが登録されていません。
                   </td>
                 </tr>

@@ -110,14 +110,16 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
         <table className="min-w-full bg-white">
           <thead className="bg-gray-100">
             <tr>
+              <th className="px-3 py-3 border-b text-center text-sm font-semibold text-gray-700 w-12 min-w-12">No</th>
               <th className="px-6 py-3 border-b text-left text-sm font-semibold text-gray-700 w-32">表示順</th>
               <th className="px-6 py-3 border-b text-left text-sm font-semibold text-gray-700">カテゴリ名</th>
               <th className="px-6 py-3 border-b text-center text-sm font-semibold text-gray-700 w-40">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {categories.map(cat => (
+            {categories.map((cat, rowIndex) => (
               <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-3 py-4 text-center text-sm text-gray-600 tabular-nums">{rowIndex + 1}</td>
                 <td className="px-6 py-4">
                   {editingId === cat.id ? (
                     <input

@@ -42,16 +42,18 @@ export async function getServices() {
 
 export async function getAppRoles() {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('app_role')
-    .select('*')
-    .order('id', { ascending: true });
+  const { data, error } = await supabase.from('app_role').select('*');
 
   if (error) {
     console.error('getAppRoles error:', error);
     return [];
   }
-  return data || [];
+  const rows = data || [];
+  // マトリクス等の表示順: app_role コード順（null は末尾）
+  rows.sort((a, b) =>
+    String(a.app_role ?? '\uffff').localeCompare(String(b.app_role ?? '\uffff'), 'ja')
+  );
+  return rows;
 }
 
 export async function getTenants() {

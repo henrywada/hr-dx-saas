@@ -27,6 +27,8 @@ export default function AppRoleServiceTab({
     setRoleServices(initialRoleServices);
   }, [initialRoles, initialServices, initialRoleServices]);
 
+  const admServices = services.filter(service => service.target_audience === 'adm');
+
   const handleToggle = async (roleId: string, serviceId: string, currentEnabled: boolean) => {
     if (loading) return;
     setLoading(true);
@@ -55,7 +57,10 @@ export default function AppRoleServiceTab({
         <table className="min-w-full bg-white border-collapse">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 border text-left text-sm font-bold text-gray-700 bg-gray-100 sticky left-0 z-10">
+              <th className="px-2 py-3 border text-center text-sm font-bold text-gray-700 bg-gray-100 sticky left-0 z-20 w-12 min-w-12">
+                No
+              </th>
+              <th className="px-4 py-3 border text-left text-sm font-bold text-gray-700 bg-gray-100 sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                 サービス \ ロール
               </th>
 
@@ -73,9 +78,12 @@ export default function AppRoleServiceTab({
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-            {services.filter(service => service.target_audience === 'adm').map(service => (
+            {admServices.map((service, rowIndex) => (
               <tr key={service.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 border font-medium text-gray-800 bg-white sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <td className="px-2 py-3 border text-center text-sm text-gray-600 tabular-nums bg-white sticky left-0 z-20">
+                  {rowIndex + 1}
+                </td>
+                <td className="px-4 py-3 border font-medium text-gray-800 bg-white sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   {service.name}
                 </td>
 

@@ -108,14 +108,16 @@ export default function AppRoleTab({ initialRoles }: Props) {
         <table className="min-w-full bg-white">
           <thead className="bg-gray-100">
             <tr>
+              <th className="px-3 py-3 border-b text-center text-sm font-bold text-gray-700 w-12 min-w-12">No</th>
               <th className="px-6 py-3 border-b text-left text-sm font-bold text-gray-700">ロール名</th>
               <th className="px-6 py-3 border-b text-left text-sm font-bold text-gray-700">コード (app_role)</th>
               <th className="px-6 py-3 border-b text-center text-sm font-bold text-gray-700 w-40">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {roles.map(role => (
+            {roles.map((role, rowIndex) => (
               <tr key={role.id} className="hover:bg-gray-50">
+                <td className="px-3 py-4 text-center text-sm text-gray-600 tabular-nums">{rowIndex + 1}</td>
                 <td className="px-6 py-4">
                   {editingId === role.id ? (
                     <input

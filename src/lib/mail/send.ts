@@ -36,7 +36,7 @@ export async function sendMail({
   html?: string;
   text?: string;
 }) {
-  const from = process.env.SMTP_FROM || 'noreply@hr-dx.com';
+  const from = process.env.MAIL_FROM || process.env.SMTP_FROM || 'noreply@hr-dx.jp';
   const content = html ?? (text ? text.replace(/\n/g, '<br>') : '');
 
   if (!content) {

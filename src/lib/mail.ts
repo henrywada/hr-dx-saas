@@ -25,7 +25,7 @@ const getTransporter = () => {
 const transporter = getTransporter()
 
 export const sendPulseEmail = async (to: string, candidateName: string, pulseUrl: string) => {
-  const from = process.env.MAIL_FROM || '"HR-dx" <noreply@your-domain.com>'
+  const from = process.env.MAIL_FROM || '"HR-dx" <noreply@hr-dx.jp>'
   const subject = '【ご協力のお願い】本日の面接はいかがでしたでしょうか？ / 株式会社〇〇'
 
   const text = `${candidateName} 様
@@ -69,7 +69,7 @@ export const sendRiskAlertEmail = async (
   concerns: string[],
   comment: string
 ) => {
-  const from = process.env.MAIL_FROM || '"HR-dx" <noreply@your-domain.com>'
+  const from = process.env.MAIL_FROM || '"HR-dx" <noreply@hr-dx.jp>'
   const subject = `⚠️ 【要対応】${candidateName}様の辞退リスクが高まっています（Candidate Pulse）`
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const dashboardUrl = `${baseUrl}/adm/pulse`
@@ -113,7 +113,7 @@ export const sendExpirationAlertEmail = async (
   companyName: string,
   products: { serial_number: string; expiration_date: string }[]
 ) => {
-  const from = process.env.MAIL_FROM || '"HR-dx 製品管理" <noreply@your-domain.com>'
+  const from = process.env.MAIL_FROM || '"HR-dx 製品管理" <noreply@hr-dx.jp>'
   const subject = `【重要】製品有効期限に関するお知らせ（${companyName}様）`
   
   const productList = products

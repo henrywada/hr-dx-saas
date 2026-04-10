@@ -14,9 +14,9 @@
 
 例: `{SUPABASE_URL}/functions/v1/listpermissions`
 
-このリポジトリのローカル API ポートは `supabase/config.toml` の `[api] port`（既定 **55321**）です。例:
+このリポジトリのローカル API ポートは `supabase/config.toml` の `[api] port`（現在 **55421**）です。例:
 
-- `http://127.0.0.1:55321/functions/v1/qr-admin-bulkimportpermissions`
+- `http://127.0.0.1:55421/functions/v1/qr-admin-bulkimportpermissions`
 
 本番: `https://<project-ref>.supabase.co/functions/v1/qr-admin-bulkimportpermissions`
 

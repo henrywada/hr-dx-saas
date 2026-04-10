@@ -23,6 +23,10 @@ export async function signInAction(email: string, password: string) {
     let errorMessage = error.message;
     if (errorMessage === 'Invalid login credentials') {
       errorMessage = 'メールアドレスまたはパスワードが正しくありません。';
+    } else if (/fetch failed/i.test(errorMessage)) {
+      // 接続拒否・URL/ポート不一致などでネイティブ fetch が失敗したとき
+      errorMessage =
+        '認証サーバーに接続できません。ローカルでは `supabase start` を実行し、.env の NEXT_PUBLIC_SUPABASE_URL が `supabase status` の API URL（supabase/config.toml のポート）と一致しているか確認してください。';
     }
     return { success: false, error: errorMessage };
   }

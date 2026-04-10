@@ -62,7 +62,7 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = ["./seed.sql", "./seed_auth.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -85,8 +85,8 @@ enabled = true
 enabled = true
 # Port to use for Supabase Studio.
 port = 55423
-# External URL of the API server that frontend connects to.
-api_url = "http://127.0.0.1"
+# Kong / PostgREST / Auth の API（[api].port と一致させる）。ポート省略だと Admin API が別先に飛び bad_jwt になることがある。
+api_url = "http://127.0.0.1:55421"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
 openai_api_key = "env(OPENAI_API_KEY)"
 

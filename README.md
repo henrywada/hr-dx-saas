@@ -91,10 +91,10 @@ export PATH="$HOME/.local/bin:$PATH" supabase start \`\`\`
 
 | サービス        | URL                                                     |
 | --------------- | ------------------------------------------------------- |
-| Next.js         | http://localhost:3001                                   |
-| Supabase Studio | http://127.0.0.1:55323                                  |
-| Supabase API    | http://127.0.0.1:55321                                  |
-| PostgreSQL      | postgresql://postgres:postgres@127.0.0.1:55322/postgres |
+| Next.js         | http://localhost:3000（または .env の NEXT_PUBLIC_APP_URL） |
+| Supabase Studio | http://127.0.0.1:55423（`supabase/config.toml` の studio ポート） |
+| Supabase API    | http://127.0.0.1:55421（`supabase/config.toml` の [api] port）   |
+| PostgreSQL      | postgresql://postgres:postgres@127.0.0.1:55422/postgres          |
 
 ## 🏗️ プロジェクト構造
 

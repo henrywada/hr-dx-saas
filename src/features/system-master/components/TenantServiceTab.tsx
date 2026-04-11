@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSystemMaster } from '../hooks/useSystemMaster';
 import { Check } from 'lucide-react';
 
@@ -18,7 +19,9 @@ export default function TenantServiceTab({
   initialTenantServices,
   initialCategories
 }: Props) {
-  const { toggleTenantService } = useSystemMaster();
+  const router = useRouter();
+  const { toggleTenantService, bulkSetTenantServices } = useSystemMaster();
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const [tenants, setTenants] = useState<any[]>(initialTenants);
   const [services, setServices] = useState<any[]>(initialServices);
   const [tenantServices, setTenantServices] = useState<any[]>(initialTenantServices);
@@ -66,6 +69,54 @@ export default function TenantServiceTab({
 
   // SaaS 管理専用サービスは一覧から除外（getServices と同じ並び）
   const displayServices = services.filter(s => s.target_audience !== 'saas_adm');
+  const allRowsEnabled =
+    displayServices.length > 0 && displayServices.every((s) => isEnabled(s.id));
+  const noRowsEnabled =
+    displayServices.length === 0 || displayServices.every((s) => !isEnabled(s.id));
+
+  useEffect(() => {
+    const el = headerCheckboxRef.current;
+    if (!el) return;
+    el.indeterminate = !allRowsEnabled && !noRowsEnabled && displayServices.length > 0;
+  }, [allRowsEnabled, noRowsEnabled, displayServices.length]);
+
+  const handleBulkToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const wantOn = e.target.checked;
+    if (loading || !selectedTenantId || displayServices.length === 0) return;
+    setLoading(true);
+    try {
+      const ids = displayServices.map((s) => s.id);
+      const result = await bulkSetTenantServices(selectedTenantId, ids, wantOn);
+      if (!result.success) {
+        alert(`更新に失敗しました: ${result.error}`);
+        return;
+      }
+      setTenantServices((prev) => {
+        if (wantOn) {
+          const keys = new Set(prev.map((ts) => `${ts.tenant_id}:${ts.service_id}`));
+          const next = [...prev];
+          for (const s of displayServices) {
+            const k = `${selectedTenantId}:${s.id}`;
+            if (!keys.has(k)) {
+              next.push({ tenant_id: selectedTenantId, service_id: s.id });
+              keys.add(k);
+            }
+          }
+          return next;
+        }
+        const idSet = new Set(displayServices.map((s) => s.id));
+        return prev.filter(
+          (ts) => !(ts.tenant_id === selectedTenantId && idSet.has(ts.service_id))
+        );
+      });
+      router.refresh();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`エラーが発生しました: ${message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -113,8 +164,22 @@ export default function TenantServiceTab({
                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   パス
                 </th>
-                <th scope="col" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-32">
-                  有効 / 無効
+                <th scope="col" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-36">
+                  <div className="flex flex-col items-center gap-2">
+                    <span>有効 / 無効</span>
+                    <label className="flex cursor-pointer items-center gap-1.5 font-normal normal-case tracking-normal">
+                      <input
+                        ref={headerCheckboxRef}
+                        type="checkbox"
+                        checked={allRowsEnabled}
+                        onChange={handleBulkToggle}
+                        disabled={loading || displayServices.length === 0}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="表示中のサービスをすべて有効または無効にする"
+                      />
+                      <span className="text-[11px] font-medium text-gray-600">すべて</span>
+                    </label>
+                  </div>
                 </th>
               </tr>
             </thead>

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSystemMaster } from '../hooks/useSystemMaster';
 
 interface Props {
@@ -15,7 +16,9 @@ export default function AppRoleServiceTab({
   initialServices,
   initialRoleServices
 }: Props) {
-  const { toggleAppRoleService } = useSystemMaster();
+  const router = useRouter();
+  const { toggleAppRoleService, bulkSetAppRoleServiceColumn } = useSystemMaster();
+  const headerCheckboxRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [roles, setRoles] = useState<any[]>(initialRoles);
   const [services, setServices] = useState<any[]>(initialServices);
   const [roleServices, setRoleServices] = useState<any[]>(initialRoleServices);
@@ -27,7 +30,80 @@ export default function AppRoleServiceTab({
     setRoleServices(initialRoleServices);
   }, [initialRoles, initialServices, initialRoleServices]);
 
-  const admServices = services.filter(service => service.target_audience === 'adm');
+  const admServices = useMemo(
+    () => services.filter((service) => service.target_audience === 'adm'),
+    [services]
+  );
+
+  // 従業員ロール（app_role=employee）はこのマトリクスでは列を表示しない
+  const matrixRoles = useMemo(
+    () => roles.filter((r) => r.app_role !== 'employee'),
+    [roles]
+  );
+
+  const isCellEnabled = (roleId: string, serviceId: string) =>
+    roleServices.some((rs) => rs.app_role_id === roleId && rs.service_id === serviceId);
+
+  const columnAllEnabled = (roleId: string) =>
+    admServices.length > 0 && admServices.every((s) => isCellEnabled(roleId, s.id));
+  const columnNoneEnabled = (roleId: string) =>
+    admServices.length === 0 || admServices.every((s) => !isCellEnabled(roleId, s.id));
+
+  useEffect(() => {
+    matrixRoles.forEach((role) => {
+      const el = headerCheckboxRefs.current[role.id];
+      if (!el) return;
+      const all =
+        admServices.length > 0 &&
+        admServices.every((s) =>
+          roleServices.some((rs) => rs.app_role_id === role.id && rs.service_id === s.id)
+        );
+      const none =
+        admServices.length === 0 ||
+        admServices.every(
+          (s) =>
+            !roleServices.some((rs) => rs.app_role_id === role.id && rs.service_id === s.id)
+        );
+      el.indeterminate = !all && !none && admServices.length > 0;
+    });
+  }, [matrixRoles, admServices, roleServices]);
+
+  const handleBulkColumn = async (roleId: string, wantOn: boolean) => {
+    if (loading || admServices.length === 0) return;
+    setLoading(true);
+    try {
+      const serviceIds = admServices.map((s) => s.id);
+      const result = await bulkSetAppRoleServiceColumn(roleId, serviceIds, wantOn);
+      if (!result.success) {
+        alert(`更新に失敗しました: ${result.error}`);
+        return;
+      }
+      setRoleServices((prev) => {
+        if (wantOn) {
+          const keys = new Set(prev.map((rs) => `${rs.app_role_id}:${rs.service_id}`));
+          const next = [...prev];
+          for (const s of admServices) {
+            const k = `${roleId}:${s.id}`;
+            if (!keys.has(k)) {
+              next.push({ app_role_id: roleId, service_id: s.id });
+              keys.add(k);
+            }
+          }
+          return next;
+        }
+        const idSet = new Set(admServices.map((s) => s.id));
+        return prev.filter(
+          (rs) => !(rs.app_role_id === roleId && idSet.has(rs.service_id))
+        );
+      });
+      router.refresh();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`エラーが発生しました: ${message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggle = async (roleId: string, serviceId: string, currentEnabled: boolean) => {
     if (loading) return;
@@ -64,14 +140,27 @@ export default function AppRoleServiceTab({
                 サービス \ ロール
               </th>
 
-              {/* target_audience 列：従業員カラム（roles[0]）の前に表示されるよう、roles の map の前に配置 */}
+              {/* target_audience 列（ロール列の左側） */}
               <th className="px-4 py-3 border text-center text-sm font-bold text-gray-700 min-w-[140px]">
                 対象 (Audience)
               </th>
 
-              {roles.map(role => (
+              {matrixRoles.map((role) => (
                 <th key={role.id} className="px-4 py-3 border text-center text-sm font-bold text-gray-700 min-w-[120px]">
-                  {role.name}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <input
+                      ref={(el) => {
+                        headerCheckboxRefs.current[role.id] = el;
+                      }}
+                      type="checkbox"
+                      checked={columnAllEnabled(role.id)}
+                      onChange={(e) => handleBulkColumn(role.id, e.target.checked)}
+                      disabled={loading || admServices.length === 0}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={`「${role.name}」列の権限をすべて有効または無効にする`}
+                    />
+                    <span className="leading-tight">{role.name}</span>
+                  </div>
                 </th>
               ))}
             </tr>
@@ -94,10 +183,8 @@ export default function AppRoleServiceTab({
                   </span>
                 </td>
 
-                {roles.map(role => {
-                  const isEnabled = roleServices.some(
-                    rs => rs.app_role_id === role.id && rs.service_id === service.id
-                  );
+                {matrixRoles.map((role) => {
+                  const isEnabled = isCellEnabled(role.id, service.id);
 
                   return (
                     <td key={`${role.id}-${service.id}`} className="px-4 py-3 border text-center">

@@ -82,6 +82,49 @@ export async function toggleAppRoleService(roleId: string, serviceId: string, is
   return { success: true };
 }
 
+/** マトリクス上の1ロール列について、表示中サービスとの権限を一括で ON/OFF */
+export async function bulkSetAppRoleServiceColumn(
+  roleId: string,
+  serviceIds: string[],
+  enabled: boolean
+) {
+  if (!roleId || serviceIds.length === 0) {
+    return { success: true as const };
+  }
+  const supabase = createAdminClient();
+
+  if (!enabled) {
+    const { error } = await supabase
+      .from('app_role_service')
+      .delete()
+      .eq('app_role_id', roleId)
+      .in('service_id', serviceIds);
+    if (error) return { success: false as const, error: error.message };
+    revalidatePath('/saas_adm/system-master');
+    return { success: true as const };
+  }
+
+  const { data: existing, error: selErr } = await supabase
+    .from('app_role_service')
+    .select('service_id')
+    .eq('app_role_id', roleId)
+    .in('service_id', serviceIds);
+  if (selErr) return { success: false as const, error: selErr.message };
+
+  const have = new Set((existing ?? []).map((r: { service_id: string }) => r.service_id));
+  const toInsert = serviceIds.filter((id) => !have.has(id));
+  if (toInsert.length === 0) {
+    revalidatePath('/saas_adm/system-master');
+    return { success: true as const };
+  }
+
+  const rows = toInsert.map((service_id) => ({ app_role_id: roleId, service_id }));
+  const { error: insErr } = await supabase.from('app_role_service').insert(rows);
+  if (insErr) return { success: false as const, error: insErr.message };
+  revalidatePath('/saas_adm/system-master');
+  return { success: true as const };
+}
+
 export async function getAppRoleServices() {
   const supabase = createAdminClient();
   const { data, error } = await supabase.from('app_role_service').select('*');
@@ -107,6 +150,45 @@ export async function toggleTenantService(tenantId: string, serviceId: string, i
   }
   revalidatePath('/saas_adm/system-master');
   return { success: true };
+}
+
+/** 一覧に表示しているサービスについて、テナントの有効/無効を一括で合わせる */
+export async function bulkSetTenantServices(tenantId: string, serviceIds: string[], enabled: boolean) {
+  if (!tenantId || serviceIds.length === 0) {
+    return { success: true as const };
+  }
+  const supabase = createAdminClient();
+
+  if (!enabled) {
+    const { error } = await supabase
+      .from('tenant_service')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .in('service_id', serviceIds);
+    if (error) return { success: false as const, error: error.message };
+    revalidatePath('/saas_adm/system-master');
+    return { success: true as const };
+  }
+
+  const { data: existing, error: selErr } = await supabase
+    .from('tenant_service')
+    .select('service_id')
+    .eq('tenant_id', tenantId)
+    .in('service_id', serviceIds);
+  if (selErr) return { success: false as const, error: selErr.message };
+
+  const have = new Set((existing ?? []).map((r: { service_id: string }) => r.service_id));
+  const toInsert = serviceIds.filter((id) => !have.has(id));
+  if (toInsert.length === 0) {
+    revalidatePath('/saas_adm/system-master');
+    return { success: true as const };
+  }
+
+  const rows = toInsert.map((service_id) => ({ tenant_id: tenantId, service_id }));
+  const { error: insErr } = await supabase.from('tenant_service').insert(rows);
+  if (insErr) return { success: false as const, error: insErr.message };
+  revalidatePath('/saas_adm/system-master');
+  return { success: true as const };
 }
 
 export async function getTenantServices() {

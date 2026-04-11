@@ -159,6 +159,10 @@ export default function ServiceTab({ initialServices, categories }: Props) {
     setEditData(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
 
+  const categoryIdForRow = (row: any) =>
+    editingId === row.id && editData[row.id]
+      ? editData[row.id].service_category_id ?? row.service_category_id
+      : row.service_category_id;
 
   return (
     <div className="space-y-4 w-full">
@@ -185,10 +189,20 @@ export default function ServiceTab({ initialServices, categories }: Props) {
           {services.map((item, index) => {
             const isEditing = editingId === item.id;
             const data = isEditing ? editData[item.id] : item;
+            const prev = index > 0 ? services[index - 1] : null;
+            const currCat = categoryIdForRow(item);
+            const prevCat = prev ? categoryIdForRow(prev) : null;
+            const isCategoryStart = index === 0 || currCat !== prevCat;
 
             return (
               <tbody key={item.id} className="border-b">
-                <tr className="hover:bg-gray-50">
+                <tr
+                  className={
+                    isCategoryStart
+                      ? 'bg-green-50 hover:bg-green-100/70'
+                      : 'hover:bg-gray-50'
+                  }
+                >
                   <td className="px-4 py-2 text-center align-middle">{index + 1}</td>
                   <td className="px-4 py-2 align-middle">
                     {isEditing ? (

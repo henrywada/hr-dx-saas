@@ -11,8 +11,10 @@ import {
   updateAppRole,
   deleteAppRole,
   toggleAppRoleService,
+  bulkSetAppRoleServiceColumn,
   getAppRoleServices,
   toggleTenantService,
+  bulkSetTenantServices,
   getTenantServices,
   generateAiAdvice,
 } from '../actions';
@@ -36,10 +38,12 @@ export function useSystemMaster() {
     
     // App Role Service
     toggleAppRoleService,
+    bulkSetAppRoleServiceColumn,
     getAppRoleServices,
     
     // Tenant Service
     toggleTenantService,
+    bulkSetTenantServices,
     getTenantServices,
 
     // AI Advice

@@ -61,6 +61,24 @@ export async function tenantHasReadyRagDocuments(): Promise<boolean> {
   return (count ?? 0) > 0
 }
 
+/** 基本設定に人事お問合せメール（hr_inquiry_email）が登録されているか */
+export async function tenantHasHrInquiryEmail(): Promise<boolean> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return false
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('tenant_portal_settings')
+    .select('hr_inquiry_email')
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle()
+  if (error) {
+    console.error('[inquiry-chat] tenantHasHrInquiryEmail', error)
+    return false
+  }
+  const raw = data?.hr_inquiry_email?.trim()
+  return !!raw
+}
+
 export type ChatMessageRow = {
   id: string
   role: 'user' | 'assistant'

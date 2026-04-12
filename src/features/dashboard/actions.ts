@@ -193,15 +193,8 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function resolveHrInquiryToFromEnv(): string | null {
-  const direct = process.env.HR_INQUIRY_EMAIL?.trim()
-  if (direct) return direct
-  const fallback = process.env.HR_ALERT_EMAIL_DEFAULT?.trim()
-  if (fallback) return fallback
-  return null
-}
-
-async function resolveHrInquiryToForTenant(tenantId: string): Promise<string | null> {
+/** ポータル「人事へメール」の宛先は tenant_portal_settings.hr_inquiry_email のみ（環境変数にはフォールバックしない） */
+async function resolveHrInquiryEmailFromTenantSettings(tenantId: string): Promise<string | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tenant_portal_settings')
@@ -210,11 +203,10 @@ async function resolveHrInquiryToForTenant(tenantId: string): Promise<string | n
     .maybeSingle()
   if (error) {
     console.error('[sendHrInquiryMail] tenant_portal_settings', error)
-  } else {
-    const raw = data?.hr_inquiry_email?.trim()
-    if (raw) return raw
+    return null
   }
-  return resolveHrInquiryToFromEnv()
+  const raw = data?.hr_inquiry_email?.trim()
+  return raw || null
 }
 
 export type SendHrInquiryMailResult =
@@ -241,12 +233,12 @@ export async function sendHrInquiryMail(formData: FormData): Promise<SendHrInqui
   }
 
   const { subject, body } = parsed.data
-  const to = await resolveHrInquiryToForTenant(user.tenant_id)
+  const to = await resolveHrInquiryEmailFromTenantSettings(user.tenant_id)
   if (!to) {
     return {
       ok: false,
       error:
-        '人事宛メールアドレスが未設定です。管理画面の「基本設定」で宛先を登録するか、管理者に HR_INQUIRY_EMAIL または HR_ALERT_EMAIL_DEFAULT の設定を依頼してください。',
+        '人事宛メールアドレスが未設定です。管理画面の「基本設定」でお問合せ先の人事メールアドレスを登録してください。',
     }
   }
 

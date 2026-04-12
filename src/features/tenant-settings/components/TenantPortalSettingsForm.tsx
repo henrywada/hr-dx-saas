@@ -83,10 +83,7 @@ export function TenantPortalSettingsForm({ initialHrInquiryEmail }: Props) {
           />
           {fieldError && <p className="mt-1 text-xs text-red-600">{fieldError}</p>}
           <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-            従業員がポータル「人事へのお問合せ」からメール送信するときの宛先です。空欄のまま保存すると、サーバー環境変数（
-            <code className="rounded bg-slate-100 px-1">HR_INQUIRY_EMAIL</code> または{' '}
-            <code className="rounded bg-slate-100 px-1">HR_ALERT_EMAIL_DEFAULT</code>
-            ）の値が使われます。
+            従業員がポータル「人事へのお問合せ」の「人事へメール」から送信するときの宛先です。未登録のときはメールタブは利用できません。
           </p>
         </div>
 

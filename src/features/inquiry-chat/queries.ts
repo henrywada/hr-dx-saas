@@ -10,7 +10,7 @@ export type RagDocumentListItem = {
   source_url: string | null
 }
 
-/** 人事のみ（RLS）。管理画面用 */
+/** 同一テナントの文書一覧（RLS）。管理画面用 */
 export async function listRagDocuments(): Promise<RagDocumentListItem[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

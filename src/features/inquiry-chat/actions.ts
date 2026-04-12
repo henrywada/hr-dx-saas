@@ -16,10 +16,6 @@ import { CHAT_MODEL, RAG_TOP_K } from './constants'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-function isHrRole(appRole: string | undefined): boolean {
-  return appRole === 'hr' || appRole === 'hr_manager'
-}
-
 /**
  * Supabase Storage の object key に非 ASCII を含めると `Invalid key` になるため、
  * UUID に英数字のみの拡張子を付けたパスにする（表示用は original_filename を参照）。
@@ -169,7 +165,6 @@ async function finalizeDocumentChunks(params: {
 export async function ingestPasteAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
-  if (!isHrRole(user.appRole)) return { ok: false, error: '人事担当者のみ登録できます' }
 
   const title = (formData.get('title') as string)?.trim() || '貼り付けテキスト'
   const body = (formData.get('body') as string)?.trim() || ''
@@ -214,7 +209,6 @@ export async function ingestPasteAction(formData: FormData): Promise<{ ok: boole
 export async function ingestUrlAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
-  if (!isHrRole(user.appRole)) return { ok: false, error: '人事担当者のみ登録できます' }
 
   const title = (formData.get('title') as string)?.trim() || 'Webページ'
   const url = (formData.get('url') as string)?.trim() || ''
@@ -274,7 +268,6 @@ export async function ingestUrlAction(formData: FormData): Promise<{ ok: boolean
 export async function ingestFileAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
-  if (!isHrRole(user.appRole)) return { ok: false, error: '人事担当者のみ登録できます' }
 
   const file = formData.get('file') as File | null
   if (!file || file.size === 0) return { ok: false, error: 'ファイルを選択してください' }
@@ -351,7 +344,6 @@ export async function ingestFileAction(formData: FormData): Promise<{ ok: boolea
 export async function deleteRagDocumentAction(documentId: string): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
-  if (!isHrRole(user.appRole)) return { ok: false, error: '人事担当者のみ削除できます' }
 
   const supabase = await createClient()
   const { data: row } = await supabase

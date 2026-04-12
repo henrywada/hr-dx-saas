@@ -7,23 +7,11 @@ import { APP_ROUTES } from '@/config/routes'
 
 export default async function InquiryChatKnowledgePage() {
   const user = await getServerUser()
-  const isHr = user?.appRole === 'hr' || user?.appRole === 'hr_manager'
 
   if (!user?.tenant_id) {
     return (
       <div className="p-8 text-center text-slate-600">
         テナント情報が取得できません。再ログインしてください。
-      </div>
-    )
-  }
-
-  if (!isHr) {
-    return (
-      <div className="p-8 max-w-lg mx-auto space-y-4 text-center">
-        <p className="text-slate-700">人事ナレッジの登録は人事担当者のみ利用できます。</p>
-        <Link href={APP_ROUTES.TENANT.ADMIN} className="text-blue-600 underline">
-          管理トップへ
-        </Link>
       </div>
     )
   }

@@ -33,6 +33,8 @@ export const APP_ROUTES = {
 
     /** 残業申請の承認（上長・同一部署）— (default)/(overtime) */
     OVERTIME_APPROVAL: '/approval',
+    /** 管理：人事ナレッジ（文書取り込み） */
+    ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

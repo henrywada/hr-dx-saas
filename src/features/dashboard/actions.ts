@@ -1,10 +1,12 @@
 'use server'
 
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTISOString } from '@/lib/datetime'
+import { sendMail } from '@/lib/mail/send'
 
 const ADM_PATH = APP_ROUTES.TENANT.ADMIN
 
@@ -174,4 +176,93 @@ export async function deletePulseSurveyPeriod(id: string) {
   revalidatePath(`${ADM_PATH}/pulse-survey-periods`)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
   return { success: true }
+}
+
+// ========== 人事へのお問合せ（メール） ==========
+
+const hrInquirySchema = z.object({
+  subject: z.string().trim().min(1, '件名を入力してください').max(200, '件名は200文字以内です'),
+  body: z.string().trim().min(1, '本文を入力してください').max(8000, '本文は8000文字以内です'),
+})
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function resolveHrInquiryTo(): string | null {
+  const direct = process.env.HR_INQUIRY_EMAIL?.trim()
+  if (direct) return direct
+  const fallback = process.env.HR_ALERT_EMAIL_DEFAULT?.trim()
+  if (fallback) return fallback
+  return null
+}
+
+export type SendHrInquiryMailResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+export async function sendHrInquiryMail(formData: FormData): Promise<SendHrInquiryMailResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) {
+    return { ok: false, error: 'ログイン情報が取得できません。' }
+  }
+
+  const parsed = hrInquirySchema.safeParse({
+    subject: formData.get('subject') ?? '',
+    body: formData.get('body') ?? '',
+  })
+  if (!parsed.success) {
+    const first = parsed.error.flatten().fieldErrors
+    const msg =
+      (first.subject && first.subject[0]) ||
+      (first.body && first.body[0]) ||
+      '入力内容を確認してください'
+    return { ok: false, error: msg }
+  }
+
+  const { subject, body } = parsed.data
+  const to = resolveHrInquiryTo()
+  if (!to) {
+    return {
+      ok: false,
+      error:
+        '人事宛メールアドレスが未設定です。管理者に HR_INQUIRY_EMAIL または HR_ALERT_EMAIL_DEFAULT の設定を依頼してください。',
+    }
+  }
+
+  const senderLabel = [user.name, user.email].filter(Boolean).join(' / ')
+  const metaLines = [
+    `テナント: ${user.tenant_name ?? user.tenant_id}`,
+    `ユーザーID: ${user.id}`,
+    `従業員ID: ${user.employee_id ?? '（未紐付け）'}`,
+    `社員番号: ${user.employee_no ?? '—'}`,
+    `送信者: ${senderLabel}`,
+  ]
+
+  const html = `
+<div style="font-family: sans-serif; line-height: 1.6;">
+  <p><strong>件名（ユーザー入力）</strong></p>
+  <p>${escapeHtml(subject)}</p>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+  <p><strong>本文</strong></p>
+  <pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 8px;">${escapeHtml(body)}</pre>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+  <p style="font-size: 12px; color: #64748b;">${metaLines.map((l) => escapeHtml(l)).join('<br/>')}</p>
+</div>
+`
+
+  const mailSubject = `【人事へのお問合せ】${subject}`
+
+  try {
+    await sendMail({ to, subject: mailSubject, html })
+  } catch (e) {
+    console.error('[sendHrInquiryMail]', e)
+    return { ok: false, error: 'メール送信に失敗しました。しばらくしてから再度お試しください。' }
+  }
+
+  return { ok: true }
 }

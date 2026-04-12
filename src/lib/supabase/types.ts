@@ -2866,6 +2866,186 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_inquiry_chat_messages: {
+        Row: {
+          id: string
+          tenant_id: string
+          session_id: string
+          user_id: string
+          role: string
+          content: string
+          cited_chunk_ids: string[] | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          session_id: string
+          user_id: string
+          role: string
+          content: string
+          cited_chunk_ids?: string[] | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          session_id?: string
+          user_id?: string
+          role?: string
+          content?: string
+          cited_chunk_ids?: string[] | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      tenant_inquiry_chat_sessions: {
+        Row: {
+          id: string
+          tenant_id: string
+          user_id: string
+          title: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          user_id: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          user_id?: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tenant_rag_audit_logs: {
+        Row: {
+          id: string
+          tenant_id: string
+          actor_user_id: string | null
+          action: string
+          document_id: string | null
+          detail: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          actor_user_id?: string | null
+          action: string
+          document_id?: string | null
+          detail?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          actor_user_id?: string | null
+          action?: string
+          document_id?: string | null
+          detail?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      tenant_rag_chunks: {
+        Row: {
+          id: string
+          tenant_id: string
+          document_id: string
+          chunk_index: number
+          content: string
+          embedding: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          document_id: string
+          chunk_index: number
+          content: string
+          embedding?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          document_id?: string
+          chunk_index?: number
+          content?: string
+          embedding?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      tenant_rag_documents: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          source_kind: string
+          mime_type: string | null
+          original_filename: string | null
+          source_url: string | null
+          storage_path: string | null
+          status: string
+          error_message: string | null
+          byte_size: number | null
+          created_by: string | null
+          ingest_started_at: string | null
+          ingest_completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title: string
+          source_kind: string
+          mime_type?: string | null
+          original_filename?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          status?: string
+          error_message?: string | null
+          byte_size?: number | null
+          created_by?: string | null
+          ingest_started_at?: string | null
+          ingest_completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          source_kind?: string
+          mime_type?: string | null
+          original_filename?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          status?: string
+          error_message?: string | null
+          byte_size?: number | null
+          created_by?: string | null
+          ingest_started_at?: string | null
+          ingest_completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenant_service: {
         Row: {
           id: string
@@ -3194,6 +3374,17 @@ export type Database = {
       current_employee_app_role: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      match_tenant_rag_chunks: {
+        Args: { query_embedding: string; match_count?: number }
+        Returns: {
+          id: string
+          document_id: string
+          chunk_index: number
+          content: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       aggregate_monthly_closure: {
         Args: { p_closure_id: string; p_tenant_id: string }
         Returns: undefined

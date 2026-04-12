@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // pdf-parse / pdfjs-dist を webpack が束ねると Node 上で Object.defineProperty 等が壊れるためサーバでは外部解決
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
+  // 人事ナレッジ取り込み（長文貼り付け・最大50MBファイル）が Server Action の FormData を送るため
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
   async redirects() {
     return [
       {

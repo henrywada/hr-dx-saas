@@ -24,20 +24,23 @@ type TabsTriggerProps = {
   onClick: () => void
   children: ReactNode
   className?: string
+  disabled?: boolean
 }
 
-export function TabsTrigger({ selected, onClick, children, className }: TabsTriggerProps) {
+export function TabsTrigger({ selected, onClick, children, className, disabled }: TabsTriggerProps) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={selected}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
         selected
           ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
           : 'text-slate-600 hover:text-slate-900',
+        disabled && 'opacity-50 cursor-not-allowed',
         className,
       )}
     >

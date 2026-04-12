@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import type { RagDocumentListItem } from '../queries'
@@ -9,6 +10,27 @@ import { deleteRagDocumentAction, ingestFileAction, ingestPasteAction, ingestUrl
 import { ragDocumentFormatLabel } from '../ragDocumentLabel'
 
 type IngestTab = 'file' | 'paste' | 'url'
+
+type PendingIngest = 'idle' | 'file' | 'paste' | 'url'
+
+function InlineSpinner({ className }: { className?: string }) {
+  return (
+    <svg
+      className={cn('h-4 w-4 shrink-0 animate-spin', className)}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  )
+}
 
 type Props = {
   initialDocuments: RagDocumentListItem[]
@@ -19,7 +41,9 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
   const [docs, setDocs] = useState(initialDocuments)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [pendingIngest, setPendingIngest] = useState<PendingIngest>('idle')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const busy = pendingIngest !== 'idle' || deletingId !== null
   const [ingestTab, setIngestTab] = useState<IngestTab>('file')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
@@ -35,12 +59,12 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
   async function onPaste(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
-    setBusy(true)
+    setPendingIngest('paste')
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
     const res = await ingestPasteAction(fd)
-    setBusy(false)
+    setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')
       return
@@ -53,12 +77,12 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
   async function onUrl(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
-    setBusy(true)
+    setPendingIngest('url')
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
     const res = await ingestUrlAction(fd)
-    setBusy(false)
+    setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')
       return
@@ -71,12 +95,12 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
   async function onFile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
-    setBusy(true)
+    setPendingIngest('file')
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
     const res = await ingestFileAction(fd)
-    setBusy(false)
+    setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')
       return
@@ -89,10 +113,10 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
 
   async function onDelete(id: string) {
     if (!confirm('この文書とチャンクを削除しますか？')) return
-    setBusy(true)
+    setDeletingId(id)
     setError(null)
     const res = await deleteRagDocumentAction(id)
-    setBusy(false)
+    setDeletingId(null)
     if (!res.ok) {
       setError(res.error || '削除に失敗しました')
       return
@@ -110,21 +134,42 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
       {message && <p className="text-sm text-green-700">{message}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
-        <TabsList className="mb-4 w-full justify-start">
-          <TabsTrigger selected={ingestTab === 'file'} onClick={() => setIngestTab('file')}>
+      <div
+        className={cn('rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6', busy && 'relative')}
+        aria-busy={busy}
+      >
+        {busy && (
+          <div
+            className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-white/40"
+            aria-hidden
+          />
+        )}
+        <TabsList className="relative z-[2] mb-4 w-full justify-start">
+          <TabsTrigger
+            selected={ingestTab === 'file'}
+            disabled={busy}
+            onClick={() => setIngestTab('file')}
+          >
             ファイルアップロード
           </TabsTrigger>
-          <TabsTrigger selected={ingestTab === 'paste'} onClick={() => setIngestTab('paste')}>
+          <TabsTrigger
+            selected={ingestTab === 'paste'}
+            disabled={busy}
+            onClick={() => setIngestTab('paste')}
+          >
             テキスト貼り付け
           </TabsTrigger>
-          <TabsTrigger selected={ingestTab === 'url'} onClick={() => setIngestTab('url')}>
+          <TabsTrigger
+            selected={ingestTab === 'url'}
+            disabled={busy}
+            onClick={() => setIngestTab('url')}
+          >
             URL（公開ページ）
           </TabsTrigger>
         </TabsList>
 
         {ingestTab === 'file' && (
-          <section className="space-y-3" role="tabpanel" aria-label="ファイルアップロード">
+          <section className="relative z-[2] space-y-3" role="tabpanel" aria-label="ファイルアップロード">
             <h2 className="text-lg font-semibold text-slate-900">ファイル（PDF / DOCX / Excel / CSV）</h2>
             <form onSubmit={onFile} encType="multipart/form-data" className="space-y-2 grid gap-2">
               <input name="title" placeholder="タイトル（任意）" className="rounded border border-slate-300 px-3 py-2" disabled={busy} />
@@ -155,15 +200,22 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
                   )}
                 </span>
               </div>
-              <Button type="submit" variant="primary" disabled={busy}>
-                アップロードして取り込む
+              <Button type="submit" variant="primary" disabled={busy} className="inline-flex items-center justify-center gap-2">
+                {pendingIngest === 'file' ? (
+                  <>
+                    <InlineSpinner className="text-white" />
+                    取り込み中…
+                  </>
+                ) : (
+                  'アップロードして取り込む'
+                )}
               </Button>
             </form>
           </section>
         )}
 
         {ingestTab === 'paste' && (
-          <section className="space-y-3" role="tabpanel" aria-label="テキスト貼り付け">
+          <section className="relative z-[2] space-y-3" role="tabpanel" aria-label="テキスト貼り付け">
             <h2 className="text-lg font-semibold text-slate-900">テキスト貼り付け</h2>
             <form onSubmit={onPaste} className="space-y-2 grid gap-2">
               <input
@@ -179,15 +231,22 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
                 className="min-h-[140px] rounded border border-slate-300 px-3 py-2"
                 disabled={busy}
               />
-              <Button type="submit" variant="primary" disabled={busy}>
-                取り込む
+              <Button type="submit" variant="primary" disabled={busy} className="inline-flex items-center justify-center gap-2">
+                {pendingIngest === 'paste' ? (
+                  <>
+                    <InlineSpinner className="text-white" />
+                    取り込み中…
+                  </>
+                ) : (
+                  '取り込む'
+                )}
               </Button>
             </form>
           </section>
         )}
 
         {ingestTab === 'url' && (
-          <section className="space-y-3" role="tabpanel" aria-label="URL（公開ページ）">
+          <section className="relative z-[2] space-y-3" role="tabpanel" aria-label="URL（公開ページ）">
             <h2 className="text-lg font-semibold text-slate-900">URL（公開ページ）</h2>
             <form onSubmit={onUrl} className="space-y-2 grid gap-2">
               <input
@@ -204,8 +263,15 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
                 className="rounded border border-slate-300 px-3 py-2"
                 disabled={busy}
               />
-              <Button type="submit" variant="primary" disabled={busy}>
-                URL から取り込む
+              <Button type="submit" variant="primary" disabled={busy} className="inline-flex items-center justify-center gap-2">
+                {pendingIngest === 'url' ? (
+                  <>
+                    <InlineSpinner className="text-white" />
+                    取り込み中…
+                  </>
+                ) : (
+                  'URL から取り込む'
+                )}
               </Button>
             </form>
           </section>
@@ -242,8 +308,22 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
                     <td className="p-2">{d.status}</td>
                     <td className="p-2 text-slate-500">{new Date(d.created_at).toLocaleString('ja-JP')}</td>
                     <td className="p-2">
-                      <Button type="button" variant="warning" size="sm" disabled={busy} onClick={() => onDelete(d.id)}>
-                        削除
+                      <Button
+                        type="button"
+                        variant="warning"
+                        size="sm"
+                        disabled={busy}
+                        className="inline-flex min-w-[5.5rem] items-center justify-center gap-1.5"
+                        onClick={() => onDelete(d.id)}
+                      >
+                        {deletingId === d.id ? (
+                          <>
+                            <InlineSpinner className="text-white" />
+                            削除中…
+                          </>
+                        ) : (
+                          '削除'
+                        )}
                       </Button>
                     </td>
                   </tr>

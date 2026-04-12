@@ -2926,6 +2926,32 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_portal_settings: {
+        Row: {
+          tenant_id: string
+          hr_inquiry_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          tenant_id: string
+          hr_inquiry_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          tenant_id?: string
+          hr_inquiry_email?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_portal_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_rag_audit_logs: {
         Row: {
           id: string
@@ -3508,6 +3534,12 @@ export type Database = {
           p_average_limit_hours: number
           p_monthly_limit_hours: number
           p_monthly_warning_hours: number
+        }
+        Returns: string
+      }
+      upsert_tenant_portal_settings: {
+        Args: {
+          p_hr_inquiry_email: string | null
         }
         Returns: string
       }

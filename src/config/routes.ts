@@ -9,6 +9,8 @@ export const APP_ROUTES = {
     PORTAL: '/top',
     ADMIN: '/adm',
     ADMIN_ANNOUNCEMENTS: '/adm/announcements',
+    /** テナント基本設定（お問合せメール等）— (base_mnt)/settings */
+    ADMIN_SETTINGS: '/adm/settings',
     ADMIN_PULSE_SURVEY_PERIODS: '/adm/pulse-survey-periods',
     ADMIN_SERVICE_ASSIGNMENTS: '/adm/service-assignments',
     ADMIN_PROGRAM_TARGETS: '/adm/program-targets',

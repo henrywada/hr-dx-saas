@@ -37,6 +37,30 @@ export async function listRagDocuments(): Promise<RagDocumentListItem[]> {
   return (data ?? []) as RagDocumentListItem[]
 }
 
+/** AI チャットの参照元として使える文書が 1 件でもあるか（取り込み完了・status=ready） */
+export async function tenantHasReadyRagDocuments(): Promise<boolean> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return false
+  let supabase
+  try {
+    supabase = createAdminServiceClient()
+  } catch (e) {
+    console.error('[inquiry-chat] tenantHasReadyRagDocuments admin client', e)
+    return false
+  }
+  const { count, error } = await supabase
+    .from('tenant_rag_documents')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', user.tenant_id)
+    .eq('status', 'ready')
+
+  if (error) {
+    console.error('[inquiry-chat] tenantHasReadyRagDocuments', error)
+    return false
+  }
+  return (count ?? 0) > 0
+}
+
 export type ChatMessageRow = {
   id: string
   role: 'user' | 'assistant'

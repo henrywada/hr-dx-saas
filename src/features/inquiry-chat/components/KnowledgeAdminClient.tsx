@@ -13,6 +13,34 @@ type IngestTab = 'file' | 'paste' | 'url'
 
 type PendingIngest = 'idle' | 'file' | 'paste' | 'url'
 
+/** Server Action の応答が返らないまま接続が宙に浮くと UI が永遠に待つため、上限で打ち切る（actions の maxDuration 300s + 余裕） */
+const INGEST_CLIENT_TIMEOUT_MS = 330_000
+
+function raceWithIngestTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = setTimeout(() => {
+      reject(new Error('INGEST_CLIENT_TIMEOUT'))
+    }, INGEST_CLIENT_TIMEOUT_MS)
+    promise.then(
+      (v) => {
+        clearTimeout(id)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(id)
+        reject(e)
+      }
+    )
+  })
+}
+
+function ingestTimeoutOrErrorMessage(e: unknown): string {
+  if (e instanceof Error && e.message === 'INGEST_CLIENT_TIMEOUT') {
+    return '取り込みが時間内に完了しませんでした。サーバーの実行時間上限・通信切断・または応答が返らない状態の可能性があります。ホスティングの関数ログを確認し、ページを再読み込みして一覧を確認してください。'
+  }
+  return e instanceof Error ? e.message : '取り込みに失敗しました'
+}
+
 function InlineSpinner({ className }: { className?: string }) {
   return (
     <svg
@@ -63,7 +91,14 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
-    const res = await ingestPasteAction(fd)
+    let res: Awaited<ReturnType<typeof ingestPasteAction>>
+    try {
+      res = await raceWithIngestTimeout(ingestPasteAction(fd))
+    } catch (e) {
+      setPendingIngest('idle')
+      setError(ingestTimeoutOrErrorMessage(e))
+      return
+    }
     setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')
@@ -81,7 +116,14 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
-    const res = await ingestUrlAction(fd)
+    let res: Awaited<ReturnType<typeof ingestUrlAction>>
+    try {
+      res = await raceWithIngestTimeout(ingestUrlAction(fd))
+    } catch (e) {
+      setPendingIngest('idle')
+      setError(ingestTimeoutOrErrorMessage(e))
+      return
+    }
     setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')
@@ -99,7 +141,14 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
     setError(null)
     setMessage(null)
     const fd = new FormData(form)
-    const res = await ingestFileAction(fd)
+    let res: Awaited<ReturnType<typeof ingestFileAction>>
+    try {
+      res = await raceWithIngestTimeout(ingestFileAction(fd))
+    } catch (e) {
+      setPendingIngest('idle')
+      setError(ingestTimeoutOrErrorMessage(e))
+      return
+    }
     setPendingIngest('idle')
     if (!res.ok) {
       setError(res.error || '失敗しました')

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import type { RagDocumentListItem } from '../queries'
 import { deleteRagDocumentAction, ingestFileAction, ingestPasteAction, ingestUrlAction } from '../actions'
+import { ragDocumentFormatLabel } from '../ragDocumentLabel'
 
 type IngestTab = 'file' | 'paste' | 'url'
 
@@ -219,6 +220,7 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
               <tr>
                 <th className="p-2">タイトル</th>
                 <th className="p-2">種別</th>
+                <th className="p-2">区分</th>
                 <th className="p-2">状態</th>
                 <th className="p-2">登録日時</th>
                 <th className="p-2" />
@@ -227,7 +229,7 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
             <tbody>
               {docs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-slate-500">
+                  <td colSpan={6} className="p-4 text-slate-500">
                     文書がありません
                   </td>
                 </tr>
@@ -236,6 +238,7 @@ export function KnowledgeAdminClient({ initialDocuments }: Props) {
                   <tr key={d.id} className="border-t border-slate-100">
                     <td className="p-2 font-medium">{d.title}</td>
                     <td className="p-2 text-slate-600">{d.source_kind}</td>
+                    <td className="p-2 text-slate-600">{ragDocumentFormatLabel(d)}</td>
                     <td className="p-2">{d.status}</td>
                     <td className="p-2 text-slate-500">{new Date(d.created_at).toLocaleString('ja-JP')}</td>
                     <td className="p-2">

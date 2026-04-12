@@ -4,7 +4,10 @@ import { revalidatePath } from 'next/cache'
 import OpenAI from 'openai'
 import { randomUUID } from 'node:crypto'
 import { Buffer } from 'node:buffer'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminServiceClient } from '@/lib/supabase/adminClient'
+import type { Database } from '@/lib/supabase/types'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { chunkPlainText } from './chunk'
@@ -54,8 +57,17 @@ function resolveMimeTypeForRagUpload(file: File): string {
   return file.type || 'application/octet-stream'
 }
 
+/** RLS と JWT の tenant 不一致を避けるため取り込み・削除は service_role（tenant_id は getServerUser で検証済み） */
+function tryRagServiceClient(): SupabaseClient<Database> | null {
+  try {
+    return createAdminServiceClient()
+  } catch {
+    return null
+  }
+}
+
 async function writeAudit(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   userId: string,
   action: string,
@@ -72,7 +84,7 @@ async function writeAudit(
 }
 
 async function finalizeDocumentChunks(params: {
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: SupabaseClient<Database>
   tenantId: string
   userId: string
   documentId: string
@@ -170,7 +182,14 @@ export async function ingestPasteAction(formData: FormData): Promise<{ ok: boole
   const body = (formData.get('body') as string)?.trim() || ''
   if (!body) return { ok: false, error: '本文を入力してください' }
 
-  const supabase = await createClient()
+  const supabase = tryRagServiceClient()
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        'サーバー設定が不足しています（SUPABASE_SERVICE_ROLE_KEY）。管理者に .env の設定を確認してください。',
+    }
+  }
   const { data: doc, error: docErr } = await supabase
     .from('tenant_rag_documents')
     .insert({
@@ -228,7 +247,14 @@ export async function ingestUrlAction(formData: FormData): Promise<{ ok: boolean
 
   if (!plainText.trim()) return { ok: false, error: 'ページから本文を抽出できませんでした' }
 
-  const supabase = await createClient()
+  const supabase = tryRagServiceClient()
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        'サーバー設定が不足しています（SUPABASE_SERVICE_ROLE_KEY）。管理者に .env の設定を確認してください。',
+    }
+  }
   const { data: doc, error: docErr } = await supabase
     .from('tenant_rag_documents')
     .insert({
@@ -288,7 +314,14 @@ export async function ingestFileAction(formData: FormData): Promise<{ ok: boolea
     return { ok: false, error: msg }
   }
 
-  const supabase = await createClient()
+  const supabase = tryRagServiceClient()
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        'サーバー設定が不足しています（SUPABASE_SERVICE_ROLE_KEY）。管理者に .env の設定を確認してください。',
+    }
+  }
 
   const { data: doc, error: docErr } = await supabase
     .from('tenant_rag_documents')
@@ -345,11 +378,19 @@ export async function deleteRagDocumentAction(documentId: string): Promise<{ ok:
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
-  const supabase = await createClient()
+  const supabase = tryRagServiceClient()
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        'サーバー設定が不足しています（SUPABASE_SERVICE_ROLE_KEY）。管理者に .env の設定を確認してください。',
+    }
+  }
   const { data: row } = await supabase
     .from('tenant_rag_documents')
     .select('id, storage_path')
     .eq('id', documentId)
+    .eq('tenant_id', user.tenant_id)
     .maybeSingle()
 
   if (!row) return { ok: false, error: '文書が見つかりません' }

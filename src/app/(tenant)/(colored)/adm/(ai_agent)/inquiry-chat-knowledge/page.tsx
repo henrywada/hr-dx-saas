@@ -5,6 +5,13 @@ import { listRagDocuments } from '@/features/inquiry-chat/queries'
 import { KnowledgeAdminClient } from '@/features/inquiry-chat/components/KnowledgeAdminClient'
 import { APP_ROUTES } from '@/config/routes'
 
+/**
+ * RAG 取り込み（PDF 解析・Storage・埋め込み・チャンク保存）が長時間かかる。
+ * クラウドの Serverless 既定タイムアウトを超えると応答が返らず UI が「取り込み中」のままに見える。
+ * Vercel Pro 等で最大 300 秒まで延長可能（プランにより上限あり）。
+ */
+export const maxDuration = 300
+
 export default async function InquiryChatKnowledgePage() {
   const user = await getServerUser()
 

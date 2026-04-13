@@ -61,57 +61,61 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
           ❓人事へのお問合せ
         </button>
       </DialogTrigger>
+      {/* シェルは HelpMarkdownModal と同一（my_help_modal_style / help-modal-style.mdc） */}
       <DialogContent
-        className="flex max-h-[min(92vh,720px)] w-[calc(100%-1.5rem)] max-w-[640px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]"
+        className="max-h-[80vh] max-w-[800px] flex flex-col gap-0 overflow-hidden rounded-lg border border-neutral-200 bg-white p-0 shadow-lg [&>button]:text-white [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:focus-visible:ring-white/40"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="shrink-0 border-b border-neutral-100 px-6 pb-4 pt-6 pr-14 sm:px-8 sm:pr-16">
-          <DialogTitle>人事へのお問合せ</DialogTitle>
-          <DialogPrimitive.Description className="text-sm text-neutral-600">
-            {descriptionText}
-          </DialogPrimitive.Description>
+        <DialogHeader className="rounded-t-lg border-0 bg-sky-600 px-6 pb-4 pt-5 pr-14 text-white sm:px-8 sm:pb-5 sm:pt-6 sm:pr-16">
+          <DialogTitle className="text-lg font-semibold text-white sm:text-xl">
+            人事へのお問合せ
+          </DialogTitle>
+          <DialogPrimitive.Description className="sr-only">{descriptionText}</DialogPrimitive.Description>
         </DialogHeader>
 
         {anyFeatureEnabled ? (
           <>
-            <div className="flex shrink-0 gap-1 border-b border-neutral-100 px-4 sm:px-6">
-              <button
-                type="button"
-                disabled={!aiChatEnabled}
-                title={!aiChatEnabled ? '制度文書が登録されるまでご利用いただけません' : undefined}
-                onClick={() => aiChatEnabled && setTab('chat')}
-                className={cn(
-                  'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
-                  !aiChatEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
-                  aiChatEnabled && tab === 'chat'
-                    ? 'border-b-2 border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                    : aiChatEnabled && 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50',
-                )}
-              >
-                AIチャット
-              </button>
-              <button
-                type="button"
-                disabled={!hrMailEnabled}
-                title={
-                  !hrMailEnabled
-                    ? '管理画面の「基本設定」で人事宛メールを登録するとご利用いただけます'
-                    : undefined
-                }
-                onClick={() => hrMailEnabled && setTab('mail')}
-                className={cn(
-                  'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
-                  !hrMailEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
-                  hrMailEnabled && tab === 'mail'
-                    ? 'border-b-2 border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                    : hrMailEnabled && 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50',
-                )}
-              >
-                人事へメール
-              </button>
+            <div className="shrink-0 border-b border-neutral-100 px-6 pt-4 sm:px-8">
+              <p className="text-sm leading-relaxed text-neutral-600">{descriptionText}</p>
+              <div className="-mb-px mt-3 flex gap-1">
+                <button
+                  type="button"
+                  disabled={!aiChatEnabled}
+                  title={!aiChatEnabled ? '制度文書が登録されるまでご利用いただけません' : undefined}
+                  onClick={() => aiChatEnabled && setTab('chat')}
+                  className={cn(
+                    'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
+                    !aiChatEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
+                    aiChatEnabled && tab === 'chat'
+                      ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700'
+                      : aiChatEnabled && 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
+                  )}
+                >
+                  AIチャット
+                </button>
+                <button
+                  type="button"
+                  disabled={!hrMailEnabled}
+                  title={
+                    !hrMailEnabled
+                      ? '管理画面の「基本設定」で人事宛メールを登録するとご利用いただけます'
+                      : undefined
+                  }
+                  onClick={() => hrMailEnabled && setTab('mail')}
+                  className={cn(
+                    'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
+                    !hrMailEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
+                    hrMailEnabled && tab === 'mail'
+                      ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700'
+                      : hrMailEnabled && 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
+                  )}
+                >
+                  人事へメール
+                </button>
+              </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]">
               {tab === 'chat' && aiChatEnabled && (
                 <div className="space-y-3">
                   {hrMailEnabled ? (
@@ -130,8 +134,9 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
             </div>
           </>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-            <p className="text-sm text-slate-600 leading-relaxed">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]">
+            <p className="text-sm leading-relaxed text-neutral-600">{descriptionText}</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
               制度文書（AI チャット）の登録、または「基本設定」での人事宛メールの登録が必要です。
             </p>
           </div>

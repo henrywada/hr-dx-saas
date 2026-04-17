@@ -4,7 +4,11 @@ import { useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import type { QuestionnaireListItem, CreatorType } from '../types'
-import { deleteQuestionnaire, changeQuestionnaireStatus } from '../actions'
+import {
+  deleteQuestionnaire,
+  changeQuestionnaireStatus,
+  fetchQuestionnairesForClient,
+} from '../actions'
 import QuestionnaireFormModal from './QuestionnaireFormModal'
 import QuestionnaireEditModal from './QuestionnaireEditModal'
 import AssignmentModal from './AssignmentModal'
@@ -54,12 +58,14 @@ export default function QuestionnaireListClient({
 
   // テンプレートコピー後にデータを更新するコールバック
   async function handleTemplateCreated() {
-    const { getQuestionnaires } = await import('../queries')
-    const fresh = await getQuestionnaires(tenantId)
-    // 新規データで置き換え
-    setData(fresh)
-    // アンケート一覧タブに自動切り替え
-    setActiveTab('list')
+    startTransition(async () => {
+      const res = await fetchQuestionnairesForClient(tenantId)
+      if (res.success && res.data) {
+        setData(res.data)
+        // アンケート一覧タブに自動切り替え
+        setActiveTab('list')
+      }
+    })
   }
 
   function openCreate(creatorType: CreatorType) {

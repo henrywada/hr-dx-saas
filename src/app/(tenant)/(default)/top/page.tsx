@@ -11,8 +11,10 @@ import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
 import {
   getEmployeeImportantTask,
+  getPendingAssignedQuestionnairesForTop,
   getTopAnnouncements,
 } from '@/features/dashboard/queries'
+import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
 import QuickAccessCards from '../../(colored)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
@@ -25,9 +27,10 @@ export default async function DashboardPage() {
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
   const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
 
-  const [importantTask, announcements] = await Promise.all([
+  const [importantTask, announcements, pendingQuestionnaires] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null),
     getTopAnnouncements(),
+    getPendingAssignedQuestionnairesForTop(user?.employee_id),
   ])
 
   const displayName = user?.name || 'ゲスト'
@@ -117,6 +120,7 @@ export default async function DashboardPage() {
             </button>
           </div>
           <div className="p-0 flex-1">
+            <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
             <ul className="divide-y divide-slate-100">
               {announcements.map(item => (
                 <li key={item.id} className="group hover:bg-slate-50/80 transition-colors">

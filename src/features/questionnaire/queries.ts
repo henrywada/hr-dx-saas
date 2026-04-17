@@ -4,6 +4,7 @@ import type {
   QuestionnaireDetail,
   QuestionWithDetails,
   AssignedQuestionnaire,
+  QuestionnaireStatus,
 } from './types'
 
 /**
@@ -187,6 +188,55 @@ export async function getQuestionnaireDetail(id: string): Promise<QuestionnaireD
   }
 }
 
+/** PostgREST の 1:1 embed は配列ではなく単一オブジェクトで返ることがある */
+function submittedAtFromEmbeddedResponse(
+  response:
+    | { submitted_at: string | null }
+    | { submitted_at: string | null }[]
+    | null
+): string | null {
+  if (response == null) return null
+  if (Array.isArray(response)) return response[0]?.submitted_at ?? null
+  return response.submitted_at ?? null
+}
+
+function embedQuestionnaireRow(
+  q:
+    | {
+        id: string
+        title: string
+        description: string | null
+        creator_type: string
+        status: string
+      }
+    | {
+        id: string
+        title: string
+        description: string | null
+        creator_type: string
+        status: string
+      }[]
+    | null
+): {
+  id: string
+  title: string
+  description: string | null
+  creator_type: string
+  status: QuestionnaireStatus
+} | null {
+  if (q == null) return null
+  const row = Array.isArray(q) ? q[0] : q
+  if (!row) return null
+  const status = row.status as QuestionnaireStatus
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    creator_type: row.creator_type,
+    status,
+  }
+}
+
 /**
  * 自分にアサインされたアンケート一覧（回答画面用）
  */
@@ -205,7 +255,7 @@ export async function getAssignedQuestionnaires(
       questionnaire_id,
       deadline_date,
       assigned_at,
-      questionnaire:questionnaires(id, title, description, creator_type),
+      questionnaire:questionnaires(id, title, description, creator_type, status),
       response:questionnaire_responses(submitted_at)
     `
     )
@@ -220,23 +270,40 @@ export async function getAssignedQuestionnaires(
       questionnaire_id: string
       deadline_date: string | null
       assigned_at: string
-      questionnaire: {
-        id: string
-        title: string
-        description: string | null
-        creator_type: string
-      } | null
-      response: { submitted_at: string | null }[] | null
-    }) => ({
-      assignment_id: row.id,
-      questionnaire_id: row.questionnaire_id,
-      title: row.questionnaire?.title ?? '',
-      description: row.questionnaire?.description ?? null,
-      deadline_date: row.deadline_date,
-      assigned_at: row.assigned_at,
-      submitted_at: row.response?.[0]?.submitted_at ?? null,
-      creator_type: row.questionnaire?.creator_type ?? 'tenant',
-    })
+      questionnaire:
+        | {
+            id: string
+            title: string
+            description: string | null
+            creator_type: string
+            status: string
+          }
+        | {
+            id: string
+            title: string
+            description: string | null
+            creator_type: string
+            status: string
+          }[]
+        | null
+      response:
+        | { submitted_at: string | null }
+        | { submitted_at: string | null }[]
+        | null
+    }) => {
+      const meta = embedQuestionnaireRow(row.questionnaire)
+      return {
+        assignment_id: row.id,
+        questionnaire_id: row.questionnaire_id,
+        title: meta?.title ?? '',
+        description: meta?.description ?? null,
+        deadline_date: row.deadline_date,
+        assigned_at: row.assigned_at,
+        submitted_at: submittedAtFromEmbeddedResponse(row.response),
+        creator_type: (meta?.creator_type ?? 'tenant') as AssignedQuestionnaire['creator_type'],
+        questionnaire_status: meta?.status ?? 'draft',
+      }
+    }
   )
 }
 

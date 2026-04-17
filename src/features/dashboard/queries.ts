@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getJSTYearMonth, lastDayOfMonthYmd, toJSTDateString } from '@/lib/datetime'
+import { getAssignedQuestionnaires } from '@/features/questionnaire/queries'
+import type { AssignedQuestionnaire } from '@/features/questionnaire/types'
 import { ImportantTask, Announcement, AnnouncementRow, PulseSurveyPeriodRow } from './types'
 
 // announcements / pulse_survey_periods 等は型定義に含まれない場合があるため any でラップ
@@ -111,6 +113,20 @@ export async function getEmployeeImportantTask(userId: string | null): Promise<I
     deadlineLabel,
     linkPath,
     isPending: !alreadyAnswered,
+  }
+}
+
+/** トップ「人事からのお知らせ」内の未回答アンケート CTA 用。失敗時は空配列。 */
+export async function getPendingAssignedQuestionnairesForTop(
+  employeeId: string | null | undefined
+): Promise<AssignedQuestionnaire[]> {
+  if (!employeeId) return []
+  try {
+    const all = await getAssignedQuestionnaires(employeeId)
+    // 受付中（active）のみ。終了・下書きはトップ CTA に出さない
+    return all.filter(q => !q.submitted_at && q.questionnaire_status === 'active')
+  } catch {
+    return []
   }
 }
 

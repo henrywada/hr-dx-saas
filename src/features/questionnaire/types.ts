@@ -103,6 +103,8 @@ export interface AssignedQuestionnaire {
   assigned_at: string;
   submitted_at: string | null;
   creator_type: CreatorType;
+  /** questionnaires.status（受付中=active） */
+  questionnaire_status: QuestionnaireStatus;
 }
 
 // 回答送信用

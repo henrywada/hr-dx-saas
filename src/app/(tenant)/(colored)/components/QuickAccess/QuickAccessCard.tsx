@@ -12,6 +12,8 @@ type Props = {
   titleHoverClass: string
   /** 指定時はタイトル横に赤い吹き出し風バッジ（承認待ちの注意喚起など） */
   badgeLabel?: string | null
+  /** 指定時は右端を矢印のみではなく「{trailingLabel}」＋矢印にする */
+  trailingLabel?: string | null
 }
 
 /**
@@ -25,6 +27,7 @@ export function QuickAccessCard({
   iconBoxClass,
   titleHoverClass,
   badgeLabel,
+  trailingLabel,
 }: Props) {
   return (
     <Link
@@ -56,7 +59,14 @@ export function QuickAccessCard({
           <p className="text-slate-500 text-xs">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+      {trailingLabel ? (
+        <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-slate-500 group-hover:text-indigo-500 transition-colors">
+          {trailingLabel}
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </span>
+      ) : (
+        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+      )}
     </Link>
   )
 }

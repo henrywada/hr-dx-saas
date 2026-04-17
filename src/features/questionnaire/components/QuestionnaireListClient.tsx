@@ -52,6 +52,16 @@ export default function QuestionnaireListClient({
   // 自社作成アンケートのみ表示
   const filtered = data.filter(q => q.creator_type === 'tenant')
 
+  // テンプレートコピー後にデータを更新するコールバック
+  async function handleTemplateCreated() {
+    const { getQuestionnaires } = await import('../queries')
+    const fresh = await getQuestionnaires(tenantId)
+    // 新規データで置き換え
+    setData(fresh)
+    // アンケート一覧タブに自動切り替え
+    setActiveTab('list')
+  }
+
   function openCreate(creatorType: CreatorType) {
     setFormCreatorType(creatorType)
     setShowForm(true)
@@ -161,7 +171,11 @@ export default function QuestionnaireListClient({
               利用可能なテンプレートはありません。
             </p>
           ) : (
-            <TemplateSelector templates={templates} />
+            <TemplateSelector
+              templates={templates}
+              tenantId={tenantId}
+              onCreated={handleTemplateCreated}
+            />
           )}
         </div>
       )}

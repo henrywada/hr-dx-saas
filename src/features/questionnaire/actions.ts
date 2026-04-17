@@ -736,3 +736,63 @@ export async function getQuestionnaireDetailAction(
     },
   }
 }
+
+/**
+ * 自社版アンケート一覧をクライアント側から取得（リロードなしでデータ更新用）
+ */
+export async function fetchQuestionnairesForClient(
+  tenantId: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data, error } = await db
+    .from('questionnaires')
+    .select(
+      `
+      id,
+      creator_type,
+      tenant_id,
+      title,
+      description,
+      status,
+      created_by_employee_id,
+      created_at,
+      updated_at,
+      question_count:questionnaire_questions(count),
+      assignment_count:questionnaire_assignments(count),
+      submitted_count:questionnaire_responses(count)
+    `
+    )
+    .eq('tenant_id', tenantId)
+    .eq('creator_type', 'tenant')
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  // レスポンスのフォーマット整形
+  const formatted = (data || []).map((q: any) => ({
+    id: q.id,
+    creator_type: q.creator_type,
+    tenant_id: q.tenant_id,
+    title: q.title,
+    description: q.description,
+    status: q.status,
+    created_by_employee_id: q.created_by_employee_id,
+    created_at: q.created_at,
+    updated_at: q.updated_at,
+    question_count: Array.isArray(q.question_count) ? q.question_count.length : 0,
+    assignment_count: Array.isArray(q.assignment_count) ? q.assignment_count.length : 0,
+    submitted_count: Array.isArray(q.submitted_count) ? q.submitted_count.length : 0,
+  }))
+
+  return { success: true, data: formatted }
+}

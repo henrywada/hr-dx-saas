@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import type { QuestionnaireListItem } from '../types'
@@ -9,10 +8,11 @@ import { copyQuestionnareTemplate } from '../actions'
 
 interface Props {
   templates: QuestionnaireListItem[]
+  tenantId: string
+  onCreated: () => Promise<void>
 }
 
-export default function TemplateSelector({ templates }: Props) {
-  const router = useRouter()
+export default function TemplateSelector({ templates, onCreated }: Props) {
   const [isPending, startTransition] = useTransition()
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
 
@@ -24,8 +24,8 @@ export default function TemplateSelector({ templates }: Props) {
       if (res.success) {
         alert('テンプレートを自社版にコピーしました。')
         setSelectedTemplateId(null)
-        // ページをリフレッシュして新しいアンケートを表示
-        router.refresh()
+        // コールバック実行：親コンポーネントでデータを更新
+        await onCreated()
       } else {
         alert(`エラー: ${res.error}`)
       }

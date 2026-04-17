@@ -115,12 +115,17 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose }: Pr
             <label className="block text-sm font-medium text-neutral-700 mb-1">
               回答期限（任意）
             </label>
-            <input
-              type="date"
-              value={deadlineDate}
-              onChange={(e) => setDeadlineDate(e.target.value)}
-              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                value={deadlineDate}
+                onChange={(e) => setDeadlineDate(e.target.value)}
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shrink-0"
+              />
+              <span className="text-xs text-neutral-500 leading-snug">
+                ＊ ボタンの案内に表示（過日でも回答可です）
+              </span>
+            </div>
           </div>
 
           {/* 従業員リスト */}

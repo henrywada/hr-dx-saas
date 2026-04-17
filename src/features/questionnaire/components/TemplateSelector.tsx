@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import type { QuestionnaireListItem } from '../types'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function TemplateSelector({ templates }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
 
@@ -20,10 +22,10 @@ export default function TemplateSelector({ templates }: Props) {
     startTransition(async () => {
       const res = await copyQuestionnareTemplate(templateId)
       if (res.success) {
-        alert(
-          'テンプレートを自社版にコピーしました。\n右パネルの「アンケート一覧」から確認できます。'
-        )
+        alert('テンプレートを自社版にコピーしました。')
         setSelectedTemplateId(null)
+        // ページをリフレッシュして新しいアンケートを表示
+        router.refresh()
       } else {
         alert(`エラー: ${res.error}`)
       }

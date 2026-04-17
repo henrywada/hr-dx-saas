@@ -262,6 +262,77 @@ export type Database = {
           },
         ]
       }
+      closure_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          closure_id: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          target: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          closure_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          target?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          closure_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          target?: Json | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      closure_warnings: {
+        Row: {
+          closure_id: string | null
+          created_at: string | null
+          details: Json | null
+          employee_id: string | null
+          id: string
+          tenant_id: string
+          warning_type: string | null
+        }
+        Insert: {
+          closure_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          employee_id?: string | null
+          id?: string
+          tenant_id: string
+          warning_type?: string | null
+        }
+        Update: {
+          closure_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          employee_id?: string | null
+          id?: string
+          tenant_id?: string
+          warning_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closure_warnings_closure_id_fkey"
+            columns: ["closure_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_overtime_closures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       divisions: {
         Row: {
           code: string | null
@@ -621,108 +692,53 @@ export type Database = {
       }
       monthly_employee_overtime: {
         Row: {
-          id: string
-          tenant_id: string
-          closure_id: string | null
-          employee_id: string
-          year_month: string
-          total_work_hours: number | null
-          total_overtime_hours: number | null
           approved_overtime_hours: number | null
+          closure_id: string | null
           corrections_summary: Json | null
           created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          closure_id?: string | null
           employee_id: string
+          id: string
+          tenant_id: string
+          total_overtime_hours: number | null
+          total_work_hours: number | null
+          updated_at: string | null
           year_month: string
-          total_work_hours?: number | null
-          total_overtime_hours?: number | null
+        }
+        Insert: {
           approved_overtime_hours?: number | null
+          closure_id?: string | null
           corrections_summary?: Json | null
           created_at?: string | null
+          employee_id: string
+          id?: string
+          tenant_id: string
+          total_overtime_hours?: number | null
+          total_work_hours?: number | null
           updated_at?: string | null
+          year_month: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
+          approved_overtime_hours?: number | null
           closure_id?: string | null
+          corrections_summary?: Json | null
+          created_at?: string | null
           employee_id?: string
-          year_month?: string
-          total_work_hours?: number | null
+          id?: string
+          tenant_id?: string
           total_overtime_hours?: number | null
-          approved_overtime_hours?: number | null
-          corrections_summary?: Json | null
-          created_at?: string | null
+          total_work_hours?: number | null
           updated_at?: string | null
+          year_month?: string
         }
-        Relationships: []
-      }
-      closure_audit_logs: {
-        Row: {
-          id: string
-          tenant_id: string
-          closure_id: string | null
-          actor_id: string
-          action: string
-          target: Json | null
-          comment: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          closure_id?: string | null
-          actor_id: string
-          action: string
-          target?: Json | null
-          comment?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          closure_id?: string | null
-          actor_id?: string
-          action?: string
-          target?: Json | null
-          comment?: string | null
-          created_at?: string | null
-        }
-        Relationships: []
-      }
-      closure_warnings: {
-        Row: {
-          id: string
-          tenant_id: string
-          closure_id: string | null
-          employee_id: string | null
-          warning_type: string | null
-          details: Json | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          closure_id?: string | null
-          employee_id?: string | null
-          warning_type?: string | null
-          details?: Json | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          closure_id?: string | null
-          employee_id?: string | null
-          warning_type?: string | null
-          details?: Json | null
-          created_at?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "monthly_employee_overtime_closure_id_fkey"
+            columns: ["closure_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_overtime_closures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_overtime_closures: {
         Row: {
@@ -782,30 +798,24 @@ export type Database = {
       }
       myou_alert_logs: {
         Row: {
-          company_id: string
-          error_message: string | null
+          company_id: string | null
           id: string
-          sent_at: string
-          status: string
-          target_serials: string[]
+          sent_at: string | null
+          target_serials: string[] | null
           tenant_id: string
         }
         Insert: {
-          company_id: string
-          error_message?: string | null
+          company_id?: string | null
           id?: string
-          sent_at?: string
-          status?: string
-          target_serials: string[]
+          sent_at?: string | null
+          target_serials?: string[] | null
           tenant_id?: string
         }
         Update: {
-          company_id?: string
-          error_message?: string | null
+          company_id?: string | null
           id?: string
-          sent_at?: string
-          status?: string
-          target_serials?: string[]
+          sent_at?: string | null
+          target_serials?: string[] | null
           tenant_id?: string
         }
         Relationships: [
@@ -814,60 +824,57 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
         ]
       }
       myou_companies: {
         Row: {
-          created_at: string
-          email_address: string | null
-          id: string
-          name: string
+          company_id: string
+          company_name: string
+          created_at: string | null
+          email_address: string
           tenant_id: string
         }
         Insert: {
-          created_at?: string
-          email_address?: string | null
-          id?: string
-          name: string
+          company_id?: string
+          company_name: string
+          created_at?: string | null
+          email_address: string
           tenant_id?: string
         }
         Update: {
-          created_at?: string
-          email_address?: string | null
-          id?: string
-          name?: string
+          company_id?: string
+          company_name?: string
+          created_at?: string | null
+          email_address?: string
           tenant_id?: string
         }
         Relationships: []
       }
       myou_delivery_logs: {
         Row: {
-          company_id: string
-          delivered_by: string | null
-          delivery_date: string
+          company_id: string | null
+          delivery_date: string | null
           id: string
-          registered_at: string
-          serial_number: string
+          scanned_by: string | null
+          serial_number: string | null
           tenant_id: string
         }
         Insert: {
-          company_id: string
-          delivered_by?: string | null
-          delivery_date?: string
+          company_id?: string | null
+          delivery_date?: string | null
           id?: string
-          registered_at?: string
-          serial_number: string
+          scanned_by?: string | null
+          serial_number?: string | null
           tenant_id?: string
         }
         Update: {
-          company_id?: string
-          delivered_by?: string | null
-          delivery_date?: string
+          company_id?: string | null
+          delivery_date?: string | null
           id?: string
-          registered_at?: string
-          serial_number?: string
+          scanned_by?: string | null
+          serial_number?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -876,47 +883,43 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "myou_delivery_logs_serial_number_fkey"
+            columns: ["serial_number"]
+            isOneToOne: true
+            referencedRelation: "myou_products"
+            referencedColumns: ["serial_number"]
           },
         ]
       }
       myou_products: {
         Row: {
-          created_at: string
-          current_company_id: string | null
-          expiration_date: string | null
-          last_delivery_at: string | null
+          created_at: string | null
+          expiration_date: string
+          product_name: string | null
           serial_number: string
-          status: string
+          status: string | null
           tenant_id: string
         }
         Insert: {
-          created_at?: string
-          current_company_id?: string | null
-          expiration_date?: string | null
-          last_delivery_at?: string | null
+          created_at?: string | null
+          expiration_date: string
+          product_name?: string | null
           serial_number: string
-          status?: string
+          status?: string | null
           tenant_id?: string
         }
         Update: {
-          created_at?: string
-          current_company_id?: string | null
-          expiration_date?: string | null
-          last_delivery_at?: string | null
+          created_at?: string | null
+          expiration_date?: string
+          product_name?: string | null
           serial_number?: string
-          status?: string
+          status?: string | null
           tenant_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "myou_products_current_company_id_fkey"
-            columns: ["current_company_id"]
-            isOneToOne: false
-            referencedRelation: "myou_companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       overtime_alerts: {
         Row: {
@@ -1592,6 +1595,356 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "qr_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_answers: {
+        Row: {
+          id: string
+          item_id: string | null
+          option_id: string | null
+          question_id: string
+          response_id: string
+          score: number | null
+          text_answer: string | null
+        }
+        Insert: {
+          id?: string
+          item_id?: string | null
+          option_id?: string | null
+          question_id: string
+          response_id: string
+          score?: number | null
+          text_answer?: string | null
+        }
+        Update: {
+          id?: string
+          item_id?: string | null
+          option_id?: string | null
+          question_id?: string
+          response_id?: string
+          score?: number | null
+          text_answer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_answers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_question_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_answers_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_question_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_assignments: {
+        Row: {
+          assigned_at: string
+          deadline_date: string | null
+          employee_id: string
+          id: string
+          questionnaire_id: string
+          tenant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          deadline_date?: string | null
+          employee_id: string
+          id?: string
+          questionnaire_id: string
+          tenant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          deadline_date?: string | null
+          employee_id?: string
+          id?: string
+          questionnaire_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_assignments_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_question_items: {
+        Row: {
+          id: string
+          item_text: string
+          question_id: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          item_text: string
+          question_id: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          item_text?: string
+          question_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_question_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_question_options: {
+        Row: {
+          id: string
+          option_text: string
+          question_id: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          option_text: string
+          question_id: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          option_text?: string
+          question_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_questions: {
+        Row: {
+          id: string
+          is_required: boolean
+          question_text: string
+          question_type: string
+          questionnaire_id: string
+          scale_labels: Json | null
+          section_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          is_required?: boolean
+          question_text: string
+          question_type: string
+          questionnaire_id: string
+          scale_labels?: Json | null
+          section_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          is_required?: boolean
+          question_text?: string
+          question_type?: string
+          questionnaire_id?: string
+          scale_labels?: Json | null
+          section_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_questions_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_responses: {
+        Row: {
+          assignment_id: string
+          employee_id: string
+          id: string
+          questionnaire_id: string
+          submitted_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          assignment_id: string
+          employee_id: string
+          id?: string
+          questionnaire_id: string
+          submitted_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          assignment_id?: string
+          employee_id?: string
+          id?: string
+          questionnaire_id?: string
+          submitted_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_responses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "questionnaire_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_responses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_responses_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_responses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_sections: {
+        Row: {
+          id: string
+          questionnaire_id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          id?: string
+          questionnaire_id: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          id?: string
+          questionnaire_id?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_sections_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaires: {
+        Row: {
+          created_at: string
+          created_by_employee_id: string | null
+          creator_type: string
+          description: string | null
+          id: string
+          status: string
+          tenant_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_employee_id?: string | null
+          creator_type: string
+          description?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_employee_id?: string | null
+          creator_type?: string
+          description?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaires_created_by_employee_id_fkey"
+            columns: ["created_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaires_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2437,7 +2790,7 @@ export type Database = {
           measure_details: string | null
           measure_type: string | null
           status: string
-          stress_result_id: string
+          stress_result_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -2456,7 +2809,7 @@ export type Database = {
           measure_details?: string | null
           measure_type?: string | null
           status?: string
-          stress_result_id: string
+          stress_result_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -2475,7 +2828,7 @@ export type Database = {
           measure_details?: string | null
           measure_type?: string | null
           status?: string
-          stress_result_id?: string
+          stress_result_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -2868,78 +3221,101 @@ export type Database = {
       }
       tenant_inquiry_chat_messages: {
         Row: {
-          id: string
-          tenant_id: string
-          session_id: string
-          user_id: string
-          role: string
-          content: string
           cited_chunk_ids: string[] | null
+          content: string
           created_at: string
+          id: string
+          role: string
+          session_id: string
+          tenant_id: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          session_id: string
-          user_id: string
-          role: string
-          content: string
           cited_chunk_ids?: string[] | null
+          content: string
           created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          tenant_id: string
+          user_id: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          session_id?: string
-          user_id?: string
-          role?: string
-          content?: string
           cited_chunk_ids?: string[] | null
+          content?: string
           created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          tenant_id?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenant_inquiry_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_inquiry_chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_inquiry_chat_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_inquiry_chat_sessions: {
         Row: {
+          created_at: string
           id: string
           tenant_id: string
-          user_id: string
           title: string | null
-          created_at: string
           updated_at: string
+          user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
           tenant_id: string
-          user_id: string
           title?: string | null
-          created_at?: string
           updated_at?: string
+          user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
           tenant_id?: string
-          user_id?: string
           title?: string | null
-          created_at?: string
           updated_at?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenant_inquiry_chat_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_portal_settings: {
         Row: {
-          tenant_id: string
           hr_inquiry_email: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
-          tenant_id: string
           hr_inquiry_email?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
-          tenant_id?: string
           hr_inquiry_email?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -2954,123 +3330,154 @@ export type Database = {
       }
       tenant_rag_audit_logs: {
         Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          detail: Json
+          document_id: string | null
           id: string
           tenant_id: string
-          actor_user_id: string | null
-          action: string
-          document_id: string | null
-          detail: Json
-          created_at: string
         }
         Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          document_id?: string | null
           id?: string
           tenant_id: string
-          actor_user_id?: string | null
-          action: string
-          document_id?: string | null
-          detail?: Json
-          created_at?: string
         }
         Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          document_id?: string | null
           id?: string
           tenant_id?: string
-          actor_user_id?: string | null
-          action?: string
-          document_id?: string | null
-          detail?: Json
-          created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenant_rag_audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_rag_chunks: {
         Row: {
-          id: string
-          tenant_id: string
-          document_id: string
           chunk_index: number
           content: string
-          embedding: string | null
-          metadata: Json
           created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json
+          tenant_id: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          document_id: string
           chunk_index: number
           content: string
-          embedding?: string | null
-          metadata?: Json
           created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          tenant_id: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          document_id?: string
           chunk_index?: number
           content?: string
-          embedding?: string | null
-          metadata?: Json
           created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenant_rag_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_rag_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_rag_chunks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_rag_documents: {
         Row: {
+          byte_size: number | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
           id: string
-          tenant_id: string
-          title: string
-          source_kind: string
+          ingest_completed_at: string | null
+          ingest_started_at: string | null
           mime_type: string | null
           original_filename: string | null
+          source_kind: string
           source_url: string | null
-          storage_path: string | null
           status: string
-          error_message: string | null
-          byte_size: number | null
-          created_by: string | null
-          ingest_started_at: string | null
-          ingest_completed_at: string | null
-          created_at: string
+          storage_path: string | null
+          tenant_id: string
+          title: string
           updated_at: string
         }
         Insert: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
           id?: string
-          tenant_id: string
-          title: string
-          source_kind: string
+          ingest_completed_at?: string | null
+          ingest_started_at?: string | null
           mime_type?: string | null
           original_filename?: string | null
+          source_kind: string
           source_url?: string | null
-          storage_path?: string | null
           status?: string
-          error_message?: string | null
-          byte_size?: number | null
-          created_by?: string | null
-          ingest_started_at?: string | null
-          ingest_completed_at?: string | null
-          created_at?: string
+          storage_path?: string | null
+          tenant_id: string
+          title: string
           updated_at?: string
         }
         Update: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
           id?: string
-          tenant_id?: string
-          title?: string
-          source_kind?: string
+          ingest_completed_at?: string | null
+          ingest_started_at?: string | null
           mime_type?: string | null
           original_filename?: string | null
+          source_kind?: string
           source_url?: string | null
-          storage_path?: string | null
           status?: string
-          error_message?: string | null
-          byte_size?: number | null
-          created_by?: string | null
-          ingest_started_at?: string | null
-          ingest_completed_at?: string | null
-          created_at?: string
+          storage_path?: string | null
+          tenant_id?: string
+          title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenant_rag_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_service: {
         Row: {
@@ -3167,46 +3574,46 @@ export type Database = {
       }
       timecard_corrections: {
         Row: {
-          id: string
-          tenant_id: string
-          employee_id: string
-          work_date: string
-          original_clock_in: string | null
-          original_clock_out: string | null
+          corrected_by: string
           corrected_clock_in: string | null
           corrected_clock_out: string | null
-          reason: string | null
-          corrected_by: string
           correction_source: string | null
           created_at: string | null
+          employee_id: string
+          id: string
+          original_clock_in: string | null
+          original_clock_out: string | null
+          reason: string | null
+          tenant_id: string
+          work_date: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          employee_id: string
-          work_date: string
-          original_clock_in?: string | null
-          original_clock_out?: string | null
+          corrected_by: string
           corrected_clock_in?: string | null
           corrected_clock_out?: string | null
-          reason?: string | null
-          corrected_by: string
           correction_source?: string | null
           created_at?: string | null
+          employee_id: string
+          id?: string
+          original_clock_in?: string | null
+          original_clock_out?: string | null
+          reason?: string | null
+          tenant_id: string
+          work_date: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          employee_id?: string
-          work_date?: string
-          original_clock_in?: string | null
-          original_clock_out?: string | null
+          corrected_by?: string
           corrected_clock_in?: string | null
           corrected_clock_out?: string | null
-          reason?: string | null
-          corrected_by?: string
           correction_source?: string | null
           created_at?: string | null
+          employee_id?: string
+          id?: string
+          original_clock_in?: string | null
+          original_clock_out?: string | null
+          reason?: string | null
+          tenant_id?: string
+          work_date?: string
         }
         Relationships: []
       }
@@ -3393,6 +3800,10 @@ export type Database = {
       }
     }
     Functions: {
+      aggregate_monthly_closure: {
+        Args: { p_closure_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
       create_auth_user: {
         Args: { p_email: string; p_password: string }
         Returns: string
@@ -3400,84 +3811,17 @@ export type Database = {
       current_employee_app_role: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
-      match_tenant_rag_chunks: {
-        Args: { query_embedding: string; match_count?: number }
-        Returns: {
-          id: string
-          document_id: string
-          chunk_index: number
-          content: string
-          metadata: Json
-          similarity: number
-        }[]
-      }
-      aggregate_monthly_closure: {
-        Args: { p_closure_id: string; p_tenant_id: string }
-        Returns: undefined
-      }
+      delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       detect_timecard_anomalies: {
         Args: { p_tenant_id: string; p_year_month: string }
         Returns: {
           anomaly_type: string
+          details: Json
           employee_id: string
           record_date: string
           work_time_record_id: string
-          details: Json
         }[]
       }
-      get_36_risk_employees: {
-        Args: { p_tenant_id: string; p_year_month: string }
-        Returns: {
-          employee_id: string
-          employee_name: string | null
-          department_name: string | null
-          total_overtime_hours: number | null
-          monthly_limit: number | null
-          usage_rate: number | null
-          risk_level: string | null
-        }[]
-      }
-      get_department_overtime_summary: {
-        Args: { p_tenant_id: string; p_year_month: string }
-        Returns: {
-          department_id: string | null
-          department_name: string | null
-          employee_count: number
-          avg_overtime: number | null
-          max_overtime: number | null
-          violation_count: number
-          warning_count: number
-        }[]
-      }
-      get_overtime_gap_analysis: {
-        Args: { p_tenant_id: string; p_year_month: string }
-        Returns: {
-          employee_id: string
-          employee_name: string | null
-          approved_hours: number | null
-          actual_hours: number | null
-          gap_hours: number | null
-          gap_type: string | null
-        }[]
-      }
-      get_overtime_trend: {
-        Args: { p_tenant_id: string }
-        Returns: {
-          year_month: string
-          avg_overtime: number | null
-          max_overtime: number | null
-          total_employees: number
-          violation_count: number
-        }[]
-      }
-      list_work_time_record_monthly_counts: {
-        Args: { p_tenant_id: string }
-        Returns: {
-          year_month: string
-          row_count: number
-        }[]
-      }
-      delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       fn_supervisor_qr_permission_apply: {
         Args: {
           p_actor_user_id: string
@@ -3513,11 +3857,79 @@ export type Database = {
         Args: { p_expiry_hours?: number; p_user_id: string }
         Returns: string
       }
+      get_36_risk_employees: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          department_name: string
+          employee_id: string
+          employee_name: string
+          monthly_limit: number
+          risk_level: string
+          total_overtime_hours: number
+          usage_rate: number
+        }[]
+      }
       get_auth_user_email: { Args: { p_user_id: string }; Returns: string }
+      get_department_overtime_summary: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          avg_overtime: number
+          department_id: string
+          department_name: string
+          employee_count: number
+          max_overtime: number
+          violation_count: number
+          warning_count: number
+        }[]
+      }
+      get_overtime_gap_analysis: {
+        Args: { p_tenant_id: string; p_year_month: string }
+        Returns: {
+          actual_hours: number
+          approved_hours: number
+          employee_id: string
+          employee_name: string
+          gap_hours: number
+          gap_type: string
+        }[]
+      }
+      get_overtime_trend: {
+        Args: {
+          p_end_date?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          avg_overtime: number
+          max_overtime: number
+          total_employees: number
+          violation_count: number
+          year_month: string
+        }[]
+      }
       get_tenant_employee_auth_email: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: string
       }
+      list_work_time_record_monthly_counts: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          row_count: number
+          year_month: string
+        }[]
+      }
+      match_tenant_rag_chunks: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
+      rag_session_tenant_id: { Args: never; Returns: string }
       sync_service_assignment_users: {
         Args: { p_service_assignment_id: string }
         Returns: {
@@ -3538,9 +3950,7 @@ export type Database = {
         Returns: string
       }
       upsert_tenant_portal_settings: {
-        Args: {
-          p_hr_inquiry_email: string | null
-        }
+        Args: { p_hr_inquiry_email: string }
         Returns: string
       }
       verify_recovery_token: {

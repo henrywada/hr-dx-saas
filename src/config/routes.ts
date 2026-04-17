@@ -37,6 +37,10 @@ export const APP_ROUTES = {
     OVERTIME_APPROVAL: '/approval',
     /** 管理：人事ナレッジ（文書取り込み） */
     ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',
+    /** アンケート管理（作成・設問編集・アサイン） */
+    ADMIN_SURVEY: '/adm/Survey',
+    /** 従業員回答画面（アサインされたアンケートの一覧・回答） */
+    SURVEY_ANSWERS: '/answers',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

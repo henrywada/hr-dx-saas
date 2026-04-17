@@ -16,6 +16,7 @@ import {
 import QuickAccessCards from '../../(colored)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
+import { MobileNavSection } from '@/features/dashboard/components/MobileNavSection'
 
 export default async function DashboardPage() {
   const user = await getServerUser()
@@ -165,6 +166,7 @@ export default async function DashboardPage() {
           </div>
           <div className="p-6 flex flex-col gap-3">
             <QuickAccessCards />
+            <MobileNavSection />
           </div>
         </div>
       </div>

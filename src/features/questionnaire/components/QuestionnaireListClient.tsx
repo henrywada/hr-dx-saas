@@ -39,6 +39,7 @@ export default function QuestionnaireListClient({
   templates,
 }: Props) {
   const [data, setData] = useState<QuestionnaireListItem[]>(initialData)
+  const [activeTab, setActiveTab] = useState<'template' | 'list'>('template')
   const [showForm, setShowForm] = useState(false)
   const [formCreatorType, setFormCreatorType] = useState<CreatorType>('tenant')
   const [assignTarget, setAssignTarget] = useState<QuestionnaireListItem | null>(null)
@@ -128,26 +129,48 @@ export default function QuestionnaireListClient({
         )}
       </div>
 
-      {/* 2パネルレイアウト */}
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-        {/* 左パネル：テンプレート選択 */}
-        <div className="w-full lg:w-2/5 lg:border-l lg:border-neutral-200 lg:pl-6">
-          <div className="sticky top-4">
-            <h2 className="text-sm font-semibold text-neutral-700 mb-3">📋 テンプレート選択</h2>
-            {templates.length === 0 ? (
-              <p className="text-xs text-neutral-400">利用可能なテンプレートはありません。</p>
-            ) : (
-              <TemplateSelector templates={templates} />
-            )}
-          </div>
-        </div>
+      {/* タブナビゲーション */}
+      <div className="flex gap-1 border-b border-neutral-200">
+        <button
+          onClick={() => setActiveTab('template')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'template'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          📋 テンプレート選択
+        </button>
+        <button
+          onClick={() => setActiveTab('list')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'list'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          📝 アンケート一覧
+        </button>
+      </div>
 
-        {/* 右パネル：自社アンケート一覧 */}
-        <div className="w-full lg:w-3/5">
-          <h2 className="text-sm font-semibold text-neutral-700 mb-4">📝 アンケート一覧</h2>
+      {/* タブコンテンツ */}
+      {activeTab === 'template' && (
+        <div className="py-4">
+          {templates.length === 0 ? (
+            <p className="text-sm text-neutral-400 text-center py-8">
+              利用可能なテンプレートはありません。
+            </p>
+          ) : (
+            <TemplateSelector templates={templates} />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'list' && (
+        <div className="py-4">
           {filtered.length === 0 ? (
             <p className="text-sm text-neutral-400 py-8 text-center">
-              アンケートはありません。左側のテンプレートからコピーするか、新規作成してください。
+              アンケートはありません。テンプレートからコピーするか、新規作成してください。
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-neutral-200">
@@ -260,7 +283,7 @@ export default function QuestionnaireListClient({
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* アンケート作成モーダル */}
       {showForm && (

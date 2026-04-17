@@ -29,7 +29,7 @@ const STATUS_LABEL: Record<
 
 const CREATOR_LABEL: Record<CreatorType, string> = {
   system: 'システム',
-  tenant: 'テナント',
+  tenant: '自社',
 }
 
 export default function QuestionnaireListClient({ tenantId, appRole, initialData }: Props) {
@@ -170,6 +170,7 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
             <tbody className="divide-y divide-neutral-100">
               {filtered.map(q => {
                 const statusInfo = STATUS_LABEL[q.status] ?? STATUS_LABEL.draft
+                const isSystemQuestionnaireForNonDev = q.creator_type === 'system' && !isDeveloper
                 return (
                   <tr key={q.id} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-neutral-800 max-w-xs truncate">
@@ -189,17 +190,19 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 flex-wrap">
-                        {/* 編集（全ステータス） */}
-                        <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
-                          編集
-                        </Button>
-                        {/* デザイン（設問管理・draft のみ） */}
-                        {q.status === 'draft' && (
+                        {/* 編集（developer のみ または tenant アンケート） */}
+                        {!isSystemQuestionnaireForNonDev && (
+                          <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
+                            編集
+                          </Button>
+                        )}
+                        {/* デザイン（developer のみ または tenant アンケート・draft） */}
+                        {!isSystemQuestionnaireForNonDev && q.status === 'draft' && (
                           <Button variant="secondary" size="sm" onClick={() => setDesignTarget(q)}>
                             デザイン
                           </Button>
                         )}
-                        {/* ステータス変更 */}
+                        {/* 公開（全員・draft） */}
                         {q.status === 'draft' && (
                           <Button
                             variant="secondary"
@@ -210,7 +213,8 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
                             公開
                           </Button>
                         )}
-                        {q.status === 'active' && (
+                        {/* 終了（developer のみ または tenant アンケート・active） */}
+                        {!isSystemQuestionnaireForNonDev && q.status === 'active' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -220,8 +224,8 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
                             終了
                           </Button>
                         )}
-                        {/* 下書きに戻す（closed のみ） */}
-                        {q.status === 'closed' && (
+                        {/* 下書きに戻す（developer のみ または tenant アンケート・closed） */}
+                        {!isSystemQuestionnaireForNonDev && q.status === 'closed' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -231,23 +235,24 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
                             下書きに戻す
                           </Button>
                         )}
-                        {/* アサイン */}
+                        {/* アサイン（全員・active） */}
                         {q.status === 'active' && (
                           <Button variant="primary" size="sm" onClick={() => setAssignTarget(q)}>
                             アサイン
                           </Button>
                         )}
-                        {/* 削除（draft または closed） */}
-                        {(q.status === 'draft' || q.status === 'closed') && (
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            onClick={() => handleDelete(q.id, q.status)}
-                            disabled={isPending}
-                          >
-                            削除
-                          </Button>
-                        )}
+                        {/* 削除（developer のみ または tenant アンケート・draft|closed） */}
+                        {!isSystemQuestionnaireForNonDev &&
+                          (q.status === 'draft' || q.status === 'closed') && (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => handleDelete(q.id, q.status)}
+                              disabled={isPending}
+                            >
+                              削除
+                            </Button>
+                          )}
                       </div>
                     </td>
                   </tr>

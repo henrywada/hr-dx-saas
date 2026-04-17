@@ -12,6 +12,161 @@ interface ActionResult {
 }
 
 /**
+ * システムテンプレートをテナント版にコピー
+ * テンプレートのセクション・設問・選択肢・評価項目をすべてコピーして、新規アンケートを作成
+ */
+export async function copyQuestionnareTemplate(templateId: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー：ログインしてください。' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  // テンプレート取得
+  const { data: template, error: tErr } = await db
+    .from('questionnaires')
+    .select('*')
+    .eq('id', templateId)
+    .eq('creator_type', 'system')
+    .single()
+
+  if (tErr || !template) {
+    return { success: false, error: 'テンプレートが見つかりません。' }
+  }
+
+  // 従業員情報取得
+  const { data: employee, error: eErr } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (eErr || !employee) {
+    return { success: false, error: '従業員情報が見つかりません。' }
+  }
+
+  // 新規アンケート作成（自社版）
+  const { data: newQ, error: nqErr } = await db
+    .from('questionnaires')
+    .insert({
+      creator_type: 'tenant',
+      tenant_id: user.tenant_id,
+      title: template.title,
+      description: template.description,
+      status: 'draft',
+      created_by_employee_id: employee.id,
+    })
+    .select('id')
+    .single()
+
+  if (nqErr || !newQ) {
+    return { success: false, error: 'アンケートの作成に失敗しました。' }
+  }
+
+  const newQuestionnaireId = newQ.id
+
+  try {
+    // セクション取得
+    const { data: sections, error: sErr } = await db
+      .from('questionnaire_sections')
+      .select('*')
+      .eq('questionnaire_id', templateId)
+      .order('sort_order', { ascending: true })
+
+    if (sErr) throw new Error('セクション取得エラー')
+
+    // セクションCOPY
+    const sectionMap = new Map<string, string>()
+    for (const section of sections || []) {
+      const { data: newS, error: nsErr } = await db
+        .from('questionnaire_sections')
+        .insert({
+          questionnaire_id: newQuestionnaireId,
+          title: section.title,
+          sort_order: section.sort_order,
+        })
+        .select('id')
+        .single()
+
+      if (nsErr || !newS) throw new Error('セクション作成エラー')
+      sectionMap.set(section.id, newS.id)
+    }
+
+    // 設問取得
+    const { data: questions, error: qErr } = await db
+      .from('questionnaire_questions')
+      .select('*')
+      .eq('questionnaire_id', templateId)
+      .order('sort_order', { ascending: true })
+
+    if (qErr) throw new Error('設問取得エラー')
+
+    // 設問・選択肢・評価項目COPY
+    const questionMap = new Map<string, string>()
+    for (const question of questions || []) {
+      const { data: newQq, error: nqqErr } = await db
+        .from('questionnaire_questions')
+        .insert({
+          questionnaire_id: newQuestionnaireId,
+          section_id: question.section_id ? sectionMap.get(question.section_id) : null,
+          question_type: question.question_type,
+          question_text: question.question_text,
+          scale_labels: question.scale_labels,
+          is_required: question.is_required,
+          sort_order: question.sort_order,
+        })
+        .select('id')
+        .single()
+
+      if (nqqErr || !newQq) throw new Error('設問作成エラー')
+      questionMap.set(question.id, newQq.id)
+
+      // 選択肢COPY
+      const { data: options } = await db
+        .from('questionnaire_question_options')
+        .select('*')
+        .eq('question_id', question.id)
+
+      if (options && options.length > 0) {
+        await db.from('questionnaire_question_options').insert(
+          options.map(o => ({
+            question_id: newQq.id,
+            option_text: o.option_text,
+            sort_order: o.sort_order,
+          }))
+        )
+      }
+
+      // 評価項目COPY
+      const { data: items } = await db
+        .from('questionnaire_question_items')
+        .select('*')
+        .eq('question_id', question.id)
+
+      if (items && items.length > 0) {
+        await db.from('questionnaire_question_items').insert(
+          items.map(i => ({
+            question_id: newQq.id,
+            item_text: i.item_text,
+            sort_order: i.sort_order,
+          }))
+        )
+      }
+    }
+
+    revalidatePath('/adm/Survey')
+    return { success: true, id: newQuestionnaireId }
+  } catch (err) {
+    // エラー時：作成途中のアンケート削除
+    await db.from('questionnaires').delete().eq('id', newQuestionnaireId)
+    return { success: false, error: 'テンプレートのコピーに失敗しました。' }
+  }
+}
+
+/**
  * アンケートを設問・選択肢込みで一括作成
  */
 export async function createQuestionnaire(input: CreateQuestionnaireInput): Promise<ActionResult> {
@@ -448,15 +603,13 @@ export async function updateQuestion(
   if (input.options !== undefined) {
     await db.from('questionnaire_question_options').delete().eq('question_id', questionId)
     if (input.options.length > 0) {
-      const { error } = await db
-        .from('questionnaire_question_options')
-        .insert(
-          input.options.map(o => ({
-            question_id: questionId,
-            option_text: o.option_text,
-            sort_order: o.sort_order,
-          }))
-        )
+      const { error } = await db.from('questionnaire_question_options').insert(
+        input.options.map(o => ({
+          question_id: questionId,
+          option_text: o.option_text,
+          sort_order: o.sort_order,
+        }))
+      )
       if (error) return { success: false, error: error.message }
     }
   }
@@ -464,15 +617,13 @@ export async function updateQuestion(
   if (input.items !== undefined) {
     await db.from('questionnaire_question_items').delete().eq('question_id', questionId)
     if (input.items.length > 0) {
-      const { error } = await db
-        .from('questionnaire_question_items')
-        .insert(
-          input.items.map(it => ({
-            question_id: questionId,
-            item_text: it.item_text,
-            sort_order: it.sort_order,
-          }))
-        )
+      const { error } = await db.from('questionnaire_question_items').insert(
+        input.items.map(it => ({
+          question_id: questionId,
+          item_text: it.item_text,
+          sort_order: it.sort_order,
+        }))
+      )
       if (error) return { success: false, error: error.message }
     }
   }

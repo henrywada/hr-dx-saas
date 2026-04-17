@@ -9,14 +9,14 @@ import QuestionnaireFormModal from './QuestionnaireFormModal'
 import QuestionnaireEditModal from './QuestionnaireEditModal'
 import AssignmentModal from './AssignmentModal'
 import QuestionManagerModal from './QuestionManagerModal'
+import TemplateSelector from './TemplateSelector'
 
 interface Props {
   tenantId: string
   appRole: string
   initialData: QuestionnaireListItem[]
+  templates: QuestionnaireListItem[]
 }
-
-type TabKey = 'all' | 'system' | 'tenant' | 'active'
 
 const STATUS_LABEL: Record<
   string,
@@ -32,9 +32,13 @@ const CREATOR_LABEL: Record<CreatorType, string> = {
   tenant: '自社',
 }
 
-export default function QuestionnaireListClient({ tenantId, appRole, initialData }: Props) {
+export default function QuestionnaireListClient({
+  tenantId,
+  appRole,
+  initialData,
+  templates,
+}: Props) {
   const [data, setData] = useState<QuestionnaireListItem[]>(initialData)
-  const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [showForm, setShowForm] = useState(false)
   const [formCreatorType, setFormCreatorType] = useState<CreatorType>('tenant')
   const [assignTarget, setAssignTarget] = useState<QuestionnaireListItem | null>(null)
@@ -44,12 +48,8 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
 
   const isDeveloper = appRole === 'developer'
 
-  const filtered = data.filter(q => {
-    if (activeTab === 'system') return q.creator_type === 'system'
-    if (activeTab === 'tenant') return q.creator_type === 'tenant'
-    if (activeTab === 'active') return q.status === 'active'
-    return true
-  })
+  // 自社作成アンケートのみ表示
+  const filtered = data.filter(q => q.creator_type === 'tenant')
 
   function openCreate(creatorType: CreatorType) {
     setFormCreatorType(creatorType)
@@ -106,162 +106,162 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
     })
   }
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'all', label: 'すべて' },
-    { key: 'system', label: 'システム作成' },
-    { key: 'tenant', label: 'テナント作成' },
-    { key: 'active', label: '受付中' },
-  ]
-
   return (
     <div className="space-y-4">
       {/* ヘッダー */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-xl font-bold text-neutral-800">アンケート管理</h1>
-        <div className="flex gap-2">
-          {isDeveloper ? (
-            <>
-              <Button variant="secondary" size="sm" onClick={() => openCreate('system')}>
-                ＋ システム作成
-              </Button>
-              <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
-                ＋ テナント作成
-              </Button>
-            </>
-          ) : (
+        {isDeveloper && (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => openCreate('system')}>
+              ＋ システム作成
+            </Button>
             <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
               ＋ アンケートを作成
             </Button>
+          </div>
+        )}
+        {!isDeveloper && (
+          <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
+            ＋ アンケートを作成
+          </Button>
+        )}
+      </div>
+
+      {/* 2パネルレイアウト */}
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        {/* 左パネル：テンプレート選択 */}
+        <div className="w-full lg:w-2/5 lg:border-l lg:border-neutral-200 lg:pl-6">
+          <div className="sticky top-4">
+            <h2 className="text-sm font-semibold text-neutral-700 mb-3">📋 テンプレート選択</h2>
+            {templates.length === 0 ? (
+              <p className="text-xs text-neutral-400">利用可能なテンプレートはありません。</p>
+            ) : (
+              <TemplateSelector templates={templates} />
+            )}
+          </div>
+        </div>
+
+        {/* 右パネル：自社アンケート一覧 */}
+        <div className="w-full lg:w-3/5">
+          <h2 className="text-sm font-semibold text-neutral-700 mb-4">📝 アンケート一覧</h2>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-neutral-400 py-8 text-center">
+              アンケートはありません。左側のテンプレートからコピーするか、新規作成してください。
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-neutral-200">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-50 text-neutral-600 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">タイトル</th>
+                    <th className="px-4 py-3 font-medium">ステータス</th>
+                    <th className="px-4 py-3 font-medium text-right">設問数</th>
+                    <th className="px-4 py-3 font-medium text-right">対象 / 提出</th>
+                    <th className="px-4 py-3 font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {filtered.map(q => {
+                    const statusInfo = STATUS_LABEL[q.status] ?? STATUS_LABEL.draft
+                    return (
+                      <tr key={q.id} className="hover:bg-neutral-50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-neutral-800 max-w-xs truncate">
+                          {q.title}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right text-neutral-600">
+                          {q.question_count}
+                        </td>
+                        <td className="px-4 py-3 text-right text-neutral-600">
+                          {q.assignment_count} / {q.submitted_count}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1 flex-wrap">
+                            {/* 編集（draft） */}
+                            {q.status === 'draft' && (
+                              <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
+                                編集
+                              </Button>
+                            )}
+                            {/* デザイン（draft） */}
+                            {q.status === 'draft' && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setDesignTarget(q)}
+                              >
+                                デザイン
+                              </Button>
+                            )}
+                            {/* 公開（draft） */}
+                            {q.status === 'draft' && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleStatusChange(q.id, 'active')}
+                                disabled={isPending}
+                              >
+                                公開
+                              </Button>
+                            )}
+                            {/* 終了（active） */}
+                            {q.status === 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(q.id, 'closed')}
+                                disabled={isPending}
+                              >
+                                終了
+                              </Button>
+                            )}
+                            {/* 下書きに戻す（closed） */}
+                            {q.status === 'closed' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(q.id, 'draft')}
+                                disabled={isPending}
+                              >
+                                下書きに戻す
+                              </Button>
+                            )}
+                            {/* アサイン（active） */}
+                            {q.status === 'active' && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setAssignTarget(q)}
+                              >
+                                アサイン
+                              </Button>
+                            )}
+                            {/* 削除（draft|closed） */}
+                            {(q.status === 'draft' || q.status === 'closed') && (
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => handleDelete(q.id, q.status)}
+                                disabled={isPending}
+                              >
+                                削除
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
-      {/* タブ */}
-      <div className="flex gap-1 border-b border-neutral-200">
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === t.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {/* テーブル */}
-      {filtered.length === 0 ? (
-        <p className="text-sm text-neutral-400 py-8 text-center">アンケートはありません。</p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-200">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-neutral-600 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">タイトル</th>
-                <th className="px-4 py-3 font-medium">区分</th>
-                <th className="px-4 py-3 font-medium">ステータス</th>
-                <th className="px-4 py-3 font-medium text-right">設問数</th>
-                <th className="px-4 py-3 font-medium text-right">対象 / 提出</th>
-                <th className="px-4 py-3 font-medium">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {filtered.map(q => {
-                const statusInfo = STATUS_LABEL[q.status] ?? STATUS_LABEL.draft
-                const isSystemQuestionnaireForNonDev = q.creator_type === 'system' && !isDeveloper
-                return (
-                  <tr key={q.id} className="hover:bg-neutral-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-neutral-800 max-w-xs truncate">
-                      {q.title}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={q.creator_type === 'system' ? 'primary' : 'teal'}>
-                        {CREATOR_LABEL[q.creator_type as CreatorType]}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right text-neutral-600">{q.question_count}</td>
-                    <td className="px-4 py-3 text-right text-neutral-600">
-                      {q.assignment_count} / {q.submitted_count}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1 flex-wrap">
-                        {/* 編集（developer のみ または tenant アンケート） */}
-                        {!isSystemQuestionnaireForNonDev && (
-                          <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
-                            編集
-                          </Button>
-                        )}
-                        {/* デザイン（developer のみ または tenant アンケート・draft） */}
-                        {!isSystemQuestionnaireForNonDev && q.status === 'draft' && (
-                          <Button variant="secondary" size="sm" onClick={() => setDesignTarget(q)}>
-                            デザイン
-                          </Button>
-                        )}
-                        {/* 公開（全員・draft） */}
-                        {q.status === 'draft' && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleStatusChange(q.id, 'active')}
-                            disabled={isPending}
-                          >
-                            公開
-                          </Button>
-                        )}
-                        {/* 終了（developer のみ または tenant アンケート・active） */}
-                        {!isSystemQuestionnaireForNonDev && q.status === 'active' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(q.id, 'closed')}
-                            disabled={isPending}
-                          >
-                            終了
-                          </Button>
-                        )}
-                        {/* 下書きに戻す（developer のみ または tenant アンケート・closed） */}
-                        {!isSystemQuestionnaireForNonDev && q.status === 'closed' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(q.id, 'draft')}
-                            disabled={isPending}
-                          >
-                            下書きに戻す
-                          </Button>
-                        )}
-                        {/* アサイン（全員・active） */}
-                        {q.status === 'active' && (
-                          <Button variant="primary" size="sm" onClick={() => setAssignTarget(q)}>
-                            アサイン
-                          </Button>
-                        )}
-                        {/* 削除（developer のみ または tenant アンケート・draft|closed） */}
-                        {!isSystemQuestionnaireForNonDev &&
-                          (q.status === 'draft' || q.status === 'closed') && (
-                            <Button
-                              variant="warning"
-                              size="sm"
-                              onClick={() => handleDelete(q.id, q.status)}
-                              disabled={isPending}
-                            >
-                              削除
-                            </Button>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+
       {/* アンケート作成モーダル */}
       {showForm && (
         <QuestionnaireFormModal
@@ -292,7 +292,7 @@ export default function QuestionnaireListClient({ tenantId, appRole, initialData
       {/* 設問管理モーダル */}
       {designTarget && (
         <QuestionManagerModal questionnaire={designTarget} onClose={() => setDesignTarget(null)} />
-      )}{' '}
+      )}
     </div>
   )
 }

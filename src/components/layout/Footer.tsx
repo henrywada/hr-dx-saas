@@ -14,7 +14,7 @@ export function Footer() {
         <div className="absolute left-1/2 -translate-x-1/2 text-slate-400 font-medium">
             &copy; 2026 HR-dx Inc. All rights reserved.
         </div>
-        
+
         {/* Right: Version */}
         <div className="ml-auto flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full"></span>

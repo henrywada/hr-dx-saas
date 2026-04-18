@@ -123,8 +123,15 @@ export async function getPendingAssignedQuestionnairesForTop(
   if (!employeeId) return []
   try {
     const all = await getAssignedQuestionnaires(employeeId)
-    // 受付中（active）のみ。終了・下書きはトップ CTA に出さない
-    return all.filter(q => !q.submitted_at && q.questionnaire_status === 'active')
+    const today = new Date().toISOString().split('T')[0]
+    return all.filter(q => {
+      if (q.submitted_at) return false
+      if (q.questionnaire_status !== 'active') return false
+      // 期間がある場合は開始日〜終了日の範囲内のみ表示
+      if (q.period_start_date && today < q.period_start_date) return false
+      if (q.period_end_date && today > q.period_end_date) return false
+      return true
+    })
   } catch {
     return []
   }

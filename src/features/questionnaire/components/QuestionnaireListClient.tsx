@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { APP_ROUTES } from '@/config/routes'
 import type { QuestionnaireListItem, CreatorType } from '../types'
 import {
   deleteQuestionnaire,
@@ -42,6 +44,7 @@ export default function QuestionnaireListClient({
   initialData,
   templates,
 }: Props) {
+  const router = useRouter()
   const [data, setData] = useState<QuestionnaireListItem[]>(initialData)
   const [activeTab, setActiveTab] = useState<'template' | 'list'>('template')
   const [showForm, setShowForm] = useState(false)
@@ -272,6 +275,14 @@ export default function QuestionnaireListClient({
                                 下書きに戻す
                               </Button>
                             )}
+                            {/* 実施期間管理 */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
+                            >
+                              実施期間
+                            </Button>
                             {/* アサイン（active） */}
                             {q.status === 'active' && (
                               <Button

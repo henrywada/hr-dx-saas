@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { closeQuestionnairePeriod, deleteQuestionnairePeriod } from '@/features/questionnaire/actions'
+import { APP_ROUTES } from '@/config/routes'
 import type { QuestionnaireDetail, PeriodListItem, QuestionnaireListItem } from '@/features/questionnaire/types'
 import PeriodFormModal from './PeriodFormModal'
 import AssignmentModal from './AssignmentModal'
@@ -79,15 +80,22 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{questionnaire.title}</h1>
-          <p className="text-gray-500 text-sm mt-1">実施期間管理</p>
+          <h1 className="text-2xl font-bold">実施一覧：{questionnaire.title}</h1>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-        >
-          ＋ 実施期間を作成
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(APP_ROUTES.TENANT.ADMIN_SURVEY)}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm"
+          >
+            ← アンケートTOPへ
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            ＋ 実施期間を作成
+          </button>
+        </div>
       </div>
 
       {initialPeriods.length === 0 ? (

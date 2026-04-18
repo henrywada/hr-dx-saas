@@ -279,7 +279,7 @@ export default function QuestionnaireListClient({
                               size="sm"
                               onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
                             >
-                              実施期間
+                              実施一覧
                             </Button>
                             {/* 削除（draft|closed） */}
                             {(q.status === 'draft' || q.status === 'closed') && (

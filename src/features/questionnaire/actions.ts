@@ -356,12 +356,11 @@ export async function assignEmployees(
   let error: { message: string } | null = null
 
   if (periodId) {
-    // 部分インデックスは upsert の onConflict 指定不可のため、削除→再挿入
+    // 部分インデックスは upsert の onConflict 指定不可のため、期間の全アサインを削除→再挿入
     await db
       .from('questionnaire_assignments')
       .delete()
       .eq('period_id', periodId)
-      .in('employee_id', employeeIds)
     const { error: insertErr } = await db.from('questionnaire_assignments').insert(rows)
     error = insertErr
   } else {

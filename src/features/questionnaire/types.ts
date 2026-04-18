@@ -51,6 +51,7 @@ export interface QuestionnaireAssignment {
   questionnaire_id: string;
   tenant_id: string;
   employee_id: string;
+  period_id: string | null;
   deadline_date: string | null;
   assigned_at: string;
 }
@@ -105,6 +106,8 @@ export interface AssignedQuestionnaire {
   creator_type: CreatorType;
   /** questionnaires.status（受付中=active） */
   questionnaire_status: QuestionnaireStatus;
+  period_id: string | null;
+  period_label: string | null;
 }
 
 // 回答送信用
@@ -114,6 +117,47 @@ export interface AnswerInput {
   option_id?: string | null;
   text_answer?: string | null;
   score?: number | null;
+}
+
+// 実施期間
+export type PeriodType = 'weekly' | 'monthly' | 'date_range' | 'none';
+export type PeriodStatus = 'active' | 'closed';
+
+export interface QuestionnairePeriod {
+  id: string;
+  questionnaire_id: string;
+  tenant_id: string;
+  period_type: PeriodType;
+  label: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: PeriodStatus;
+  created_by_employee_id: string | null;
+  created_at: string;
+}
+
+// 期間一覧表示用（回答統計を含む）
+export interface PeriodListItem extends QuestionnairePeriod {
+  assignment_count: number;
+  submitted_count: number;
+}
+
+// 期間別時系列集計（設問ごと）
+export interface PeriodTrendPoint {
+  period_id: string;
+  label: string;
+  start_date: string | null;
+  avg_score: number | null;
+  response_count: number;
+}
+
+// 実施期間作成入力
+export interface CreatePeriodInput {
+  questionnaire_id: string;
+  period_type: PeriodType;
+  label: string;
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 // アンケート作成フォーム入力

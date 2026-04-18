@@ -13,7 +13,6 @@ import {
 } from '../actions'
 import QuestionnaireFormModal from './QuestionnaireFormModal'
 import QuestionnaireEditModal from './QuestionnaireEditModal'
-import AssignmentModal from './AssignmentModal'
 import QuestionManagerModal from './QuestionManagerModal'
 import TemplateSelector from './TemplateSelector'
 
@@ -49,7 +48,6 @@ export default function QuestionnaireListClient({
   const [activeTab, setActiveTab] = useState<'template' | 'list'>('template')
   const [showForm, setShowForm] = useState(false)
   const [formCreatorType, setFormCreatorType] = useState<CreatorType>('tenant')
-  const [assignTarget, setAssignTarget] = useState<QuestionnaireListItem | null>(null)
   const [editTarget, setEditTarget] = useState<QuestionnaireListItem | null>(null)
   const [designTarget, setDesignTarget] = useState<QuestionnaireListItem | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -275,24 +273,14 @@ export default function QuestionnaireListClient({
                                 下書きに戻す
                               </Button>
                             )}
-                            {/* 実施期間管理 */}
+                            {/* 実施期間管理（アサインはここから） */}
                             <Button
-                              variant="outline"
+                              variant="primary"
                               size="sm"
                               onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
                             >
                               実施期間
                             </Button>
-                            {/* アサイン（active） */}
-                            {q.status === 'active' && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => setAssignTarget(q)}
-                              >
-                                アサイン
-                              </Button>
-                            )}
                             {/* 削除（draft|closed） */}
                             {(q.status === 'draft' || q.status === 'closed') && (
                               <Button
@@ -333,14 +321,6 @@ export default function QuestionnaireListClient({
             setData(prev => prev.map(q => (q.id === editTarget.id ? { ...q, ...updated } : q)))
           }}
           onClose={() => setEditTarget(null)}
-        />
-      )}
-      {/* アサインモーダル */}
-      {assignTarget && (
-        <AssignmentModal
-          questionnaire={assignTarget}
-          tenantId={tenantId}
-          onClose={() => setAssignTarget(null)}
         />
       )}
       {/* 設問管理モーダル */}

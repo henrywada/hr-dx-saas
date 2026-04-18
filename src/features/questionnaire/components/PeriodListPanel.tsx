@@ -99,7 +99,6 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
           {initialPeriods.map(period => {
             const displayStatus = computeDisplayStatus(period)
             const { label: statusLabel, className: statusClass } = STATUS_CONFIG[displayStatus]
-            const isActive = displayStatus === 'active' || displayStatus === 'upcoming'
 
             return (
               <div
@@ -122,19 +121,29 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
                 </div>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setAssigningPeriodId(period.id)}
-                    className="text-sm px-3 py-1.5 border rounded-lg hover:bg-gray-50"
-                  >
-                    対象者設定
-                  </button>
-                  <button
-                    onClick={() => setEditingPeriod(period)}
-                    className="text-sm px-3 py-1.5 border rounded-lg hover:bg-gray-50"
-                  >
-                    変更
-                  </button>
-                  {isActive && (
+                  {displayStatus === 'upcoming' && (
+                    <>
+                      <button
+                        onClick={() => setAssigningPeriodId(period.id)}
+                        className="text-sm px-3 py-1.5 border rounded-lg hover:bg-gray-50"
+                      >
+                        対象者設定
+                      </button>
+                      <button
+                        onClick={() => setEditingPeriod(period)}
+                        className="text-sm px-3 py-1.5 border rounded-lg hover:bg-gray-50"
+                      >
+                        変更
+                      </button>
+                      <button
+                        onClick={() => handleDelete(period.id)}
+                        className="text-sm px-3 py-1.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                      >
+                        削除
+                      </button>
+                    </>
+                  )}
+                  {displayStatus === 'active' && (
                     <button
                       onClick={() => handleInterrupt(period.id)}
                       className="text-sm px-3 py-1.5 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50"
@@ -142,12 +151,14 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
                       中断
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDelete(period.id)}
-                    className="text-sm px-3 py-1.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
-                  >
-                    削除
-                  </button>
+                  {(displayStatus === 'interrupted' || displayStatus === 'closed') && (
+                    <button
+                      onClick={() => handleDelete(period.id)}
+                      className="text-sm px-3 py-1.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                    >
+                      削除
+                    </button>
+                  )}
                 </div>
               </div>
             )

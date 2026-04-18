@@ -445,7 +445,8 @@ export async function getQuestionnairePeriods(
       submitted:questionnaire_responses(count)
     `)
     .eq('questionnaire_id', questionnaireId)
-    .order('created_at', { ascending: false })
+    .order('start_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (error) throw error
 

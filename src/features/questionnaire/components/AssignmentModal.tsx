@@ -22,7 +22,7 @@ interface Props {
 export default function AssignmentModal({ questionnaire, tenantId, onClose, periodId }: Props) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [deadlineDate, setDeadlineDate] = useState('');
+  const [hrMessage, setHrMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -50,6 +50,13 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose, peri
 
       if (periodId) {
         assignQuery = assignQuery.eq('period_id', periodId)
+        // 既存の人事メッセージを取得
+        const { data: periodData } = await db
+          .from('questionnaire_periods')
+          .select('hr_message')
+          .eq('id', periodId)
+          .single()
+        if (periodData?.hr_message) setHrMessage(periodData.hr_message)
       } else {
         assignQuery = assignQuery.is('period_id', null)
       }
@@ -92,8 +99,9 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose, peri
       const res = await assignEmployees(
         questionnaire.id,
         Array.from(selectedIds),
-        deadlineDate || null,
-        periodId ?? null
+        null,
+        periodId ?? null,
+        hrMessage.trim() || null
       );
       if (res.success) {
         onClose();
@@ -120,22 +128,18 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose, peri
         </div>
 
         <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-          {/* 期限 */}
+          {/* 人事メッセージ */}
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">
-              回答期限（任意）
+              人事メッセージ（任意）
             </label>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="date"
-                value={deadlineDate}
-                onChange={(e) => setDeadlineDate(e.target.value)}
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shrink-0"
-              />
-              <span className="text-xs text-neutral-500 leading-snug">
-                ＊ ボタンの案内に表示（過日でも回答可です）
-              </span>
-            </div>
+            <textarea
+              value={hrMessage}
+              onChange={(e) => setHrMessage(e.target.value)}
+              placeholder="従業員に表示するメッセージを入力してください"
+              rows={3}
+              className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+            />
           </div>
 
           {/* 従業員リスト */}

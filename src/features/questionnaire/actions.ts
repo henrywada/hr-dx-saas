@@ -330,7 +330,8 @@ export async function assignEmployees(
   questionnaireId: string,
   employeeIds: string[],
   deadlineDate?: string | null,
-  periodId?: string | null
+  periodId?: string | null,
+  hrMessage?: string | null
 ): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user || !user.tenant_id) {
@@ -356,6 +357,11 @@ export async function assignEmployees(
   let error: { message: string } | null = null
 
   if (periodId) {
+    // 人事メッセージを期間に保存
+    await db
+      .from('questionnaire_periods')
+      .update({ hr_message: hrMessage ?? null })
+      .eq('id', periodId)
     // 部分インデックスは upsert の onConflict 指定不可のため、期間の全アサインを削除→再挿入
     await db
       .from('questionnaire_assignments')

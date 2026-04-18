@@ -108,6 +108,9 @@ export interface AssignedQuestionnaire {
   questionnaire_status: QuestionnaireStatus;
   period_id: string | null;
   period_label: string | null;
+  period_start_date: string | null;
+  period_end_date: string | null;
+  hr_message: string | null;
 }
 
 // 回答送信用
@@ -134,6 +137,7 @@ export interface QuestionnairePeriod {
   status: PeriodStatus;
   created_by_employee_id: string | null;
   created_at: string;
+  hr_message: string | null;
 }
 
 // 期間一覧表示用（回答統計を含む）

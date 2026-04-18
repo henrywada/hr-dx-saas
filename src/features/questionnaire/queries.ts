@@ -260,7 +260,7 @@ export async function getAssignedQuestionnaires(
       assigned_at,
       questionnaire:questionnaires(id, title, description, creator_type, status),
       response:questionnaire_responses(submitted_at),
-      period:questionnaire_periods(label)
+      period:questionnaire_periods(label, start_date, end_date, hr_message)
     `
     )
     .eq('employee_id', employeeId)
@@ -295,17 +295,18 @@ export async function getAssignedQuestionnaires(
         | { submitted_at: string | null }
         | { submitted_at: string | null }[]
         | null
-      period: { label: string | null } | { label: string | null }[] | null
+      period: { label: string | null; start_date: string | null; end_date: string | null; hr_message: string | null } | { label: string | null; start_date: string | null; end_date: string | null; hr_message: string | null }[] | null
     }) => {
       const meta = embedQuestionnaireRow(row.questionnaire)
-      const periodLabel = Array.isArray(row.period)
-        ? (row.period[0]?.label ?? null)
-        : (row.period?.label ?? null)
+      const periodRow = Array.isArray(row.period) ? row.period[0] : row.period
       return {
         assignment_id: row.id,
         questionnaire_id: row.questionnaire_id,
         period_id: row.period_id,
-        period_label: periodLabel,
+        period_label: periodRow?.label ?? null,
+        period_start_date: periodRow?.start_date ?? null,
+        period_end_date: periodRow?.end_date ?? null,
+        hr_message: periodRow?.hr_message ?? null,
         title: meta?.title ?? '',
         description: meta?.description ?? null,
         deadline_date: row.deadline_date,
@@ -439,7 +440,7 @@ export async function getQuestionnairePeriods(
     .from('questionnaire_periods')
     .select(`
       id, questionnaire_id, tenant_id, period_type, label,
-      start_date, end_date, status,
+      start_date, end_date, status, hr_message,
       created_by_employee_id, created_at,
       assignments:questionnaire_assignments(count),
       submitted:questionnaire_responses(count)
@@ -459,6 +460,7 @@ export async function getQuestionnairePeriods(
     start_date: string | null
     end_date: string | null
     status: string
+    hr_message: string | null
     created_by_employee_id: string | null
     created_at: string
     assignments: { count: number }[]
@@ -472,6 +474,7 @@ export async function getQuestionnairePeriods(
     start_date: row.start_date,
     end_date: row.end_date,
     status: row.status as PeriodListItem['status'],
+    hr_message: row.hr_message,
     created_by_employee_id: row.created_by_employee_id,
     created_at: row.created_at,
     assignment_count: row.assignments?.[0]?.count ?? 0,

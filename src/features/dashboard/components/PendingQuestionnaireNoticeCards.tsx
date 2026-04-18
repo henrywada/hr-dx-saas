@@ -1,37 +1,55 @@
-import { ClipboardList } from 'lucide-react'
-import { QuickAccessCard } from '@/app/(tenant)/(colored)/components/QuickAccess/QuickAccessCard'
+import Link from 'next/link'
+import { ClipboardList, ChevronRight } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
 import type { AssignedQuestionnaire } from '@/features/questionnaire/types'
 
-function deadlineSubtitle(deadlineDate: string | null): string {
-  if (!deadlineDate) return '未回答'
-  const d = new Date(deadlineDate)
-  if (Number.isNaN(d.getTime())) return `期限: ${deadlineDate}`
-  return `回答期限: ${d.toLocaleDateString('ja-JP')}`
+function periodSubtitle(start: string | null, end: string | null): string | null {
+  if (!start && !end) return null
+  if (start && end) return `実施期間：${start} ～ ${end}`
+  if (start) return `実施期間：${start} ～`
+  return null
 }
 
 type Props = {
   pending: AssignedQuestionnaire[]
 }
 
-/** 人事お知らせカード内: アサイン済み・未提出のアンケートへのカード型リンク */
 export function PendingQuestionnaireNoticeCards({ pending }: Props) {
   if (pending.length === 0) return null
 
   return (
-    <div className="px-6 pt-5 pb-0 space-y-3">
+    <ul className="divide-y divide-slate-100">
       {pending.map(q => (
-        <QuickAccessCard
-          key={q.assignment_id}
-          href={`${APP_ROUTES.TENANT.SURVEY_ANSWERS}?id=${encodeURIComponent(q.assignment_id)}`}
-          title={q.title}
-          subtitle={deadlineSubtitle(q.deadline_date)}
-          icon={ClipboardList}
-          iconBoxClass="bg-sky-100 text-sky-700"
-          titleHoverClass="group-hover:text-sky-700"
-          trailingLabel="回答する"
-        />
+        <li key={q.assignment_id} className="group hover:bg-slate-50/80 transition-colors">
+          <Link
+            href={`${APP_ROUTES.TENANT.SURVEY_ANSWERS}?id=${encodeURIComponent(q.assignment_id)}`}
+            className="flex items-start gap-4 p-5 sm:px-6 outline-none focus:bg-slate-50"
+          >
+            <div className="p-2 bg-sky-100 text-sky-700 rounded-lg shrink-0 mt-0.5">
+              <ClipboardList className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <p className="text-sm font-semibold text-slate-800 group-hover:text-sky-700 transition-colors">
+                {q.title}
+              </p>
+              {periodSubtitle(q.period_start_date, q.period_end_date) && (
+                <p className="text-xs text-slate-500">
+                  {periodSubtitle(q.period_start_date, q.period_end_date)}
+                </p>
+              )}
+              {q.hr_message && (
+                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line line-clamp-3">
+                  {q.hr_message}
+                </p>
+              )}
+            </div>
+            <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-slate-400 group-hover:text-sky-600 transition-colors mt-0.5">
+              回答する
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }

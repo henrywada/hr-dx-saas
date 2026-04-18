@@ -135,13 +135,13 @@ export default function QuestionnaireListClient({
               ＋ システム作成
             </Button>
             <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
-              ＋ アンケートを作成
+              ＋ 新規作成
             </Button>
           </div>
         )}
         {!isDeveloper && (
           <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
-            ＋ アンケートを作成
+            ＋ 新規作成
           </Button>
         )}
       </div>

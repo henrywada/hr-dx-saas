@@ -45,7 +45,7 @@ export default function QuestionnaireListClient({
 }: Props) {
   const router = useRouter()
   const [data, setData] = useState<QuestionnaireListItem[]>(initialData)
-  const [activeTab, setActiveTab] = useState<'template' | 'list'>('template')
+  const [activeTab, setActiveTab] = useState<'template' | 'list'>('list')
   const [showForm, setShowForm] = useState(false)
   const [formCreatorType, setFormCreatorType] = useState<CreatorType>('tenant')
   const [editTarget, setEditTarget] = useState<QuestionnaireListItem | null>(null)
@@ -149,16 +149,6 @@ export default function QuestionnaireListClient({
       {/* タブナビゲーション */}
       <div className="flex gap-1 border-b border-neutral-200">
         <button
-          onClick={() => setActiveTab('template')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'template'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-neutral-500 hover:text-neutral-700'
-          }`}
-        >
-          📋 テンプレート選択
-        </button>
-        <button
           onClick={() => setActiveTab('list')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'list'
@@ -167,6 +157,16 @@ export default function QuestionnaireListClient({
           }`}
         >
           📝 アンケート一覧
+        </button>
+        <button
+          onClick={() => setActiveTab('template')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'template'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          📋 テンプレート選択
         </button>
       </div>
 

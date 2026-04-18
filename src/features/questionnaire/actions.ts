@@ -353,10 +353,23 @@ export async function assignEmployees(
     deadline_date: deadlineDate ?? null,
   }))
 
-  const conflictCol = periodId ? 'period_id,employee_id' : 'questionnaire_id,employee_id'
-  const { error } = await db
-    .from('questionnaire_assignments')
-    .upsert(rows, { onConflict: conflictCol, ignoreDuplicates: true })
+  let error: { message: string } | null = null
+
+  if (periodId) {
+    // 部分インデックスは upsert の onConflict 指定不可のため、削除→再挿入
+    await db
+      .from('questionnaire_assignments')
+      .delete()
+      .eq('period_id', periodId)
+      .in('employee_id', employeeIds)
+    const { error: insertErr } = await db.from('questionnaire_assignments').insert(rows)
+    error = insertErr
+  } else {
+    const { error: upsertErr } = await db
+      .from('questionnaire_assignments')
+      .upsert(rows, { onConflict: 'questionnaire_id,employee_id', ignoreDuplicates: true })
+    error = upsertErr
+  }
 
   if (error) return { success: false, error: error.message }
 

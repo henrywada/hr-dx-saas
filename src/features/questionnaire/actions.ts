@@ -832,6 +832,43 @@ export async function fetchQuestionnairesForClient(
 }
 
 /**
+ * 既存期間との日付重複チェック
+ * 中断済み（status=closed）の期間は除外する
+ * excludePeriodId: 編集時に自分自身を除外
+ */
+async function checkPeriodOverlap(
+  db: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  questionnaireId: string,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  excludePeriodId?: string
+): Promise<string | null> {
+  if (!startDate || !endDate) return null // 日付なしは重複チェック対象外
+
+  let query = db
+    .from('questionnaire_periods')
+    .select('id, label, start_date, end_date')
+    .eq('questionnaire_id', questionnaireId)
+    .neq('status', 'closed')
+    .not('start_date', 'is', null)
+    .not('end_date', 'is', null)
+    .lte('start_date', endDate)   // existing.start_date <= new.end_date
+    .gte('end_date', startDate)   // existing.end_date   >= new.start_date
+
+  if (excludePeriodId) {
+    query = query.neq('id', excludePeriodId)
+  }
+
+  const { data } = await query
+
+  if (data && data.length > 0) {
+    const overlap = data[0] as { label: string; start_date: string; end_date: string }
+    return `期間「${overlap.label}」（${overlap.start_date} 〜 ${overlap.end_date}）と日付が重複しています。`
+  }
+  return null
+}
+
+/**
  * 実施期間を作成
  */
 export async function createQuestionnairePeriod(
@@ -845,6 +882,15 @@ export async function createQuestionnairePeriod(
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
+
+  // 日付重複チェック
+  const overlapError = await checkPeriodOverlap(
+    db,
+    input.questionnaire_id,
+    input.start_date,
+    input.end_date
+  )
+  if (overlapError) return { success: false, error: overlapError }
 
   const { data: employee } = await supabase
     .from('employees')
@@ -897,6 +943,23 @@ export async function updateQuestionnairePeriod(
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
+
+  const { data: existing } = await db
+    .from('questionnaire_periods')
+    .select('questionnaire_id')
+    .eq('id', periodId)
+    .single()
+
+  if (existing?.questionnaire_id) {
+    const overlapError = await checkPeriodOverlap(
+      db,
+      existing.questionnaire_id,
+      input.start_date,
+      input.end_date,
+      periodId
+    )
+    if (overlapError) return { success: false, error: overlapError }
+  }
 
   const { error } = await db
     .from('questionnaire_periods')

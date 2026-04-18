@@ -5,6 +5,8 @@ import type {
   QuestionWithDetails,
   AssignedQuestionnaire,
   QuestionnaireStatus,
+  PeriodListItem,
+  PeriodTrendPoint,
 } from './types'
 
 /**
@@ -253,10 +255,12 @@ export async function getAssignedQuestionnaires(
       `
       id,
       questionnaire_id,
+      period_id,
       deadline_date,
       assigned_at,
       questionnaire:questionnaires(id, title, description, creator_type, status),
-      response:questionnaire_responses(submitted_at)
+      response:questionnaire_responses(submitted_at),
+      period:questionnaire_periods(label)
     `
     )
     .eq('employee_id', employeeId)
@@ -268,6 +272,7 @@ export async function getAssignedQuestionnaires(
     (row: {
       id: string
       questionnaire_id: string
+      period_id: string | null
       deadline_date: string | null
       assigned_at: string
       questionnaire:
@@ -290,11 +295,17 @@ export async function getAssignedQuestionnaires(
         | { submitted_at: string | null }
         | { submitted_at: string | null }[]
         | null
+      period: { label: string | null } | { label: string | null }[] | null
     }) => {
       const meta = embedQuestionnaireRow(row.questionnaire)
+      const periodLabel = Array.isArray(row.period)
+        ? (row.period[0]?.label ?? null)
+        : (row.period?.label ?? null)
       return {
         assignment_id: row.id,
         questionnaire_id: row.questionnaire_id,
+        period_id: row.period_id,
+        period_label: periodLabel,
         title: meta?.title ?? '',
         description: meta?.description ?? null,
         deadline_date: row.deadline_date,
@@ -412,4 +423,114 @@ export async function getQuestionnaireStats(
     assignment_count: assignment_count ?? 0,
     submitted_count: submitted_count ?? 0,
   }
+}
+
+/**
+ * アンケートの実施期間一覧（管理画面用）
+ */
+export async function getQuestionnairePeriods(
+  questionnaireId: string
+): Promise<PeriodListItem[]> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data, error } = await db
+    .from('questionnaire_periods')
+    .select(`
+      id, questionnaire_id, tenant_id, period_type, label,
+      start_date, end_date, status,
+      created_by_employee_id, created_at,
+      assignments:questionnaire_assignments(count),
+      submitted:questionnaire_responses(count)
+    `)
+    .eq('questionnaire_id', questionnaireId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? []).map((row: {
+    id: string
+    questionnaire_id: string
+    tenant_id: string
+    period_type: string
+    label: string | null
+    start_date: string | null
+    end_date: string | null
+    status: string
+    created_by_employee_id: string | null
+    created_at: string
+    assignments: { count: number }[]
+    submitted: { count: number }[]
+  }) => ({
+    id: row.id,
+    questionnaire_id: row.questionnaire_id,
+    tenant_id: row.tenant_id,
+    period_type: row.period_type as PeriodListItem['period_type'],
+    label: row.label,
+    start_date: row.start_date,
+    end_date: row.end_date,
+    status: row.status as PeriodListItem['status'],
+    created_by_employee_id: row.created_by_employee_id,
+    created_at: row.created_at,
+    assignment_count: row.assignments?.[0]?.count ?? 0,
+    submitted_count: row.submitted?.[0]?.count ?? 0,
+  }))
+}
+
+/**
+ * 期間別時系列集計（rating_table 設問の平均スコア推移）
+ */
+export async function getPeriodTrend(
+  questionnaireId: string,
+  questionId: string
+): Promise<PeriodTrendPoint[]> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data: periods, error: pErr } = await db
+    .from('questionnaire_periods')
+    .select('id, label, start_date')
+    .eq('questionnaire_id', questionnaireId)
+    .order('start_date', { ascending: true, nullsFirst: false })
+
+  if (pErr) throw pErr
+
+  const result: PeriodTrendPoint[] = []
+
+  for (const period of periods ?? []) {
+    const { data: responses } = await db
+      .from('questionnaire_responses')
+      .select('id')
+      .eq('period_id', period.id)
+      .not('submitted_at', 'is', null)
+
+    const responseIds = (responses ?? []).map((r: { id: string }) => r.id)
+    let avg_score: number | null = null
+
+    if (responseIds.length > 0) {
+      const { data: answers } = await db
+        .from('questionnaire_answers')
+        .select('score')
+        .in('response_id', responseIds)
+        .eq('question_id', questionId)
+        .not('score', 'is', null)
+
+      const scores = (answers ?? []).map((a: { score: number }) => a.score)
+      if (scores.length > 0) {
+        avg_score = Math.round((scores.reduce((s: number, v: number) => s + v, 0) / scores.length) * 10) / 10
+      }
+    }
+
+    result.push({
+      period_id: period.id,
+      label: period.label ?? period.start_date ?? period.id,
+      start_date: period.start_date,
+      avg_score,
+      response_count: responseIds.length,
+    })
+  }
+
+  return result
 }

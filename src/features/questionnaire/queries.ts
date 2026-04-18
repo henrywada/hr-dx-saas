@@ -7,7 +7,78 @@ import type {
   QuestionnaireStatus,
   PeriodListItem,
   PeriodTrendPoint,
+  PeriodStatus,
 } from './types'
+import { computePeriodDisplayStatus } from './types'
+
+function summarizePeriodsForListItem(
+  periods: {
+    start_date: string | null
+    end_date: string | null
+    status: string
+    assignments?: { count: number }[]
+  }[]
+) {
+  const normalized = periods.map(p => ({
+    start_date: p.start_date,
+    end_date: p.end_date,
+    status: p.status as PeriodStatus,
+    period_assignment_count: p.assignments?.[0]?.count ?? 0,
+  }))
+  const period_count = normalized.length
+  const sorted = [...normalized].sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''))
+  const ongoing = sorted.find(
+    p =>
+      computePeriodDisplayStatus(p) === 'active' &&
+      p.period_assignment_count > 0
+  )
+  return {
+    period_count,
+    has_ongoing_period_display: ongoing != null,
+    ongoing_period_start_date: ongoing?.start_date ?? null,
+    ongoing_period_end_date: ongoing?.end_date ?? null,
+  }
+}
+
+/** PostgREST の questionnaires 行（埋め込み count / periods）を一覧用に整形 */
+export function mapQuestionnaireListRow(row: {
+  id: string
+  creator_type: string
+  tenant_id: string | null
+  title: string
+  description: string | null
+  status: string
+  created_by_employee_id: string | null
+  created_at: string
+  updated_at: string
+  question_count: { count: number }[]
+  assignments: { count: number }[]
+  submitted: { count: number }[]
+  periods?: {
+    start_date: string | null
+    end_date: string | null
+    status: string
+    assignments?: { count: number }[]
+  }[] | null
+}): QuestionnaireListItem {
+  const periodsRaw = row.periods
+  const periods = Array.isArray(periodsRaw) ? periodsRaw : periodsRaw ? [periodsRaw] : []
+  return {
+    id: row.id,
+    creator_type: row.creator_type as QuestionnaireListItem['creator_type'],
+    tenant_id: row.tenant_id,
+    title: row.title,
+    description: row.description,
+    status: row.status as QuestionnaireListItem['status'],
+    created_by_employee_id: row.created_by_employee_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    question_count: row.question_count?.[0]?.count ?? 0,
+    assignment_count: row.assignments?.[0]?.count ?? 0,
+    submitted_count: row.submitted?.[0]?.count ?? 0,
+    ...summarizePeriodsForListItem(periods),
+  }
+}
 
 /**
  * 自社版アンケート一覧取得（管理画面用）
@@ -26,7 +97,8 @@ export async function getQuestionnaires(tenantId: string): Promise<Questionnaire
       created_by_employee_id, created_at, updated_at,
       question_count:questionnaire_questions(count),
       assignments:questionnaire_assignments(count),
-      submitted:questionnaire_responses(count)
+      submitted:questionnaire_responses(count),
+      periods:questionnaire_periods(start_date, end_date, status, assignments:questionnaire_assignments(count))
     `
     )
     .eq('tenant_id', tenantId)
@@ -34,35 +106,7 @@ export async function getQuestionnaires(tenantId: string): Promise<Questionnaire
 
   if (error) throw error
 
-  return (data ?? []).map(
-    (row: {
-      id: string
-      creator_type: string
-      tenant_id: string | null
-      title: string
-      description: string | null
-      status: string
-      created_by_employee_id: string | null
-      created_at: string
-      updated_at: string
-      question_count: { count: number }[]
-      assignments: { count: number }[]
-      submitted: { count: number }[]
-    }) => ({
-      id: row.id,
-      creator_type: row.creator_type,
-      tenant_id: row.tenant_id,
-      title: row.title,
-      description: row.description,
-      status: row.status,
-      created_by_employee_id: row.created_by_employee_id,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      question_count: row.question_count?.[0]?.count ?? 0,
-      assignment_count: row.assignments?.[0]?.count ?? 0,
-      submitted_count: row.submitted?.[0]?.count ?? 0,
-    })
-  )
+  return (data ?? []).map((row: Parameters<typeof mapQuestionnaireListRow>[0]) => mapQuestionnaireListRow(row))
 }
 
 /**
@@ -82,7 +126,8 @@ export async function getTemplates(): Promise<QuestionnaireListItem[]> {
       created_by_employee_id, created_at, updated_at,
       question_count:questionnaire_questions(count),
       assignments:questionnaire_assignments(count),
-      submitted:questionnaire_responses(count)
+      submitted:questionnaire_responses(count),
+      periods:questionnaire_periods(start_date, end_date, status, assignments:questionnaire_assignments(count))
     `
     )
     .eq('creator_type', 'system')
@@ -90,35 +135,7 @@ export async function getTemplates(): Promise<QuestionnaireListItem[]> {
 
   if (error) throw error
 
-  return (data ?? []).map(
-    (row: {
-      id: string
-      creator_type: string
-      tenant_id: string | null
-      title: string
-      description: string | null
-      status: string
-      created_by_employee_id: string | null
-      created_at: string
-      updated_at: string
-      question_count: { count: number }[]
-      assignments: { count: number }[]
-      submitted: { count: number }[]
-    }) => ({
-      id: row.id,
-      creator_type: row.creator_type,
-      tenant_id: row.tenant_id,
-      title: row.title,
-      description: row.description,
-      status: row.status,
-      created_by_employee_id: row.created_by_employee_id,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      question_count: row.question_count?.[0]?.count ?? 0,
-      assignment_count: row.assignments?.[0]?.count ?? 0,
-      submitted_count: row.submitted?.[0]?.count ?? 0,
-    })
-  )
+  return (data ?? []).map((row: Parameters<typeof mapQuestionnaireListRow>[0]) => mapQuestionnaireListRow(row))
 }
 
 /**

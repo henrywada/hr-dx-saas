@@ -101,19 +101,11 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Notices */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
-          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg shadow-inner">
-                <Bell className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-lg text-slate-800">人事からのお知らせ</h3>
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg shadow-inner">
+              <Bell className="w-5 h-5" />
             </div>
-            <button
-              type="button"
-              className="text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold rounded-lg px-3 py-1.5 transition-colors"
-            >
-              すべて見る
-            </button>
+            <h3 className="font-bold text-lg text-slate-800">人事からのお知らせ</h3>
           </div>
           <div className="p-0 flex-1">
             <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />

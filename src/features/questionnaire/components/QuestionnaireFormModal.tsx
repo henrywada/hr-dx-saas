@@ -81,6 +81,10 @@ export default function QuestionnaireFormModal({ creatorType, tenantId, onCreate
         question_count: sections.reduce((sum, s) => sum + s.questions.length, 0),
         assignment_count: 0,
         submitted_count: 0,
+        period_count: 0,
+        has_ongoing_period_display: false,
+        ongoing_period_start_date: null,
+        ongoing_period_end_date: null,
       };
       onCreated(newItem);
     });
@@ -102,6 +106,12 @@ export default function QuestionnaireFormModal({ creatorType, tenantId, onCreate
             ✕
           </button>
         </div>
+
+        {error && (
+          <div className="px-6 pt-4 pb-1 shrink-0">
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{error}</p>
+          </div>
+        )}
 
         <div className="px-6 py-5 space-y-5 max-h-[80vh] overflow-y-auto">
           {/* タイトル */}
@@ -137,10 +147,6 @@ export default function QuestionnaireFormModal({ creatorType, tenantId, onCreate
             <label className="block text-sm font-medium text-neutral-700 mb-3">設問</label>
             <SectionQuestionBuilder sections={sections} onChange={setSections} />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{error}</p>
-          )}
         </div>
 
         {/* フッター */}

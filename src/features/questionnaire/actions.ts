@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import type { CreateQuestionnaireInput, AnswerInput, CreatePeriodInput } from './types'
+import { mapQuestionnaireListRow } from './queries'
 
 interface ActionResult {
   success: boolean
@@ -805,8 +806,9 @@ export async function fetchQuestionnairesForClient(
       created_at,
       updated_at,
       question_count:questionnaire_questions(count),
-      assignment_count:questionnaire_assignments(count),
-      submitted_count:questionnaire_responses(count)
+      assignments:questionnaire_assignments(count),
+      submitted:questionnaire_responses(count),
+      periods:questionnaire_periods(start_date, end_date, status, assignments:questionnaire_assignments(count))
     `
     )
     .eq('tenant_id', tenantId)
@@ -817,21 +819,13 @@ export async function fetchQuestionnairesForClient(
     return { success: false, error: error.message }
   }
 
-  // レスポンスのフォーマット整形
-  const formatted = (data || []).map((q: any) => ({
-    id: q.id,
-    creator_type: q.creator_type,
-    tenant_id: q.tenant_id,
-    title: q.title,
-    description: q.description,
-    status: q.status,
-    created_by_employee_id: q.created_by_employee_id,
-    created_at: q.created_at,
-    updated_at: q.updated_at,
-    question_count: Array.isArray(q.question_count) ? q.question_count.length : 0,
-    assignment_count: Array.isArray(q.assignment_count) ? q.assignment_count.length : 0,
-    submitted_count: Array.isArray(q.submitted_count) ? q.submitted_count.length : 0,
-  }))
+  const formatted = (data || []).map((q: any) =>
+    mapQuestionnaireListRow({
+      ...q,
+      assignments: q.assignments,
+      submitted: q.submitted,
+    })
+  )
 
   return { success: true, data: formatted }
 }

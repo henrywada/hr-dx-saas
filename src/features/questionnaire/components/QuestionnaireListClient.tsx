@@ -23,13 +23,14 @@ interface Props {
   templates: QuestionnaireListItem[]
 }
 
-const STATUS_LABEL: Record<
-  string,
-  { label: string; variant: 'primary' | 'teal' | 'orange' | 'neutral' }
-> = {
-  draft: { label: '下書き', variant: 'neutral' },
-  active: { label: '受付中', variant: 'teal' },
-  closed: { label: '終了', variant: 'orange' },
+function formatImplementationDateCell(q: QuestionnaireListItem): string {
+  if (!q.has_ongoing_period_display) return '-'
+  const s = q.ongoing_period_start_date
+  const e = q.ongoing_period_end_date
+  if (s && e) return `${s} ～ ${e}`
+  if (s) return `${s} ～`
+  if (e) return `～ ${e}`
+  return '-'
 }
 
 const CREATOR_LABEL: Record<CreatorType, string> = {
@@ -80,18 +81,6 @@ export default function QuestionnaireListClient({
   }
 
   function handleStatusChange(id: string, status: 'draft' | 'active' | 'closed') {
-    // 公開時は確認を取る
-    if (status === 'active') {
-      const confirmed = confirm(
-        '【重要】アンケートを公開すると、以下の制限が適用されます。\n\n' +
-          '• 公開後は設問の編集・削除ができません\n' +
-          '• タイトルと説明文のみ変更可能\n' +
-          '• 変更したい場合は「終了」→「削除」して再作成が必要\n\n' +
-          '公開してもよろしいですか？'
-      )
-      if (!confirmed) return
-    }
-
     startTransition(async () => {
       const res = await changeQuestionnaireStatus(id, status)
       if (res.success) {
@@ -200,55 +189,45 @@ export default function QuestionnaireListClient({
                   <tr>
                     <th className="px-4 py-3 font-medium">タイトル</th>
                     <th className="px-4 py-3 font-medium">ステータス</th>
-                    <th className="px-4 py-3 font-medium text-right">設問数</th>
-                    <th className="px-4 py-3 font-medium text-right">対象 / 提出</th>
+                    <th className="px-4 py-3 font-medium text-right">実施期間数</th>
+                    <th className="px-4 py-3 font-medium">実施日</th>
                     <th className="px-4 py-3 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
                   {filtered.map(q => {
-                    const statusInfo = STATUS_LABEL[q.status] ?? STATUS_LABEL.draft
                     return (
                       <tr key={q.id} className="hover:bg-neutral-50 transition-colors">
                         <td className="px-4 py-3 font-medium text-neutral-800 max-w-xs truncate">
                           {q.title}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                          {q.has_ongoing_period_display ? (
+                            <Badge variant="teal">実施中</Badge>
+                          ) : (
+                            <span className="text-neutral-400">-</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-right text-neutral-600">
-                          {q.question_count}
-                        </td>
-                        <td className="px-4 py-3 text-right text-neutral-600">
-                          {q.assignment_count} / {q.submitted_count}
+                        <td className="px-4 py-3 text-right text-neutral-600">{q.period_count}</td>
+                        <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
+                          {formatImplementationDateCell(q)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1 flex-wrap">
-                            {/* 編集（draft） */}
+                            {/* タイトル編集（draft） */}
                             {q.status === 'draft' && (
                               <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
-                                編集
+                                タイトル編集
                               </Button>
                             )}
-                            {/* デザイン（draft） */}
+                            {/* 設問編集（draft） */}
                             {q.status === 'draft' && (
                               <Button
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => setDesignTarget(q)}
                               >
-                                デザイン
-                              </Button>
-                            )}
-                            {/* 公開（draft） */}
-                            {q.status === 'draft' && (
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleStatusChange(q.id, 'active')}
-                                disabled={isPending}
-                              >
-                                公開
+                                設問編集
                               </Button>
                             )}
                             {/* 終了（active） */}
@@ -279,7 +258,7 @@ export default function QuestionnaireListClient({
                               size="sm"
                               onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
                             >
-                              実施一覧
+                              実施期間の設定
                             </Button>
                             {/* 削除（draft|closed） */}
                             {(q.status === 'draft' || q.status === 'closed') && (

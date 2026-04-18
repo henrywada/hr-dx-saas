@@ -4,7 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { closeQuestionnairePeriod, deleteQuestionnairePeriod } from '@/features/questionnaire/actions'
 import { APP_ROUTES } from '@/config/routes'
-import type { QuestionnaireDetail, PeriodListItem, QuestionnaireListItem } from '@/features/questionnaire/types'
+import type {
+  QuestionnaireDetail,
+  PeriodListItem,
+  QuestionnaireListItem,
+  PeriodDisplayStatus,
+} from '@/features/questionnaire/types'
+import { computePeriodDisplayStatus } from '@/features/questionnaire/types'
 import PeriodFormModal from './PeriodFormModal'
 import AssignmentModal from './AssignmentModal'
 
@@ -14,29 +20,19 @@ interface Props {
   tenantId: string
 }
 
-type DisplayStatus = 'upcoming' | 'active' | 'closed' | 'interrupted'
+/** 実施一覧の1行用（カレンダー上の実施中だが対象者0件を分離） */
+type PeriodListRowStatus = PeriodDisplayStatus | 'no_assignees'
 
-function computeDisplayStatus(period: PeriodListItem): DisplayStatus {
-  // 手動中断（status=closed）は日付より優先
-  if (period.status === 'closed') return 'interrupted'
-
-  const today = new Date().toISOString().split('T')[0]
-
-  if (period.start_date && period.end_date) {
-    if (today < period.start_date) return 'upcoming'
-    if (today > period.end_date) return 'closed'
-    return 'active'
-  }
-  if (period.start_date && !period.end_date) {
-    return today >= period.start_date ? 'active' : 'upcoming'
-  }
-  // 日付なし（none）
-  return 'active'
+function computePeriodListRowStatus(period: PeriodListItem): PeriodListRowStatus {
+  const base = computePeriodDisplayStatus(period)
+  if (base === 'active' && period.assignment_count === 0) return 'no_assignees'
+  return base
 }
 
-const STATUS_CONFIG: Record<DisplayStatus, { label: string; className: string }> = {
+const STATUS_CONFIG: Record<PeriodListRowStatus, { label: string; className: string }> = {
   upcoming:    { label: '未開始',   className: 'bg-blue-100 text-blue-700' },
   active:      { label: '実施中',   className: 'bg-green-100 text-green-700' },
+  no_assignees: { label: '対象者なし', className: 'bg-amber-100 text-amber-800' },
   closed:      { label: '終了',     className: 'bg-gray-100 text-gray-500' },
   interrupted: { label: '中断',     className: 'bg-orange-100 text-orange-600' },
 }
@@ -47,11 +43,22 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
   const [editingPeriod, setEditingPeriod]         = useState<PeriodListItem | null>(null)
   const [assigningPeriodId, setAssigningPeriodId] = useState<string | null>(null)
 
+  const sortedPeriods = [...initialPeriods].sort((a, b) =>
+    (a.start_date ?? '').localeCompare(b.start_date ?? '')
+  )
+  const ongoingPeriod = sortedPeriods.find(
+    p => computePeriodListRowStatus(p) === 'active'
+  )
+
   const questionnaireAsListItem: QuestionnaireListItem = {
     ...questionnaire,
-    question_count:   questionnaire.questions.length,
+    question_count: questionnaire.questions.length,
     assignment_count: 0,
-    submitted_count:  0,
+    submitted_count: 0,
+    period_count: initialPeriods.length,
+    has_ongoing_period_display: ongoingPeriod != null,
+    ongoing_period_start_date: ongoingPeriod?.start_date ?? null,
+    ongoing_period_end_date: ongoingPeriod?.end_date ?? null,
   }
 
   function handleModalSuccess() {
@@ -105,7 +112,7 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
       ) : (
         <div className="space-y-3">
           {initialPeriods.map(period => {
-            const displayStatus = computeDisplayStatus(period)
+            const displayStatus = computePeriodListRowStatus(period)
             const { label: statusLabel, className: statusClass } = STATUS_CONFIG[displayStatus]
 
             return (
@@ -129,7 +136,7 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
                 </div>
 
                 <div className="flex gap-2">
-                  {displayStatus === 'upcoming' && (
+                  {(displayStatus === 'upcoming' || displayStatus === 'no_assignees') && (
                     <>
                       <button
                         onClick={() => setAssigningPeriodId(period.id)}

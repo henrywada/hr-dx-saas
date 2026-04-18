@@ -13,7 +13,7 @@ export default async function SurveyManagementPage() {
   const [data, templates] = await Promise.all([getQuestionnaires(user.tenant_id), getTemplates()])
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-[92rem] mx-auto w-full">
       <QuestionnaireListClient
         tenantId={user.tenant_id}
         appRole={user.appRole ?? ''}

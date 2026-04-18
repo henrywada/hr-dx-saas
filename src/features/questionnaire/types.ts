@@ -80,6 +80,14 @@ export interface QuestionnaireListItem extends Questionnaire {
   question_count: number;
   assignment_count: number;
   submitted_count: number;
+  /** 登録済み実施期間の件数（管理一覧の「実施期間数」） */
+  period_count: number;
+  /** PeriodListPanel と同基準で「実施中」表示となる期間が1件以上あるか */
+  has_ongoing_period_display: boolean;
+  /** has_ongoing が true のときの開始日（表示用） */
+  ongoing_period_start_date: string | null;
+  /** has_ongoing が true のときの終了日（表示用） */
+  ongoing_period_end_date: string | null;
 }
 
 // 設問ビルダー用（選択肢・評価項目を含む）
@@ -186,4 +194,31 @@ export interface CreateQuestionInput {
   sort_order: number;
   options?: { option_text: string; sort_order: number }[];
   items?: { item_text: string; sort_order: number }[];
+}
+
+/** 実施一覧（PeriodListPanel）と同一の表示区分 */
+export type PeriodDisplayStatus = 'upcoming' | 'active' | 'closed' | 'interrupted';
+
+/**
+ * 期間行の「実施中 / 未開始 / 終了 / 中断」を判定する。
+ * DB の status=closed は手動中断として「中断」扱い（日付より優先）。
+ */
+export function computePeriodDisplayStatus(period: {
+  status: PeriodStatus;
+  start_date: string | null;
+  end_date: string | null;
+}): PeriodDisplayStatus {
+  if (period.status === 'closed') return 'interrupted';
+
+  const today = new Date().toISOString().split('T')[0]!;
+
+  if (period.start_date && period.end_date) {
+    if (today < period.start_date) return 'upcoming';
+    if (today > period.end_date) return 'closed';
+    return 'active';
+  }
+  if (period.start_date && !period.end_date) {
+    return today >= period.start_date ? 'active' : 'upcoming';
+  }
+  return 'active';
 }

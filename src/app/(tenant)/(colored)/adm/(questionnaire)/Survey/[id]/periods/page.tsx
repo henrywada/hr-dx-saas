@@ -23,7 +23,7 @@ export default async function SurveyPeriodsPage({
   if (!questionnaire) redirect(APP_ROUTES.TENANT.ADMIN_SURVEY)
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-[92rem] mx-auto w-full">
       <PeriodListPanel
         questionnaire={questionnaire}
         initialPeriods={periods}

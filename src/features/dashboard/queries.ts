@@ -123,11 +123,12 @@ export async function getPendingAssignedQuestionnairesForTop(
   if (!employeeId) return []
   try {
     const all = await getAssignedQuestionnaires(employeeId)
-    const today = new Date().toISOString().split('T')[0]
+    const today = toJSTDateString()
     return all.filter(q => {
       if (q.submitted_at) return false
-      if (q.questionnaire_status !== 'active') return false
-      // 期間がある場合は開始日〜終了日の範囲内のみ表示
+      // 実施は「公開」ではなく期間＋アサインで運用するため draft も含め、終了のみ除外
+      if (q.questionnaire_status === 'closed') return false
+      // 期間がある場合は開始日〜終了日の範囲内のみ表示（暦日は JST）
       if (q.period_start_date && today < q.period_start_date) return false
       if (q.period_end_date && today > q.period_end_date) return false
       return true

@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { createQuestionnairePeriod } from '@/features/questionnaire/actions'
-import type { PeriodType, CreatePeriodInput } from '@/features/questionnaire/types'
+import { createQuestionnairePeriod, updateQuestionnairePeriod } from '@/features/questionnaire/actions'
+import type { PeriodType, CreatePeriodInput, QuestionnairePeriod } from '@/features/questionnaire/types'
 
 interface Props {
   questionnaireId: string
   onSuccess: () => void
   onClose: () => void
+  /** 編集モード: 既存 period を渡すと UPDATE になる */
+  period?: QuestionnairePeriod
 }
 
 const PERIOD_TYPE_LABELS: Record<PeriodType, string> = {
@@ -17,11 +19,13 @@ const PERIOD_TYPE_LABELS: Record<PeriodType, string> = {
   none:       '指定なし',
 }
 
-export default function PeriodFormModal({ questionnaireId, onSuccess, onClose }: Props) {
-  const [periodType, setPeriodType] = useState<PeriodType>('monthly')
-  const [label, setLabel]           = useState('')
-  const [startDate, setStartDate]   = useState('')
-  const [endDate, setEndDate]       = useState('')
+export default function PeriodFormModal({ questionnaireId, onSuccess, onClose, period }: Props) {
+  const isEdit = !!period
+
+  const [periodType, setPeriodType] = useState<PeriodType>(period?.period_type ?? 'monthly')
+  const [label, setLabel]           = useState(period?.label ?? '')
+  const [startDate, setStartDate]   = useState(period?.start_date ?? '')
+  const [endDate, setEndDate]       = useState(period?.end_date ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError]           = useState<string | null>(null)
 
@@ -32,21 +36,33 @@ export default function PeriodFormModal({ questionnaireId, onSuccess, onClose }:
       return
     }
 
-    const input: CreatePeriodInput = {
-      questionnaire_id: questionnaireId,
-      period_type: periodType,
-      label: label.trim(),
-      start_date: startDate || null,
-      end_date: endDate || null,
-    }
-
     setIsSubmitting(true)
     setError(null)
-    const result = await createQuestionnairePeriod(input)
+
+    let result: { success: boolean; error?: string }
+
+    if (isEdit && period) {
+      result = await updateQuestionnairePeriod(period.id, {
+        period_type: periodType,
+        label: label.trim(),
+        start_date: startDate || null,
+        end_date: endDate || null,
+      })
+    } else {
+      const input: CreatePeriodInput = {
+        questionnaire_id: questionnaireId,
+        period_type: periodType,
+        label: label.trim(),
+        start_date: startDate || null,
+        end_date: endDate || null,
+      }
+      result = await createQuestionnairePeriod(input)
+    }
+
     setIsSubmitting(false)
 
     if (!result.success) {
-      setError(result.error ?? '作成に失敗しました。')
+      setError(result.error ?? (isEdit ? '更新に失敗しました。' : '作成に失敗しました。'))
       return
     }
     onSuccess()
@@ -57,7 +73,9 @@ export default function PeriodFormModal({ questionnaireId, onSuccess, onClose }:
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold mb-4">実施期間を作成</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEdit ? '実施期間を変更' : '実施期間を作成'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -126,7 +144,7 @@ export default function PeriodFormModal({ questionnaireId, onSuccess, onClose }:
               disabled={isSubmitting}
               className="px-4 py-2 bg-primary text-white rounded-lg disabled:opacity-50"
             >
-              {isSubmitting ? '作成中...' : '作成'}
+              {isSubmitting ? (isEdit ? '更新中...' : '作成中...') : (isEdit ? '更新' : '作成')}
             </button>
           </div>
         </form>

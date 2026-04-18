@@ -878,7 +878,69 @@ export async function createQuestionnairePeriod(
 }
 
 /**
+ * 実施期間を更新（ラベル・期間タイプ・日付）
+ */
+export async function updateQuestionnairePeriod(
+  periodId: string,
+  input: {
+    period_type: string
+    label: string
+    start_date?: string | null
+    end_date?: string | null
+  }
+): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー：ログインしてください。' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { error } = await db
+    .from('questionnaire_periods')
+    .update({
+      period_type: input.period_type,
+      label: input.label,
+      start_date: input.start_date ?? null,
+      end_date: input.end_date ?? null,
+    })
+    .eq('id', periodId)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/adm/Survey')
+  return { success: true }
+}
+
+/**
+ * 実施期間を削除
+ */
+export async function deleteQuestionnairePeriod(periodId: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー：ログインしてください。' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { error } = await db
+    .from('questionnaire_periods')
+    .delete()
+    .eq('id', periodId)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/adm/Survey')
+  return { success: true }
+}
+
+/**
  * 実施期間を終了（status: closed に変更）
+ * @deprecated ステータスは日付から自動判定するため非推奨。削除アクションを使用してください。
  */
 export async function closeQuestionnairePeriod(periodId: string): Promise<ActionResult> {
   const user = await getServerUser()

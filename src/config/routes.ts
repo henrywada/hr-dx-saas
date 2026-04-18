@@ -39,6 +39,8 @@ export const APP_ROUTES = {
     ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',
     /** アンケート管理（作成・設問編集・アサイン） */
     ADMIN_SURVEY: '/adm/Survey',
+    /** アンケート実施期間管理 */
+    SURVEY_PERIODS: (id: string) => `/adm/Survey/${id}/periods`,
     /** 従業員回答画面（アサインされたアンケートの一覧・回答） */
     SURVEY_ANSWERS: '/answers',
   },

@@ -16,9 +16,10 @@ interface Props {
   questionnaire: QuestionnaireListItem;
   tenantId: string;
   onClose: () => void;
+  periodId?: string | null;
 }
 
-export default function AssignmentModal({ questionnaire, tenantId, onClose }: Props) {
+export default function AssignmentModal({ questionnaire, tenantId, onClose, periodId }: Props) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deadlineDate, setDeadlineDate] = useState('');
@@ -83,7 +84,8 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose }: Pr
       const res = await assignEmployees(
         questionnaire.id,
         Array.from(selectedIds),
-        deadlineDate || null
+        deadlineDate || null,
+        periodId ?? null
       );
       if (res.success) {
         onClose();

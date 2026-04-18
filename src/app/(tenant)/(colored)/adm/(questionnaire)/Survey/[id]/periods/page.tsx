@@ -20,7 +20,7 @@ export default async function SurveyPeriodsPage({
     getQuestionnairePeriods(id),
   ])
 
-  if (!questionnaire) redirect(APP_ROUTES.ADM.ADMIN_SURVEY)
+  if (!questionnaire) redirect(APP_ROUTES.TENANT.ADMIN_SURVEY)
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

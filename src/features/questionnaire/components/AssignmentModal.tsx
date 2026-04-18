@@ -42,11 +42,19 @@ export default function AssignmentModal({ questionnaire, tenantId, onClose, peri
 
       setEmployees(empData ?? []);
 
-      // 既存アサイン取得
-      const { data: assigned } = await db
+      // 既存アサイン取得（period_id でフィルタ）
+      let assignQuery = db
         .from('questionnaire_assignments')
         .select('employee_id')
-        .eq('questionnaire_id', questionnaire.id);
+        .eq('questionnaire_id', questionnaire.id)
+
+      if (periodId) {
+        assignQuery = assignQuery.eq('period_id', periodId)
+      } else {
+        assignQuery = assignQuery.is('period_id', null)
+      }
+
+      const { data: assigned } = await assignQuery
 
       const assignedIds = new Set<string>(
         (assigned ?? []).map((a: { employee_id: string }) => a.employee_id)

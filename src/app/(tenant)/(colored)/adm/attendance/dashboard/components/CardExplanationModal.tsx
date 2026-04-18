@@ -80,14 +80,12 @@ const MARKDOWN = `
 `
 
 const markdownComponents: Components = {
-  h1: ({ children }) => (
-    <h1 className="text-2xl font-semibold mb-2 text-gray-900">{children}</h1>
-  ),
+  h1: ({ children }) => <h1 className="text-2xl font-semibold mb-2 text-gray-900">{children}</h1>,
   h2: ({ children }) => (
     <h2 className="text-xl font-semibold mt-8 mb-3 text-gray-900 first:mt-0">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mt-4 mb-2 px-3 py-2 bg-indigo-50 border-l-4 border-indigo-400 rounded-md text-gray-900 font-semibold">
+    <h3 className="mt-4 mb-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-md text-indigo-800 font-semibold">
       {children}
     </h3>
   ),
@@ -98,9 +96,7 @@ const markdownComponents: Components = {
   ol: ({ children }) => (
     <ol className="mb-4 list-decimal pl-6 text-gray-700 leading-7 last:mb-0">{children}</ol>
   ),
-  li: ({ children }) => (
-    <li className="text-gray-700 leading-7 [&>p]:mb-0">{children}</li>
-  ),
+  li: ({ children }) => <li className="text-gray-700 leading-7 [&>p]:mb-0">{children}</li>,
   code: ({ children }) => (
     <code className="bg-gray-900 text-white rounded px-1 py-0.5 text-sm font-mono">{children}</code>
   ),

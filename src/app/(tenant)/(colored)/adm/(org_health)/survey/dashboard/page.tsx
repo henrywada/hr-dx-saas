@@ -1,8 +1,17 @@
-import React from 'react';
-import { Sparkles, TrendingUp, Users, AlertTriangle, MessageSquare, Activity, Smile, Frown } from 'lucide-react';
+import React from 'react'
+import {
+  Sparkles,
+  TrendingUp,
+  Users,
+  AlertTriangle,
+  MessageSquare,
+  Activity,
+  Smile,
+  Frown,
+} from 'lucide-react'
 
-import { Badge } from '@/components/ui/Badge';
-import { SurveyDashboardHelpModalTrigger } from './SurveyDashboardHelpModal';
+import { Badge } from '@/components/ui/Badge'
+import { SurveyDashboardHelpModalTrigger } from './SurveyDashboardHelpModal'
 
 // === モックデータ ===
 const kpiData = {
@@ -12,14 +21,14 @@ const kpiData = {
   respondedCount: 120,
   totalCount: 142,
   alertCount: 2,
-};
+}
 
 const categoryScores = [
   { name: '仕事のやりがい', score: 4.1, max: 5.0, color: 'bg-indigo-500' },
   { name: '職場環境', score: 3.5, max: 5.0, color: 'bg-emerald-500' },
   { name: '人間関係', score: 3.9, max: 5.0, color: 'bg-blue-500' },
   { name: '会社への共感', score: 3.2, max: 5.0, color: 'bg-amber-500' },
-];
+]
 
 const departmentData = [
   { id: 1, name: '開発部', responseRate: 92, score: 4.2, status: '良好' },
@@ -28,12 +37,11 @@ const departmentData = [
   { id: 4, name: '営業部', responseRate: 81, score: 3.4, status: '安定' },
   { id: 5, name: 'カスタマーサポート部', responseRate: 75, score: 2.8, status: '要注意' },
   { id: 6, name: 'マーケティング部', responseRate: 65, score: 2.9, status: '要注意' },
-];
+]
 
 export default function PulseSurveyDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500 pb-20">
-      
       {/* 1. ページヘッダー */}
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -42,7 +50,8 @@ export default function PulseSurveyDashboardPage() {
             <span className="font-semibold text-sm tracking-widest uppercase">Pulse Survey</span>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            組織健康度ダッシュボード <span className="text-xl font-medium text-gray-500 ml-2">(2026年2月度)</span>
+            組織健康度ダッシュボード{' '}
+            <span className="text-xl font-medium text-gray-500 ml-2">(2026年2月度)</span>
           </h1>
           <p className="text-gray-500 mt-2 text-sm sm:text-base">
             ストレスチェックの結果を分析の根拠として、全社のコンディションとAIによるフリーコメント分析結果を確認できます。
@@ -85,7 +94,10 @@ export default function PulseSurveyDashboardPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-3 mt-2">
-            <span className="text-4xl font-extrabold text-gray-900">{kpiData.responseRate}<span className="text-2xl">%</span></span>
+            <span className="text-4xl font-extrabold text-gray-900">
+              {kpiData.responseRate}
+              <span className="text-2xl">%</span>
+            </span>
           </div>
           {/* 簡易プログレスバー */}
           <div className="mt-4">
@@ -94,13 +106,16 @@ export default function PulseSurveyDashboardPage() {
               <span>全 {kpiData.totalCount}名</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${kpiData.responseRate}%` }}></div>
+              <div
+                className="bg-blue-500 h-2 rounded-full"
+                style={{ width: `${kpiData.responseRate}%` }}
+              ></div>
             </div>
           </div>
         </div>
 
         {/* 要注意アラート数 */}
-        <div className="bg-white rounded-2xl shadow-sm border-l-4 border-l-red-500 border border-gray-100 p-6 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border-t-2 border-t-red-400 border border-gray-100 p-6 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
           <div className="absolute -right-4 -top-4 bg-red-50 w-24 h-24 rounded-full opacity-50 pointer-events-none"></div>
           <div className="flex items-center justify-between mb-2 relative z-10">
             <div className="flex items-center gap-2 text-red-600 font-bold">
@@ -120,16 +135,20 @@ export default function PulseSurveyDashboardPage() {
 
       {/* 3. メイン分析エリア（2カラムレイアウト） */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-        
         {/* 左側：AIフリーコメント感情分析 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col text-sm sm:text-base">
-          <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center gap-3">
+          <div className="bg-linear-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center gap-3">
             <MessageSquare className="h-6 w-6 text-indigo-200" />
             <h2 className="text-lg font-bold">AI フリーコメント感情分析</h2>
-            <Badge variant="teal" className="ml-auto bg-white/20 text-white border-none backdrop-blur-sm">AI Analyzed</Badge>
+            <Badge
+              variant="teal"
+              className="ml-auto bg-white/20 text-white border-none backdrop-blur-sm"
+            >
+              AI Analyzed
+            </Badge>
           </div>
-          
-          <div className="p-6 flex-grow space-y-6">
+
+          <div className="p-6 grow space-y-6">
             <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-5 relative">
               <div className="absolute -left-3 -top-3 bg-white border border-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
                 <Sparkles size={16} />
@@ -138,7 +157,12 @@ export default function PulseSurveyDashboardPage() {
                 TalentDraft AI のインサイト
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                全体的に<strong>『新しい評価制度』に対するポジティブな声</strong>が多い一方、営業部から<strong>『月末の事務作業の負担』に関するネガティブなコメントが急増</strong>しています。<br/><br/>
+                全体的に<strong>『新しい評価制度』に対するポジティブな声</strong>
+                が多い一方、営業部から
+                <strong>『月末の事務作業の負担』に関するネガティブなコメントが急増</strong>
+                しています。
+                <br />
+                <br />
                 また、カスタマーサポート部にて「人員不足による残業時間の増加」を懸念する声が複数検知されました。業務フローの見直しと、該当部署のヒアリングを推奨します。
               </p>
             </div>
@@ -149,9 +173,15 @@ export default function PulseSurveyDashboardPage() {
                   <Smile size={18} /> 主なポジティブ用語
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">評価制度</span>
-                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">リモートワーク</span>
-                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">チームワーク</span>
+                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">
+                    評価制度
+                  </span>
+                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">
+                    リモートワーク
+                  </span>
+                  <span className="bg-white text-green-700 px-2 py-1 text-xs rounded border border-green-200 shadow-sm">
+                    チームワーク
+                  </span>
                 </div>
               </div>
               <div className="bg-red-50 rounded-lg p-4 border border-red-100">
@@ -159,9 +189,15 @@ export default function PulseSurveyDashboardPage() {
                   <Frown size={18} /> 主なネガティブ用語
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">事務作業</span>
-                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">残業時間</span>
-                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">人員不足</span>
+                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">
+                    事務作業
+                  </span>
+                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">
+                    残業時間
+                  </span>
+                  <span className="bg-white text-red-700 px-2 py-1 text-xs rounded border border-red-200 shadow-sm">
+                    人員不足
+                  </span>
                 </div>
               </div>
             </div>
@@ -171,13 +207,23 @@ export default function PulseSurveyDashboardPage() {
         {/* 右側：カテゴリ別スコア */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-            <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg
+              className="h-6 w-6 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
             </svg>
             <h2 className="text-lg font-bold text-gray-800">カテゴリ別スコア</h2>
           </div>
-          
-          <div className="p-6 flex-grow flex flex-col justify-center space-y-6">
+
+          <div className="p-6 grow flex flex-col justify-center space-y-6">
             {categoryScores.map((cat, idx) => (
               <div key={idx} className="space-y-2">
                 <div className="flex justify-between items-end">
@@ -188,7 +234,7 @@ export default function PulseSurveyDashboardPage() {
                   </div>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden border border-gray-200/50">
-                  <div 
+                  <div
                     className={`h-full rounded-full ${cat.color} transition-all duration-1000 ease-out`}
                     style={{ width: `${(cat.score / cat.max) * 100}%` }}
                   />
@@ -197,7 +243,6 @@ export default function PulseSurveyDashboardPage() {
             ))}
           </div>
         </div>
-
       </div>
 
       {/* 4. 部署別コンディション一覧（下部） */}
@@ -217,7 +262,7 @@ export default function PulseSurveyDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {departmentData.map((dept) => (
+              {departmentData.map(dept => (
                 <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                     {dept.name}
@@ -226,15 +271,17 @@ export default function PulseSurveyDashboardPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-10 text-right">{dept.responseRate}%</span>
                       <div className="w-16 sm:w-24 bg-gray-100 rounded-full h-1.5 hidden sm:block">
-                        <div 
-                          className={`h-1.5 rounded-full ${dept.responseRate < 80 ? 'bg-amber-400' : 'bg-blue-500'}`} 
+                        <div
+                          className={`h-1.5 rounded-full ${dept.responseRate < 80 ? 'bg-amber-400' : 'bg-blue-500'}`}
                           style={{ width: `${dept.responseRate}%` }}
                         ></div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`font-bold ${dept.score < 3.0 ? 'text-red-600' : 'text-gray-900'}`}>
+                    <span
+                      className={`font-bold ${dept.score < 3.0 ? 'text-red-600' : 'text-gray-900'}`}
+                    >
                       {dept.score.toFixed(1)}
                     </span>
                   </td>
@@ -262,7 +309,6 @@ export default function PulseSurveyDashboardPage() {
           </table>
         </div>
       </div>
-
     </div>
-  );
+  )
 }

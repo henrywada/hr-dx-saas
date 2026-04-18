@@ -1,12 +1,5 @@
 import React from 'react'
-import {
-  AlertCircle,
-  Calendar,
-  ChevronRight,
-  Bell,
-  CheckCircle2,
-  Zap,
-} from 'lucide-react'
+import { AlertCircle, Calendar, ChevronRight, Bell, CheckCircle2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
 import {
@@ -63,7 +56,7 @@ export default async function DashboardPage() {
 
       {/* 2. Top Priority Task (To-Do) - 従業員専用のパルスサーベイ未回答タスク */}
       {importantTask && importantTask.isPending && (
-        <div className="relative overflow-hidden bg-white rounded-2xl border-l-4 border-l-orange-500 border-y border-r border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">
+        <div className="relative overflow-hidden bg-white rounded-2xl border-t-2 border-t-orange-400 border border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">
           <div className="absolute -top-10 -right-10 p-4 opacity-[0.03] pointer-events-none text-orange-900">
             <AlertCircle size={200} />
           </div>
@@ -115,7 +108,10 @@ export default async function DashboardPage() {
               </div>
               <h3 className="font-bold text-lg text-slate-800">人事からのお知らせ</h3>
             </div>
-            <button type="button" className="text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold rounded-lg px-3 py-1.5 transition-colors">
+            <button
+              type="button"
+              className="text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold rounded-lg px-3 py-1.5 transition-colors"
+            >
               すべて見る
             </button>
           </div>
@@ -175,5 +171,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -3,18 +3,46 @@
 @theme {
   --font-sans: var(--font-noto-sans-jp);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-barlow);
 
-  /* カスタムカラーパレット */
+  /* タイプスケール（1.25 比率） */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+
+  /* 行間 */
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  /* ブランドカラーパレット */
   --color-primary: #0055ff;
   --color-primary-dark: #0044cc;
   --color-primary-light: #e5ebff;
   --color-accent-teal: #00c2b8;
   --color-accent-orange: #ff6b00;
+
+  /* セマンティックカラー（ブランドパレットから派生） */
+  --color-success: oklch(60% 0.10 180);
+  --color-success-light: oklch(96.5% 0.03 185);
+  --color-warning-light: oklch(97% 0.04 50);
+  --color-danger: oklch(55% 0.185 25);
+  --color-danger-light: oklch(97% 0.025 25);
+
+  /* ブランドティントニュートラル（プライマリブルー方向） */
+  --color-surface: oklch(97.5% 0.007 265);
+  --color-surface-subtle: oklch(93.5% 0.01 265);
+  --color-text-muted: oklch(52% 0.012 265);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(99% 0.005 265);
+  --foreground: oklch(15% 0.012 265);
 
   /* カスタムカラーパレット */
   --primary: #0055ff;
@@ -26,8 +54,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: oklch(10% 0.007 265);
+    --foreground: oklch(93% 0.005 265);
 
     /* ダークモードでもカスタムカラーを維持 */
     --primary: #0055ff;
@@ -42,4 +70,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), 'Noto Sans JP', sans-serif;
+}
+
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 220ms;
+  --duration-slow: 380ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,16 +1,16 @@
-import React from 'react';
+import React from 'react'
 
-export type BadgeVariant = 'primary' | 'teal' | 'orange' | 'neutral';
+export type BadgeVariant = 'primary' | 'teal' | 'orange' | 'neutral'
 
 interface BadgeProps {
-  variant?: BadgeVariant;
-  children: React.ReactNode;
-  className?: string;
+  variant?: BadgeVariant
+  children: React.ReactNode
+  className?: string
 }
 
 /**
  * 統一されたカラーパレットを使用したバッジコンポーネント
- * 
+ *
  * @example
  * ```tsx
  * <Badge variant="primary">アクティブ</Badge>
@@ -18,25 +18,17 @@ interface BadgeProps {
  * <Badge variant="orange">要注意</Badge>
  * ```
  */
-export const Badge: React.FC<BadgeProps> = ({
-  variant = 'neutral',
-  children,
-  className = '',
-}) => {
-  const baseStyles = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium';
+export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, className = '' }) => {
+  const baseStyles = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium'
 
   const variantStyles = {
     primary: 'bg-primary-light text-primary',
     teal: 'bg-accent-teal/10 text-accent-teal',
     orange: 'bg-accent-orange/10 text-accent-orange',
-    neutral: 'bg-gray-100 text-gray-700',
-  };
+    neutral: 'bg-surface-subtle text-text-muted',
+  }
 
-  return (
-    <span className={`${baseStyles} ${variantStyles[variant]} ${className}`}>
-      {children}
-    </span>
-  );
-};
+  return <span className={`${baseStyles} ${variantStyles[variant]} ${className}`}>{children}</span>
+}
 
-export default Badge;
+export default Badge

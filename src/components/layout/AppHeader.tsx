@@ -1,61 +1,50 @@
-"use client";
+'use client'
 
-import React from "react";
-import Link from "next/link";
-import { LogOut, Settings, Shield, ArrowLeft, Menu, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/auth/context";
-import { useMobileMenu } from "@/components/layout/MobileMenuContext";
-import { APP_ROUTES } from "@/config/routes";
-import { writeAuditLog } from "@/lib/log/actions";
+import React from 'react'
+import Link from 'next/link'
+import { LogOut, Settings, Shield, ArrowLeft, Menu, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth/context'
+import { useMobileMenu } from '@/components/layout/MobileMenuContext'
+import { APP_ROUTES } from '@/config/routes'
+import { writeAuditLog } from '@/lib/log/actions'
 
 interface AppHeaderProps {
-  variant: 'portal' | 'admin' | 'saas';
-  onMenuClick?: () => void;
+  variant: 'portal' | 'admin' | 'saas'
+  onMenuClick?: () => void
 }
 
 export function AppHeader({ variant }: AppHeaderProps) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const supabase = createClient();
-  const { isMobileMenuOpen, toggleMobileMenu } = useMobileMenu();
+  const { user } = useAuth()
+  const router = useRouter()
+  const supabase = createClient()
+  const { isMobileMenuOpen, toggleMobileMenu } = useMobileMenu()
 
   const handleLogout = async () => {
-    await writeAuditLog({ action: "LOGOUT", path: "/logout" }).catch(console.error);
-    await supabase.auth.signOut();
-    router.push(APP_ROUTES.AUTH.LOGIN);
-    router.refresh();
-  };
+    await writeAuditLog({ action: 'LOGOUT', path: '/logout' }).catch(console.error)
+    await supabase.auth.signOut()
+    router.push(APP_ROUTES.AUTH.LOGIN)
+    router.refresh()
+  }
 
-  const userName = user?.name || "Guest User";
-  const role = user?.role || "member";
-  const appRole = user?.appRole;
+  const userName = user?.name || 'Guest User'
+  const role = user?.role || 'member'
+  const appRole = user?.appRole
 
-  let bgStyle = "rgba(255, 255, 255, 0.95)";
-  let textColor = "text-slate-600";
-  const logoGradient = "from-[#FF6B00] to-orange-600";
+  let bgStyle = 'rgba(255, 255, 255, 0.95)'
 
   if (variant === 'admin') {
-    // #00738Aを中心に、上が明るく下が少し暗くなるグラデーション
-    bgStyle = "linear-gradient(180deg, #008AA3 0%, #00738A 40%, #005F71 100%)";
-    textColor = "text-white";
+    bgStyle = 'linear-gradient(180deg, #008AA3 0%, #00738A 40%, #005F71 100%)'
   } else if (variant === 'saas') {
-    bgStyle = "#000B00";
-    textColor = "text-white";
+    bgStyle = '#000B00'
   }
 
   const headerStyle = {
-    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2)",
+    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2)',
     zIndex: 50,
     background: bgStyle,
-  };
-
-  const isEmployee = appRole === "employee";
-  let label = "メンバー";
-  if (isEmployee) label = "従業員";
-  if (role === "admin") label = "管理者";
-  if (role === "supaUser") label = "SaaS管理者";
+  }
 
   return (
     <header
@@ -72,23 +61,32 @@ export function AppHeader({ variant }: AppHeaderProps) {
         </button>
 
         <Link href={APP_ROUTES.TENANT.PORTAL} className="flex items-center gap-2 group">
-          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${logoGradient} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 ${variant !== 'portal' ? 'border border-white/20' : ''}`}>
-             <span className="text-white font-bold text-lg tracking-tight">H</span>
+          <div
+            className={`w-8 h-8 rounded-lg bg-linear-to-br from-[#FF6B00] to-orange-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 ${variant !== 'portal' ? 'border border-white/20' : ''}`}
+          >
+            <span className="text-white font-bold text-lg tracking-tight">H</span>
           </div>
           <div
-             className={`text-xl md:text-2xl font-bold tracking-tighter drop-shadow-sm select-none ${variant === 'portal' ? 'bg-gradient-to-br from-[#FF6B00] to-orange-600 bg-clip-text text-transparent' : 'text-white'}`}
-             style={{ textShadow: variant !== 'portal' ? "0 1px 2px rgba(0,0,0,0.2)" : "0 1px 1px rgba(0,0,0,0.05)" }}
+            className={`text-xl md:text-2xl font-bold tracking-tighter drop-shadow-sm select-none ${variant === 'portal' ? 'text-accent-orange' : 'text-white'}`}
+            style={{
+              textShadow:
+                variant !== 'portal' ? '0 1px 2px rgba(0,0,0,0.2)' : '0 1px 1px rgba(0,0,0,0.05)',
+            }}
           >
-             HR-dx
+            HR-dx
           </div>
         </Link>
       </div>
 
       {/* Right Side */}
       <div className="flex items-center gap-3 md:gap-4">
-        <div className={`h-6 w-px ${variant === 'portal' ? 'bg-slate-200' : 'bg-white/20'} mx-1 hidden md:block`}></div>
+        <div
+          className={`h-6 w-px ${variant === 'portal' ? 'bg-slate-200' : 'bg-white/20'} mx-1 hidden md:block`}
+        ></div>
 
-        <div className={`flex items-center gap-1 mr-2 border-r ${variant === 'portal' ? 'border-slate-200' : 'border-white/20'} pr-2 md:pr-4`}>
+        <div
+          className={`flex items-center gap-1 mr-2 border-r ${variant === 'portal' ? 'border-slate-200' : 'border-white/20'} pr-2 md:pr-4`}
+        >
           {variant === 'portal' ? (
             <>
               <button
@@ -102,7 +100,10 @@ export function AppHeader({ variant }: AppHeaderProps) {
               <div className="flex items-center gap-1 md:gap-3">
                 {appRole && appRole !== 'employee' && (
                   <Link href={APP_ROUTES.TENANT.ADMIN}>
-                    <button className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-accent-orange bg-orange-50/80 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 rounded-md transition-all shadow-sm" title="管理へ">
+                    <button
+                      className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-accent-orange bg-orange-50/80 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 rounded-md transition-all shadow-sm"
+                      title="管理へ"
+                    >
                       <Settings className="w-5 h-5 md:w-4 md:h-4" />
                       <span className="hidden md:inline">管理へ</span>
                     </button>
@@ -111,7 +112,10 @@ export function AppHeader({ variant }: AppHeaderProps) {
 
                 {(appRole === 'developer' || role === 'supaUser') && (
                   <Link href={APP_ROUTES.SAAS.DASHBOARD}>
-                    <button className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-blue-700 bg-blue-50/80 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-md transition-all shadow-sm" title="SaaS管理へ">
+                    <button
+                      className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-blue-700 bg-blue-50/80 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-md transition-all shadow-sm"
+                      title="SaaS管理へ"
+                    >
                       <Shield className="w-5 h-5 md:w-4 md:h-4" />
                       <span className="hidden md:inline">SaaS管理へ</span>
                     </button>
@@ -120,18 +124,21 @@ export function AppHeader({ variant }: AppHeaderProps) {
               </div>
             </>
           ) : appRole === 'company_doctor' ? (
-             <button
-               onClick={handleLogout}
-               className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90"
-             >
-               <LogOut className="w-4 h-4" />
-               <span>ログアウト</span>
-             </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>ログアウト</span>
+            </button>
           ) : (
-             <Link href={APP_ROUTES.TENANT.PORTAL} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90`}>
-               <ArrowLeft className="w-4 h-4" />
-               <span>ポータルへ戻る</span>
-             </Link>
+            <Link
+              href={APP_ROUTES.TENANT.PORTAL}
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90`}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>ポータルへ戻る</span>
+            </Link>
           )}
         </div>
 
@@ -148,8 +155,6 @@ export function AppHeader({ variant }: AppHeaderProps) {
           戻る
         </button>
       </div>
-
-
     </header>
-  );
+  )
 }

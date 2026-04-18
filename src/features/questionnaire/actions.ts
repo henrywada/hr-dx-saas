@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
-import type { CreateQuestionnaireInput, AnswerInput } from './types'
+import type { CreateQuestionnaireInput, AnswerInput, CreatePeriodInput } from './types'
 
 interface ActionResult {
   success: boolean
@@ -329,7 +329,8 @@ export async function deleteQuestionnaire(id: string): Promise<ActionResult> {
 export async function assignEmployees(
   questionnaireId: string,
   employeeIds: string[],
-  deadlineDate?: string | null
+  deadlineDate?: string | null,
+  periodId?: string | null
 ): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user || !user.tenant_id) {
@@ -348,12 +349,14 @@ export async function assignEmployees(
     questionnaire_id: questionnaireId,
     tenant_id: user.tenant_id,
     employee_id: eid,
+    period_id: periodId ?? null,
     deadline_date: deadlineDate ?? null,
   }))
 
+  const conflictCol = periodId ? 'period_id,employee_id' : 'questionnaire_id,employee_id'
   const { error } = await db
     .from('questionnaire_assignments')
-    .upsert(rows, { onConflict: 'questionnaire_id,employee_id', ignoreDuplicates: true })
+    .upsert(rows, { onConflict: conflictCol, ignoreDuplicates: true })
 
   if (error) return { success: false, error: error.message }
 
@@ -406,15 +409,32 @@ export async function submitAnswers(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  // アサイン確認
+  // アサイン確認（period_id も取得）
   const { data: assignment } = await db
     .from('questionnaire_assignments')
-    .select('questionnaire_id, employee_id')
+    .select('questionnaire_id, employee_id, period_id')
     .eq('id', assignmentId)
     .single()
 
   if (!assignment || assignment.employee_id !== user.employee_id) {
     return { success: false, error: '無効なアサインです。' }
+  }
+
+  const periodId: string | null = assignment.period_id ?? null
+
+  // 期間内の重複回答チェック
+  if (periodId) {
+    const { data: existingPeriodResponse } = await db
+      .from('questionnaire_responses')
+      .select('id')
+      .eq('period_id', periodId)
+      .eq('employee_id', user.employee_id)
+      .not('submitted_at', 'is', null)
+      .maybeSingle()
+
+    if (existingPeriodResponse) {
+      return { success: false, error: 'この実施期間ではすでに回答済みです。' }
+    }
   }
 
   // 回答セッション取得または作成
@@ -441,6 +461,7 @@ export async function submitAnswers(
         assignment_id: assignmentId,
         employee_id: user.employee_id,
         tenant_id: user.tenant_id,
+        period_id: periodId,
       })
       .select('id')
       .single()
@@ -795,4 +816,74 @@ export async function fetchQuestionnairesForClient(
   }))
 
   return { success: true, data: formatted }
+}
+
+/**
+ * 実施期間を作成
+ */
+export async function createQuestionnairePeriod(
+  input: CreatePeriodInput
+): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー：ログインしてください。' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!employee) return { success: false, error: '従業員情報が見つかりません。' }
+
+  const { data, error } = await db
+    .from('questionnaire_periods')
+    .insert({
+      questionnaire_id: input.questionnaire_id,
+      tenant_id: user.tenant_id,
+      period_type: input.period_type,
+      label: input.label,
+      start_date: input.start_date ?? null,
+      end_date: input.end_date ?? null,
+      status: 'active',
+      created_by_employee_id: employee.id,
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) {
+    return { success: false, error: error?.message ?? '実施期間の作成に失敗しました。' }
+  }
+
+  revalidatePath('/adm/Survey')
+  return { success: true, id: data.id }
+}
+
+/**
+ * 実施期間を終了（status: closed に変更）
+ */
+export async function closeQuestionnairePeriod(periodId: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || !user.tenant_id) {
+    return { success: false, error: '認証エラー：ログインしてください。' }
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { error } = await db
+    .from('questionnaire_periods')
+    .update({ status: 'closed' })
+    .eq('id', periodId)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/adm/Survey')
+  return { success: true }
 }

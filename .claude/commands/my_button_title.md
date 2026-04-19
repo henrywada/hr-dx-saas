@@ -1,0 +1,1 @@
+`.cursor/skills/my_button_title/SKILL.md` を読み込み、その手順に従って実行する。

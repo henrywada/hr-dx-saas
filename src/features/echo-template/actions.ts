@@ -271,6 +271,8 @@ export async function activateEchoQuestionnaire(questionnaireId: string): Promis
   if (activateErr) return { success: false, error: activateErr.message }
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
+  revalidatePath('/survey/answer')
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
   return { success: true }
 }
 
@@ -293,6 +295,8 @@ export async function deactivateEchoQuestionnaire(questionnaireId: string): Prom
   if (error) return { success: false, error: error.message }
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
+  revalidatePath('/survey/answer')
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
   return { success: true }
 }
 

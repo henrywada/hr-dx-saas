@@ -152,7 +152,7 @@ export function PulseSurveyPeriodFormDialog({
               onChange={e => setDescription(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約3分です。"
+              placeholder="毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約5分です。"
             />
           </div>
 

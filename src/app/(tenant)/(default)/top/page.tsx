@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
 
   const [importantTask, announcements, pendingQuestionnaires] = await Promise.all([
-    getEmployeeImportantTask(user?.id ?? null),
+    getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
     getPendingAssignedQuestionnairesForTop(user?.employee_id),
   ])

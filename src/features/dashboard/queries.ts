@@ -57,9 +57,12 @@ type PulsePeriodRow = {
 /** DB に当月行がなくても表示するデフォルト（管理画面のプレースホルダと揃える） */
 const DEFAULT_PULSE_TITLE = '今月の組織度アンケート（Echo）'
 const DEFAULT_PULSE_DESCRIPTION =
-  '毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約3分です。'
+  '毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約5分です。'
 
-export async function getEmployeeImportantTask(userId: string | null): Promise<ImportantTask | null> {
+export async function getEmployeeImportantTask(
+  userId: string | null,
+  tenantId?: string | null
+): Promise<ImportantTask | null> {
   if (!userId) return null
 
   const supabase = await getSupabase()
@@ -67,6 +70,19 @@ export async function getEmployeeImportantTask(userId: string | null): Promise<I
   // 期間キーは Asia/Tokyo（サーバが UTC でも日本の「今月」と一致させる）
   const periodKey = getJSTYearMonth()
   const todayJstYmd = toJSTDateString()
+
+  let echoActiveTitle: string | null = null
+  if (tenantId) {
+    const { data: echoRow } = await supabase
+      .from('questionnaires')
+      .select('title')
+      .eq('tenant_id', tenantId)
+      .eq('creator_type', 'tenant')
+      .eq('purpose', 'echo')
+      .eq('status', 'active')
+      .maybeSingle()
+    echoActiveTitle = (echoRow?.title as string | undefined) ?? null
+  }
 
   const { data: period, error } = await supabase
     .from('pulse_survey_periods')
@@ -102,7 +118,7 @@ export async function getEmployeeImportantTask(userId: string | null): Promise<I
   const deadlineLabel =
     Number.isFinite(dm) && Number.isFinite(dd) ? `${dm}月${dd}日まで` : '今月中'
 
-  const title = period?.title ?? DEFAULT_PULSE_TITLE
+  const title = echoActiveTitle ?? period?.title ?? DEFAULT_PULSE_TITLE
   const description = period?.description ?? DEFAULT_PULSE_DESCRIPTION
   const linkPath =
     period?.link_path ?? `/survey/answer?period=${encodeURIComponent(surveyPeriod)}`

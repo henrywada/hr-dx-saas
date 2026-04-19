@@ -324,3 +324,33 @@ export async function deleteTenantEchoQuestionnaire(
   revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
   return { success: true }
 }
+
+/** テナント Echo 設問セットの名称を更新（本番・下書きどちらも可） */
+export async function updateTenantEchoQuestionnaireTitle(
+  questionnaireId: string,
+  title: string
+): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+
+  const trimmed = title.trim()
+  if (!trimmed) return { success: false, error: '設問セット名を入力してください。' }
+
+  const supabase = await createClient()
+  const db = supabase as any
+
+  const { error } = await db
+    .from('questionnaires')
+    .update({ title: trimmed, updated_at: new Date().toISOString() })
+    .eq('id', questionnaireId)
+    .eq('tenant_id', user.tenant_id)
+    .eq('creator_type', 'tenant')
+    .eq('purpose', 'echo')
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
+  revalidatePath('/survey/answer')
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  return { success: true }
+}

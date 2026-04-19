@@ -6,6 +6,7 @@ import {
   activateEchoQuestionnaire,
   deactivateEchoQuestionnaire,
   deleteTenantEchoQuestionnaire,
+  updateTenantEchoQuestionnaireTitle,
 } from '../actions'
 import { getTenantEchoQuestionnaires } from '../queries'
 import { getQuestionnaireDetailAction } from '@/features/questionnaire/actions'
@@ -30,6 +31,8 @@ export default function TenantEchoListClient({
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [editingDetail, setEditingDetail] = useState<QuestionnaireListItem | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [editingNameId, setEditingNameId] = useState<string | null>(null)
+  const [editingNameValue, setEditingNameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -93,6 +96,28 @@ export default function TenantEchoListClient({
     })
   }
 
+  function cancelEditingName() {
+    setEditingNameId(null)
+    setEditingNameValue('')
+  }
+
+  function saveEditingName(id: string) {
+    const trimmed = editingNameValue.trim()
+    if (!trimmed) {
+      setError('設問セット名を入力してください。')
+      return
+    }
+    startTransition(async () => {
+      const result = await updateTenantEchoQuestionnaireTitle(id, trimmed)
+      if (!result.success) {
+        setError(result.error ?? '名称の更新に失敗しました')
+        return
+      }
+      setQuestionnaires(prev => prev.map(q => (q.id === id ? { ...q, title: trimmed } : q)))
+      cancelEditingName()
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -142,16 +167,72 @@ export default function TenantEchoListClient({
                 const isActive = q.status === 'active'
                 return (
                   <tr key={q.id} className={isActive ? 'bg-primary/5' : 'hover:bg-slate-50'}>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        {isActive && (
-                          <Star
-                            size={14}
-                            className="text-accent-orange fill-accent-orange shrink-0"
+                    <td className="px-5 py-3 min-w-48">
+                      {editingNameId === q.id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isActive && (
+                            <Star
+                              size={14}
+                              className="text-accent-orange fill-accent-orange shrink-0"
+                            />
+                          )}
+                          <input
+                            type="text"
+                            value={editingNameValue}
+                            onChange={e => setEditingNameValue(e.target.value)}
+                            className="flex-1 min-w-32 max-w-md rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            autoFocus
+                            disabled={isPending}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                saveEditingName(q.id)
+                              }
+                              if (e.key === 'Escape') cancelEditingName()
+                            }}
                           />
-                        )}
-                        <span className="font-medium text-slate-800">{q.title}</span>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => saveEditingName(q.id)}
+                            disabled={isPending}
+                            className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditingName}
+                            disabled={isPending}
+                            className="shrink-0 rounded-lg px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isActive && (
+                            <Star
+                              size={14}
+                              className="text-accent-orange fill-accent-orange shrink-0"
+                            />
+                          )}
+                          <span className="font-medium text-slate-800 truncate min-w-0">{q.title}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setError(null)
+                              setEditingNameId(q.id)
+                              setEditingNameValue(q.title)
+                            }}
+                            disabled={isPending}
+                            className="shrink-0 inline-flex items-center gap-0.5 rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
+                            title="設問セット名を変更"
+                          >
+                            <Pencil size={12} />
+                            <span className="sr-only">設問セット名を変更</span>
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center text-slate-600">{q.question_count}</td>
                     <td className="px-4 py-3 text-center">

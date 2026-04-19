@@ -30,10 +30,10 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-1">テンプレートからコピー</h2>
-        <p className="text-sm text-slate-500 mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[min(90vh,900px)] flex flex-col p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-1 shrink-0">テンプレートからコピー</h2>
+        <p className="text-sm text-slate-500 mb-4 shrink-0">
           使用するテンプレートを選択してください。コピー後に設問をカスタマイズできます。
         </p>
 
@@ -43,7 +43,7 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
             <p className="text-sm">利用できるテンプレートがありません。</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-72 overflow-y-auto mb-4">
+          <div className="space-y-2 min-h-0 flex-1 overflow-y-auto mb-4">
             {templates.map(t => (
               <label
                 key={t.id}
@@ -73,9 +73,9 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
           </div>
         )}
 
-        {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+        {error && <p className="text-sm text-red-500 mb-3 shrink-0">{error}</p>}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 shrink-0 mt-auto pt-1">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"

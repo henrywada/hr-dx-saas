@@ -18,7 +18,7 @@ export function PendingQuestionnaireNoticeCards({ pending }: Props) {
   if (pending.length === 0) return null
 
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-[#ebebeb]">
       {pending.map(q => (
         <li key={q.assignment_id} className="group hover:bg-slate-50/80 transition-colors">
           <Link

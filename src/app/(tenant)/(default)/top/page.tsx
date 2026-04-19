@@ -101,7 +101,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Notices */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
-          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+          <div className="px-6 py-5 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
             <div className="p-2 bg-blue-100 text-blue-600 rounded-lg shadow-inner">
               <Bell className="w-5 h-5" />
             </div>
@@ -109,7 +109,9 @@ export default async function DashboardPage() {
           </div>
           <div className="p-0 flex-1">
             <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
-            <ul className="divide-y divide-slate-100">
+            <ul
+              className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}
+            >
               {announcements.map(item => (
                 <li key={item.id} className="group hover:bg-slate-50/80 transition-colors">
                   <div className="flex items-start gap-4 p-5 sm:px-6 outline-none focus:bg-slate-50">

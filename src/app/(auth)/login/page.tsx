@@ -61,16 +61,20 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <div className="w-full flex flex-col items-center justify-center pt-2 pb-4 space-y-3">
+          <div className="w-full flex flex-row items-center justify-center gap-4 pt-2 pb-1">
             <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-blue-50 to-indigo-50 shadow-inner ring-1 ring-blue-100/60 overflow-hidden">
               <div className="absolute inset-0 bg-linear-to-b from-white/60 to-transparent"></div>
               <Lock className="relative h-6 w-6 text-blue-600 stroke-[1.5]" aria-hidden />
             </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
-                ログイン
-              </h1>
-            </div>
+            <h1
+              className="text-4xl font-black tracking-tight text-slate-800 leading-none"
+              style={{
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                letterSpacing: '-0.03em',
+              }}
+            >
+              Log <span className="text-blue-600">In</span>
+            </h1>
           </div>
         </div>
         {error && <div className="bg-red-50 text-red-600 p-3 rounded text-sm mb-4">{error}</div>}

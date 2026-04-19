@@ -43,10 +43,14 @@ export const APP_ROUTES = {
     SURVEY_PERIODS: (id: string) => `/adm/Survey/${id}/periods`,
     /** 従業員回答画面（アサインされたアンケートの一覧・回答） */
     SURVEY_ANSWERS: '/answers',
+    /** Echo設問管理（テンプレートコピー・カスタマイズ・本番指定） */
+    ADMIN_TENANT_QUESTIONNAIRE: '/adm/tenant_questionnaire',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',
     TENANTS: '/saas_adm/tenants',
     SYSTEM_MASTER: '/saas_adm/system-master',
-  }
-} as const;
+    /** Echoテンプレート管理（設問テンプレートのCRUD） */
+    ECHO_TEMPLATE: '/saas_adm/echo_template',
+  },
+} as const

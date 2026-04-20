@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Copy, Pencil, Trash2, Star, StarOff, FileText } from 'lucide-react'
+import { Copy, Pencil, Trash2, Star, StarOff, FileText, X } from 'lucide-react'
 import {
   activateEchoQuestionnaire,
   deactivateEchoQuestionnaire,
@@ -14,17 +14,20 @@ import QuestionManagerModal from '@/features/questionnaire/components/QuestionMa
 import TenantEchoCopyModal from './TenantEchoCopyModal'
 import type { TenantEchoQuestionnaire, EchoTemplate } from '../types'
 import type { QuestionnaireListItem } from '@/features/questionnaire/types'
+import type { PulseSurveyCadence } from '@/lib/datetime'
 
 interface Props {
   tenantId: string
   initialQuestionnaires: TenantEchoQuestionnaire[]
   templates: EchoTemplate[]
+  initialPulseCadence: PulseSurveyCadence
 }
 
 export default function TenantEchoListClient({
   tenantId,
   initialQuestionnaires,
   templates,
+  initialPulseCadence,
 }: Props) {
   const [questionnaires, setQuestionnaires] =
     useState<TenantEchoQuestionnaire[]>(initialQuestionnaires)
@@ -34,7 +37,10 @@ export default function TenantEchoListClient({
   const [editingNameId, setEditingNameId] = useState<string | null>(null)
   const [editingNameValue, setEditingNameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
+  const [activateCadence, setActivateCadence] = useState<PulseSurveyCadence>(initialPulseCadence)
 
   function refreshList() {
     startTransition(async () => {
@@ -62,13 +68,26 @@ export default function TenantEchoListClient({
     })
   }
 
-  function handleActivate(id: string) {
+  function openActivateModal(id: string) {
+    setError(null)
+    setNotice(null)
+    setActivateCadence(initialPulseCadence)
+    setActivateTargetId(id)
+  }
+
+  function handleConfirmActivate() {
+    if (!activateTargetId) return
+    const id = activateTargetId
+    const cadence = activateCadence
     startTransition(async () => {
-      const result = await activateEchoQuestionnaire(id)
+      const result = await activateEchoQuestionnaire(id, cadence)
       if (!result.success) {
         setError(result.error ?? '本番指定に失敗しました')
         return
       }
+      setActivateTargetId(null)
+      setError(null)
+      setNotice(result.warning ?? null)
       refreshList()
     })
   }
@@ -122,9 +141,9 @@ export default function TenantEchoListClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Echo 設問管理</h1>
+          <h1 className="text-2xl font-bold text-slate-800">パルスサーベイ（Echo） 設問管理</h1>
           <p className="text-sm text-slate-500 mt-1">
-            月次パルスサーベイで使用する設問セットを管理します。
+            パルスサーベイ（Echo）で使用する設問セットを管理します。
           </p>
         </div>
         <button
@@ -140,6 +159,15 @@ export default function TenantEchoListClient({
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="underline text-xs">
+            閉じる
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3 rounded-lg flex items-center justify-between">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice(null)} className="underline text-xs shrink-0">
             閉じる
           </button>
         </div>
@@ -216,7 +244,9 @@ export default function TenantEchoListClient({
                               className="text-accent-orange fill-accent-orange shrink-0"
                             />
                           )}
-                          <span className="font-medium text-slate-800 truncate min-w-0">{q.title}</span>
+                          <span className="font-medium text-slate-800 truncate min-w-0">
+                            {q.title}
+                          </span>
                           <button
                             type="button"
                             onClick={() => {
@@ -258,9 +288,14 @@ export default function TenantEchoListClient({
                         </button>
                         {isActive ? (
                           <button
-                            onClick={() => handleDeactivate(q.id)}
+                            type="button"
+                            onClick={() => {
+                              setError(null)
+                              handleDeactivate(q.id)
+                            }}
                             disabled={isPending}
-                            className="flex items-center gap-1 px-3 py-1 text-xs text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                            title="パルスサーベイの本番公開を止め、下書きに戻します"
+                            className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 disabled:opacity-50 disabled:pointer-events-none"
                           >
                             <StarOff size={12} />
                             本番解除
@@ -268,7 +303,8 @@ export default function TenantEchoListClient({
                         ) : (
                           <>
                             <button
-                              onClick={() => handleActivate(q.id)}
+                              type="button"
+                              onClick={() => openActivateModal(q.id)}
                               disabled={isPending}
                               className="flex items-center gap-1 px-3 py-1 text-xs text-accent-orange border border-accent-orange/30 rounded-lg hover:bg-accent-orange/10 disabled:opacity-50"
                             >
@@ -309,6 +345,84 @@ export default function TenantEchoListClient({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {activateTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            aria-label="閉じる"
+            onClick={() => !isPending && setActivateTargetId(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Star className="text-accent-orange shrink-0" size={18} />
+                本番指定
+              </h3>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => setActivateTargetId(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-slate-600">
+                パルスサーベイの実施間隔を選んでから本番にします。期間キーは「パルス調査期間管理」で{' '}
+                {activateCadence === 'monthly' ? 'YYYY-MM' : 'YYYY-Www'} 形式で登録してください。
+              </p>
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-slate-800">実施間隔</span>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
+                    <input
+                      type="radio"
+                      name="activate_pulse_cadence"
+                      className="text-primary"
+                      checked={activateCadence === 'monthly'}
+                      disabled={isPending}
+                      onChange={() => setActivateCadence('monthly')}
+                    />
+                    月1回（期間キー: YYYY-MM）
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
+                    <input
+                      type="radio"
+                      name="activate_pulse_cadence"
+                      className="text-primary"
+                      checked={activateCadence === 'weekly'}
+                      disabled={isPending}
+                      onChange={() => setActivateCadence('weekly')}
+                    />
+                    週1回（期間キー: ISO 週 YYYY-Www）
+                  </label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setActivateTargetId(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={handleConfirmActivate}
+                  className="px-4 py-2 text-sm font-medium text-white bg-accent-orange rounded-lg hover:bg-accent-orange/90 disabled:opacity-50"
+                >
+                  {isPending ? '処理中…' : '本番にする'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

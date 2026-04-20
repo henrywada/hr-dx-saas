@@ -1,5 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { getJSTYearMonth, lastDayOfMonthYmd, toJSTDateString } from '@/lib/datetime'
+import {
+  getPulseSurveyPeriodKey,
+  normalizePulseSurveyCadence,
+  pulseSurveyPeriodDeadlineFallbackYmd,
+  toJSTDateString,
+  type PulseSurveyCadence,
+} from '@/lib/datetime'
 import { getAssignedQuestionnaires } from '@/features/questionnaire/queries'
 import type { AssignedQuestionnaire } from '@/features/questionnaire/types'
 import { ImportantTask, Announcement, AnnouncementRow, PulseSurveyPeriodRow } from './types'
@@ -57,7 +63,18 @@ type PulsePeriodRow = {
 /** DB に当月行がなくても表示するデフォルト（管理画面のプレースホルダと揃える） */
 const DEFAULT_PULSE_TITLE = '今月の組織度アンケート（Echo）'
 const DEFAULT_PULSE_DESCRIPTION =
-  '毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約5分です。'
+  '組織のコンディションを把握するための重要なアンケートです。回答時間は約5分です。'
+
+export async function getTenantPulseSurveyCadence(tenantId: string): Promise<PulseSurveyCadence> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('pulse_survey_cadence')
+    .eq('id', tenantId)
+    .maybeSingle()
+  if (error) return 'monthly'
+  return normalizePulseSurveyCadence(data?.pulse_survey_cadence as string | undefined)
+}
 
 export async function getEmployeeImportantTask(
   userId: string | null,
@@ -67,8 +84,13 @@ export async function getEmployeeImportantTask(
 
   const supabase = await getSupabase()
 
-  // 期間キーは Asia/Tokyo（サーバが UTC でも日本の「今月」と一致させる）
-  const periodKey = getJSTYearMonth()
+  let cadence: PulseSurveyCadence = 'monthly'
+  if (tenantId) {
+    cadence = await getTenantPulseSurveyCadence(tenantId)
+  }
+
+  // 期間キー: 月次は JST の YYYY-MM、週次は ISO 週 YYYY-Www
+  const periodKey = getPulseSurveyPeriodKey(cadence)
   const todayJstYmd = toJSTDateString()
 
   let echoActiveTitle: string | null = null
@@ -97,7 +119,7 @@ export async function getEmployeeImportantTask(
   const surveyPeriod = period?.survey_period ?? periodKey
   const deadlineYmd = period?.deadline_date
     ? String(period.deadline_date).slice(0, 10)
-    : lastDayOfMonthYmd(periodKey)
+    : pulseSurveyPeriodDeadlineFallbackYmd(periodKey, cadence)
 
   // 期限は日付のみで比較（締切日当日は含む。時刻による誤判定を防ぐ）
   if (todayJstYmd > deadlineYmd) {
@@ -116,7 +138,11 @@ export async function getEmployeeImportantTask(
 
   const [, dm, dd] = deadlineYmd.split('-').map(Number)
   const deadlineLabel =
-    Number.isFinite(dm) && Number.isFinite(dd) ? `${dm}月${dd}日まで` : '今月中'
+    Number.isFinite(dm) && Number.isFinite(dd)
+      ? `${dm}月${dd}日まで`
+      : cadence === 'weekly'
+        ? '今週中'
+        : '今月中'
 
   const title = echoActiveTitle ?? period?.title ?? DEFAULT_PULSE_TITLE
   const description = period?.description ?? DEFAULT_PULSE_DESCRIPTION

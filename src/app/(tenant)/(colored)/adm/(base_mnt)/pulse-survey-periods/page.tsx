@@ -1,7 +1,10 @@
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getPulseSurveyPeriodsForAdmin } from '@/features/dashboard/queries'
+import {
+  getPulseSurveyPeriodsForAdmin,
+  getTenantPulseSurveyCadence,
+} from '@/features/dashboard/queries'
 import { PulseSurveyPeriodTable } from '@/features/dashboard/components/PulseSurveyPeriodTable'
 
 export default async function PulseSurveyPeriodsPage() {
@@ -10,11 +13,14 @@ export default async function PulseSurveyPeriodsPage() {
     redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const periods = await getPulseSurveyPeriodsForAdmin()
+  const [periods, initialCadence] = await Promise.all([
+    getPulseSurveyPeriodsForAdmin(),
+    getTenantPulseSurveyCadence(user.tenant_id),
+  ])
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <PulseSurveyPeriodTable periods={periods} />
+      <PulseSurveyPeriodTable periods={periods} initialCadence={initialCadence} />
     </div>
   )
 }

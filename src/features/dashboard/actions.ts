@@ -5,7 +5,15 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import { getServerUser } from '@/lib/auth/server-user'
-import { toJSTISOString } from '@/lib/datetime'
+import { toJSTISOString, type PulseSurveyCadence } from '@/lib/datetime'
+
+const MIGRATE_PULSE_CADENCE_HINT =
+  'DB に `tenants.pulse_survey_cadence` 列がありません。リポジトリの supabase/migrations を適用してください（例: npx supabase db push）。'
+
+function isPulseSurveyCadenceColumnUnavailable(err: { message?: string } | null | undefined): boolean {
+  const m = err?.message ?? ''
+  return m.includes('pulse_survey_cadence') || m.includes('schema cache')
+}
 import { sendMail } from '@/lib/mail/send'
 
 const ADM_PATH = APP_ROUTES.TENANT.ADMIN
@@ -92,6 +100,43 @@ export async function deleteAnnouncement(id: string) {
   }
   revalidatePath(`${ADM_PATH}/announcements`)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  return { success: true }
+}
+
+const pulseCadenceSchema = z.enum(['monthly', 'weekly'])
+
+/** テナントのパルスサーベイ実施間隔（月1回 / 週1回） */
+export async function updateTenantPulseSurveyCadence(cadence: PulseSurveyCadence) {
+  const user = await getServerUser()
+  if (!user?.tenant_id) {
+    return { success: false, error: '認証が必要です' }
+  }
+  const allowed =
+    user.appRole === 'hr' || user.appRole === 'hr_manager' || user.appRole === 'developer'
+  if (!allowed) {
+    return { success: false, error: 'この設定を変更する権限がありません' }
+  }
+  const parsed = pulseCadenceSchema.safeParse(cadence)
+  if (!parsed.success) {
+    return { success: false, error: '実施間隔の値が不正です' }
+  }
+
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('tenants')
+    .update({ pulse_survey_cadence: parsed.data })
+    .eq('id', user.tenant_id)
+
+  if (error) {
+    console.error('updateTenantPulseSurveyCadence error:', error)
+    if (isPulseSurveyCadenceColumnUnavailable(error)) {
+      return { success: false, error: MIGRATE_PULSE_CADENCE_HINT }
+    }
+    return { success: false, error: error.message }
+  }
+  revalidatePath(`${ADM_PATH}/pulse-survey-periods`)
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  revalidatePath('/survey/answer')
   return { success: true }
 }
 

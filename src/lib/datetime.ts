@@ -1,3 +1,5 @@
+import { endOfISOWeek, format, parse } from 'date-fns'
+
 /**
  * Asia/Tokyo タイムゾーンでの日時ユーティリティ
  * Supabase への日時書き込み時に使用する
@@ -75,6 +77,59 @@ export function lastDayOfMonthYmd(yearMonth: string): string {
   }
   const lastDay = new Date(y, m, 0).getDate()
   return `${yStr}-${mStr}-${String(lastDay).padStart(2, '0')}`
+}
+
+// ─── パルスサーベイ（Echo）期間キー: 月次 YYYY-MM / 週次 ISO YYYY-Www ─────────
+
+export type PulseSurveyCadence = 'monthly' | 'weekly'
+
+export function normalizePulseSurveyCadence(v: string | null | undefined): PulseSurveyCadence {
+  return v === 'weekly' ? 'weekly' : 'monthly'
+}
+
+/** 当月・当週の期間キー（JST 基準。週次は ISO 週番号） */
+export function getPulseSurveyPeriodKey(cadence: PulseSurveyCadence, date: Date = new Date()): string {
+  if (cadence === 'monthly') {
+    return getJSTYearMonth(date)
+  }
+  const ymd = toJSTDateString(date)
+  const t = new Date(`${ymd}T12:00:00+09:00`)
+  return format(t, "RRRR'-W'II")
+}
+
+export function isValidPulseSurveyPeriodInput(s: string, cadence: PulseSurveyCadence): boolean {
+  if (cadence === 'monthly') return /^\d{4}-\d{2}$/.test(s)
+  return /^\d{4}-W\d{2}$/.test(s)
+}
+
+/** URL の period が月次・週次いずれかの形式ならその値、それ以外は null */
+export function parsePulseSurveyPeriodFromSearchParam(p: string | null): string | null {
+  if (!p) return null
+  if (/^\d{4}-\d{2}$/.test(p) || /^\d{4}-W\d{2}$/.test(p)) return p
+  return null
+}
+
+/**
+ * pulse_survey_periods に締切未設定のときのフォールバック（暦日 YYYY-MM-DD）
+ * 週次: 当該 ISO 週の終了日（日曜）
+ */
+export function pulseSurveyPeriodDeadlineFallbackYmd(
+  periodKey: string,
+  cadence: PulseSurveyCadence
+): string {
+  if (cadence === 'weekly' && /^\d{4}-W\d{2}$/.test(periodKey)) {
+    try {
+      const d = parse(periodKey, "RRRR'-W'II", new Date(0))
+      if (!Number.isFinite(d.getTime())) return lastDayOfMonthYmd(getJSTYearMonth())
+      return format(endOfISOWeek(d), 'yyyy-MM-dd')
+    } catch {
+      return lastDayOfMonthYmd(getJSTYearMonth())
+    }
+  }
+  if (/^\d{4}-\d{2}$/.test(periodKey)) {
+    return lastDayOfMonthYmd(periodKey)
+  }
+  return lastDayOfMonthYmd(getJSTYearMonth())
 }
 
 /**

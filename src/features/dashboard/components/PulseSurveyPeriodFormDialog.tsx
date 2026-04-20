@@ -4,17 +4,25 @@ import React, { useState, useTransition, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { PulseSurveyPeriodRow } from '../types'
 import { createPulseSurveyPeriod, updatePulseSurveyPeriod } from '../actions'
+import {
+  getPulseSurveyPeriodKey,
+  isValidPulseSurveyPeriodInput,
+  type PulseSurveyCadence,
+} from '@/lib/datetime'
 
 interface PulseSurveyPeriodFormDialogProps {
   open: boolean
   onClose: () => void
   period?: PulseSurveyPeriodRow | null
+  /** テナントの実施間隔（期間キーの形式・デフォルト値に使用） */
+  cadence: PulseSurveyCadence
 }
 
 export function PulseSurveyPeriodFormDialog({
   open,
   onClose,
   period,
+  cadence,
 }: PulseSurveyPeriodFormDialogProps) {
   const isEdit = !!period
   const [isPending, startTransition] = useTransition()
@@ -38,20 +46,21 @@ export function PulseSurveyPeriodFormDialog({
       setSortOrder(period?.sort_order ?? 0)
 
       if (!period) {
-        const now = new Date()
-        const yyyy = now.getFullYear()
-        const mm = (now.getMonth() + 1).toString().padStart(2, '0')
-        setSurveyPeriod(`${yyyy}-${mm}`)
+        setSurveyPeriod(getPulseSurveyPeriodKey(cadence))
       }
     }
-  }, [open, period])
+  }, [open, period, cadence])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!/^\d{4}-\d{2}$/.test(surveyPeriod)) {
-      setError('期間は YYYY-MM 形式で入力してください（例: 2026-03）')
+    if (!isValidPulseSurveyPeriodInput(surveyPeriod, cadence)) {
+      setError(
+        cadence === 'monthly'
+          ? '期間は YYYY-MM 形式で入力してください（例: 2026-03）'
+          : '期間は YYYY-Www 形式で入力してください（例: 2026-W16）'
+      )
       return
     }
     if (!deadlineDate) {
@@ -117,19 +126,26 @@ export function PulseSurveyPeriodFormDialog({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">期間 (YYYY-MM) *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              期間{' '}
+              {cadence === 'monthly' ? '(YYYY-MM)' : '(ISO 週 YYYY-Www)'} *
+            </label>
             <input
               type="text"
               value={surveyPeriod}
               onChange={e => setSurveyPeriod(e.target.value)}
               required
-              pattern="\d{4}-\d{2}"
-              placeholder="例: 2026-03"
+              placeholder={cadence === 'monthly' ? '例: 2026-03' : '例: 2026-W16'}
               disabled={isEdit}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
             />
             {isEdit && (
               <p className="text-xs text-slate-500 mt-1">編集時は期間の変更はできません</p>
+            )}
+            {!isEdit && cadence === 'weekly' && (
+              <p className="text-xs text-slate-500 mt-1">
+                週番号は ISO 8601（月曜始まり、第1週はその年の最初の木曜を含む週）です。
+              </p>
             )}
           </div>
 
@@ -152,7 +168,7 @@ export function PulseSurveyPeriodFormDialog({
               onChange={e => setDescription(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="毎月の組織コンディションを把握するための重要なアンケートです。回答時間は約5分です。"
+              placeholder="組織のコンディションを把握するための重要なアンケートです。回答時間は約5分です。"
             />
           </div>
 

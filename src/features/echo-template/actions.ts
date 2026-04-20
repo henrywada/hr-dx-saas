@@ -5,12 +5,21 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
+import type { PulseSurveyCadence } from '@/lib/datetime'
 import type { CreateEchoTemplateInput, UpdateEchoTemplateInput, CreateQuestionInput } from './types'
 
 interface ActionResult {
   success: boolean
   error?: string
   id?: string
+  /** DB に pulse_survey_cadence 列がない等で間隔だけ保存できなかったとき */
+  warning?: string
+}
+
+/** tenants.pulse_survey_cadence 未マイグレーション時の PostgREST エラー */
+function isPulseSurveyCadenceColumnUnavailable(err: { message?: string } | null | undefined): boolean {
+  const m = err?.message ?? ''
+  return m.includes('pulse_survey_cadence') || m.includes('schema cache')
 }
 
 // ─── SaaS admin 操作（createAdminClient 使用） ───────────────────────────────
@@ -242,13 +251,41 @@ export async function copyEchoTemplate(templateId: string): Promise<ActionResult
   return { success: true, id: newQ.id }
 }
 
-/** 本番指定: 同テナントの他の echo 設問を draft に戻し、指定IDを active に */
-export async function activateEchoQuestionnaire(questionnaireId: string): Promise<ActionResult> {
+/** 本番指定: パルス実施間隔を保存し、同テナントの他 echo 設問を draft に戻して指定IDを active に */
+export async function activateEchoQuestionnaire(
+  questionnaireId: string,
+  pulseSurveyCadence: PulseSurveyCadence
+): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
+  const allowed =
+    user.appRole === 'hr' || user.appRole === 'hr_manager' || user.appRole === 'developer'
+  if (!allowed) {
+    return { success: false, error: '本番指定を行う権限がありません' }
+  }
+
+  if (pulseSurveyCadence !== 'monthly' && pulseSurveyCadence !== 'weekly') {
+    return { success: false, error: '実施間隔の値が不正です' }
+  }
+
   const supabase = await createClient()
   const db = supabase as any
+
+  const { error: cadenceErr } = await db
+    .from('tenants')
+    .update({ pulse_survey_cadence: pulseSurveyCadence })
+    .eq('id', user.tenant_id)
+
+  let cadenceWarning: string | undefined
+  if (cadenceErr) {
+    if (isPulseSurveyCadenceColumnUnavailable(cadenceErr)) {
+      cadenceWarning =
+        '実施間隔はデータベースに未反映です（`tenants.pulse_survey_cadence` 用のマイグレーションを適用してください）。本番指定のみ完了しました。'
+    } else {
+      return { success: false, error: cadenceErr.message }
+    }
+  }
 
   const { error: resetErr } = await db
     .from('questionnaires')
@@ -260,20 +297,30 @@ export async function activateEchoQuestionnaire(questionnaireId: string): Promis
 
   if (resetErr) return { success: false, error: resetErr.message }
 
-  const { error: activateErr } = await db
+  const { data: activated, error: activateErr } = await db
     .from('questionnaires')
     .update({ status: 'active', updated_at: new Date().toISOString() })
     .eq('id', questionnaireId)
     .eq('tenant_id', user.tenant_id)
     .eq('creator_type', 'tenant')
     .eq('purpose', 'echo')
+    .select('id')
+    .maybeSingle()
 
   if (activateErr) return { success: false, error: activateErr.message }
+  if (!activated) {
+    return {
+      success: false,
+      error:
+        '本番指定できませんでした。人事担当（HR）権限があるか、対象の設問セットを確認してください。',
+    }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_PULSE_SURVEY_PERIODS)
   revalidatePath('/survey/answer')
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
-  return { success: true }
+  return { success: true, ...(cadenceWarning ? { warning: cadenceWarning } : {}) }
 }
 
 /** 本番解除: active → draft */
@@ -284,15 +331,25 @@ export async function deactivateEchoQuestionnaire(questionnaireId: string): Prom
   const supabase = await createClient()
   const db = supabase as any
 
-  const { error } = await db
+  const { data: updated, error } = await db
     .from('questionnaires')
     .update({ status: 'draft', updated_at: new Date().toISOString() })
     .eq('id', questionnaireId)
     .eq('tenant_id', user.tenant_id)
     .eq('creator_type', 'tenant')
     .eq('purpose', 'echo')
+    .eq('status', 'active')
+    .select('id')
+    .maybeSingle()
 
   if (error) return { success: false, error: error.message }
+  if (!updated) {
+    return {
+      success: false,
+      error:
+        '本番解除できませんでした。人事担当（HR）権限があるか、設問セットが本番稼働中か確認してください。',
+    }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE)
   revalidatePath('/survey/answer')

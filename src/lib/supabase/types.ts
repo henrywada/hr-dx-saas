@@ -3535,6 +3535,7 @@ export type Database = {
           paid_amount: number | null
           paid_date: string | null
           plan_type: string
+          pulse_survey_cadence: string
         }
         Insert: {
           business_description?: string | null
@@ -3552,6 +3553,7 @@ export type Database = {
           paid_amount?: number | null
           paid_date?: string | null
           plan_type?: string
+          pulse_survey_cadence?: string
         }
         Update: {
           business_description?: string | null
@@ -3569,6 +3571,7 @@ export type Database = {
           paid_amount?: number | null
           paid_date?: string | null
           plan_type?: string
+          pulse_survey_cadence?: string
         }
         Relationships: []
       }

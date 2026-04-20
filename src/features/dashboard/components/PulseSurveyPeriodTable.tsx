@@ -1,18 +1,27 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
-import { formatDateInJST } from '@/lib/datetime'
+import React, { useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { formatDateInJST, type PulseSurveyCadence } from '@/lib/datetime'
 import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
 import type { PulseSurveyPeriodRow } from '../types'
-import { deletePulseSurveyPeriod } from '../actions'
+import { deletePulseSurveyPeriod, updateTenantPulseSurveyCadence } from '../actions'
 import { PulseSurveyPeriodFormDialog } from './PulseSurveyPeriodFormDialog'
 
 interface PulseSurveyPeriodTableProps {
   periods: PulseSurveyPeriodRow[]
+  initialCadence: PulseSurveyCadence
 }
 
-export function PulseSurveyPeriodTable({ periods }: PulseSurveyPeriodTableProps) {
+export function PulseSurveyPeriodTable({ periods, initialCadence }: PulseSurveyPeriodTableProps) {
+  const router = useRouter()
+  const [cadence, setCadence] = useState<PulseSurveyCadence>(initialCadence)
+  const [cadenceError, setCadenceError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    setCadence(initialCadence)
+  }, [initialCadence])
   const [dialogState, setDialogState] = useState<{
     open: boolean
     period?: PulseSurveyPeriodRow
@@ -31,22 +40,76 @@ export function PulseSurveyPeriodTable({ periods }: PulseSurveyPeriodTableProps)
 
   const formatDate = (d: string) => formatDateInJST(d)
 
+  function handleCadenceChange(next: PulseSurveyCadence) {
+    if (next === cadence) return
+    setCadenceError(null)
+    const prev = cadence
+    setCadence(next)
+    startTransition(async () => {
+      const result = await updateTenantPulseSurveyCadence(next)
+      if (!result.success) {
+        setCadence(prev)
+        setCadenceError(result.error ?? '実施間隔の更新に失敗しました')
+        return
+      }
+      router.refresh()
+    })
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">パルス調査期間管理</h1>
           <p className="text-sm text-slate-500 mt-1">
-            月次パルス調査の期間・期限を設定し、トップ画面の重要タスクに表示されます
+            パルス調査の期間・期限を設定し、トップ画面の重要タスクに表示されます（実施間隔に応じて期間キーの形式が変わります）
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setDialogState({ open: true })}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           期間を追加
         </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+        <div className="text-sm font-semibold text-slate-800">実施間隔</div>
+        <p className="text-xs text-slate-500">
+          従業員トップの未回答判定・回答画面のデフォルト期間に使われます。週次にした場合は、期間行のキーを{' '}
+          <span className="font-mono">YYYY-Www</span>（例: 2026-W16）で登録してください。
+        </p>
+        {cadenceError && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            {cadenceError}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="pulse_cadence"
+              className="text-blue-600"
+              checked={cadence === 'monthly'}
+              disabled={isPending}
+              onChange={() => handleCadenceChange('monthly')}
+            />
+            <span className="text-sm text-slate-700">月1回（期間キー: YYYY-MM）</span>
+          </label>
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="pulse_cadence"
+              className="text-blue-600"
+              checked={cadence === 'weekly'}
+              disabled={isPending}
+              onChange={() => handleCadenceChange('weekly')}
+            />
+            <span className="text-sm text-slate-700">週1回（期間キー: ISO 週 YYYY-Www）</span>
+          </label>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -127,6 +190,7 @@ export function PulseSurveyPeriodTable({ periods }: PulseSurveyPeriodTableProps)
         open={dialogState.open}
         onClose={() => setDialogState({ open: false })}
         period={dialogState.period}
+        cadence={cadence}
       />
 
       {deleteTarget && (

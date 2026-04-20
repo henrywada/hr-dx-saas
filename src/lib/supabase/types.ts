@@ -3305,16 +3305,19 @@ export type Database = {
       tenant_portal_settings: {
         Row: {
           hr_inquiry_email: string | null
+          pulse_survey_cadence: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
           hr_inquiry_email?: string | null
+          pulse_survey_cadence?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
           hr_inquiry_email?: string | null
+          pulse_survey_cadence?: string
           tenant_id?: string
           updated_at?: string
         }

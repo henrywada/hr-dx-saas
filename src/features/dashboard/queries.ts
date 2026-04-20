@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import {
   getPulseSurveyPeriodKey,
-  normalizePulseSurveyCadence,
   pulseSurveyPeriodDeadlineFallbackYmd,
   toJSTDateString,
   type PulseSurveyCadence,
 } from '@/lib/datetime'
+import { getTenantPulseSurveyCadence } from '@/lib/server/pulse-survey-cadence-persistence'
 import { getAssignedQuestionnaires } from '@/features/questionnaire/queries'
 import type { AssignedQuestionnaire } from '@/features/questionnaire/types'
-import { ImportantTask, Announcement, AnnouncementRow, PulseSurveyPeriodRow } from './types'
+import { ImportantTask, Announcement, AnnouncementRow } from './types'
 
 // announcements / pulse_survey_periods 等は型定義に含まれない場合があるため any でラップ
 async function getSupabase() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (await createClient()) as any
 }
 
@@ -51,30 +52,12 @@ export async function getTopAnnouncements(): Promise<Announcement[]> {
   })
 }
 
-type PulsePeriodRow = {
-  id: string
-  survey_period: string
-  title: string
-  description: string | null
-  deadline_date: string
-  link_path: string | null
-}
-
 /** DB に当月行がなくても表示するデフォルト（管理画面のプレースホルダと揃える） */
 const DEFAULT_PULSE_TITLE = '今月の組織度アンケート（Echo）'
 const DEFAULT_PULSE_DESCRIPTION =
   '組織のコンディションを把握するための重要なアンケートです。回答時間は約5分です。'
 
-export async function getTenantPulseSurveyCadence(tenantId: string): Promise<PulseSurveyCadence> {
-  const supabase = await getSupabase()
-  const { data, error } = await supabase
-    .from('tenants')
-    .select('pulse_survey_cadence')
-    .eq('id', tenantId)
-    .maybeSingle()
-  if (error) return 'monthly'
-  return normalizePulseSurveyCadence(data?.pulse_survey_cadence as string | undefined)
-}
+export { getTenantPulseSurveyCadence }
 
 export async function getEmployeeImportantTask(
   userId: string | null,
@@ -194,15 +177,4 @@ export async function getAnnouncementsForAdmin(): Promise<AnnouncementRow[]> {
   return data as AnnouncementRow[]
 }
 
-/** テナント内の全パルス調査期間を取得（管理画面用） */
-export async function getPulseSurveyPeriodsForAdmin(): Promise<PulseSurveyPeriodRow[]> {
-  const supabase = await getSupabase()
-  const { data, error } = await supabase
-    .from('pulse_survey_periods')
-    .select('*')
-    .order('survey_period', { ascending: false })
-
-  if (error || !data) return []
-  return data as PulseSurveyPeriodRow[]
-}
 

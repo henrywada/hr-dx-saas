@@ -37,7 +37,6 @@ export default function TenantEchoListClient({
   const [editingNameId, setEditingNameId] = useState<string | null>(null)
   const [editingNameValue, setEditingNameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
   const [activateCadence, setActivateCadence] = useState<PulseSurveyCadence>(initialPulseCadence)
@@ -70,7 +69,6 @@ export default function TenantEchoListClient({
 
   function openActivateModal(id: string) {
     setError(null)
-    setNotice(null)
     setActivateCadence(initialPulseCadence)
     setActivateTargetId(id)
   }
@@ -87,7 +85,6 @@ export default function TenantEchoListClient({
       }
       setActivateTargetId(null)
       setError(null)
-      setNotice(result.warning ?? null)
       refreshList()
     })
   }
@@ -159,15 +156,6 @@ export default function TenantEchoListClient({
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="underline text-xs">
-            閉じる
-          </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3 rounded-lg flex items-center justify-between">
-          <span>{notice}</span>
-          <button type="button" onClick={() => setNotice(null)} className="underline text-xs shrink-0">
             閉じる
           </button>
         </div>

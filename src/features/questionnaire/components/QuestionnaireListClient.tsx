@@ -42,10 +42,11 @@ export default function QuestionnaireListClient({
   tenantId,
   appRole,
   initialData,
-  templates,
+  templates: initialTemplates,
 }: Props) {
   const router = useRouter()
   const [data, setData] = useState<QuestionnaireListItem[]>(initialData)
+  const [templates, setTemplates] = useState<QuestionnaireListItem[]>(initialTemplates)
   const [activeTab, setActiveTab] = useState<'template' | 'list'>('list')
   const [showForm, setShowForm] = useState(false)
   const [formCreatorType, setFormCreatorType] = useState<CreatorType>('tenant')
@@ -171,6 +172,10 @@ export default function QuestionnaireListClient({
               templates={templates}
               tenantId={tenantId}
               onCreated={handleTemplateCreated}
+              canDelete={isDeveloper}
+              onDeleted={(id: string) =>
+                setTemplates(prev => prev.filter(t => t.id !== id))
+              }
             />
           )}
         </div>
@@ -213,7 +218,7 @@ export default function QuestionnaireListClient({
                           {formatImplementationDateCell(q)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex gap-1 flex-wrap">
+                          <div className="flex gap-1.5 flex-wrap">
                             {/* タイトル編集（draft） */}
                             {q.status === 'draft' && (
                               <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
@@ -223,9 +228,10 @@ export default function QuestionnaireListClient({
                             {/* 設問編集（draft） */}
                             {q.status === 'draft' && (
                               <Button
-                                variant="secondary"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setDesignTarget(q)}
+                                className="bg-emerald-50! text-emerald-700! border-emerald-200! hover:bg-emerald-100! hover:border-emerald-300! hover:text-emerald-800!"
                               >
                                 設問編集
                               </Button>
@@ -233,7 +239,7 @@ export default function QuestionnaireListClient({
                             {/* 終了（active） */}
                             {q.status === 'active' && (
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleStatusChange(q.id, 'closed')}
                                 disabled={isPending}
@@ -244,7 +250,7 @@ export default function QuestionnaireListClient({
                             {/* 下書きに戻す（closed） */}
                             {q.status === 'closed' && (
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleStatusChange(q.id, 'draft')}
                                 disabled={isPending}
@@ -254,11 +260,12 @@ export default function QuestionnaireListClient({
                             )}
                             {/* 実施期間管理（アサインはここから） */}
                             <Button
-                              variant="primary"
+                              variant="outline"
                               size="sm"
                               onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
+                              className="bg-blue-50! text-blue-700! border-blue-200! hover:bg-blue-100! hover:border-blue-300! hover:text-blue-800!"
                             >
-                              実施期間の設定
+                              実施開始へ
                             </Button>
                             {/* 削除（draft|closed） */}
                             {(q.status === 'draft' || q.status === 'closed') && (

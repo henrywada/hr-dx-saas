@@ -110,8 +110,9 @@ export async function getQuestionnaires(tenantId: string): Promise<Questionnaire
 }
 
 /**
- * システムテンプレート一覧取得
- * 全テナントがアクセス可能なテンプレートアンケート一覧を返す
+ * システムテンプレート一覧取得（アンケート管理画面のテンプレート選択用）
+ * 通常アンケート用テンプレート（creator_type='system' かつ purpose='general'）のみを返す。
+ * パルスサーベイ用テンプレート（purpose='echo'）は Echo テンプレート管理側で別管理のため除外する。
  */
 export async function getTemplates(): Promise<QuestionnaireListItem[]> {
   const supabase = await createClient()
@@ -131,6 +132,7 @@ export async function getTemplates(): Promise<QuestionnaireListItem[]> {
     `
     )
     .eq('creator_type', 'system')
+    .eq('purpose', 'general')
     .order('created_at', { ascending: false })
 
   if (error) throw error

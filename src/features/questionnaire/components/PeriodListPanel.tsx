@@ -87,7 +87,7 @@ export default function PeriodListPanel({ questionnaire, initialPeriods, tenantI
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">実施一覧：{questionnaire.title}</h1>
+          <h1 className="text-2xl font-bold">実施状況一覧：{questionnaire.title}</h1>
         </div>
         <div className="flex gap-2">
           <button

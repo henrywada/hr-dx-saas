@@ -40,6 +40,10 @@ export default function TenantEchoListClient({
   const [isPending, startTransition] = useTransition()
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
   const [activateCadence, setActivateCadence] = useState<PulseSurveyCadence>(initialPulseCadence)
+  const [currentPulseCadence, setCurrentPulseCadence] =
+    useState<PulseSurveyCadence>(initialPulseCadence)
+
+  const cadenceLabel = (c: PulseSurveyCadence) => (c === 'weekly' ? '週1回' : '月1回')
 
   function refreshList() {
     startTransition(async () => {
@@ -83,6 +87,7 @@ export default function TenantEchoListClient({
         setError(result.error ?? '本番指定に失敗しました')
         return
       }
+      setCurrentPulseCadence(cadence)
       setActivateTargetId(null)
       setError(null)
       refreshList()
@@ -175,6 +180,7 @@ export default function TenantEchoListClient({
                 <th className="text-left px-5 py-3 font-medium text-slate-600">設問セット名</th>
                 <th className="text-center px-4 py-3 font-medium text-slate-600">設問数</th>
                 <th className="text-center px-4 py-3 font-medium text-slate-600">状態</th>
+                <th className="text-center px-4 py-3 font-medium text-slate-600">実施間隔</th>
                 <th className="text-center px-4 py-3 font-medium text-slate-600">操作</th>
               </tr>
             </thead>
@@ -262,6 +268,18 @@ export default function TenantEchoListClient({
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
                           下書き
                         </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {isActive ? (
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                          title="パルスサーベイの実施間隔"
+                        >
+                          {cadenceLabel(currentPulseCadence)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

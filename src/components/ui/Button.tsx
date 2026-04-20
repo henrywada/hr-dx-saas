@@ -1,6 +1,6 @@
 import React from 'react'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'warning' | 'outline'
+export type ButtonVariant = 'primary' | 'secondary' | 'warning' | 'outline' | 'ghost'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -34,19 +34,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
   ref
 ) {
   const baseStyles =
-    'font-medium rounded-lg transition-all duration-200 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'
+    'inline-flex items-center justify-center gap-1.5 font-medium rounded-md transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variantStyles = {
-    primary: 'bg-primary hover:bg-primary-dark text-white focus:ring-primary',
-    secondary: 'bg-accent-teal hover:opacity-90 text-white focus:ring-accent-teal',
-    warning: 'bg-accent-orange hover:opacity-90 text-white focus:ring-accent-orange',
-    outline: 'border-2 border-primary text-primary hover:bg-primary-light focus:ring-primary',
+    primary:
+      'bg-primary text-white shadow-sm hover:bg-primary-dark focus-visible:ring-primary/40',
+    secondary:
+      'bg-accent-teal text-white shadow-sm hover:opacity-90 focus-visible:ring-accent-teal/40',
+    warning:
+      'bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300 focus-visible:ring-red-300',
+    outline:
+      'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 hover:text-neutral-900 focus-visible:ring-neutral-300',
+    ghost:
+      'bg-transparent text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:ring-neutral-300',
   }
 
   const sizeStyles = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-2.5 text-base',
   }
 
   const widthStyle = fullWidth ? 'w-full' : ''

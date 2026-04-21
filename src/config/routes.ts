@@ -44,6 +44,16 @@ export const APP_ROUTES = {
     SURVEY_ANSWERS: '/answers',
     /** Echo設問管理（テンプレートコピー・カスタマイズ・本番指定） */
     ADMIN_TENANT_QUESTIONNAIRE: '/adm/tenant_questionnaire',
+    /** eラーニング コース管理 */
+    ADMIN_EL_COURSES: '/adm/el-courses',
+    /** eラーニング コース詳細（スライド編集） */
+    ADMIN_EL_COURSE_DETAIL: (id: string) => `/adm/el-courses/${id}`,
+    /** eラーニング 受講割り当て管理 */
+    ADMIN_EL_ASSIGNMENTS: '/adm/el-assignments',
+    /** eラーニング マイコース一覧（従業員向け） */
+    EL_MY_COURSES: '/el-courses',
+    /** eラーニング コース受講画面（アサインIDベース） */
+    EL_MY_COURSE_VIEWER: (assignmentId: string) => `/el-courses/${assignmentId}`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',
@@ -51,5 +61,9 @@ export const APP_ROUTES = {
     SYSTEM_MASTER: '/saas_adm/system-master',
     /** Echoテンプレート管理（設問テンプレートのCRUD） */
     ECHO_TEMPLATE: '/saas_adm/echo_template',
+    /** eラーニング テンプレートコース管理（developer専用） */
+    EL_TEMPLATES: '/saas_adm/el-templates',
+    /** eラーニング テンプレートコース詳細（スライド編集） */
+    EL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/el-templates/${id}`,
   },
 } as const

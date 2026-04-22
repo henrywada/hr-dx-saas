@@ -303,7 +303,7 @@ export async function upsertSlide(input: {
     result = await supabase.from('el_slides').insert(payload).select().single()
   }
 
-  if (result.error) throw result.error
+  if (result.error) throw supabaseToError(result.error, 'スライドの保存に失敗しました')
   revalidatePath(`/adm/el-courses/${input.course_id}`)
   revalidatePath(`/saas_adm/el-templates/${input.course_id}`)
   return result.data
@@ -348,52 +348,58 @@ export async function uploadSlideImage(
   courseId: string,
   formData: FormData
 ): Promise<string> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const user = await getServerUser()
+    if (!user) throw new Error('Unauthorized')
 
-  const file = formData.get('file') as File | null
-  if (!file) throw new Error('ファイルが選択されていません')
+    const file = formData.get('file') as File | null
+    if (!file) throw new Error('ファイルが選択されていません')
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('JPEG・PNG・GIF・WebP のみアップロードできます')
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('JPEG・PNG・GIF・WebP のみアップロードできます')
+    }
+    if (file.size > EL_SLIDE_IMAGE_MAX_BYTES) {
+      throw new Error(`ファイルサイズは ${EL_SLIDE_IMAGE_MAX_MB}MB 以下にしてください`)
+    }
+
+    await ensureSlideImagesBucket()
+    const admin = createAdminServiceClient()
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const storagePath = `slides/${slideId}.${ext}`
+    const buf = Buffer.from(await file.arrayBuffer())
+
+    const { error: upErr } = await admin.storage
+      .from(EL_SLIDE_IMAGES_BUCKET)
+      .upload(storagePath, buf, { contentType: file.type, upsert: true })
+
+    if (upErr) throw new Error(`画像のアップロードに失敗しました: ${upErr.message}`)
+
+    const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
+    const publicUrl = urlData.publicUrl
+
+    const supabase = await createClient()
+    const { data: updatedRow, error: updateErr } = await supabase
+      .from('el_slides')
+      .update({ image_url: publicUrl })
+      .eq('id', slideId)
+      .select('image_url')
+      .single()
+    if (updateErr) {
+      throw supabaseToError(updateErr, '画像URLをスライドに保存できませんでした')
+    }
+    if (!updatedRow?.image_url) {
+      throw new Error(
+        '画像URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+      )
+    }
+
+    revalidatePath(`/adm/el-courses/${courseId}`)
+    revalidatePath(`/saas_adm/el-templates/${courseId}`)
+    return publicUrl
+  } catch (err) {
+    throw toActionError(err, '画像のアップロードに失敗しました')
   }
-  if (file.size > EL_SLIDE_IMAGE_MAX_BYTES) {
-    throw new Error(`ファイルサイズは ${EL_SLIDE_IMAGE_MAX_MB}MB 以下にしてください`)
-  }
-
-  await ensureSlideImagesBucket()
-  const admin = createAdminServiceClient()
-  const ext = file.name.split('.').pop() ?? 'jpg'
-  const storagePath = `slides/${slideId}.${ext}`
-  const buf = Buffer.from(await file.arrayBuffer())
-
-  const { error: upErr } = await admin.storage
-    .from(EL_SLIDE_IMAGES_BUCKET)
-    .upload(storagePath, buf, { contentType: file.type, upsert: true })
-
-  if (upErr) throw new Error(`画像のアップロードに失敗しました: ${upErr.message}`)
-
-  const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
-  const publicUrl = urlData.publicUrl
-
-  const supabase = await createClient()
-  const { data: updatedRow, error: updateErr } = await supabase
-    .from('el_slides')
-    .update({ image_url: publicUrl })
-    .eq('id', slideId)
-    .select('image_url')
-    .single()
-  if (updateErr) throw updateErr
-  if (!updatedRow?.image_url) {
-    throw new Error(
-      '画像URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
-    )
-  }
-
-  revalidatePath(`/adm/el-courses/${courseId}`)
-  revalidatePath(`/saas_adm/el-templates/${courseId}`)
-  return publicUrl
 }
 
 export async function deleteSlideImage(slideId: string, courseId: string): Promise<void> {
@@ -461,64 +467,70 @@ export async function uploadSlideVideo(
   courseId: string,
   formData: FormData
 ): Promise<string> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const user = await getServerUser()
+    if (!user) throw new Error('Unauthorized')
 
-  const file = formData.get('file') as File | null
-  if (!file) throw new Error('ファイルが選択されていません')
+    const file = formData.get('file') as File | null
+    if (!file) throw new Error('ファイルが選択されていません')
 
-  const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime']
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('MP4・WebM・QuickTime のみアップロードできます')
-  }
-  if (file.size > EL_SLIDE_VIDEO_MAX_BYTES) {
-    throw new Error(`ファイルサイズは ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
-  }
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime']
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('MP4・WebM・QuickTime のみアップロードできます')
+    }
+    if (file.size > EL_SLIDE_VIDEO_MAX_BYTES) {
+      throw new Error(`ファイルサイズは ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
+    }
 
-  await ensureSlideVideosBucket()
-  const admin = createAdminServiceClient()
+    await ensureSlideVideosBucket()
+    const admin = createAdminServiceClient()
 
-  const { data: existingFiles } = await admin.storage
-    .from(EL_SLIDE_VIDEOS_BUCKET)
-    .list('slides', { search: slideId })
-  if (existingFiles && existingFiles.length > 0) {
-    await admin.storage
+    const { data: existingFiles } = await admin.storage
       .from(EL_SLIDE_VIDEOS_BUCKET)
-      .remove(existingFiles.map(f => `slides/${f.name}`))
+      .list('slides', { search: slideId })
+    if (existingFiles && existingFiles.length > 0) {
+      await admin.storage
+        .from(EL_SLIDE_VIDEOS_BUCKET)
+        .remove(existingFiles.map(f => `slides/${f.name}`))
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    const safeExt =
+      ext === 'webm' ? 'webm' : ext === 'mov' ? 'mov' : file.type === 'video/quicktime' ? 'mov' : 'mp4'
+    const storagePath = `slides/${slideId}-${Date.now()}.${safeExt}`
+    const buf = Buffer.from(await file.arrayBuffer())
+
+    const { error: upErr } = await admin.storage
+      .from(EL_SLIDE_VIDEOS_BUCKET)
+      .upload(storagePath, buf, { contentType: file.type, upsert: false })
+
+    if (upErr) throw new Error(`動画のアップロードに失敗しました: ${upErr.message}`)
+
+    const { data: urlData } = admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).getPublicUrl(storagePath)
+    const publicUrl = urlData.publicUrl
+
+    const supabase = await createClient()
+    const { data: updatedRow, error: updateErr } = await supabase
+      .from('el_slides')
+      .update({ video_url: publicUrl })
+      .eq('id', slideId)
+      .select('video_url')
+      .single()
+    if (updateErr) {
+      throw supabaseToError(updateErr, '動画URLをスライドに保存できませんでした')
+    }
+    if (!updatedRow?.video_url) {
+      throw new Error(
+        '動画URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+      )
+    }
+
+    revalidatePath(`/adm/el-courses/${courseId}`)
+    revalidatePath(`/saas_adm/el-templates/${courseId}`)
+    return publicUrl
+  } catch (err) {
+    throw toActionError(err, '動画のアップロードに失敗しました')
   }
-
-  const ext = file.name.split('.').pop()?.toLowerCase()
-  const safeExt =
-    ext === 'webm' ? 'webm' : ext === 'mov' ? 'mov' : file.type === 'video/quicktime' ? 'mov' : 'mp4'
-  const storagePath = `slides/${slideId}-${Date.now()}.${safeExt}`
-  const buf = Buffer.from(await file.arrayBuffer())
-
-  const { error: upErr } = await admin.storage
-    .from(EL_SLIDE_VIDEOS_BUCKET)
-    .upload(storagePath, buf, { contentType: file.type, upsert: false })
-
-  if (upErr) throw new Error(`動画のアップロードに失敗しました: ${upErr.message}`)
-
-  const { data: urlData } = admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).getPublicUrl(storagePath)
-  const publicUrl = urlData.publicUrl
-
-  const supabase = await createClient()
-  const { data: updatedRow, error: updateErr } = await supabase
-    .from('el_slides')
-    .update({ video_url: publicUrl })
-    .eq('id', slideId)
-    .select('video_url')
-    .single()
-  if (updateErr) throw updateErr
-  if (!updatedRow?.video_url) {
-    throw new Error(
-      '動画URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
-    )
-  }
-
-  revalidatePath(`/adm/el-courses/${courseId}`)
-  revalidatePath(`/saas_adm/el-templates/${courseId}`)
-  return publicUrl
 }
 
 export async function deleteSlideVideo(slideId: string, courseId: string): Promise<void> {

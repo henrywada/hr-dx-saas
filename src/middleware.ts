@@ -7,6 +7,9 @@ export async function middleware(request: NextRequest) {
   const { response, user, supabase } = await updateSession(request)
 
   const pathname = request.nextUrl.pathname
+  // Server Action（大きい multipart 含む）で Edge が access_logs 挿入まで await するとタイムアウトし、
+  // 応答が RSC にならず「An unexpected response was received from the server」になることがある。
+  const isServerActionRequest = request.headers.has('next-action')
   const isAuthPage = 
     pathname.startsWith(APP_ROUTES.AUTH.LOGIN) || 
     pathname.startsWith(APP_ROUTES.AUTH.RESET_PASSWORD) || 
@@ -15,7 +18,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth')
   const isPublicPage = pathname === '/'
 
-  if (!pathname.startsWith('/_next') && !pathname.includes('.')) {
+  if (!pathname.startsWith('/_next') && !pathname.includes('.') && !isServerActionRequest) {
     const insertLog = async () => {
       try {
         let tenant_id = user?.user_metadata?.tenant_id || null;

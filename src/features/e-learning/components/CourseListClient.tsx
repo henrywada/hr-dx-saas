@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Copy, Pencil, Trash2, BookOpen } from 'lucide-react'
-import { deleteCourse, copyTemplateToTenant } from '../actions'
+import { deleteCourse, copyTemplateToTenant, updateCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { CourseFormModal } from './CourseFormModal'
-import type { ElCourse } from '../types'
+import type { CourseStatus, ElCourse } from '../types'
 
 interface Props {
   tenantCourses: ElCourse[]
@@ -35,7 +36,10 @@ function getCategoryColor(category: string): string {
   return categoryColorCache[category]
 }
 
+const COURSE_STATUS_OPTIONS: CourseStatus[] = ['draft', 'published', 'archived']
+
 export function CourseListClient({ tenantCourses, templateCourses }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'tenant' | 'template'>('tenant')
   const [showForm, setShowForm] = useState(false)
@@ -55,6 +59,13 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
   const handleCopy = (templateId: string) => {
     startTransition(async () => {
       await copyTemplateToTenant(templateId)
+    })
+  }
+
+  const handleCourseStatusChange = (courseId: string, status: CourseStatus) => {
+    startTransition(async () => {
+      await updateCourse(courseId, { status })
+      router.refresh()
     })
   }
 
@@ -129,11 +140,29 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                 >
                   {course.category}
                 </span>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[course.status]}`}
-                >
-                  {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
-                </span>
+                {tab === 'tenant' ? (
+                  <select
+                    aria-label="コースの公開ステータス"
+                    value={course.status}
+                    onChange={e =>
+                      handleCourseStatusChange(course.id, e.target.value as CourseStatus)
+                    }
+                    disabled={isPending}
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium border border-transparent cursor-pointer max-w-36 ${STATUS_COLORS[course.status]}`}
+                  >
+                    {COURSE_STATUS_OPTIONS.map(s => (
+                      <option key={s} value={s}>
+                        {COURSE_STATUS_LABELS[s]}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[course.status]}`}
+                  >
+                    {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
+                  </span>
+                )}
               </div>
 
               <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">

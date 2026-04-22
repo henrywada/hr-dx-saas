@@ -1,5 +1,13 @@
 import type { BloomLevel, SlideType } from './types'
 
+/** スライド画像アップロード上限（サーバー・Storage・UI で共通） */
+export const EL_SLIDE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+export const EL_SLIDE_IMAGE_MAX_MB = 10
+
+/** ミニ講座スライド動画アップロード上限 */
+export const EL_SLIDE_VIDEO_MAX_BYTES = 50 * 1024 * 1024
+export const EL_SLIDE_VIDEO_MAX_MB = 50
+
 export const COURSE_CATEGORIES = ['初級', '中級', '上級', 'その他'] as const
 export type CourseCategory = (typeof COURSE_CATEGORIES)[number]
 

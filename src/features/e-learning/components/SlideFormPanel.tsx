@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
-import { Save, Plus, Trash2, Upload, X, ImageIcon, Sparkles } from 'lucide-react'
+import { useState, useTransition, useRef, useEffect, useId } from 'react'
+import { Save, Plus, Trash2, Upload, X, ImageIcon, Video } from 'lucide-react'
 import {
   upsertSlide,
   upsertQuizQuestion,
@@ -12,10 +12,43 @@ import {
   deleteChecklistItem,
   uploadSlideImage,
   deleteSlideImage,
-  generateSlideImage,
+  uploadSlideVideo,
+  deleteSlideVideo,
 } from '../actions'
-import { SLIDE_TYPE_LABELS, MICRO_LEARNING_SLIDE_TYPES } from '../constants'
+import {
+  SLIDE_TYPE_LABELS,
+  MICRO_LEARNING_SLIDE_TYPES,
+  EL_SLIDE_IMAGE_MAX_MB,
+  EL_SLIDE_VIDEO_MAX_MB,
+} from '../constants'
 import type { ElSlide, ElScenarioBranch, ElChecklistItem, SlideType } from '../types'
+
+function isLegacySlideType(t: SlideType): boolean {
+  return !MICRO_LEARNING_SLIDE_TYPES.includes(t)
+}
+
+function isProbablyYoutubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/i.test(url)
+}
+
+function getYoutubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.replace(/^\//, '').split('/')[0]
+      return id ? `https://www.youtube.com/embed/${id}` : null
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v')
+      if (v) return `https://www.youtube.com/embed/${v}`
+      const m = u.pathname.match(/\/embed\/([^/?]+)/)
+      if (m) return `https://www.youtube.com/embed/${m[1]}`
+    }
+  } catch {
+    return null
+  }
+  return null
+}
 
 interface Props {
   slide: ElSlide
@@ -26,6 +59,8 @@ interface Props {
 const TEXT_CONTENT_TYPES: SlideType[] = ['text', 'image', 'objective', 'micro_content', 'reflection']
 
 export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
+  const microImageInputId = useId()
+  const legacyImageInputId = useId()
   const [isPending, startTransition] = useTransition()
   const [title, setTitle] = useState(slide.title ?? '')
   const [content, setContent] = useState(slide.content ?? '')
@@ -37,20 +72,30 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(slide.image_url ?? null)
   const [imageError, setImageError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [localPreview, setLocalPreview] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [microLocalPreview, setMicroLocalPreview] = useState<string | null>(null)
+  const [microImageError, setMicroImageError] = useState<string | null>(null)
+  const [isMicroUploading, setIsMicroUploading] = useState(false)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const videoFileRef = useRef<HTMLInputElement>(null)
+  const [videoError, setVideoError] = useState<string | null>(null)
+  const [isVideoUploading, setIsVideoUploading] = useState(false)
+
+  useEffect(() => {
+    setImageUrl(slide.image_url ?? null)
+  }, [slide.id, slide.image_url])
+
+  useEffect(() => {
+    setVideoUrl(slide.video_url ?? '')
+  }, [slide.id, slide.video_url])
+
+  /** 画像スライド: ファイル選択後すぐアップロード（input の条件付きアンマウントで ref が空になる不具合を避ける） */
+  const handleLegacyImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setLocalPreview(URL.createObjectURL(file))
-  }
-
-  const handleImageUpload = () => {
-    const file = fileRef.current?.files?.[0]
-    if (!file) return
     setImageError(null)
+    const preview = URL.createObjectURL(file)
+    setLocalPreview(preview)
     setIsUploading(true)
     const fd = new FormData()
     fd.append('file', file)
@@ -62,26 +107,11 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         onUpdate({ ...slide, image_url: url })
       } catch (err) {
         setImageError(err instanceof Error ? err.message : 'アップロードに失敗しました')
+        setLocalPreview(null)
       } finally {
         setIsUploading(false)
-        if (fileRef.current) fileRef.current.value = ''
-      }
-    })
-  }
-
-  const handleAiGenerate = () => {
-    setImageError(null)
-    setIsGenerating(true)
-    startTransition(async () => {
-      try {
-        const url = await generateSlideImage(slide.id, courseId, title, content)
-        setImageUrl(url)
-        setLocalPreview(null)
-        onUpdate({ ...slide, image_url: url })
-      } catch (err) {
-        setImageError(err instanceof Error ? err.message : 'AI画像生成に失敗しました')
-      } finally {
-        setIsGenerating(false)
+        URL.revokeObjectURL(preview)
+        e.target.value = ''
       }
     })
   }
@@ -96,6 +126,81 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         onUpdate({ ...slide, image_url: null })
       } catch (err) {
         setImageError(err instanceof Error ? err.message : '削除に失敗しました')
+      }
+    })
+  }
+
+  /** ミニ講座: 画像は選択と同時にアップロード（動画と同様・確定ボタン不要） */
+  const handleMicroImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMicroImageError(null)
+    const preview = URL.createObjectURL(file)
+    setMicroLocalPreview(preview)
+    setIsMicroUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    startTransition(async () => {
+      try {
+        const url = await uploadSlideImage(slide.id, courseId, fd)
+        setImageUrl(url)
+        setMicroLocalPreview(null)
+        onUpdate({ ...slide, image_url: url })
+      } catch (err) {
+        setMicroImageError(err instanceof Error ? err.message : 'アップロードに失敗しました')
+        setMicroLocalPreview(null)
+      } finally {
+        setIsMicroUploading(false)
+        URL.revokeObjectURL(preview)
+        e.target.value = ''
+      }
+    })
+  }
+
+  const handleMicroImageDelete = () => {
+    if (!confirm('画像を削除しますか？')) return
+    startTransition(async () => {
+      try {
+        await deleteSlideImage(slide.id, courseId)
+        setImageUrl(null)
+        setMicroLocalPreview(null)
+        onUpdate({ ...slide, image_url: null })
+      } catch (err) {
+        setMicroImageError(err instanceof Error ? err.message : '削除に失敗しました')
+      }
+    })
+  }
+
+  const handleVideoUpload = () => {
+    const file = videoFileRef.current?.files?.[0]
+    if (!file) return
+    setVideoError(null)
+    setIsVideoUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    startTransition(async () => {
+      try {
+        const url = await uploadSlideVideo(slide.id, courseId, fd)
+        setVideoUrl(url)
+        onUpdate({ ...slide, video_url: url })
+      } catch (err) {
+        setVideoError(err instanceof Error ? err.message : '動画のアップロードに失敗しました')
+      } finally {
+        setIsVideoUploading(false)
+        if (videoFileRef.current) videoFileRef.current.value = ''
+      }
+    })
+  }
+
+  const handleVideoDelete = () => {
+    if (!confirm('動画を削除しますか？')) return
+    startTransition(async () => {
+      try {
+        await deleteSlideVideo(slide.id, courseId)
+        setVideoUrl('')
+        onUpdate({ ...slide, video_url: null })
+      } catch (err) {
+        setVideoError(err instanceof Error ? err.message : '削除に失敗しました')
       }
     })
   }
@@ -134,7 +239,10 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         content: [...TEXT_CONTENT_TYPES, 'scenario', 'checklist'].includes(slideType)
           ? content
           : undefined,
-        video_url: slideType === 'micro_content' ? videoUrl || undefined : undefined,
+        ...(slideType === 'micro_content' || slideType === 'image'
+          ? { image_url: imageUrl }
+          : {}),
+        video_url: slideType === 'micro_content' ? videoUrl || null : null,
       })
 
       if (slideType === 'quiz') {
@@ -154,7 +262,10 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         slide_type: slideType,
         title,
         content,
-        video_url: videoUrl || null,
+        ...(slideType === 'micro_content' || slideType === 'image'
+          ? { image_url: imageUrl }
+          : {}),
+        video_url: slideType === 'micro_content' ? videoUrl || null : null,
         scenario_branches: branches,
         checklist_items: checklistItems,
       })
@@ -236,15 +347,13 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             onChange={e => setSlideType(e.target.value as SlideType)}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
+            {isLegacySlideType(slideType) && (
+              <optgroup label="旧形式（表示・編集のみ）">
+                <option value={slideType}>{SLIDE_TYPE_LABELS[slideType]}</option>
+              </optgroup>
+            )}
             <optgroup label="マイクロラーニング">
               {MICRO_LEARNING_SLIDE_TYPES.map(t => (
-                <option key={t} value={t}>
-                  {SLIDE_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="従来スライド">
-              {(['text', 'image', 'quiz'] as SlideType[]).map(t => (
                 <option key={t} value={t}>
                   {SLIDE_TYPE_LABELS[t]}
                 </option>
@@ -299,19 +408,124 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         </div>
       )}
 
-      {/* micro_content の動画 URL */}
+      {/* ミニ講座: 画像・動画アップロード */}
       {slideType === 'micro_content' && (
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">
-            動画 URL（任意・YouTube / Vimeo）
-          </label>
-          <input
-            type="url"
-            value={videoUrl}
-            onChange={e => setVideoUrl(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+        <div className="space-y-6 border-t border-gray-100 pt-4">
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-gray-500">画像（任意）</label>
+            <p className="text-xs text-gray-400 -mt-1">
+              JPEG・PNG・GIF・WebP ・ 1 ファイル最大 {EL_SLIDE_IMAGE_MAX_MB}MB まで（選択後すぐサーバーに保存されます）
+            </p>
+            <input
+              id={microImageInputId}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleMicroImagePick}
+              className="sr-only"
+              disabled={isMicroUploading || isPending}
+            />
+            {(imageUrl || microLocalPreview) && (
+              <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={microLocalPreview ?? imageUrl ?? ''}
+                  alt="スライド画像プレビュー"
+                  className="w-full max-h-56 object-contain"
+                />
+                {isMicroUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-medium">
+                    アップロード中...
+                  </div>
+                )}
+                {imageUrl && !microLocalPreview && !isMicroUploading && (
+                  <button
+                    type="button"
+                    onClick={handleMicroImageDelete}
+                    disabled={isPending}
+                    className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1 text-red-500 hover:text-red-700 shadow disabled:opacity-40"
+                    title="画像を削除"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+            {!imageUrl && !microLocalPreview && (
+              <label
+                htmlFor={microImageInputId}
+                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+              >
+                <ImageIcon className="w-5 h-5 text-gray-400 mb-1" />
+                <span className="text-sm text-gray-500">画像をアップロード</span>
+                <span className="text-xs text-gray-400 mt-0.5">
+                  上記の形式・{EL_SLIDE_IMAGE_MAX_MB}MB 以下のファイルを選択
+                </span>
+              </label>
+            )}
+            {imageUrl && !microLocalPreview && !isMicroUploading && (
+              <label
+                htmlFor={microImageInputId}
+                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                画像を差し替える
+              </label>
+            )}
+            {microImageError && <p className="text-xs text-red-600">{microImageError}</p>}
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-gray-500">動画（任意）</label>
+            <p className="text-xs text-gray-400 -mt-1">
+              MP4・WebM・MOV（QuickTime）・ 1 ファイル最大 {EL_SLIDE_VIDEO_MAX_MB}MB まで
+            </p>
+            {videoUrl ? (
+              <div className="space-y-2">
+                <div className="rounded-xl overflow-hidden border border-gray-200 bg-black max-h-56">
+                  {isProbablyYoutubeUrl(videoUrl) && getYoutubeEmbedUrl(videoUrl) ? (
+                    <iframe
+                      src={getYoutubeEmbedUrl(videoUrl)!}
+                      title="動画プレビュー"
+                      className="w-full aspect-video max-h-56"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={videoUrl} controls className="w-full max-h-56" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVideoDelete}
+                  disabled={isPending}
+                  className="text-xs text-red-600 hover:text-red-800"
+                >
+                  動画を削除
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                <Video className="w-5 h-5 text-gray-400 mb-1" />
+                <span className="text-sm text-gray-500">動画をアップロード</span>
+                <span className="text-xs text-gray-400 mt-0.5">
+                  上記の形式・{EL_SLIDE_VIDEO_MAX_MB}MB 以下のファイルを選択
+                </span>
+                <input
+                  ref={videoFileRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mov"
+                  onChange={() => {
+                    setVideoError(null)
+                    const f = videoFileRef.current?.files?.[0]
+                    if (f) handleVideoUpload()
+                  }}
+                  className="hidden"
+                />
+              </label>
+            )}
+            {videoError && <p className="text-xs text-red-600">{videoError}</p>}
+            {isVideoUploading && <p className="text-xs text-gray-500">アップロード中...</p>}
+          </div>
         </div>
       )}
 
@@ -319,8 +533,18 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
       {slideType === 'image' && (
         <div className="space-y-3">
           <label className="block text-xs font-medium text-gray-500">スライド画像</label>
+          <p className="text-xs text-gray-400 -mt-1">
+            JPEG・PNG・GIF・WebP ・ 最大 {EL_SLIDE_IMAGE_MAX_MB}MB まで（選択後すぐサーバーに保存されます）
+          </p>
+          <input
+            id={legacyImageInputId}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleLegacyImagePick}
+            className="sr-only"
+            disabled={isUploading || isPending}
+          />
 
-          {/* プレビュー（アップロード済み or ローカル選択） */}
           {(imageUrl || localPreview) && (
             <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -329,7 +553,12 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                 alt="スライド画像プレビュー"
                 className="w-full max-h-64 object-contain"
               />
-              {imageUrl && !localPreview && (
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-medium">
+                  アップロード中...
+                </div>
+              )}
+              {imageUrl && !localPreview && !isUploading && (
                 <button
                   type="button"
                   onClick={handleImageDelete}
@@ -343,80 +572,26 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             </div>
           )}
 
-          {/* 画像未設定時: AI生成 or ファイル選択 */}
           {!imageUrl && !localPreview && (
-            <div className="space-y-2">
-              {/* AI生成ボタン */}
-              <button
-                type="button"
-                onClick={handleAiGenerate}
-                disabled={isGenerating || isPending}
-                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50 transition-colors"
-              >
-                <Sparkles className="w-4 h-4" />
-                {isGenerating ? 'AI画像を生成中...' : 'AIで画像を自動生成'}
-              </button>
-              <p className="text-center text-xs text-gray-400">
-                タイトル・説明テキストをもとに DALL-E 3 が画像を生成します
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">または</span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-              {/* 手動アップロード */}
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-5 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                <ImageIcon className="w-6 h-6 text-gray-400 mb-1" />
-                <span className="text-sm text-gray-500">クリックして画像を選択</span>
-                <span className="text-xs text-gray-400 mt-0.5">JPEG / PNG / GIF / WebP・5MB 以下</span>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
-            </div>
+            <label
+              htmlFor={legacyImageInputId}
+              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-5 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            >
+              <ImageIcon className="w-6 h-6 text-gray-400 mb-1" />
+              <span className="text-sm text-gray-500">クリックして画像を選択</span>
+              <span className="text-xs text-gray-400 mt-0.5">
+                上記の形式・{EL_SLIDE_IMAGE_MAX_MB}MB 以下のファイルを選択
+              </span>
+            </label>
           )}
 
-          {/* ローカル選択後のアップロードボタン */}
-          {localPreview && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleImageUpload}
-                disabled={isUploading || isPending}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-              >
-                <Upload className="w-4 h-4" />
-                {isUploading ? 'アップロード中...' : 'この画像をアップロード'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLocalPreview(null)
-                  if (fileRef.current) fileRef.current.value = ''
-                }}
-                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
-              >
-                キャンセル
-              </button>
-            </div>
-          )}
-
-          {/* アップロード済み → 差し替えリンク */}
-          {imageUrl && !localPreview && (
-            <label className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit">
+          {imageUrl && !localPreview && !isUploading && (
+            <label
+              htmlFor={legacyImageInputId}
+              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit"
+            >
               <Upload className="w-3.5 h-3.5" />
               別の画像に差し替える
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={handleImageChange}
-                className="hidden"
-              />
             </label>
           )}
 

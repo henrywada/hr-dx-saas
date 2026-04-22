@@ -6,9 +6,17 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { extractTextFromUploadedFile } from '@/features/inquiry-chat/extractors/files'
 import { generateCourseFromText, generateMicroCourseFromText } from './ai-generator'
+import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import {
+  EL_SLIDE_IMAGE_MAX_BYTES,
+  EL_SLIDE_IMAGE_MAX_MB,
+  EL_SLIDE_VIDEO_MAX_BYTES,
+  EL_SLIDE_VIDEO_MAX_MB,
+} from './constants'
 import type { AiGeneratedCourse, AiGeneratedMicroCourse, BloomLevel, SlideType } from './types'
 
 const EL_SLIDE_IMAGES_BUCKET = 'el-slide-images'
+const EL_SLIDE_VIDEOS_BUCKET = 'el-slide-videos'
 
 /** Server Action からクライアントへ返すため、常にシリアライズ可能な Error にする */
 function toActionError(err: unknown, fallback: string): Error {
@@ -29,16 +37,43 @@ function supabaseToError(
   return new Error(parts.length > 0 ? parts.join(' — ') : fallback)
 }
 
+const SLIDE_IMAGE_BUCKET_OPTIONS = {
+  public: true,
+  fileSizeLimit: EL_SLIDE_IMAGE_MAX_BYTES,
+  allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as string[],
+}
+
+function isBucketAlreadyExistsError(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('already exists') ||
+    m.includes('already been registered') ||
+    m.includes('resource already exists') ||
+    m.includes('duplicate')
+  )
+}
+
+/** バケット新規作成。既に 5MB 等の古い上限の場合は updateBucket でアプリ上限に追従させる */
 async function ensureSlideImagesBucket() {
   const admin = createAdminServiceClient()
-  const { error } = await admin.storage.createBucket(EL_SLIDE_IMAGES_BUCKET, {
-    public: true,
-    fileSizeLimit: 5 * 1024 * 1024,
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  })
-  // already exists は無視
-  if (error && !error.message.includes('already exists')) {
-    throw new Error(`バケット作成に失敗しました: ${error.message}`)
+  const { error: createErr } = await admin.storage.createBucket(
+    EL_SLIDE_IMAGES_BUCKET,
+    SLIDE_IMAGE_BUCKET_OPTIONS
+  )
+  if (!createErr) return
+
+  if (!isBucketAlreadyExistsError(createErr.message)) {
+    throw new Error(`バケット作成に失敗しました: ${createErr.message}`)
+  }
+
+  const { error: updateErr } = await admin.storage.updateBucket(
+    EL_SLIDE_IMAGES_BUCKET,
+    SLIDE_IMAGE_BUCKET_OPTIONS
+  )
+  if (updateErr) {
+    throw new Error(
+      `画像ストレージの上限を ${EL_SLIDE_IMAGE_MAX_MB}MB に更新できませんでした（Supabase ダッシュボードで el-slide-images の file size limit を確認してください）: ${updateErr.message}`
+    )
   }
 }
 
@@ -103,6 +138,7 @@ export async function updateCourse(
 
   revalidatePath('/adm/el-courses')
   revalidatePath(`/adm/el-courses/${id}`)
+  revalidatePath('/adm/el-assignments')
   revalidatePath('/saas_adm/el-templates')
 }
 
@@ -235,6 +271,12 @@ export async function copyTemplateToTenant(templateId: string) {
 // スライド CRUD
 // ============================================================
 
+function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>
+}
+
 export async function upsertSlide(input: {
   id?: string
   course_id: string
@@ -242,8 +284,8 @@ export async function upsertSlide(input: {
   slide_type: SlideType
   title?: string
   content?: string
-  image_url?: string
-  video_url?: string
+  image_url?: string | null
+  video_url?: string | null
   estimated_seconds?: number
 }) {
   const user = await getServerUser()
@@ -251,14 +293,20 @@ export async function upsertSlide(input: {
 
   const supabase = await createClient()
 
-  const { data, error } = input.id
-    ? await supabase.from('el_slides').update(input).eq('id', input.id).select().single()
-    : await supabase.from('el_slides').insert(input).select().single()
+  let result
+  if (input.id) {
+    const { id, ...rest } = input
+    const payload = omitUndefined(rest as Record<string, unknown>) as TablesUpdate<'el_slides'>
+    result = await supabase.from('el_slides').update(payload).eq('id', id).select().single()
+  } else {
+    const payload = omitUndefined(input as Record<string, unknown>) as TablesInsert<'el_slides'>
+    result = await supabase.from('el_slides').insert(payload).select().single()
+  }
 
-  if (error) throw error
+  if (result.error) throw result.error
   revalidatePath(`/adm/el-courses/${input.course_id}`)
   revalidatePath(`/saas_adm/el-templates/${input.course_id}`)
-  return data
+  return result.data
 }
 
 export async function deleteSlide(id: string, courseId: string) {
@@ -292,90 +340,6 @@ export async function reorderSlides(courseId: string, orderedIds: string[]) {
 }
 
 // ============================================================
-// スライド画像 AI 生成（DALL-E 3）
-// ============================================================
-
-export async function generateSlideImage(
-  slideId: string,
-  courseId: string,
-  title: string,
-  description: string
-): Promise<string> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error('OPENAI_API_KEY が設定されていません')
-
-  const prompt = [
-    `日本のビジネス向けeラーニングスライドのイラスト。`,
-    `テーマ：「${title}」`,
-    description ? `内容の要点：${description.slice(0, 200)}` : '',
-    `デザイン要件：`,
-    `・現代的な日本のフラットイラストスタイル（NHKや日経スタイルのような洗練されたデザイン）`,
-    `・モダンでクリーン、温かみのある配色（青・オレンジ・白を基調）`,
-    `・日本人キャラクター（現代的なビジネスパーソン）`,
-    `・画像内に日本語テキストのラベルや説明を含める`,
-    `・英語テキストは一切使用しない`,
-    `・古典的・伝統的な和風要素（和柄・着物・浮世絵など）は使用しない`,
-    `・シンプルで視認性が高く、教育用として分かりやすい構図`,
-  ]
-    .filter(Boolean)
-    .join('\n')
-
-  const { default: OpenAI } = await import('openai')
-  const openai = new OpenAI({ apiKey })
-
-  const response = await openai.images.generate({
-    model: 'dall-e-3',
-    prompt,
-    n: 1,
-    size: '1024x1024',
-    response_format: 'b64_json',
-  })
-
-  const b64 = response.data[0]?.b64_json
-  if (!b64) throw new Error('DALL-E からの応答が空でした')
-
-  const buf = Buffer.from(b64, 'base64')
-  await ensureSlideImagesBucket()
-  const admin = createAdminServiceClient()
-
-  // 旧ファイルを削除（キャッシュ回避のため毎回新しいパスを使う）
-  const { data: existingFiles } = await admin.storage
-    .from(EL_SLIDE_IMAGES_BUCKET)
-    .list('slides', { search: slideId })
-  if (existingFiles && existingFiles.length > 0) {
-    await admin.storage
-      .from(EL_SLIDE_IMAGES_BUCKET)
-      .remove(existingFiles.map(f => `slides/${f.name}`))
-  }
-
-  const timestamp = Date.now()
-  const storagePath = `slides/${slideId}-${timestamp}.png`
-
-  const { error: upErr } = await admin.storage
-    .from(EL_SLIDE_IMAGES_BUCKET)
-    .upload(storagePath, buf, { contentType: 'image/png', upsert: false })
-
-  if (upErr) throw new Error(`画像の保存に失敗しました: ${upErr.message}`)
-
-  const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
-  const publicUrl = urlData.publicUrl
-
-  const supabase = await createClient()
-  const { error: updateErr } = await supabase
-    .from('el_slides')
-    .update({ image_url: publicUrl })
-    .eq('id', slideId)
-  if (updateErr) throw updateErr
-
-  revalidatePath(`/adm/el-courses/${courseId}`)
-  revalidatePath(`/saas_adm/el-templates/${courseId}`)
-  return publicUrl
-}
-
-// ============================================================
 // スライド画像アップロード
 // ============================================================
 
@@ -394,8 +358,8 @@ export async function uploadSlideImage(
   if (!allowedTypes.includes(file.type)) {
     throw new Error('JPEG・PNG・GIF・WebP のみアップロードできます')
   }
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error('ファイルサイズは 5MB 以下にしてください')
+  if (file.size > EL_SLIDE_IMAGE_MAX_BYTES) {
+    throw new Error(`ファイルサイズは ${EL_SLIDE_IMAGE_MAX_MB}MB 以下にしてください`)
   }
 
   await ensureSlideImagesBucket()
@@ -414,11 +378,18 @@ export async function uploadSlideImage(
   const publicUrl = urlData.publicUrl
 
   const supabase = await createClient()
-  const { error: updateErr } = await supabase
+  const { data: updatedRow, error: updateErr } = await supabase
     .from('el_slides')
     .update({ image_url: publicUrl })
     .eq('id', slideId)
+    .select('image_url')
+    .single()
   if (updateErr) throw updateErr
+  if (!updatedRow?.image_url) {
+    throw new Error(
+      '画像URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+    )
+  }
 
   revalidatePath(`/adm/el-courses/${courseId}`)
   revalidatePath(`/saas_adm/el-templates/${courseId}`)
@@ -446,6 +417,130 @@ export async function deleteSlideImage(slideId: string, courseId: string): Promi
   }
 
   const { error } = await supabase.from('el_slides').update({ image_url: null }).eq('id', slideId)
+  if (error) throw error
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+}
+
+// ============================================================
+// ミニ講座スライド動画アップロード
+// ============================================================
+
+const SLIDE_VIDEO_BUCKET_OPTIONS = {
+  public: true,
+  fileSizeLimit: EL_SLIDE_VIDEO_MAX_BYTES,
+  allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime'] as string[],
+}
+
+async function ensureSlideVideosBucket() {
+  const admin = createAdminServiceClient()
+  const { error: createErr } = await admin.storage.createBucket(
+    EL_SLIDE_VIDEOS_BUCKET,
+    SLIDE_VIDEO_BUCKET_OPTIONS
+  )
+  if (!createErr) return
+
+  if (!isBucketAlreadyExistsError(createErr.message)) {
+    throw new Error(`バケット作成に失敗しました: ${createErr.message}`)
+  }
+
+  const { error: updateErr } = await admin.storage.updateBucket(
+    EL_SLIDE_VIDEOS_BUCKET,
+    SLIDE_VIDEO_BUCKET_OPTIONS
+  )
+  if (updateErr) {
+    throw new Error(
+      `動画ストレージの設定を更新できませんでした: ${updateErr.message}`
+    )
+  }
+}
+
+export async function uploadSlideVideo(
+  slideId: string,
+  courseId: string,
+  formData: FormData
+): Promise<string> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const file = formData.get('file') as File | null
+  if (!file) throw new Error('ファイルが選択されていません')
+
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime']
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('MP4・WebM・QuickTime のみアップロードできます')
+  }
+  if (file.size > EL_SLIDE_VIDEO_MAX_BYTES) {
+    throw new Error(`ファイルサイズは ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
+  }
+
+  await ensureSlideVideosBucket()
+  const admin = createAdminServiceClient()
+
+  const { data: existingFiles } = await admin.storage
+    .from(EL_SLIDE_VIDEOS_BUCKET)
+    .list('slides', { search: slideId })
+  if (existingFiles && existingFiles.length > 0) {
+    await admin.storage
+      .from(EL_SLIDE_VIDEOS_BUCKET)
+      .remove(existingFiles.map(f => `slides/${f.name}`))
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  const safeExt =
+    ext === 'webm' ? 'webm' : ext === 'mov' ? 'mov' : file.type === 'video/quicktime' ? 'mov' : 'mp4'
+  const storagePath = `slides/${slideId}-${Date.now()}.${safeExt}`
+  const buf = Buffer.from(await file.arrayBuffer())
+
+  const { error: upErr } = await admin.storage
+    .from(EL_SLIDE_VIDEOS_BUCKET)
+    .upload(storagePath, buf, { contentType: file.type, upsert: false })
+
+  if (upErr) throw new Error(`動画のアップロードに失敗しました: ${upErr.message}`)
+
+  const { data: urlData } = admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).getPublicUrl(storagePath)
+  const publicUrl = urlData.publicUrl
+
+  const supabase = await createClient()
+  const { data: updatedRow, error: updateErr } = await supabase
+    .from('el_slides')
+    .update({ video_url: publicUrl })
+    .eq('id', slideId)
+    .select('video_url')
+    .single()
+  if (updateErr) throw updateErr
+  if (!updatedRow?.video_url) {
+    throw new Error(
+      '動画URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+    )
+  }
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+  return publicUrl
+}
+
+export async function deleteSlideVideo(slideId: string, courseId: string): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+  const { data: slide } = await supabase
+    .from('el_slides')
+    .select('video_url')
+    .eq('id', slideId)
+    .single()
+
+  if (slide?.video_url?.includes(EL_SLIDE_VIDEOS_BUCKET)) {
+    const path = slide.video_url.split(`/${EL_SLIDE_VIDEOS_BUCKET}/`).at(-1)
+    if (path) {
+      const admin = createAdminServiceClient()
+      await admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).remove([path])
+    }
+  }
+
+  const { error } = await supabase.from('el_slides').update({ video_url: null }).eq('id', slideId)
   if (error) throw error
 
   revalidatePath(`/adm/el-courses/${courseId}`)

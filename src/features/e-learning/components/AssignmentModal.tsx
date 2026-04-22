@@ -14,9 +14,11 @@ interface Props {
   courseId: string
   employees: Employee[]
   onClose: () => void
+  /** アサイン成功後（一覧の再取得用） */
+  onAssigned?: () => void
 }
 
-export function AssignmentModal({ courseId, employees, onClose }: Props) {
+export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Props) {
   const [isPending, startTransition] = useTransition()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dueDate, setDueDate] = useState('')
@@ -47,6 +49,7 @@ export function AssignmentModal({ courseId, employees, onClose }: Props) {
     startTransition(async () => {
       try {
         await assignEmployees(courseId, Array.from(selected), dueDate || undefined)
+        onAssigned?.()
         onClose()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'アサインに失敗しました')

@@ -1,24 +1,22 @@
 -- =============================================================================
--- eラーニング スライド画像用 Supabase Storage バケット
+-- eラーニング ミニ講座スライド用動画 Storage バケット
 -- =============================================================================
 
--- バケット作成（公開読み取り可・10MB上限・画像のみ許可）
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-  'el-slide-images',
-  'el-slide-images',
+  'el-slide-videos',
+  'el-slide-videos',
   true,
-  10485760,
-  ARRAY['image/jpeg','image/png','image/gif','image/webp']
+  52428800,
+  ARRAY['video/mp4','video/webm','video/quicktime']
 )
 ON CONFLICT (id) DO NOTHING;
 
--- developer / hr はアップロード・更新・削除が可能
-CREATE POLICY "el_slide_images_write" ON storage.objects
+CREATE POLICY "el_slide_videos_write" ON storage.objects
   FOR ALL
   TO authenticated
   USING (
-    bucket_id = 'el-slide-images'
+    bucket_id = 'el-slide-videos'
     AND (
       (auth.jwt() ->> 'app_role') = 'developer'
       OR (
@@ -28,7 +26,7 @@ CREATE POLICY "el_slide_images_write" ON storage.objects
     )
   )
   WITH CHECK (
-    bucket_id = 'el-slide-images'
+    bucket_id = 'el-slide-videos'
     AND (
       (auth.jwt() ->> 'app_role') = 'developer'
       OR (
@@ -38,8 +36,7 @@ CREATE POLICY "el_slide_images_write" ON storage.objects
     )
   );
 
--- 全認証ユーザーが画像を参照できる（受講者向け）
-CREATE POLICY "el_slide_images_read" ON storage.objects
+CREATE POLICY "el_slide_videos_read" ON storage.objects
   FOR SELECT
   TO authenticated
-  USING (bucket_id = 'el-slide-images');
+  USING (bucket_id = 'el-slide-videos');

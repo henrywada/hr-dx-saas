@@ -1,7 +1,7 @@
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getAssignments, getEmployeesForAssignment } from '@/features/e-learning/queries'
+import { getAssignments, getCourses, getEmployeesForAssignment } from '@/features/e-learning/queries'
 import { AssignmentListClient } from '@/features/e-learning/components/AssignmentListClient'
 
 export const dynamic = 'force-dynamic'
@@ -12,9 +12,10 @@ export default async function ElAssignmentsPage() {
     redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const [assignments, employees] = await Promise.all([
+  const [assignments, employees, tenantCourses] = await Promise.all([
     getAssignments(),
     getEmployeesForAssignment(),
+    getCourses(),
   ])
 
   return (
@@ -23,7 +24,11 @@ export default async function ElAssignmentsPage() {
         <h1 className="text-xl font-bold text-gray-800">受講割り当て管理</h1>
         <p className="text-sm text-gray-500 mt-1">従業員へのコース受講割り当てを管理します</p>
       </div>
-      <AssignmentListClient assignments={assignments} employees={employees} />
+      <AssignmentListClient
+        assignments={assignments}
+        employees={employees}
+        tenantCourses={tenantCourses}
+      />
     </div>
   )
 }

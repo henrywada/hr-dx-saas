@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Plus, ChevronUp, ChevronDown, Trash2, FileText, Image, HelpCircle, Target, Play, GitBranch, BookOpen, ClipboardList } from 'lucide-react'
 import { upsertSlide, deleteSlide, reorderSlides } from '../actions'
-import { SLIDE_TYPE_LABELS } from '../constants'
+import { SLIDE_TYPE_LABELS, MICRO_LEARNING_SLIDE_TYPES } from '../constants'
 import { SlideFormPanel } from './SlideFormPanel'
 import type { ElCourseWithSlides, ElSlide, SlideType } from '../types'
 
@@ -136,7 +136,7 @@ export function SlideEditorClient({ course }: Props) {
         </div>
 
         <div className="space-y-1 pt-2 border-t border-gray-200">
-          {(['text', 'image', 'quiz'] as SlideType[]).map(type => (
+          {MICRO_LEARNING_SLIDE_TYPES.map(type => (
             <button
               key={type}
               onClick={() => addSlide(type)}

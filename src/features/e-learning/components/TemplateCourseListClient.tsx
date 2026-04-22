@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Sparkles, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import { deleteCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { CourseFormModal } from './CourseFormModal'
-import { AiGeneratePanel } from './AiGeneratePanel'
 import type { ElCourse } from '../types'
 
 interface Props {
@@ -38,7 +37,6 @@ function getCategoryColor(category: string): string {
 export function TemplateCourseListClient({ courses }: Props) {
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
-  const [showAi, setShowAi] = useState(false)
   const [editCourse, setEditCourse] = useState<ElCourse | null>(null)
   const [filterCategory, setFilterCategory] = useState('')
 
@@ -66,13 +64,6 @@ export function TemplateCourseListClient({ courses }: Props) {
           ))}
         </select>
 
-        <button
-          onClick={() => setShowAi(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg"
-        >
-          <Sparkles className="w-4 h-4" />
-          AI生成
-        </button>
         <button
           onClick={() => {
             setEditCourse(null)
@@ -143,7 +134,6 @@ export function TemplateCourseListClient({ courses }: Props) {
       )}
 
       {showForm && <CourseFormModal courseType="template" onClose={() => setShowForm(false)} />}
-      {showAi && <AiGeneratePanel courseType="template" onClose={() => setShowAi(false)} />}
     </div>
   )
 }

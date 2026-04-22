@@ -1,11 +1,27 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminServiceClient } from '@/lib/supabase/adminClient'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { extractTextFromUploadedFile } from '@/features/inquiry-chat/extractors/files'
 import { generateCourseFromText, generateMicroCourseFromText } from './ai-generator'
 import type { AiGeneratedCourse, AiGeneratedMicroCourse, BloomLevel, SlideType } from './types'
+
+const EL_SLIDE_IMAGES_BUCKET = 'el-slide-images'
+
+async function ensureSlideImagesBucket() {
+  const admin = createAdminServiceClient()
+  const { error } = await admin.storage.createBucket(EL_SLIDE_IMAGES_BUCKET, {
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  })
+  // already exists は無視
+  if (error && !error.message.includes('already exists')) {
+    throw new Error(`バケット作成に失敗しました: ${error.message}`)
+  }
+}
 
 // ============================================================
 // コース CRUD
@@ -251,6 +267,167 @@ export async function reorderSlides(courseId: string, orderedIds: string[]) {
       .eq('id', orderedIds[i])
     if (error) throw error
   }
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+}
+
+// ============================================================
+// スライド画像 AI 生成（DALL-E 3）
+// ============================================================
+
+export async function generateSlideImage(
+  slideId: string,
+  courseId: string,
+  title: string,
+  description: string
+): Promise<string> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY が設定されていません')
+
+  const prompt = [
+    `日本のビジネス向けeラーニングスライドのイラスト。`,
+    `テーマ：「${title}」`,
+    description ? `内容の要点：${description.slice(0, 200)}` : '',
+    `デザイン要件：`,
+    `・現代的な日本のフラットイラストスタイル（NHKや日経スタイルのような洗練されたデザイン）`,
+    `・モダンでクリーン、温かみのある配色（青・オレンジ・白を基調）`,
+    `・日本人キャラクター（現代的なビジネスパーソン）`,
+    `・画像内に日本語テキストのラベルや説明を含める`,
+    `・英語テキストは一切使用しない`,
+    `・古典的・伝統的な和風要素（和柄・着物・浮世絵など）は使用しない`,
+    `・シンプルで視認性が高く、教育用として分かりやすい構図`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const { default: OpenAI } = await import('openai')
+  const openai = new OpenAI({ apiKey })
+
+  const response = await openai.images.generate({
+    model: 'dall-e-3',
+    prompt,
+    n: 1,
+    size: '1024x1024',
+    response_format: 'b64_json',
+  })
+
+  const b64 = response.data[0]?.b64_json
+  if (!b64) throw new Error('DALL-E からの応答が空でした')
+
+  const buf = Buffer.from(b64, 'base64')
+  await ensureSlideImagesBucket()
+  const admin = createAdminServiceClient()
+
+  // 旧ファイルを削除（キャッシュ回避のため毎回新しいパスを使う）
+  const { data: existingFiles } = await admin.storage
+    .from(EL_SLIDE_IMAGES_BUCKET)
+    .list('slides', { search: slideId })
+  if (existingFiles && existingFiles.length > 0) {
+    await admin.storage
+      .from(EL_SLIDE_IMAGES_BUCKET)
+      .remove(existingFiles.map(f => `slides/${f.name}`))
+  }
+
+  const timestamp = Date.now()
+  const storagePath = `slides/${slideId}-${timestamp}.png`
+
+  const { error: upErr } = await admin.storage
+    .from(EL_SLIDE_IMAGES_BUCKET)
+    .upload(storagePath, buf, { contentType: 'image/png', upsert: false })
+
+  if (upErr) throw new Error(`画像の保存に失敗しました: ${upErr.message}`)
+
+  const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
+  const publicUrl = urlData.publicUrl
+
+  const supabase = await createClient()
+  const { error: updateErr } = await supabase
+    .from('el_slides')
+    .update({ image_url: publicUrl })
+    .eq('id', slideId)
+  if (updateErr) throw updateErr
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+  return publicUrl
+}
+
+// ============================================================
+// スライド画像アップロード
+// ============================================================
+
+export async function uploadSlideImage(
+  slideId: string,
+  courseId: string,
+  formData: FormData
+): Promise<string> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const file = formData.get('file') as File | null
+  if (!file) throw new Error('ファイルが選択されていません')
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('JPEG・PNG・GIF・WebP のみアップロードできます')
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('ファイルサイズは 5MB 以下にしてください')
+  }
+
+  await ensureSlideImagesBucket()
+  const admin = createAdminServiceClient()
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const storagePath = `slides/${slideId}.${ext}`
+  const buf = Buffer.from(await file.arrayBuffer())
+
+  const { error: upErr } = await admin.storage
+    .from(EL_SLIDE_IMAGES_BUCKET)
+    .upload(storagePath, buf, { contentType: file.type, upsert: true })
+
+  if (upErr) throw new Error(`画像のアップロードに失敗しました: ${upErr.message}`)
+
+  const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
+  const publicUrl = urlData.publicUrl
+
+  const supabase = await createClient()
+  const { error: updateErr } = await supabase
+    .from('el_slides')
+    .update({ image_url: publicUrl })
+    .eq('id', slideId)
+  if (updateErr) throw updateErr
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+  return publicUrl
+}
+
+export async function deleteSlideImage(slideId: string, courseId: string): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const { data: slide } = await supabase
+    .from('el_slides')
+    .select('image_url')
+    .eq('id', slideId)
+    .single()
+
+  if (slide?.image_url) {
+    const path = slide.image_url.split(`/${EL_SLIDE_IMAGES_BUCKET}/`).at(-1)
+    if (path) {
+      const admin = createAdminServiceClient()
+      await admin.storage.from(EL_SLIDE_IMAGES_BUCKET).remove([path])
+    }
+  }
+
+  const { error } = await supabase.from('el_slides').update({ image_url: null }).eq('id', slideId)
+  if (error) throw error
 
   revalidatePath(`/adm/el-courses/${courseId}`)
   revalidatePath(`/saas_adm/el-templates/${courseId}`)
@@ -520,6 +697,104 @@ export async function deleteChecklistItem(itemId: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('el_checklist_items').delete().eq('id', itemId)
   if (error) throw error
+}
+
+// ============================================================
+// コース作成 + AI シナリオ自動生成（フォームから直接呼ぶ）
+// ============================================================
+
+export async function createCourseWithAiScenario(input: {
+  title: string
+  description: string
+  category: string
+  course_type: 'template' | 'tenant'
+  bloom_level?: BloomLevel
+  learning_objectives: string[]
+}): Promise<{ courseId: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const { data: course, error: courseError } = await supabase
+    .from('el_courses')
+    .insert({
+      tenant_id: input.course_type === 'tenant' ? user.tenant_id : null,
+      title: input.title,
+      description: input.description || null,
+      category: input.category,
+      status: 'draft',
+      course_type: input.course_type,
+      bloom_level: input.bloom_level ?? null,
+      learning_objectives: input.learning_objectives,
+      created_by_employee_id: user.employee_id ?? null,
+    })
+    .select()
+    .single()
+
+  if (courseError) throw courseError
+
+  const rawText = [
+    `コースタイトル：${input.title}`,
+    input.description ? `概要：${input.description}` : '',
+    input.learning_objectives.length > 0
+      ? `学習目標：\n${input.learning_objectives.map(o => `・${o}`).join('\n')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  const generated = await generateMicroCourseFromText(rawText)
+
+  for (let i = 0; i < generated.slides.length; i++) {
+    const slide = generated.slides[i]
+
+    const { data: newSlide, error: slideError } = await supabase
+      .from('el_slides')
+      .insert({
+        course_id: course.id,
+        slide_order: i,
+        slide_type: slide.slide_type,
+        title: slide.title,
+        content: slide.content ?? null,
+      })
+      .select()
+      .single()
+
+    if (slideError) throw slideError
+
+    if (slide.slide_type === 'scenario' && slide.scenario) {
+      const branches = slide.scenario.branches.map((b, idx) => ({
+        slide_id: newSlide.id,
+        branch_order: idx,
+        choice_text: b.choice_text,
+        feedback_text: b.feedback_text,
+        is_recommended: b.is_recommended,
+      }))
+      if (branches.length > 0) {
+        const { error: branchError } = await supabase
+          .from('el_scenario_branches')
+          .insert(branches)
+        if (branchError) throw branchError
+      }
+    }
+
+    if (slide.slide_type === 'checklist' && slide.checklist) {
+      const items = slide.checklist.items.map((it, idx) => ({
+        slide_id: newSlide.id,
+        item_order: idx,
+        item_text: it.item_text,
+      }))
+      if (items.length > 0) {
+        const { error: itemError } = await supabase.from('el_checklist_items').insert(items)
+        if (itemError) throw itemError
+      }
+    }
+  }
+
+  revalidatePath('/adm/el-courses')
+  revalidatePath('/saas_adm/el-templates')
+  return { courseId: course.id }
 }
 
 // ============================================================

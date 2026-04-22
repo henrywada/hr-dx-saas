@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X } from 'lucide-react'
-import { createCourse, updateCourse } from '../actions'
-import { COURSE_STATUS_LABELS, BLOOM_LEVELS, BLOOM_LEVEL_LABELS } from '../constants'
-import type { BloomLevel, ElCourse, CourseType, CourseStatus } from '../types'
+import { X, Sparkles, CheckCircle } from 'lucide-react'
+import { createCourse, updateCourse, createCourseWithAiScenario } from '../actions'
+import { BLOOM_LEVELS, BLOOM_LEVEL_LABELS } from '../constants'
+import type { BloomLevel, ElCourse, CourseType } from '../types'
 
 interface Props {
   course?: ElCourse
@@ -17,12 +17,15 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
   const [title, setTitle] = useState(course?.title ?? '')
   const [description, setDescription] = useState(course?.description ?? '')
   const [category, setCategory] = useState(course?.category ?? '初級')
-  const [status, setStatus] = useState(course?.status ?? 'draft')
   const [bloomLevel, setBloomLevel] = useState<BloomLevel | ''>(course?.bloom_level ?? '')
   const [objectivesText, setObjectivesText] = useState(
     (course?.learning_objectives ?? []).join('\n')
   )
+  const [useAiScenario, setUseAiScenario] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [aiDone, setAiDone] = useState(false)
+
+  const isNew = !course
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,31 +38,66 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
 
     startTransition(async () => {
       try {
-        if (course) {
+        if (!isNew) {
           await updateCourse(course.id, {
             title,
             description,
             category,
-            status,
             bloom_level: bloomLevel || null,
             learning_objectives: objectives,
           })
+          onClose()
+          return
+        }
+
+        if (useAiScenario) {
+          await createCourseWithAiScenario({
+            title,
+            description,
+            category,
+            course_type: courseType,
+            bloom_level: bloomLevel || undefined,
+            learning_objectives: objectives,
+          })
+          setAiDone(true)
         } else {
           await createCourse({
             title,
             description,
             category,
-            status,
+            status: 'draft',
             course_type: courseType,
             bloom_level: bloomLevel || undefined,
             learning_objectives: objectives,
           })
+          onClose()
         }
-        onClose()
       } catch (err) {
         setError(err instanceof Error ? err.message : '保存に失敗しました')
       }
     })
+  }
+
+  if (aiDone) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-8 flex flex-col items-center gap-4">
+          <CheckCircle className="w-14 h-14 text-green-500" />
+          <h2 className="text-lg font-bold text-gray-800">AIシナリオの作成が完了しました</h2>
+          <p className="text-sm text-gray-500 text-center">
+            学習目標・学習スライド・シナリオ問題・振り返り・チェックリストが自動生成されました。
+            <br />
+            コース一覧から内容を確認・編集できます。
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -67,7 +105,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
           <h2 className="text-lg font-bold text-gray-800">
-            {course ? 'コースを編集' : 'コースを作成'}
+            {isNew ? 'コースを作成' : 'コースを編集'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -75,7 +113,6 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {/* タイトル */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               タイトル <span className="text-red-500">*</span>
@@ -90,7 +127,6 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             />
           </div>
 
-          {/* 説明 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">説明</label>
             <textarea
@@ -102,7 +138,6 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             />
           </div>
 
-          {/* Bloom レベル */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               認知レベル（Bloom's Taxonomy）
@@ -121,7 +156,6 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             </select>
           </div>
 
-          {/* 学習目標 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               学習目標
@@ -136,33 +170,37 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             />
           </div>
 
-          {/* カテゴリ＋ステータス */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
-              <input
-                type="text"
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例：初級、コンプライアンス"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ステータス</label>
-              <select
-                value={status}
-                onChange={e => setStatus(e.target.value as CourseStatus)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {Object.entries(COURSE_STATUS_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
+            <input
+              type="text"
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="例：初級、コンプライアンス"
+            />
           </div>
+
+          {/* AI シナリオ作成チェックボックス（新規作成時のみ） */}
+          {isNew && (
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={useAiScenario}
+                onChange={e => setUseAiScenario(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+              />
+              <div>
+                <div className="flex items-center gap-1.5 text-sm font-medium text-blue-700">
+                  <Sparkles className="w-4 h-4" />
+                  AIで学習シナリオを作成
+                </div>
+                <p className="text-xs text-blue-600 mt-0.5">
+                  学習目標 → 学習スライド → シナリオ問題 → 振り返り → チェックリストを自動生成します
+                </p>
+              </div>
+            </label>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -177,9 +215,16 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             <button
               type="submit"
               disabled={isPending || !title.trim()}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
             >
-              {isPending ? '保存中...' : '保存'}
+              {isPending && isNew && useAiScenario && (
+                <Sparkles className="w-4 h-4 animate-pulse" />
+              )}
+              {isPending
+                ? isNew && useAiScenario
+                  ? 'AIシナリオ生成中...'
+                  : '保存中...'
+                : '保存'}
             </button>
           </div>
         </form>

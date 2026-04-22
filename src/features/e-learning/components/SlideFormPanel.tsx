@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Save, Plus, Trash2 } from 'lucide-react'
+import { useState, useTransition, useRef } from 'react'
+import { Save, Plus, Trash2, Upload, X, ImageIcon, Sparkles } from 'lucide-react'
 import {
   upsertSlide,
   upsertQuizQuestion,
@@ -10,6 +10,9 @@ import {
   deleteScenarioBranch,
   upsertChecklistItem,
   deleteChecklistItem,
+  uploadSlideImage,
+  deleteSlideImage,
+  generateSlideImage,
 } from '../actions'
 import { SLIDE_TYPE_LABELS, MICRO_LEARNING_SLIDE_TYPES } from '../constants'
 import type { ElSlide, ElScenarioBranch, ElChecklistItem, SlideType } from '../types'
@@ -20,7 +23,7 @@ interface Props {
   onUpdate: (updated: ElSlide) => void
 }
 
-const TEXT_CONTENT_TYPES: SlideType[] = ['text', 'objective', 'micro_content', 'reflection']
+const TEXT_CONTENT_TYPES: SlideType[] = ['text', 'image', 'objective', 'micro_content', 'reflection']
 
 export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
   const [isPending, startTransition] = useTransition()
@@ -29,6 +32,73 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
   const [slideType, setSlideType] = useState<SlideType>(slide.slide_type)
   const [videoUrl, setVideoUrl] = useState(slide.video_url ?? '')
   const [saved, setSaved] = useState(false)
+
+  // 画像アップロード
+  const [imageUrl, setImageUrl] = useState<string | null>(slide.image_url ?? null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [localPreview, setLocalPreview] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLocalPreview(URL.createObjectURL(file))
+  }
+
+  const handleImageUpload = () => {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+    setImageError(null)
+    setIsUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    startTransition(async () => {
+      try {
+        const url = await uploadSlideImage(slide.id, courseId, fd)
+        setImageUrl(url)
+        setLocalPreview(null)
+        onUpdate({ ...slide, image_url: url })
+      } catch (err) {
+        setImageError(err instanceof Error ? err.message : 'アップロードに失敗しました')
+      } finally {
+        setIsUploading(false)
+        if (fileRef.current) fileRef.current.value = ''
+      }
+    })
+  }
+
+  const handleAiGenerate = () => {
+    setImageError(null)
+    setIsGenerating(true)
+    startTransition(async () => {
+      try {
+        const url = await generateSlideImage(slide.id, courseId, title, content)
+        setImageUrl(url)
+        setLocalPreview(null)
+        onUpdate({ ...slide, image_url: url })
+      } catch (err) {
+        setImageError(err instanceof Error ? err.message : 'AI画像生成に失敗しました')
+      } finally {
+        setIsGenerating(false)
+      }
+    })
+  }
+
+  const handleImageDelete = () => {
+    if (!confirm('画像を削除しますか？')) return
+    startTransition(async () => {
+      try {
+        await deleteSlideImage(slide.id, courseId)
+        setImageUrl(null)
+        setLocalPreview(null)
+        onUpdate({ ...slide, image_url: null })
+      } catch (err) {
+        setImageError(err instanceof Error ? err.message : '削除に失敗しました')
+      }
+    })
+  }
 
   // クイズ
   const firstQ = slide.quiz_questions?.[0]
@@ -209,7 +279,11 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
       {[...TEXT_CONTENT_TYPES, 'scenario'].includes(slideType) && (
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">
-            {slideType === 'scenario' ? 'シナリオ本文（状況説明）' : 'コンテンツ（Markdown対応）'}
+            {slideType === 'scenario'
+              ? 'シナリオ本文（状況説明）'
+              : slideType === 'image'
+                ? '説明テキスト（Markdown対応）'
+                : 'コンテンツ（Markdown対応）'}
           </label>
           <textarea
             value={content}
@@ -243,8 +317,110 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
 
       {/* 画像スライド */}
       {slideType === 'image' && (
-        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-400">
-          <p className="text-sm">画像アップロードは別途対応予定です</p>
+        <div className="space-y-3">
+          <label className="block text-xs font-medium text-gray-500">スライド画像</label>
+
+          {/* プレビュー（アップロード済み or ローカル選択） */}
+          {(imageUrl || localPreview) && (
+            <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={localPreview ?? imageUrl ?? ''}
+                alt="スライド画像プレビュー"
+                className="w-full max-h-64 object-contain"
+              />
+              {imageUrl && !localPreview && (
+                <button
+                  type="button"
+                  onClick={handleImageDelete}
+                  disabled={isPending}
+                  className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1 text-red-500 hover:text-red-700 shadow disabled:opacity-40"
+                  title="画像を削除"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 画像未設定時: AI生成 or ファイル選択 */}
+          {!imageUrl && !localPreview && (
+            <div className="space-y-2">
+              {/* AI生成ボタン */}
+              <button
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={isGenerating || isPending}
+                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50 transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isGenerating ? 'AI画像を生成中...' : 'AIで画像を自動生成'}
+              </button>
+              <p className="text-center text-xs text-gray-400">
+                タイトル・説明テキストをもとに DALL-E 3 が画像を生成します
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400">または</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+              {/* 手動アップロード */}
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-5 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                <ImageIcon className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-sm text-gray-500">クリックして画像を選択</span>
+                <span className="text-xs text-gray-400 mt-0.5">JPEG / PNG / GIF / WebP・5MB 以下</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* ローカル選択後のアップロードボタン */}
+          {localPreview && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleImageUpload}
+                disabled={isUploading || isPending}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {isUploading ? 'アップロード中...' : 'この画像をアップロード'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalPreview(null)
+                  if (fileRef.current) fileRef.current.value = ''
+                }}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                キャンセル
+              </button>
+            </div>
+          )}
+
+          {/* アップロード済み → 差し替えリンク */}
+          {imageUrl && !localPreview && (
+            <label className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit">
+              <Upload className="w-3.5 h-3.5" />
+              別の画像に差し替える
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+          )}
+
+          {imageError && <p className="text-xs text-red-600">{imageError}</p>}
         </div>
       )}
 

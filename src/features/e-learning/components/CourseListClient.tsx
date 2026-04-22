@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Sparkles, Copy, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Copy, Pencil, Trash2, BookOpen } from 'lucide-react'
 import { deleteCourse, copyTemplateToTenant } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { CourseFormModal } from './CourseFormModal'
-import { AiGeneratePanel } from './AiGeneratePanel'
 import type { ElCourse } from '../types'
 
 interface Props {
@@ -40,7 +39,6 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'tenant' | 'template'>('tenant')
   const [showForm, setShowForm] = useState(false)
-  const [showAi, setShowAi] = useState(false)
   const [filterCategory, setFilterCategory] = useState('')
 
   const courses = tab === 'tenant' ? tenantCourses : templateCourses
@@ -96,22 +94,13 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
           </select>
 
           {tab === 'tenant' && (
-            <>
-              <button
-                onClick={() => setShowAi(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg"
-              >
-                <Sparkles className="w-4 h-4" />
-                AI生成
-              </button>
-              <button
-                onClick={() => setShowForm(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-              >
-                <Plus className="w-4 h-4" />
-                コース作成
-              </button>
-            </>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+            >
+              <Plus className="w-4 h-4" />
+              コース作成
+            </button>
           )}
         </div>
       </div>
@@ -193,7 +182,6 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
       )}
 
       {showForm && <CourseFormModal courseType="tenant" onClose={() => setShowForm(false)} />}
-      {showAi && <AiGeneratePanel courseType="tenant" onClose={() => setShowAi(false)} />}
     </div>
   )
 }

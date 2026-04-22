@@ -153,7 +153,12 @@ export function SlideEditorClient({ course }: Props) {
       {/* スライド編集エリア */}
       <div className="flex-1 overflow-y-auto">
         {selectedSlide ? (
-          <SlideFormPanel slide={selectedSlide} courseId={course.id} onUpdate={handleSlideUpdate} />
+          <SlideFormPanel
+            key={selectedSlide.id}
+            slide={selectedSlide}
+            courseId={course.id}
+            onUpdate={handleSlideUpdate}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <FileText className="w-10 h-10 mb-3" />

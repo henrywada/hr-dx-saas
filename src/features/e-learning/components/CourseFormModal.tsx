@@ -72,8 +72,17 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
           })
           onClose()
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '保存に失敗しました')
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : err &&
+                typeof err === 'object' &&
+                'message' in err &&
+                typeof (err as { message: unknown }).message === 'string'
+              ? (err as { message: string }).message
+              : '保存に失敗しました'
+        setError(msg)
       }
     })
   }

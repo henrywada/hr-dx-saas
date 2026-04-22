@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+const vercelOrigin =
+  process.env.VERCEL_URL != null && process.env.VERCEL_URL.length > 0
+    ? `https://${process.env.VERCEL_URL}`
+    : null;
+
 const nextConfig: NextConfig = {
   // pdf-parse / pdfjs-dist を webpack が束ねると Node 上で Object.defineProperty 等が壊れるためサーバでは外部解決
   serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
@@ -7,6 +12,13 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
+      // 本番カスタムドメイン・Vercel ホスト・ローカルで Server Action の Origin 検証を通す
+      allowedOrigins: [
+        "https://app.hr-dx.jp",
+        ...(vercelOrigin ? [vercelOrigin] : []),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+      ],
     },
   },
   async redirects() {

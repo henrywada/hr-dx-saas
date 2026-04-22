@@ -8,6 +8,16 @@ import type {
   ElChecklistCompletion,
 } from './types'
 
+function supabaseQueryError(
+  prefix: string,
+  error: { message?: string; code?: string; details?: string | null } | null
+): Error {
+  const detail = error?.message ?? '不明なエラー'
+  const code = error?.code ? ` [${error.code}]` : ''
+  const extra = error?.details ? ` — ${error.details}` : ''
+  return new Error(`${prefix}: ${detail}${code}${extra}`)
+}
+
 interface GetCoursesOptions {
   status?: string
   category?: string
@@ -26,7 +36,7 @@ export async function getCourses(options: GetCoursesOptions = {}): Promise<ElCou
   if (options.category) query = query.eq('category', options.category)
 
   const { data, error } = await query
-  if (error) throw error
+  if (error) throw supabaseQueryError('コース一覧の取得に失敗しました', error)
   return (data ?? []) as ElCourse[]
 }
 
@@ -44,7 +54,7 @@ export async function getTemplateCourses(options: GetCoursesOptions = {}): Promi
   if (options.category) query = query.eq('category', options.category)
 
   const { data, error } = await query
-  if (error) throw error
+  if (error) throw supabaseQueryError('テンプレートコース一覧の取得に失敗しました', error)
   return (data ?? []) as ElCourse[]
 }
 
@@ -57,7 +67,7 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
     .eq('id', courseId)
     .maybeSingle()
 
-  if (courseError) throw courseError
+  if (courseError) throw supabaseQueryError('コースの取得に失敗しました', courseError)
   if (!course) return null
 
   const { data: slides, error: slidesError } = await supabase
@@ -76,7 +86,7 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
     .eq('course_id', courseId)
     .order('slide_order', { ascending: true })
 
-  if (slidesError) throw slidesError
+  if (slidesError) throw supabaseQueryError('スライドの取得に失敗しました', slidesError)
 
   const slidesWithRelations = (slides ?? []).map(s => {
     const { el_quiz_questions, el_scenario_branches, el_checklist_items, ...slideFields } =
@@ -118,7 +128,7 @@ export async function getAssignments(courseId?: string): Promise<ElAssignment[]>
   if (courseId) query = query.eq('course_id', courseId)
 
   const { data, error } = await query
-  if (error) throw error
+  if (error) throw supabaseQueryError('割り当て一覧の取得に失敗しました', error)
   return (data ?? []) as unknown as ElAssignment[]
 }
 
@@ -130,7 +140,7 @@ export async function getEmployeesForAssignment() {
     .select('id, name, division_id')
     .order('name', { ascending: true })
 
-  if (error) throw error
+  if (error) throw supabaseQueryError('従業員一覧の取得に失敗しました', error)
   return data ?? []
 }
 
@@ -155,7 +165,7 @@ export async function getMyAssignments(employeeId: string) {
     .eq('employee_id', employeeId)
     .order('assigned_at', { ascending: false })
 
-  if (error) throw error
+  if (error) throw supabaseQueryError('自分の割り当ての取得に失敗しました', error)
   return (data ?? []) as unknown as (ElAssignment & {
     completed_at: string | null
     course: ElCourse
@@ -176,7 +186,7 @@ export async function getCourseViewerData(
     .eq('employee_id', employeeId)
     .maybeSingle()
 
-  if (assignmentError) throw assignmentError
+  if (assignmentError) throw supabaseQueryError('割り当ての取得に失敗しました', assignmentError)
   if (!assignment) return null
 
   const courseWithSlides = await getCourseWithSlides(assignment.course_id)
@@ -189,7 +199,7 @@ export async function getCourseViewerData(
     )
     .eq('assignment_id', assignmentId)
 
-  if (progressError) throw progressError
+  if (progressError) throw supabaseQueryError('進捗の取得に失敗しました', progressError)
 
   const checklistCompletions = await getChecklistCompletions(assignmentId)
 
@@ -215,6 +225,6 @@ export async function getChecklistCompletions(
     .select('*')
     .eq('assignment_id', assignmentId)
 
-  if (error) throw error
+  if (error) throw supabaseQueryError('チェックリスト完了の取得に失敗しました', error)
   return (data ?? []) as ElChecklistCompletion[]
 }

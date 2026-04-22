@@ -6,9 +6,6 @@ import { CourseListClient } from '@/features/e-learning/components/CourseListCli
 
 export const dynamic = 'force-dynamic'
 
-/** AIシナリオ生成（OpenAI + 多数のDB書き込み）用。クラウドの短いデフォルトタイムアウトを回避 */
-export const maxDuration = 300
-
 export default async function ElCoursesPage() {
   const user = await getServerUser()
   if (!user?.tenant_id) {

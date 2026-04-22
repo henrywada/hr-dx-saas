@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, ChevronUp, ChevronDown, Trash2, FileText, Image, HelpCircle } from 'lucide-react'
+import { Plus, ChevronUp, ChevronDown, Trash2, FileText, Image, HelpCircle, Target, Play, GitBranch, BookOpen, ClipboardList } from 'lucide-react'
 import { upsertSlide, deleteSlide, reorderSlides } from '../actions'
 import { SLIDE_TYPE_LABELS } from '../constants'
 import { SlideFormPanel } from './SlideFormPanel'
@@ -12,9 +12,16 @@ interface Props {
 }
 
 const SLIDE_ICONS: Record<SlideType, React.ReactNode> = {
-  text: <FileText className="w-4 h-4" />,
-  image: <Image className="w-4 h-4" />,
-  quiz: <HelpCircle className="w-4 h-4" />,
+  // 従来スライド
+  text:          <FileText className="w-4 h-4" />,
+  image:         <Image className="w-4 h-4" />,
+  quiz:          <HelpCircle className="w-4 h-4" />,
+  // マイクロラーニング用フェーズ
+  objective:     <Target className="w-4 h-4" />,
+  micro_content: <Play className="w-4 h-4" />,
+  scenario:      <GitBranch className="w-4 h-4" />,
+  reflection:    <BookOpen className="w-4 h-4" />,
+  checklist:     <ClipboardList className="w-4 h-4" />,
 }
 
 export function SlideEditorClient({ course }: Props) {

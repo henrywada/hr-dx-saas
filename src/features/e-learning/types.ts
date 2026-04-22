@@ -1,6 +1,26 @@
 export type CourseStatus = 'draft' | 'published' | 'archived'
 export type CourseType = 'template' | 'tenant'
-export type SlideType = 'text' | 'image' | 'quiz'
+
+// 既存3種 + マイクロラーニング用5フェーズ
+export type SlideType =
+  | 'text'          // 既存（テキストスライド）
+  | 'image'         // 既存（画像スライド）
+  | 'quiz'          // 既存（クイズ）
+  | 'objective'     // [Phase 1] 学習目標
+  | 'micro_content' // [Phase 2] マイクロコンテンツ
+  | 'scenario'      // [Phase 3] シナリオ問題（分岐）
+  | 'reflection'    // [Phase 4] 振り返り＋解説
+  | 'checklist'     // [Phase 5] 現場適用チェックリスト
+
+// Bloom's Taxonomy の6認知レベル
+export type BloomLevel =
+  | 'remember'   // 記憶する
+  | 'understand' // 理解する
+  | 'apply'      // 応用する
+  | 'analyze'    // 分析する
+  | 'evaluate'   // 評価する
+  | 'create'     // 創造する
+
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed'
 
 export interface ElCourse {
@@ -15,6 +35,8 @@ export interface ElCourse {
   thumbnail_url: string | null
   estimated_minutes: number | null
   created_by_employee_id: string | null
+  bloom_level: BloomLevel | null
+  learning_objectives: string[] | null
   created_at: string
   updated_at: string
 }
@@ -27,7 +49,11 @@ export interface ElSlide {
   title: string | null
   content: string | null
   image_url: string | null
+  video_url: string | null
+  estimated_seconds: number | null
   quiz_questions?: ElQuizQuestion[]
+  scenario_branches?: ElScenarioBranch[]
+  checklist_items?: ElChecklistItem[]
 }
 
 export interface ElQuizQuestion {
@@ -63,18 +89,51 @@ export interface ElCourseWithSlides extends ElCourse {
   slides: ElSlide[]
 }
 
+// シナリオスライドの分岐選択肢
+export interface ElScenarioBranch {
+  id: string
+  slide_id: string
+  branch_order: number
+  choice_text: string
+  feedback_text: string | null
+  is_recommended: boolean
+  created_at: string
+}
+
+// 現場適用チェックリストの各項目
+export interface ElChecklistItem {
+  id: string
+  slide_id: string
+  item_order: number
+  item_text: string
+  created_at: string
+}
+
+// 受講者のチェックリスト完了記録
+export interface ElChecklistCompletion {
+  id: string
+  tenant_id: string
+  assignment_id: string
+  checklist_item_id: string
+  employee_id: string
+  checked_at: string
+}
+
 export interface ElSlideProgress {
   id: string
   assignment_id: string
   slide_id: string
   status: ProgressStatus
   quiz_score: number | null
+  scenario_branch_id: string | null
+  selected_choice_text: string | null
   completed_at: string | null
 }
 
 export interface ElCourseViewerData extends ElCourseWithSlides {
   assignment: ElAssignment & { completed_at: string | null }
   progress: ElSlideProgress[]
+  checklistCompletions: ElChecklistCompletion[]
 }
 
 export interface AiGeneratedCourse {
@@ -94,4 +153,16 @@ export interface AiGeneratedSlide {
     options: { text: string; is_correct: boolean }[]
     explanation: string
   }
+  scenario?: {
+    branches: { choice_text: string; feedback_text: string; is_recommended: boolean }[]
+  }
+  checklist?: {
+    items: { item_text: string }[]
+  }
+}
+
+// AI生成コース（マイクロラーニング対応）
+export interface AiGeneratedMicroCourse extends AiGeneratedCourse {
+  bloom_level: BloomLevel
+  learning_objectives: string[]
 }

@@ -7,8 +7,13 @@ import { completeCourse, recordSlideProgress } from '../actions'
 import { SlideProgressBar } from './SlideProgressBar'
 import { SlideContentView } from './SlideContentView'
 import { QuizSlideView } from './QuizSlideView'
+import { LearningObjectiveView } from './LearningObjectiveView'
+import { ScenarioView } from './ScenarioView'
+import { ReflectionView } from './ReflectionView'
+import { ChecklistView } from './ChecklistView'
 import { CourseCompletionBanner } from './CourseCompletionBanner'
-import type { ElCourseViewerData } from '../types'
+import { SLIDE_TYPE_LABELS } from '../constants'
+import type { ElCourseViewerData, ElChecklistCompletion } from '../types'
 
 interface Props {
   data: ElCourseViewerData
@@ -19,12 +24,19 @@ export function CourseViewerClient({ data }: Props) {
   const [isPending, startTransition] = useTransition()
   const [showCompletion, setShowCompletion] = useState(false)
 
-  const { slides, assignment, progress, title } = data
+  const {
+    slides,
+    assignment,
+    progress,
+    checklistCompletions,
+    title,
+    bloom_level,
+    learning_objectives,
+  } = data
 
   const serverCompletedIds = new Set(
     progress.filter(p => p.status === 'completed').map(p => p.slide_id)
   )
-
   const firstIncomplete = slides.findIndex(s => !serverCompletedIds.has(s.id))
   const initialIndex = firstIncomplete === -1 ? slides.length - 1 : firstIncomplete
 
@@ -38,6 +50,15 @@ export function CourseViewerClient({ data }: Props) {
   const isCourseAlreadyCompleted = assignment.completed_at !== null
   const isCurrentCompleted = completedIds.has(currentSlide.id)
   const slideIds = slides.map(s => s.id)
+
+  // シナリオスライドの選択済みブランチ ID
+  const scenarioProgress = progress.find(p => p.slide_id === currentSlide.id)
+  const selectedBranchId = scenarioProgress?.scenario_branch_id ?? null
+
+  // 現在スライドのチェックリスト完了記録
+  const currentChecklistCompletions: ElChecklistCompletion[] = checklistCompletions.filter(
+    c => currentSlide.checklist_items?.some(it => it.id === c.checklist_item_id) ?? false
+  )
 
   const markCompleted = (slideId: string) => {
     setCompletedIds(prev => new Set([...prev, slideId]))
@@ -69,12 +90,114 @@ export function CourseViewerClient({ data }: Props) {
     }
   }
 
+  // 現在スライド種別に応じてコンポーネントを切り替える
+  const renderSlide = () => {
+    switch (currentSlide.slide_type) {
+      case 'objective':
+        return (
+          <LearningObjectiveView
+            slide={currentSlide}
+            course={{
+              bloom_level: bloom_level ?? null,
+              learning_objectives: learning_objectives ?? [],
+            }}
+          />
+        )
+      case 'micro_content':
+        return <SlideContentView slide={currentSlide} />
+      case 'scenario':
+        return (
+          <ScenarioView
+            slide={currentSlide}
+            assignmentId={assignment.id}
+            isCompleted={isCurrentCompleted}
+            selectedBranchId={selectedBranchId}
+            onCompleted={() => markCompleted(currentSlide.id)}
+          />
+        )
+      case 'reflection':
+        return <ReflectionView slide={currentSlide} />
+      case 'checklist':
+        return (
+          <ChecklistView
+            slide={currentSlide}
+            assignmentId={assignment.id}
+            completions={currentChecklistCompletions}
+            onAllChecked={() => markCompleted(currentSlide.id)}
+          />
+        )
+      // 既存スライド（後方互換）
+      case 'quiz':
+        return (
+          <QuizSlideView
+            key={currentSlide.id}
+            slide={currentSlide}
+            assignmentId={assignment.id}
+            isCompleted={isCurrentCompleted}
+            onCompleted={() => markCompleted(currentSlide.id)}
+          />
+        )
+      case 'text':
+      case 'image':
+      default:
+        return <SlideContentView slide={currentSlide} />
+    }
+  }
+
+  // 「次へ」ボタンの活性条件
+  const canAdvance = () => {
+    switch (currentSlide.slide_type) {
+      case 'quiz':
+      case 'scenario':
+        return isCurrentCompleted
+      case 'checklist':
+        return true  // 未完了でも「後でチェックする」として先へ進める
+      default:
+        return true
+    }
+  }
+
+  // 「次へ」ボタンのラベル
+  const nextLabel = () => {
+    if (isPending) return '記録中...'
+    if (isLastSlide) return '完了する'
+    if (currentSlide.slide_type === 'checklist' && !isCurrentCompleted) return '後でチェックする'
+    return null  // デフォルトは「次へ」アイコン付き
+  }
+
+  // 「次へ」クリックハンドラ
+  const handleNext = () => {
+    if (isPending || !canAdvance()) return
+
+    if (
+      currentSlide.slide_type === 'quiz' ||
+      currentSlide.slide_type === 'scenario'
+    ) {
+      // これらは子コンポーネント内で進捗記録済み → advanceOrFinish のみ
+      advanceOrFinish()
+    } else {
+      // objective / micro_content / reflection / checklist / text / image
+      handleTextNext()
+    }
+  }
+
+  const label = nextLabel()
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-sm font-semibold text-gray-700 line-clamp-1 mb-2">{title}</h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-sm font-semibold text-gray-700 line-clamp-1">{title}</h1>
+            {currentSlide.slide_type !== 'text' &&
+              currentSlide.slide_type !== 'image' &&
+              currentSlide.slide_type !== 'quiz' && (
+                <span className="ml-2 shrink-0 text-xs text-gray-400">
+                  {SLIDE_TYPE_LABELS[currentSlide.slide_type]}
+                </span>
+              )}
+          </div>
           <SlideProgressBar
             total={slides.length}
             current={currentIndex}
@@ -85,19 +208,7 @@ export function CourseViewerClient({ data }: Props) {
       </header>
 
       {/* スライドコンテンツ */}
-      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
-        {currentSlide.slide_type === 'quiz' ? (
-          <QuizSlideView
-            key={currentSlide.id}
-            slide={currentSlide}
-            assignmentId={assignment.id}
-            isCompleted={isCurrentCompleted}
-            onCompleted={() => markCompleted(currentSlide.id)}
-          />
-        ) : (
-          <SlideContentView slide={currentSlide} />
-        )}
-      </main>
+      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">{renderSlide()}</main>
 
       {/* 下部ナビゲーション */}
       <footer className="bg-white border-t border-gray-200 px-4 py-4 sticky bottom-0">
@@ -112,37 +223,17 @@ export function CourseViewerClient({ data }: Props) {
           </button>
 
           <div className="flex-1">
-            {currentSlide.slide_type === 'quiz' ? (
-              <button
-                onClick={advanceOrFinish}
-                disabled={!isCurrentCompleted || isPending}
-                className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-1"
-              >
-                {isLastSlide ? (
-                  '完了する'
-                ) : (
-                  <>
-                    次へ <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={handleTextNext}
-                disabled={isPending}
-                className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-1"
-              >
-                {isPending ? (
-                  '記録中...'
-                ) : isLastSlide ? (
-                  '完了する'
-                ) : (
-                  <>
-                    次へ <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleNext}
+              disabled={!canAdvance() || isPending}
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-1"
+            >
+              {label ?? (
+                <>
+                  次へ <ChevronRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </footer>

@@ -5,6 +5,7 @@ import type {
   ElAssignment,
   ElCourseViewerData,
   ElSlideProgress,
+  ElChecklistCompletion,
 } from './types'
 
 interface GetCoursesOptions {
@@ -67,7 +68,9 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
       el_quiz_questions (
         *,
         el_quiz_options ( * )
-      )
+      ),
+      el_scenario_branches ( * ),
+      el_checklist_items ( * )
     `
     )
     .eq('course_id', courseId)
@@ -75,8 +78,9 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
 
   if (slidesError) throw slidesError
 
-  const slidesWithQuiz = (slides ?? []).map(s => {
-    const { el_quiz_questions, ...slideFields } = s as any
+  const slidesWithRelations = (slides ?? []).map(s => {
+    const { el_quiz_questions, el_scenario_branches, el_checklist_items, ...slideFields } =
+      s as any
     return {
       ...slideFields,
       quiz_questions: ((el_quiz_questions ?? []) as any[]).map((q: any) => ({
@@ -85,10 +89,16 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
           (a: any, b: any) => a.option_order - b.option_order
         ),
       })),
+      scenario_branches: ((el_scenario_branches ?? []) as any[]).sort(
+        (a: any, b: any) => a.branch_order - b.branch_order
+      ),
+      checklist_items: ((el_checklist_items ?? []) as any[]).sort(
+        (a: any, b: any) => a.item_order - b.item_order
+      ),
     }
   })
 
-  return { ...(course as ElCourse), slides: slidesWithQuiz as any }
+  return { ...(course as ElCourse), slides: slidesWithRelations as any }
 }
 
 export async function getAssignments(courseId?: string): Promise<ElAssignment[]> {
@@ -174,14 +184,37 @@ export async function getCourseViewerData(
 
   const { data: progress, error: progressError } = await supabase
     .from('el_progress')
-    .select('id, assignment_id, slide_id, status, quiz_score, completed_at')
+    .select(
+      'id, assignment_id, slide_id, status, quiz_score, scenario_branch_id, selected_choice_text, completed_at'
+    )
     .eq('assignment_id', assignmentId)
 
   if (progressError) throw progressError
+
+  const checklistCompletions = await getChecklistCompletions(assignmentId)
 
   return {
     ...courseWithSlides,
     assignment: assignment as ElAssignment & { completed_at: string | null },
     progress: (progress ?? []) as ElSlideProgress[],
+    checklistCompletions,
   }
+}
+
+// ============================================================
+// チェックリスト完了記録クエリ
+// ============================================================
+
+export async function getChecklistCompletions(
+  assignmentId: string
+): Promise<ElChecklistCompletion[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('el_checklist_completions')
+    .select('*')
+    .eq('assignment_id', assignmentId)
+
+  if (error) throw error
+  return (data ?? []) as ElChecklistCompletion[]
 }

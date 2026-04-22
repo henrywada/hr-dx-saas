@@ -7,6 +7,9 @@ export async function middleware(request: NextRequest) {
   const { response, user, supabase } = await updateSession(request)
 
   const pathname = request.nextUrl.pathname
+  const isApiRoute =
+    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')
+
   // アクセスログは GET（実際のページ表示）のみ。POST は Server Action / Form 送信がほとんどで、
   // Edge で毎回 await insert すると大きい multipart 時にタイムアウトし、RSC 以外の応答になり
   // 「An unexpected response was received from the server」になることがある。
@@ -61,6 +64,14 @@ export async function middleware(request: NextRequest) {
     await insertLog();
   }
 
+  // API は JSON で 401 を返す（fetch が HTML ログインページを受け取り「不正な応答」になるのを防ぐ）
+  if (!user && isApiRoute) {
+    return NextResponse.json(
+      { ok: false, error: 'ログインが必要です' },
+      { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+    )
+  }
+
   // 未認証ユーザーが保護されたページにアクセス
   if (!user && !isAuthPage && !isPublicPage) {
     return NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url))
@@ -81,6 +92,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // /api/el-slides は大きい multipart のため Edge ミドルウェアを通さない（ボディ破損・タイムアウト回避）
+    '/((?!_next/static|_next/image|favicon.ico|api/el-slides|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

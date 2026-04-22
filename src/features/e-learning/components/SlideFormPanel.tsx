@@ -44,14 +44,15 @@ async function postSlideMedia(
     body: fd,
     credentials: 'same-origin',
   })
+  const raw = await res.text()
   let data: { ok?: boolean; url?: string; error?: string }
   try {
-    data = (await res.json()) as { ok?: boolean; url?: string; error?: string }
+    data = JSON.parse(raw) as { ok?: boolean; url?: string; error?: string }
   } catch {
-    throw new Error('サーバーから不正な応答がありました')
+    throw new Error(`サーバーから不正な応答がありました（HTTP ${res.status}）`)
   }
   if (!res.ok || !data.ok || !data.url) {
-    throw new Error(data.error || 'アップロードに失敗しました')
+    throw new Error(data.error || `アップロードに失敗しました（HTTP ${res.status}）`)
   }
   return data.url
 }

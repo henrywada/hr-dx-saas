@@ -20,6 +20,7 @@ import {
   EL_SLIDE_VIDEO_MAX_MB,
 } from '../constants'
 import type { ElSlide, ElScenarioBranch, ElChecklistItem, SlideType } from '../types'
+import { createClient } from '@/lib/supabase/client'
 
 function isLegacySlideType(t: SlideType): boolean {
   return !MICRO_LEARNING_SLIDE_TYPES.includes(t)
@@ -29,32 +30,74 @@ function isProbablyYoutubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url)
 }
 
-/** Server Action ではなく API へ送る（本番で multipart の RSC 応答エラーを避ける） */
+/**
+ * 署名 URL で Supabase Storage に直 PUT し、DB 更新は小さい JSON の commit API のみ。
+ * Next/Vercel 経由でファイル本体を送ると HTTP 413 になるため。
+ */
 async function postSlideMedia(
   kind: 'image' | 'video',
   slideId: string,
   courseId: string,
   file: File
 ): Promise<string> {
-  const fd = new FormData()
-  fd.append('file', file)
-  fd.append('courseId', courseId)
-  const res = await fetch(`/api/el-slides/${encodeURIComponent(slideId)}/${kind}`, {
-    method: 'POST',
-    body: fd,
-    credentials: 'same-origin',
-  })
-  const raw = await res.text()
-  let data: { ok?: boolean; url?: string; error?: string }
+  const signRes = await fetch(
+    `/api/el-slides/${encodeURIComponent(slideId)}/${kind}/signed-upload`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size,
+      }),
+    }
+  )
+  const signRaw = await signRes.text()
+  let sign: {
+    ok?: boolean
+    bucket?: string
+    path?: string
+    token?: string
+    error?: string
+  }
   try {
-    data = JSON.parse(raw) as { ok?: boolean; url?: string; error?: string }
+    sign = JSON.parse(signRaw) as typeof sign
   } catch {
-    throw new Error(`サーバーから不正な応答がありました（HTTP ${res.status}）`)
+    throw new Error(`署名 URL の取得に失敗しました（HTTP ${signRes.status}）`)
   }
-  if (!res.ok || !data.ok || !data.url) {
-    throw new Error(data.error || `アップロードに失敗しました（HTTP ${res.status}）`)
+  if (!signRes.ok || !sign.ok || !sign.bucket || !sign.path || !sign.token) {
+    throw new Error(sign.error || `署名 URL の取得に失敗しました（HTTP ${signRes.status}）`)
   }
-  return data.url
+
+  const supabase = createClient()
+  const { error: upErr } = await supabase.storage
+    .from(sign.bucket)
+    .uploadToSignedUrl(sign.path, sign.token, file, { contentType: file.type })
+  if (upErr) {
+    throw new Error(upErr.message)
+  }
+
+  const commitRes = await fetch(
+    `/api/el-slides/${encodeURIComponent(slideId)}/${kind}/commit`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ courseId, storagePath: sign.path }),
+    }
+  )
+  const commitRaw = await commitRes.text()
+  let commit: { ok?: boolean; url?: string; error?: string }
+  try {
+    commit = JSON.parse(commitRaw) as typeof commit
+  } catch {
+    throw new Error(`保存の確定に失敗しました（HTTP ${commitRes.status}）`)
+  }
+  if (!commitRes.ok || !commit.ok || !commit.url) {
+    throw new Error(commit.error || `保存の確定に失敗しました（HTTP ${commitRes.status}）`)
+  }
+  return commit.url
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {

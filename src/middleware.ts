@@ -92,7 +92,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // /api/el-slides は大きい multipart のため Edge ミドルウェアを通さない（ボディ破損・タイムアウト回避）
-    '/((?!_next/static|_next/image|favicon.ico|api/el-slides|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

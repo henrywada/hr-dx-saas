@@ -1,7 +1,6 @@
 /**
- * スライド画像・動画のアップロード本体（Server Action / Route Handler から共通利用）
- * 大容量 multipart を Server Action だけに載せると本番で RSC 応答エラーになることがあるため、
- * クライアントからは API ルート経由を推奨。
+ * スライド画像・動画のアップロード（Server Action / API）
+ * - 本番では Vercel のボディ上限（413）を避けるため、クライアントは signed-upload → Storage 直 PUT → commit の流れを使う。
  */
 import { revalidatePath } from 'next/cache'
 import { getServerUser } from '@/lib/auth/server-user'
@@ -187,6 +186,210 @@ export async function runSlideVideoUpload(input: {
 
   if (upErr) throw new Error(`動画のアップロードに失敗しました: ${upErr.message}`)
 
+  const { data: urlData } = admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).getPublicUrl(storagePath)
+  const publicUrl = urlData.publicUrl
+
+  const supabase = await createClient()
+  const { data: updatedRow, error: updateErr } = await supabase
+    .from('el_slides')
+    .update({ video_url: publicUrl })
+    .eq('id', slideId)
+    .select('video_url')
+    .single()
+  if (updateErr) {
+    throw supabaseToError(updateErr, '動画URLをスライドに保存できませんでした')
+  }
+  if (!updatedRow?.video_url) {
+    throw new Error(
+      '動画URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+    )
+  }
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+  return publicUrl
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function imageExtFromMeta(fileName: string, contentType: string): string {
+  const raw = fileName.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(raw)) {
+    return raw === 'jpeg' ? 'jpg' : raw
+  }
+  const map: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+  }
+  return map[contentType] ?? 'jpg'
+}
+
+function assertImagePathForSlide(slideId: string, storagePath: string): void {
+  const expectedPrefix = `slides/${slideId}.`
+  if (!storagePath.startsWith(expectedPrefix)) {
+    throw new Error('画像の保存パスが不正です')
+  }
+  const rest = storagePath.slice(expectedPrefix.length)
+  if (!rest || rest.includes('/') || !/^[a-z0-9]+$/i.test(rest)) {
+    throw new Error('画像の保存パスが不正です')
+  }
+  if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(rest.toLowerCase())) {
+    throw new Error('画像の保存パスが不正です')
+  }
+}
+
+function assertVideoPathForSlide(slideId: string, storagePath: string): void {
+  const re = new RegExp(`^slides/${escapeRegExp(slideId)}-\\d+\\.(mp4|webm|mov)$`)
+  if (!re.test(storagePath)) {
+    throw new Error('動画の保存パスが不正です')
+  }
+}
+
+/** ブラウザから Supabase へ直アップロードするための署名情報（JSON API のみ・ボディ小） */
+export async function prepareSlideImageSignedUpload(input: {
+  slideId: string
+  fileName: string
+  contentType: string
+  fileSize: number
+}): Promise<{ bucket: string; path: string; token: string; signedUrl: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { slideId, fileName, contentType, fileSize } = input
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(contentType)) {
+    throw new Error('JPEG・PNG・GIF・WebP のみアップロードできます')
+  }
+  if (fileSize > EL_SLIDE_IMAGE_MAX_BYTES) {
+    throw new Error(`ファイルサイズは ${EL_SLIDE_IMAGE_MAX_MB}MB 以下にしてください`)
+  }
+
+  await ensureSlideImagesBucket()
+  const ext = imageExtFromMeta(fileName, contentType)
+  const storagePath = `slides/${slideId}.${ext}`
+
+  const admin = createAdminServiceClient()
+  const { data, error } = await admin.storage
+    .from(EL_SLIDE_IMAGES_BUCKET)
+    .createSignedUploadUrl(storagePath, { upsert: true })
+
+  if (error || !data) {
+    throw new Error(error?.message ?? '署名付きアップロード URL の取得に失敗しました')
+  }
+
+  return {
+    bucket: EL_SLIDE_IMAGES_BUCKET,
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  }
+}
+
+export async function prepareSlideVideoSignedUpload(input: {
+  slideId: string
+  fileName: string
+  contentType: string
+  fileSize: number
+}): Promise<{ bucket: string; path: string; token: string; signedUrl: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { slideId, fileName, contentType, fileSize } = input
+
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime']
+  if (!allowedTypes.includes(contentType)) {
+    throw new Error('MP4・WebM・QuickTime のみアップロードできます')
+  }
+  if (fileSize > EL_SLIDE_VIDEO_MAX_BYTES) {
+    throw new Error(`ファイルサイズは ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
+  }
+
+  await ensureSlideVideosBucket()
+  const admin = createAdminServiceClient()
+
+  const { data: existingFiles } = await admin.storage
+    .from(EL_SLIDE_VIDEOS_BUCKET)
+    .list('slides', { search: slideId })
+  if (existingFiles && existingFiles.length > 0) {
+    await admin.storage
+      .from(EL_SLIDE_VIDEOS_BUCKET)
+      .remove(existingFiles.map(f => `slides/${f.name}`))
+  }
+
+  const ext = fileName.split('.').pop()?.toLowerCase()
+  const safeExt =
+    ext === 'webm' ? 'webm' : ext === 'mov' ? 'mov' : contentType === 'video/quicktime' ? 'mov' : 'mp4'
+  const storagePath = `slides/${slideId}-${Date.now()}.${safeExt}`
+
+  const { data, error } = await admin.storage
+    .from(EL_SLIDE_VIDEOS_BUCKET)
+    .createSignedUploadUrl(storagePath)
+
+  if (error || !data) {
+    throw new Error(error?.message ?? '署名付きアップロード URL の取得に失敗しました')
+  }
+
+  return {
+    bucket: EL_SLIDE_VIDEOS_BUCKET,
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  }
+}
+
+export async function commitSlideImageAfterDirectUpload(input: {
+  slideId: string
+  courseId: string
+  storagePath: string
+}): Promise<string> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { slideId, courseId, storagePath } = input
+  assertImagePathForSlide(slideId, storagePath)
+
+  const admin = createAdminServiceClient()
+  const { data: urlData } = admin.storage.from(EL_SLIDE_IMAGES_BUCKET).getPublicUrl(storagePath)
+  const publicUrl = urlData.publicUrl
+
+  const supabase = await createClient()
+  const { data: updatedRow, error: updateErr } = await supabase
+    .from('el_slides')
+    .update({ image_url: publicUrl })
+    .eq('id', slideId)
+    .select('image_url')
+    .single()
+  if (updateErr) {
+    throw supabaseToError(updateErr, '画像URLをスライドに保存できませんでした')
+  }
+  if (!updatedRow?.image_url) {
+    throw new Error(
+      '画像URLをスライドに保存できませんでした（権限またはスライドIDを確認してください）'
+    )
+  }
+
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  revalidatePath(`/saas_adm/el-templates/${courseId}`)
+  return publicUrl
+}
+
+export async function commitSlideVideoAfterDirectUpload(input: {
+  slideId: string
+  courseId: string
+  storagePath: string
+}): Promise<string> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { slideId, courseId, storagePath } = input
+  assertVideoPathForSlide(slideId, storagePath)
+
+  const admin = createAdminServiceClient()
   const { data: urlData } = admin.storage.from(EL_SLIDE_VIDEOS_BUCKET).getPublicUrl(storagePath)
   const publicUrl = urlData.publicUrl
 

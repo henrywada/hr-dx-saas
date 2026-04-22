@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Sparkles, CheckCircle } from 'lucide-react'
 import { createCourse, updateCourse, createCourseWithAiScenario } from '../actions'
 import { BLOOM_LEVELS, BLOOM_LEVEL_LABELS } from '../constants'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function CourseFormModal({ course, courseType, onClose }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [title, setTitle] = useState(course?.title ?? '')
   const [description, setDescription] = useState(course?.description ?? '')
@@ -24,8 +26,16 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
   const [useAiScenario, setUseAiScenario] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [aiDone, setAiDone] = useState(false)
+  const [pubStart, setPubStart] = useState(course?.published_start_date ?? '')
+  const [pubEnd, setPubEnd] = useState(course?.published_end_date ?? '')
 
   const isNew = !course
+
+  useEffect(() => {
+    if (!course) return
+    setPubStart(course.published_start_date ?? '')
+    setPubEnd(course.published_end_date ?? '')
+  }, [course?.id, course?.published_start_date, course?.published_end_date])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +46,13 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
       .map(s => s.trim())
       .filter(Boolean)
 
+    const startYmd = pubStart.trim() || null
+    const endYmd = pubEnd.trim() || null
+    if (startYmd && endYmd && endYmd < startYmd) {
+      setError('公開終了日は開始日以降にしてください')
+      return
+    }
+
     startTransition(async () => {
       try {
         if (!isNew) {
@@ -45,7 +62,10 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             category,
             bloom_level: bloomLevel || null,
             learning_objectives: objectives,
+            published_start_date: startYmd,
+            published_end_date: endYmd,
           })
+          router.refresh()
           onClose()
           return
         }
@@ -74,6 +94,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             bloom_level: bloomLevel || undefined,
             learning_objectives: objectives,
           })
+          router.refresh()
           onClose()
         }
       } catch (err: unknown) {
@@ -103,7 +124,10 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             コース一覧から内容を確認・編集できます。
           </p>
           <button
-            onClick={onClose}
+            onClick={() => {
+              router.refresh()
+              onClose()
+            }}
             className="mt-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
           >
             閉じる
@@ -193,6 +217,35 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               placeholder="例：初級、コンプライアンス"
             />
           </div>
+
+          {!isNew && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
+              <p className="text-sm font-medium text-gray-800">公開期間（任意）</p>
+              <p className="text-xs text-gray-500">
+                未入力のときは、公開中でも受講可能期間による制限はかけません。
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">開始日</label>
+                  <input
+                    type="date"
+                    value={pubStart}
+                    onChange={e => setPubStart(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">終了日</label>
+                  <input
+                    type="date"
+                    value={pubEnd}
+                    onChange={e => setPubEnd(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AI シナリオ作成チェックボックス（新規作成時のみ） */}
           {isNew && (

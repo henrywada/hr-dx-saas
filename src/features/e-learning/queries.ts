@@ -157,20 +157,35 @@ export async function getMyAssignments(employeeId: string) {
       `
       *,
       course:el_courses!el_assignments_course_id_fkey (
-        id, title, description, category, status, estimated_minutes
+        id, title, description, category, status, estimated_minutes,
+        published_start_date, published_end_date
       ),
       progress:el_progress ( id, slide_id, status, completed_at )
     `
     )
     .eq('employee_id', employeeId)
-    .order('assigned_at', { ascending: false })
 
   if (error) throw supabaseQueryError('自分の割り当ての取得に失敗しました', error)
-  return (data ?? []) as unknown as (ElAssignment & {
+
+  type Row = ElAssignment & {
     completed_at: string | null
     course: ElCourse
     progress: ElSlideProgress[]
-  })[]
+  }
+
+  const rows = (data ?? []) as unknown as Row[]
+  /** マイコース一覧: el_courses.category → title（日本語は localeCompare） */
+  rows.sort((a, b) => {
+    const catA = a.course?.category ?? ''
+    const catB = b.course?.category ?? ''
+    const byCat = catA.localeCompare(catB, 'ja', { sensitivity: 'base' })
+    if (byCat !== 0) return byCat
+    const titleA = a.course?.title ?? ''
+    const titleB = b.course?.title ?? ''
+    return titleA.localeCompare(titleB, 'ja', { sensitivity: 'base' })
+  })
+
+  return rows
 }
 
 export async function getCourseViewerData(

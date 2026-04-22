@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Copy, Pencil, Trash2, BookOpen } from 'lucide-react'
 import { deleteCourse, copyTemplateToTenant, updateCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
+import { formatPublicationRangeJa } from '../publication-window'
 import { CourseFormModal } from './CourseFormModal'
 import type { CourseStatus, ElCourse } from '../types'
 
@@ -43,6 +44,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'tenant' | 'template'>('tenant')
   const [showForm, setShowForm] = useState(false)
+  const [editCourse, setEditCourse] = useState<ElCourse | null>(null)
   const [filterCategory, setFilterCategory] = useState('')
 
   const courses = tab === 'tenant' ? tenantCourses : templateCourses
@@ -106,7 +108,10 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
 
           {tab === 'tenant' && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditCourse(null)
+                setShowForm(true)
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
             >
               <Plus className="w-4 h-4" />
@@ -129,7 +134,9 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(course => (
+          {filtered.map(course => {
+            const pubRange = formatPublicationRangeJa(course)
+            return (
             <div
               key={course.id}
               className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
@@ -163,6 +170,9 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                     {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
                   </span>
                 )}
+                {pubRange && (
+                  <span className="text-xs text-gray-600 self-center">{pubRange}</span>
+                )}
               </div>
 
               <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
@@ -187,6 +197,16 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                   </button>
                 ) : (
                   <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditCourse(course)
+                        setShowForm(true)
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-lg"
+                    >
+                      タイトル・公開期間
+                    </button>
                     <a
                       href={`/adm/el-courses/${course.id}`}
                       className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
@@ -206,11 +226,22 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                 )}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      {showForm && <CourseFormModal courseType="tenant" onClose={() => setShowForm(false)} />}
+      {showForm && (
+        <CourseFormModal
+          key={editCourse?.id ?? 'new'}
+          course={editCourse ?? undefined}
+          courseType="tenant"
+          onClose={() => {
+            setShowForm(false)
+            setEditCourse(null)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -598,6 +598,8 @@ export type Database = {
           id: string
           learning_objectives: string[] | null
           original_course_id: string | null
+          published_end_date: string | null
+          published_start_date: string | null
           status: string
           tenant_id: string | null
           thumbnail_url: string | null
@@ -615,6 +617,8 @@ export type Database = {
           id?: string
           learning_objectives?: string[] | null
           original_course_id?: string | null
+          published_end_date?: string | null
+          published_start_date?: string | null
           status?: string
           tenant_id?: string | null
           thumbnail_url?: string | null
@@ -632,6 +636,8 @@ export type Database = {
           id?: string
           learning_objectives?: string[] | null
           original_course_id?: string | null
+          published_end_date?: string | null
+          published_start_date?: string | null
           status?: string
           tenant_id?: string | null
           thumbnail_url?: string | null

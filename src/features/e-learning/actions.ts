@@ -34,6 +34,12 @@ function supabaseToError(
 // コース CRUD
 // ============================================================
 
+function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>
+}
+
 export async function createCourse(input: {
   title: string
   description?: string
@@ -80,19 +86,25 @@ export async function updateCourse(
     status?: string
     bloom_level?: BloomLevel | null
     learning_objectives?: string[]
+    published_start_date?: string | null
+    published_end_date?: string | null
   }
 ) {
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
 
   const supabase = await createClient()
-  const { error } = await supabase.from('el_courses').update(input).eq('id', id)
+  const { error } = await supabase
+    .from('el_courses')
+    .update(omitUndefined(input))
+    .eq('id', id)
   if (error) throw error
 
   revalidatePath('/adm/el-courses')
   revalidatePath(`/adm/el-courses/${id}`)
   revalidatePath('/adm/el-assignments')
   revalidatePath('/saas_adm/el-templates')
+  revalidatePath('/el-courses')
 }
 
 export async function deleteCourse(id: string) {
@@ -105,6 +117,7 @@ export async function deleteCourse(id: string) {
 
   revalidatePath('/adm/el-courses')
   revalidatePath('/saas_adm/el-templates')
+  revalidatePath('/el-courses')
 }
 
 // テンプレートコースをテナントコースへコピー（スライド・クイズ含む再帰コピー）
@@ -223,12 +236,6 @@ export async function copyTemplateToTenant(templateId: string) {
 // ============================================================
 // スライド CRUD
 // ============================================================
-
-function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
-  ) as Partial<T>
-}
 
 export async function upsertSlide(input: {
   id?: string

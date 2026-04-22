@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BookOpen, Clock, Calendar, ChevronRight } from 'lucide-react'
 import type { ElAssignment, ElCourse, ElSlideProgress } from '../types'
+import { formatPublicationRangeJa, canAccessCourseViewer } from '../publication-window'
 
 type AssignmentWithDetail = ElAssignment & {
   completed_at: string | null
@@ -91,15 +92,16 @@ export function MyCourseListClient({ assignments, totalSlidesMap }: Props) {
             const completedCount = a.progress.filter(p => p.status === 'completed').length
             const pct = total === 0 ? 0 : Math.round((completedCount / total) * 100)
             const overdue = isOverdue(a.due_date, status)
+            const pubRange = formatPublicationRangeJa(a.course)
+            const canOpen = canAccessCourseViewer(a.course, a.completed_at ?? null)
+            const outerClass = `block bg-white border border-gray-200 rounded-xl p-4 transition-shadow ${
+              canOpen ? 'hover:shadow-md' : 'opacity-70 cursor-not-allowed'
+            }`
 
-            return (
-              <a
-                key={a.id}
-                href={`/el-courses/${a.id}`}
-                className="block bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-              >
+            const inner = (
+              <>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 items-center">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">
                       {a.course.category}
                     </span>
@@ -108,6 +110,9 @@ export function MyCourseListClient({ assignments, totalSlidesMap }: Props) {
                     >
                       {STATUS_LABEL[status]}
                     </span>
+                    {pubRange && (
+                      <span className="text-xs text-gray-500 font-normal">{pubRange}</span>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 </div>
@@ -154,15 +159,31 @@ export function MyCourseListClient({ assignments, totalSlidesMap }: Props) {
                 )}
 
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <span
-                    className={`text-xs font-semibold ${
-                      status === 'completed' ? 'text-green-600' : 'text-blue-600'
-                    }`}
-                  >
-                    {BUTTON_LABEL[status]} →
-                  </span>
+                  {!canOpen ? (
+                    <span className="text-xs font-medium text-amber-700">
+                      現在はこのコースを受講できません（公開期間外）
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-xs font-semibold ${
+                        status === 'completed' ? 'text-green-600' : 'text-blue-600'
+                      }`}
+                    >
+                      {BUTTON_LABEL[status]} →
+                    </span>
+                  )}
                 </div>
+              </>
+            )
+
+            return canOpen ? (
+              <a key={a.id} href={`/el-courses/${a.id}`} className={outerClass}>
+                {inner}
               </a>
+            ) : (
+              <div key={a.id} className={outerClass}>
+                {inner}
+              </div>
             )
           })}
         </div>

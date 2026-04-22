@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { completeCourse, recordSlideProgress } from '../actions'
@@ -222,7 +223,7 @@ export function CourseViewerClient({ data }: Props) {
             前へ
           </button>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <button
               onClick={handleNext}
               disabled={!canAdvance() || isPending}
@@ -235,6 +236,13 @@ export function CourseViewerClient({ data }: Props) {
               )}
             </button>
           </div>
+
+          <Link
+            href="/el-courses"
+            className="shrink-0 px-4 py-2.5 text-sm text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-50"
+          >
+            中断
+          </Link>
         </div>
       </footer>
 

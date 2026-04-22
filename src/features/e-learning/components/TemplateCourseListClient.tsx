@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import { deleteCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
+import { formatPublicationRangeJa } from '../publication-window'
 import { CourseFormModal } from './CourseFormModal'
 import type { ElCourse } from '../types'
 
@@ -83,7 +84,9 @@ export function TemplateCourseListClient({ courses }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(course => (
+          {filtered.map(course => {
+            const pubRange = formatPublicationRangeJa(course)
+            return (
             <div
               key={course.id}
               className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
@@ -99,6 +102,9 @@ export function TemplateCourseListClient({ courses }: Props) {
                 >
                   {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
                 </span>
+                {pubRange && (
+                  <span className="text-xs text-gray-600 self-center">{pubRange}</span>
+                )}
               </div>
 
               <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
@@ -111,7 +117,17 @@ export function TemplateCourseListClient({ courses }: Props) {
                 <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
               )}
 
-              <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditCourse(course)
+                    setShowForm(true)
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-lg"
+                >
+                  タイトル・公開期間
+                </button>
                 <a
                   href={`/saas_adm/el-templates/${course.id}`}
                   className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
@@ -129,11 +145,22 @@ export function TemplateCourseListClient({ courses }: Props) {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      {showForm && <CourseFormModal courseType="template" onClose={() => setShowForm(false)} />}
+      {showForm && (
+        <CourseFormModal
+          key={editCourse?.id ?? 'new'}
+          course={editCourse ?? undefined}
+          courseType="template"
+          onClose={() => {
+            setShowForm(false)
+            setEditCourse(null)
+          }}
+        />
+      )}
     </div>
   )
 }

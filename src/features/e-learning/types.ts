@@ -37,6 +37,10 @@ export interface ElCourse {
   created_by_employee_id: string | null
   bloom_level: BloomLevel | null
   learning_objectives: string[] | null
+  /** 公開コースの受講開始日（DATE、YYYY-MM-DD）。未設定なら開始制限なし */
+  published_start_date: string | null
+  /** 公開コースの受講終了日（DATE、YYYY-MM-DD）。未設定なら終了制限なし */
+  published_end_date: string | null
   created_at: string
   updated_at: string
 }

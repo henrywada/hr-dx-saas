@@ -722,6 +722,11 @@ export async function deleteChecklistItem(itemId: string) {
 // コース作成 + AI シナリオ自動生成（フォームから直接呼ぶ）
 // ============================================================
 
+/** 本番では throw した Server Action のメッセージがマスクされるため、結果は常にこの型で返す */
+export type CreateCourseWithAiScenarioResult =
+  | { ok: true; courseId: string }
+  | { ok: false; error: string }
+
 export async function createCourseWithAiScenario(input: {
   title: string
   description: string
@@ -729,9 +734,17 @@ export async function createCourseWithAiScenario(input: {
   course_type: 'template' | 'tenant'
   bloom_level?: BloomLevel
   learning_objectives: string[]
-}): Promise<{ courseId: string }> {
+}): Promise<CreateCourseWithAiScenarioResult> {
   const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { ok: false, error: 'ログインが必要です' }
+
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return {
+      ok: false,
+      error:
+        'AIシナリオ生成には OpenAI API キーが必要です。Vercel の Project → Settings → Environment Variables に OPENAI_API_KEY を設定し、再デプロイしてください。',
+    }
+  }
 
   const supabase = await createClient()
   let courseId: string | null = null
@@ -816,12 +829,13 @@ export async function createCourseWithAiScenario(input: {
 
     revalidatePath('/adm/el-courses')
     revalidatePath('/saas_adm/el-templates')
-    return { courseId: course.id }
+    return { ok: true, courseId: course.id }
   } catch (err) {
     if (courseId) {
       await supabase.from('el_courses').delete().eq('id', courseId)
     }
-    throw toActionError(err, 'AIシナリオの作成に失敗しました')
+    const e = toActionError(err, 'AIシナリオの作成に失敗しました')
+    return { ok: false, error: e.message }
   }
 }
 

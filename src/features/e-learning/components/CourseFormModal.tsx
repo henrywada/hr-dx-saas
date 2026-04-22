@@ -51,7 +51,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
         }
 
         if (useAiScenario) {
-          await createCourseWithAiScenario({
+          const aiResult = await createCourseWithAiScenario({
             title,
             description,
             category,
@@ -59,7 +59,11 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             bloom_level: bloomLevel || undefined,
             learning_objectives: objectives,
           })
-          setAiDone(true)
+          if (aiResult.ok === false) {
+            setError(aiResult.error)
+          } else {
+            setAiDone(true)
+          }
         } else {
           await createCourse({
             title,

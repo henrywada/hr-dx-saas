@@ -1,5 +1,9 @@
 import type { BloomLevel, SlideType } from './types'
 
+/** Supabase Storage バケット名（RLS・削除処理と共有） */
+export const EL_SLIDE_IMAGES_BUCKET = 'el-slide-images' as const
+export const EL_SLIDE_VIDEOS_BUCKET = 'el-slide-videos' as const
+
 /** スライド画像アップロード上限（サーバー・Storage・UI で共通） */
 export const EL_SLIDE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 export const EL_SLIDE_IMAGE_MAX_MB = 10

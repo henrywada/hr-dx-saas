@@ -10,9 +10,7 @@ import {
   deleteScenarioBranch,
   upsertChecklistItem,
   deleteChecklistItem,
-  uploadSlideImage,
   deleteSlideImage,
-  uploadSlideVideo,
   deleteSlideVideo,
 } from '../actions'
 import {
@@ -29,6 +27,33 @@ function isLegacySlideType(t: SlideType): boolean {
 
 function isProbablyYoutubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url)
+}
+
+/** Server Action ではなく API へ送る（本番で multipart の RSC 応答エラーを避ける） */
+async function postSlideMedia(
+  kind: 'image' | 'video',
+  slideId: string,
+  courseId: string,
+  file: File
+): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('courseId', courseId)
+  const res = await fetch(`/api/el-slides/${encodeURIComponent(slideId)}/${kind}`, {
+    method: 'POST',
+    body: fd,
+    credentials: 'same-origin',
+  })
+  let data: { ok?: boolean; url?: string; error?: string }
+  try {
+    data = (await res.json()) as { ok?: boolean; url?: string; error?: string }
+  } catch {
+    throw new Error('サーバーから不正な応答がありました')
+  }
+  if (!res.ok || !data.ok || !data.url) {
+    throw new Error(data.error || 'アップロードに失敗しました')
+  }
+  return data.url
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -97,11 +122,9 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
     const preview = URL.createObjectURL(file)
     setLocalPreview(preview)
     setIsUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
     startTransition(async () => {
       try {
-        const url = await uploadSlideImage(slide.id, courseId, fd)
+        const url = await postSlideMedia('image', slide.id, courseId, file)
         setImageUrl(url)
         setLocalPreview(null)
         onUpdate({ ...slide, image_url: url })
@@ -138,11 +161,9 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
     const preview = URL.createObjectURL(file)
     setMicroLocalPreview(preview)
     setIsMicroUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
     startTransition(async () => {
       try {
-        const url = await uploadSlideImage(slide.id, courseId, fd)
+        const url = await postSlideMedia('image', slide.id, courseId, file)
         setImageUrl(url)
         setMicroLocalPreview(null)
         onUpdate({ ...slide, image_url: url })
@@ -176,11 +197,9 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
     if (!file) return
     setVideoError(null)
     setIsVideoUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
     startTransition(async () => {
       try {
-        const url = await uploadSlideVideo(slide.id, courseId, fd)
+        const url = await postSlideMedia('video', slide.id, courseId, file)
         setVideoUrl(url)
         onUpdate({ ...slide, video_url: url })
       } catch (err) {

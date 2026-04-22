@@ -180,7 +180,16 @@ export async function generateMicroCourseFromText(
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error('AI からの応答が空でした')
 
-  return JSON.parse(content) as AiGeneratedMicroCourse
+  let parsed: AiGeneratedMicroCourse
+  try {
+    parsed = JSON.parse(content) as AiGeneratedMicroCourse
+  } catch {
+    throw new Error('AIの応答をJSONとして解析できませんでした')
+  }
+  if (!parsed.slides || !Array.isArray(parsed.slides) || parsed.slides.length === 0) {
+    throw new Error('AIが有効なスライド一覧を返しませんでした')
+  }
+  return parsed
 }
 
 // 後方互換: 従来の text/quiz 形式でコースを生成する

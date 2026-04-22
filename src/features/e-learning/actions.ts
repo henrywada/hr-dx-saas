@@ -10,6 +10,25 @@ import type { AiGeneratedCourse, AiGeneratedMicroCourse, BloomLevel, SlideType }
 
 const EL_SLIDE_IMAGES_BUCKET = 'el-slide-images'
 
+/** Server Action からクライアントへ返すため、常にシリアライズ可能な Error にする */
+function toActionError(err: unknown, fallback: string): Error {
+  if (err instanceof Error) return err
+  if (err && typeof err === 'object' && 'message' in err) {
+    const m = (err as { message?: string }).message
+    if (typeof m === 'string' && m.length > 0) return new Error(m)
+  }
+  return new Error(fallback)
+}
+
+function supabaseToError(
+  err: { message?: string; code?: string; details?: string | null } | null,
+  fallback: string
+): Error {
+  if (!err) return new Error(fallback)
+  const parts = [err.message, err.details].filter((p): p is string => !!p && p.length > 0)
+  return new Error(parts.length > 0 ? parts.join(' — ') : fallback)
+}
+
 async function ensureSlideImagesBucket() {
   const admin = createAdminServiceClient()
   const { error } = await admin.storage.createBucket(EL_SLIDE_IMAGES_BUCKET, {
@@ -715,86 +734,95 @@ export async function createCourseWithAiScenario(input: {
   if (!user) throw new Error('Unauthorized')
 
   const supabase = await createClient()
+  let courseId: string | null = null
 
-  const { data: course, error: courseError } = await supabase
-    .from('el_courses')
-    .insert({
-      tenant_id: input.course_type === 'tenant' ? user.tenant_id : null,
-      title: input.title,
-      description: input.description || null,
-      category: input.category,
-      status: 'draft',
-      course_type: input.course_type,
-      bloom_level: input.bloom_level ?? null,
-      learning_objectives: input.learning_objectives,
-      created_by_employee_id: user.employee_id ?? null,
-    })
-    .select()
-    .single()
-
-  if (courseError) throw courseError
-
-  const rawText = [
-    `コースタイトル：${input.title}`,
-    input.description ? `概要：${input.description}` : '',
-    input.learning_objectives.length > 0
-      ? `学習目標：\n${input.learning_objectives.map(o => `・${o}`).join('\n')}`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-
-  const generated = await generateMicroCourseFromText(rawText)
-
-  for (let i = 0; i < generated.slides.length; i++) {
-    const slide = generated.slides[i]
-
-    const { data: newSlide, error: slideError } = await supabase
-      .from('el_slides')
+  try {
+    const { data: course, error: courseError } = await supabase
+      .from('el_courses')
       .insert({
-        course_id: course.id,
-        slide_order: i,
-        slide_type: slide.slide_type,
-        title: slide.title,
-        content: slide.content ?? null,
+        tenant_id: input.course_type === 'tenant' ? user.tenant_id : null,
+        title: input.title,
+        description: input.description || null,
+        category: input.category,
+        status: 'draft',
+        course_type: input.course_type,
+        bloom_level: input.bloom_level ?? null,
+        learning_objectives: input.learning_objectives,
+        created_by_employee_id: user.employee_id ?? null,
       })
       .select()
       .single()
 
-    if (slideError) throw slideError
+    if (courseError) throw supabaseToError(courseError, 'コースの作成に失敗しました')
+    courseId = course.id
 
-    if (slide.slide_type === 'scenario' && slide.scenario) {
-      const branches = slide.scenario.branches.map((b, idx) => ({
-        slide_id: newSlide.id,
-        branch_order: idx,
-        choice_text: b.choice_text,
-        feedback_text: b.feedback_text,
-        is_recommended: b.is_recommended,
-      }))
-      if (branches.length > 0) {
-        const { error: branchError } = await supabase
-          .from('el_scenario_branches')
-          .insert(branches)
-        if (branchError) throw branchError
+    const rawText = [
+      `コースタイトル：${input.title}`,
+      input.description ? `概要：${input.description}` : '',
+      input.learning_objectives.length > 0
+        ? `学習目標：\n${input.learning_objectives.map(o => `・${o}`).join('\n')}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    const generated = await generateMicroCourseFromText(rawText)
+
+    for (let i = 0; i < generated.slides.length; i++) {
+      const slide = generated.slides[i]
+
+      const { data: newSlide, error: slideError } = await supabase
+        .from('el_slides')
+        .insert({
+          course_id: course.id,
+          slide_order: i,
+          slide_type: slide.slide_type,
+          title: slide.title,
+          content: slide.content ?? null,
+        })
+        .select()
+        .single()
+
+      if (slideError) throw supabaseToError(slideError, 'スライドの保存に失敗しました')
+
+      if (slide.slide_type === 'scenario' && slide.scenario) {
+        const branches = slide.scenario.branches.map((b, idx) => ({
+          slide_id: newSlide.id,
+          branch_order: idx,
+          choice_text: b.choice_text,
+          feedback_text: b.feedback_text,
+          is_recommended: b.is_recommended,
+        }))
+        if (branches.length > 0) {
+          const { error: branchError } = await supabase
+            .from('el_scenario_branches')
+            .insert(branches)
+          if (branchError) throw supabaseToError(branchError, 'シナリオ分岐の保存に失敗しました')
+        }
+      }
+
+      if (slide.slide_type === 'checklist' && slide.checklist) {
+        const items = slide.checklist.items.map((it, idx) => ({
+          slide_id: newSlide.id,
+          item_order: idx,
+          item_text: it.item_text,
+        }))
+        if (items.length > 0) {
+          const { error: itemError } = await supabase.from('el_checklist_items').insert(items)
+          if (itemError) throw supabaseToError(itemError, 'チェックリストの保存に失敗しました')
+        }
       }
     }
 
-    if (slide.slide_type === 'checklist' && slide.checklist) {
-      const items = slide.checklist.items.map((it, idx) => ({
-        slide_id: newSlide.id,
-        item_order: idx,
-        item_text: it.item_text,
-      }))
-      if (items.length > 0) {
-        const { error: itemError } = await supabase.from('el_checklist_items').insert(items)
-        if (itemError) throw itemError
-      }
+    revalidatePath('/adm/el-courses')
+    revalidatePath('/saas_adm/el-templates')
+    return { courseId: course.id }
+  } catch (err) {
+    if (courseId) {
+      await supabase.from('el_courses').delete().eq('id', courseId)
     }
+    throw toActionError(err, 'AIシナリオの作成に失敗しました')
   }
-
-  revalidatePath('/adm/el-courses')
-  revalidatePath('/saas_adm/el-templates')
-  return { courseId: course.id }
 }
 
 // ============================================================

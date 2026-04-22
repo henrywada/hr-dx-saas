@@ -6,6 +6,9 @@ import { TemplateCourseListClient } from '@/features/e-learning/components/Templ
 
 export const dynamic = 'force-dynamic'
 
+/** AIシナリオ生成（OpenAI + 多数のDB書き込み）用。クラウドの短いデフォルトタイムアウトを回避 */
+export const maxDuration = 300
+
 export default async function ElTemplatesPage() {
   const user = await getServerUser()
   if (!user || user.appRole !== 'developer') {

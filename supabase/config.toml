@@ -96,8 +96,8 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 55424
-# Uncomment to expose additional ports for testing user applications that send emails.
-smtp_port = 55425
+# SMTP 受信（アプリがメール送信テストで使う）。55425 が別プロセスと競合しやすいため 55435 に変更。
+smtp_port = 55435
 # pop3_port = 55326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
@@ -415,7 +415,8 @@ verify_jwt = false
 
 [analytics]
 enabled = true
-port = 54427
+# 他スタック・旧コンテナと 54427 がぶつかる場合があるため空き番に変更
+port = 54437
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
 

@@ -213,6 +213,7 @@ supabase start
 
 # マイグレーション適用（db reset は使わない）
 supabase migration up
+# または npm run supabase:migration-up（README と同じ・既存データを消さない）
 
 # マイグレーション新規作成
 supabase migration new <名前>
@@ -231,6 +232,14 @@ supabase logs
 | Supabase Studio | http://127.0.0.1:55423 |
 | API | http://127.0.0.1:55421 |
 | PostgreSQL | postgresql://127.0.0.1:55422/postgres |
+
+### ローカル Auth とホスト（クラウド）の違い
+
+- **`auth.users` はローカル Docker とホスト側 Supabase で別データベース**です。ホストにしかないメールユーザーはローカルへ自動同期されません。
+- `supabase/config.toml` の `[db.seed]` により、`seed.sql` のあと **`seed_auth.sql`** が実行されます（`supabase/seed_auth.sql`）。
+- SaaS 管理者（マイグレーションで固定されている UUID と `employees.user_id` が一致）は、シードでは **`saas-admin@example.test`** として `auth.users` に作成されます。パスワード・メールの意図は `seed_auth.sql` 先頭コメント参照（実メール送信や本番アカウントとの混同防止のため `example.test` を使用）。
+- **`supabase db reset`・Docker ボリュームの初期化・シードのやり直し**のあとは、`seed_auth.sql` で定義されたユーザーだけが残ります。Studio でのみ追加していたユーザーは消えます。
+- ホストと同じ実メールでローカルも試す場合は、Studio または `create_auth_user` 等でユーザーを作成し、`employees.user_id` と UUID を整合させる必要があります（実メールをシード SQL に載せるかは運用・セキュリティで判断）。
 
 ---
 

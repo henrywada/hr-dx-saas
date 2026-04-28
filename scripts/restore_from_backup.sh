@@ -3,6 +3,9 @@
 # バックアップからのデータ復旧スクリプト
 # 使用方法: ./scripts/restore_from_backup.sh [バックアップフォルダ]
 # 例: ./scripts/restore_from_backup.sh backups/backup_20260316_123956
+#
+# ⚠️  supabase db reset および TRUNCATE を含み、既存ローカルデータを破壊的に置き換えます。
+#     スキーマだけ進めたい場合は npm run supabase:migration-up で十分です。
 # =============================================================================
 set -e
 

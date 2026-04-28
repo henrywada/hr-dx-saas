@@ -13,6 +13,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "clean": "rm -rf .next out node_modules/.cache",
     "supabase:migration-up": "supabase migration up",
+    "supabase:migration-list": "supabase migration list",
+    "supabase:migration-repair": "bash scripts/supabase-migration-repair.sh",
     "recalculate-stress-results": "tsx scripts/recalculate_stress_results.ts"
   },
   "dependencies": {

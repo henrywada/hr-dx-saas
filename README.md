@@ -63,6 +63,8 @@ export PATH="$HOME/.local/bin:$PATH" supabase start \`\`\`
 
 - `npm run dev` - 開発サーバーを起動（ポート3000）
 - `npm run supabase:migration-up` - ローカル Supabase に未適用マイグレーションだけを適用（**既存データを消さない**）
+- `npm run supabase:migration-list` - 適用済みマイグレーション一覧（`supabase migration list`。リモートは `supabase link` が必要）
+- `npm run supabase:migration-repair` - リンク済み DB のマイグレーション履歴を修復（[`scripts/supabase-migration-repair.sh`](scripts/supabase-migration-repair.sh) 参照）
 - `npm run build` - 本番用ビルドを作成
 - `npm run start` - 本番サーバーを起動
 - `npm run lint` - ESLintでコードをチェック
@@ -87,6 +89,10 @@ npm run supabase:migration-up
 \`\`\`
 
 **重要:** `supabase db reset` は DB を作り直しシードを流すため、**ローカルで蓄積したデータや Studio での変更は失われます**。日々の開発では `migration up`（上記）を使ってください。完全初期化が必要な場合のみ `db reset` を検討し、その前にバックアップを取ってください。
+
+`supabase db push` が「Remote migration versions not found in local」などで止まる場合は、CLI の案内どおり **`supabase migration repair`** が必要です。`npm run supabase:migration-list` でリモートの履歴を確認し、`npm run supabase:migration-repair -- reverted <version> …` でゴースト版を戻す、または `-- applied <version>` で既適用のみ履歴へ載せます（意味とリスクは [Supabase ドキュメント](https://supabase.com/docs/reference/cli/supabase-migration-repair) を参照）。
+
+バックアップ用の **`*.bak` は `supabase/migrations/` に置かず**、`supabase/migrations_backup/` に置けば、`db push` 時に「名前パターンに合わずスキップ」されるログを避けられます。
 
 ### 型定義の生成
 

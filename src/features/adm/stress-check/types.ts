@@ -14,6 +14,16 @@ export interface DepartmentStat {
   children?: DepartmentStat[];
 }
 
+/** 拠点別進捗統計 */
+export interface EstablishmentProgressStat {
+  id: string;
+  name: string;
+  submitted: number;
+  notSubmitted: number;
+  inProgress: number;
+  rate: number;
+}
+
 /** 進捗統計データ */
 export interface ProgressStats {
   /** 対象者数（テナント全従業員数） */
@@ -30,6 +40,8 @@ export interface ProgressStats {
   consentRate: number;
   /** 部署別統計 */
   departments: DepartmentStat[];
+  /** 拠点別進捗（拠点マスタがある場合に利用） */
+  establishments?: EstablishmentProgressStat[];
 }
 
 /** 未受検者（一覧表示用） */

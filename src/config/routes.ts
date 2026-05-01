@@ -15,6 +15,10 @@ export const APP_ROUTES = {
     ADMIN_PROGRAM_TARGETS: '/adm/program-targets',
     ADMIN_HIGH_STRESS: '/adm/high-stress',
     ADMIN_HIGH_STRESS_FOLLOWUP: '/adm/high-stress-followup',
+    /** 拠点（事業場）マスタ — (org_health)/establishments */
+    ADMIN_DIVISION_ESTABLISHMENTS: '/adm/establishments',
+    /** ストレスチェック集団分析 */
+    ADMIN_STRESS_CHECK_GROUP_ANALYSIS: '/adm/stress-check/group-analysis',
     ADMIN_AI_WORKPLACE_IMPROVEMENT: '/adm/ai-workplace-improvement',
     /** 管理者 QR 表示権限（(qr_atendance) グループ） */
     ADMIN_QR_ATENDANCE: '/adm/qr_atendance',

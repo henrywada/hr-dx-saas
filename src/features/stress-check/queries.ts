@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/server-user';
 import type {
   StressCheckPeriod,
   StressCheckQuestion,
@@ -224,32 +225,55 @@ export async function getStressCheckResult(
 
 /**
  * 現在アクティブな実施期間を取得
+ * 所属拠点に紐づく期間を優先し、なければ拠点未設定（旧テナント全体）の期間を参照
  */
 export async function getActivePeriod(): Promise<StressCheckPeriod | null> {
+  const user = await getServerUser();
+  if (!user?.tenant_id) return null;
+
   const supabase = await createClient();
   const today = new Date().toISOString().split('T')[0];
 
+  let establishmentId: string | null = null;
+  if (user.employee_id) {
+    const { data: est, error: rpcErr } = await supabase.rpc('resolve_division_establishment_for_employee', {
+      p_employee_id: user.employee_id,
+    });
+    if (rpcErr) {
+      console.error('getActivePeriod rpc:', rpcErr.message);
+    }
+    establishmentId = (est as string | null) ?? null;
+  }
+
+  const base = () =>
+    (supabase as any)
+      .from('stress_check_periods')
+      .select('*')
+      .eq('tenant_id', user.tenant_id)
+      .eq('status', 'active')
+      .lte('start_date', today)
+      .gte('end_date', today)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+  if (establishmentId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: scoped, error: err1 } = await base().eq('division_establishment_id', establishmentId).maybeSingle();
+    if (err1) {
+      console.error('getActivePeriod error:', err1.message);
+    }
+    if (scoped) return scoped as StressCheckPeriod;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('stress_check_periods')
-    .select('*')
-    .eq('status', 'active')
-    .lte('start_date', today)
-    .gte('end_date', today)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await base().is('division_establishment_id', null).maybeSingle();
 
   if (error) {
     console.error('getActivePeriod error:', error.message);
     return null;
   }
 
-  if (!data) {
-    return null;
-  }
-
-  return data as StressCheckPeriod;
+  return (data as StressCheckPeriod) ?? null;
 }
 
 /**

@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
+import { resolveEstablishmentIdForDivision } from '@/lib/stress/resolve-establishment'
 import { getServerUser } from '@/lib/auth/server-user'
 import type { GroupData } from '@/features/adm/stress-check/queries'
 
@@ -210,6 +211,30 @@ export async function registerImprovementPlan(
 
     const supabase = (await createClient()) as any
 
+    let sourceDivisionEstablishmentId: string | null = null
+    if (proposal.division_id) {
+      const { data: anchorRows } = await supabase
+        .from('division_establishment_anchors')
+        .select('division_establishment_id, division_id')
+        .eq('tenant_id', user.tenant_id)
+      const { data: divRows } = await supabase
+        .from('divisions')
+        .select('id, parent_id')
+        .eq('tenant_id', user.tenant_id)
+      const divisionsById = new Map<string, { id: string; parent_id: string | null }>(
+        (divRows ?? []).map((d: { id: string; parent_id: string | null }) => [
+          d.id,
+          { id: d.id, parent_id: d.parent_id },
+        ]),
+      )
+      sourceDivisionEstablishmentId = resolveEstablishmentIdForDivision(
+        proposal.division_id,
+        user.tenant_id,
+        (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
+        divisionsById,
+      )
+    }
+
     // follow_up_date: 3ヶ月後フォロー設定時は登録日+3ヶ月
     let followUpDate: string | null = null
     if (options.setFollowUp) {
@@ -232,6 +257,7 @@ export async function registerImprovementPlan(
         registered_by: user.employee_id ?? null,
         expected_effect: proposal.expected_effect || null,
         follow_up_date: followUpDate,
+        source_division_establishment_id: sourceDivisionEstablishmentId,
       })
       .select('id')
       .single()

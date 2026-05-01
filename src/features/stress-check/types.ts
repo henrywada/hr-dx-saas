@@ -25,6 +25,8 @@ export const CATEGORY_LABELS: Record<CategoryCode, string> = {
 export interface StressCheckPeriod {
   id: string;
   tenant_id: string;
+  /** 拠点に紐づく場合のみ。NULL はテナント単位（旧データ） */
+  division_establishment_id?: string | null;
   title: string;
   questionnaire_type: QuestionnaireType;
   status: PeriodStatus;

@@ -333,6 +333,93 @@ export type Database = {
           },
         ]
       }
+      division_establishment_anchors: {
+        Row: {
+          created_at: string
+          division_establishment_id: string
+          division_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          division_establishment_id: string
+          division_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          division_establishment_id?: string
+          division_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_establishment_anchors_division_establishment_id_fkey"
+            columns: ["division_establishment_id"]
+            isOneToOne: false
+            referencedRelation: "division_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "division_establishment_anchors_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "division_establishment_anchors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      division_establishments: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          labor_office_reporting_name: string | null
+          name: string
+          tenant_id: string
+          updated_at: string
+          workplace_address: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          labor_office_reporting_name?: string | null
+          name: string
+          tenant_id: string
+          updated_at?: string
+          workplace_address?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          labor_office_reporting_name?: string | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          workplace_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_establishments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       divisions: {
         Row: {
           code: string | null
@@ -1257,24 +1344,30 @@ export type Database = {
       }
       myou_alert_logs: {
         Row: {
-          company_id: string | null
+          company_id: string
+          error_message: string | null
           id: string
-          sent_at: string | null
-          target_serials: string[] | null
+          sent_at: string
+          status: string
+          target_serials: string[]
           tenant_id: string
         }
         Insert: {
-          company_id?: string | null
+          company_id: string
+          error_message?: string | null
           id?: string
-          sent_at?: string | null
-          target_serials?: string[] | null
+          sent_at?: string
+          status?: string
+          target_serials: string[]
           tenant_id?: string
         }
         Update: {
-          company_id?: string | null
+          company_id?: string
+          error_message?: string | null
           id?: string
-          sent_at?: string | null
-          target_serials?: string[] | null
+          sent_at?: string
+          status?: string
+          target_serials?: string[]
           tenant_id?: string
         }
         Relationships: [
@@ -1283,57 +1376,60 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
-            referencedColumns: ["company_id"]
+            referencedColumns: ["id"]
           },
         ]
       }
       myou_companies: {
         Row: {
-          company_id: string
-          company_name: string
-          created_at: string | null
-          email_address: string
+          created_at: string
+          email_address: string | null
+          id: string
+          name: string
           tenant_id: string
         }
         Insert: {
-          company_id?: string
-          company_name: string
-          created_at?: string | null
-          email_address: string
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          name: string
           tenant_id?: string
         }
         Update: {
-          company_id?: string
-          company_name?: string
-          created_at?: string | null
-          email_address?: string
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          name?: string
           tenant_id?: string
         }
         Relationships: []
       }
       myou_delivery_logs: {
         Row: {
-          company_id: string | null
-          delivery_date: string | null
+          company_id: string
+          delivered_by: string | null
+          delivery_date: string
           id: string
-          scanned_by: string | null
-          serial_number: string | null
+          registered_at: string
+          serial_number: string
           tenant_id: string
         }
         Insert: {
-          company_id?: string | null
-          delivery_date?: string | null
+          company_id: string
+          delivered_by?: string | null
+          delivery_date?: string
           id?: string
-          scanned_by?: string | null
-          serial_number?: string | null
+          registered_at?: string
+          serial_number: string
           tenant_id?: string
         }
         Update: {
-          company_id?: string | null
-          delivery_date?: string | null
+          company_id?: string
+          delivered_by?: string | null
+          delivery_date?: string
           id?: string
-          scanned_by?: string | null
-          serial_number?: string | null
+          registered_at?: string
+          serial_number?: string
           tenant_id?: string
         }
         Relationships: [
@@ -1342,43 +1438,47 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "myou_delivery_logs_serial_number_fkey"
-            columns: ["serial_number"]
-            isOneToOne: true
-            referencedRelation: "myou_products"
-            referencedColumns: ["serial_number"]
+            referencedColumns: ["id"]
           },
         ]
       }
       myou_products: {
         Row: {
-          created_at: string | null
-          expiration_date: string
-          product_name: string | null
+          created_at: string
+          current_company_id: string | null
+          expiration_date: string | null
+          last_delivery_at: string | null
           serial_number: string
-          status: string | null
+          status: string
           tenant_id: string
         }
         Insert: {
-          created_at?: string | null
-          expiration_date: string
-          product_name?: string | null
+          created_at?: string
+          current_company_id?: string | null
+          expiration_date?: string | null
+          last_delivery_at?: string | null
           serial_number: string
-          status?: string | null
+          status?: string
           tenant_id?: string
         }
         Update: {
-          created_at?: string | null
-          expiration_date?: string
-          product_name?: string | null
+          created_at?: string
+          current_company_id?: string | null
+          expiration_date?: string | null
+          last_delivery_at?: string | null
           serial_number?: string
-          status?: string | null
+          status?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "myou_products_current_company_id_fkey"
+            columns: ["current_company_id"]
+            isOneToOne: false
+            referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       overtime_alerts: {
         Row: {
@@ -2938,6 +3038,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          division_establishment_id: string | null
           end_date: string
           fiscal_year: number
           high_stress_method: string
@@ -2953,6 +3054,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          division_establishment_id?: string | null
           end_date: string
           fiscal_year: number
           high_stress_method?: string
@@ -2968,6 +3070,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          division_establishment_id?: string | null
           end_date?: string
           fiscal_year?: number
           high_stress_method?: string
@@ -2981,6 +3084,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stress_check_periods_division_establishment_id_fkey"
+            columns: ["division_establishment_id"]
+            isOneToOne: false
+            referencedRelation: "division_establishments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stress_check_periods_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -4053,6 +4163,32 @@ export type Database = {
           },
         ]
       }
+      tenant_stress_settings: {
+        Row: {
+          min_group_analysis_respondents: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          min_group_analysis_respondents?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          min_group_analysis_respondents?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_stress_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           business_description: string | null
@@ -4237,6 +4373,7 @@ export type Database = {
           proposed_actions: Json
           registered_by: string | null
           source_analysis_id: string | null
+          source_division_establishment_id: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
@@ -4255,6 +4392,7 @@ export type Database = {
           proposed_actions?: Json
           registered_by?: string | null
           source_analysis_id?: string | null
+          source_division_establishment_id?: string | null
           status?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -4273,6 +4411,7 @@ export type Database = {
           proposed_actions?: Json
           registered_by?: string | null
           source_analysis_id?: string | null
+          source_division_establishment_id?: string | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
@@ -4298,6 +4437,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplace_improvement_plans_source_division_establishment__fkey"
+            columns: ["source_division_establishment_id"]
+            isOneToOne: false
+            referencedRelation: "division_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplace_improvement_plans_source_division_establishment__fkey"
+            columns: ["source_division_establishment_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis_establishment"
+            referencedColumns: ["division_establishment_id"]
           },
           {
             foreignKeyName: "workplace_improvement_plans_tenant_id_fkey"
@@ -4329,6 +4482,34 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "divisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stress_group_analysis_establishment: {
+        Row: {
+          colleague_support: number | null
+          control: number | null
+          division_establishment_id: string | null
+          health_risk: number | null
+          high_stress_rate: number | null
+          is_latest: boolean | null
+          is_suppressed: boolean | null
+          member_count: number | null
+          min_respondents_threshold: number | null
+          name: string | null
+          period_name: string | null
+          previous_health_risk: number | null
+          supervisor_support: number | null
+          tenant_id: string | null
+          workload: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_establishments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4468,6 +4649,35 @@ export type Database = {
         }[]
       }
       rag_session_tenant_id: { Args: never; Returns: string }
+      resolve_division_establishment_for_division: {
+        Args: { p_division_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      resolve_division_establishment_for_employee: {
+        Args: { p_employee_id: string }
+        Returns: string
+      }
+      stress_group_analysis_for_layer: {
+        Args: { p_layer: number; p_tenant_id: string }
+        Returns: {
+          colleague_support: number
+          control: number
+          health_risk: number
+          high_stress_rate: number
+          is_latest: boolean
+          is_suppressed: boolean
+          member_count: number
+          min_respondents_threshold: number
+          name: string
+          period_end_date: string
+          period_name: string
+          previous_health_risk: number
+          rollup_division_id: string
+          supervisor_support: number
+          tenant_id: string
+          workload: number
+        }[]
+      }
       sync_service_assignment_users: {
         Args: { p_service_assignment_id: string }
         Returns: {
@@ -4630,4 +4840,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

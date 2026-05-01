@@ -8,6 +8,8 @@ import DepartmentProgressTree from '@/features/adm/stress-check/components/Depar
 import ReminderAction from '@/features/adm/stress-check/components/ReminderAction';
 import { formatDateInJST } from '@/lib/datetime';
 import { ClipboardCheck, Calendar, Activity } from 'lucide-react';
+import Link from 'next/link';
+import type { DepartmentStat } from '@/features/adm/stress-check/types';
 
 export default async function StressCheckProgressPage() {
   const user = await getServerUser();
@@ -45,12 +47,35 @@ export default async function StressCheckProgressPage() {
     (d) => d.submitted + d.notSubmitted > 0
   );
 
+  const est = stats.establishments;
+  const chartEstablishments: DepartmentStat[] = (est ?? [])
+    .filter((d) => d.submitted + d.notSubmitted > 0)
+    .map((d) => ({
+      id: d.id,
+      parent_id: null,
+      name: d.name,
+      submitted: d.submitted,
+      notSubmitted: d.notSubmitted,
+      inProgress: d.inProgress,
+      rate: d.rate,
+    }));
+
   const formatDate = formatDateInJST;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
       {/* ページヘッダー */}
       <PageHeader />
+
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link href={APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_GROUP_ANALYSIS} className="text-blue-600 hover:underline font-medium">
+          集団分析ダッシュボード
+        </Link>
+        <span className="text-gray-300">|</span>
+        <Link href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS} className="text-blue-600 hover:underline font-medium">
+          拠点（事業場）設定
+        </Link>
+      </div>
 
       {/* 実施期間情報 */}
       <div className="flex flex-wrap items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 px-6">
@@ -111,6 +136,24 @@ export default async function StressCheckProgressPage() {
           </div>
         )}
       </div>
+
+      {/* 拠点別進捗（マスタ登録時のみ） */}
+      {est && est.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-gradient-to-b from-teal-500 to-emerald-600 rounded-full" />
+              拠点別 受検進捗
+            </h2>
+            <Link href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS} className="text-xs text-blue-600 hover:underline">
+              拠点マスタを編集
+            </Link>
+          </div>
+          <div className="p-4">
+            <DepartmentChart departments={chartEstablishments} />
+          </div>
+        </div>
+      )}
 
       {/* リマインドアクション */}
       <ReminderAction

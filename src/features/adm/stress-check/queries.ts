@@ -10,6 +10,7 @@ import type {
   ScaleAverages,
   DepartmentStat,
   ProgressStats,
+  EstablishmentProgressStat,
 } from './types'
 
 export type GroupData = {
@@ -17,15 +18,25 @@ export type GroupData = {
   name: string
   tenant_id: string
   member_count: number
-  high_stress_rate: number
-  health_risk: number
-  workload: number
-  control: number
-  supervisor_support: number
-  colleague_support: number
-  previous_health_risk?: number
+  high_stress_rate: number | null
+  health_risk: number | null
+  workload: number | null
+  control: number | null
+  supervisor_support: number | null
+  colleague_support: number | null
+  previous_health_risk?: number | null
   period_name: string
   is_latest: boolean
+  is_suppressed?: boolean
+  analysis_kind?: 'division' | 'establishment' | 'layer'
+}
+
+/** 推移グラフ用：期間×グループの健康リスク */
+export type GroupTrendRow = {
+  division_id: string
+  name: string
+  period_name: string
+  health_risk: number | null
 }
 
 export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
@@ -63,15 +74,158 @@ export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
     throw error
   }
 
-  return (data || []) as GroupData[]
+  return ((data || []) as any[]).map((r) => ({ ...r, analysis_kind: 'division' as const })) as GroupData[]
 }
 
-/** 推移グラフ用：期間×部署の健康リスク */
-export type GroupTrendRow = {
-  division_id: string
-  name: string
-  period_name: string
-  health_risk: number
+/** 拠点別・最新期間の集団分析 */
+export async function getGroupAnalysisEstablishment(tenantId: string, latestOnly = true) {
+  const supabase = await getSupabase()
+  let query = supabase
+    .from('stress_group_analysis_establishment')
+    .select(
+      `
+      division_establishment_id,
+      name,
+      tenant_id,
+      member_count,
+      high_stress_rate,
+      health_risk,
+      workload,
+      control,
+      supervisor_support,
+      colleague_support,
+      previous_health_risk,
+      period_name,
+      is_latest,
+      is_suppressed,
+      min_respondents_threshold
+    `,
+    )
+    .eq('tenant_id', tenantId)
+
+  if (latestOnly) {
+    query = query.eq('is_latest', true).order('health_risk', { ascending: false, nullsFirst: false })
+  } else {
+    query = query.order('period_name', { ascending: true })
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.error('getGroupAnalysisEstablishment', error)
+    throw error
+  }
+  return ((data || []) as any[]).map((r) => ({
+    division_id: r.division_establishment_id,
+    name: r.name,
+    tenant_id: r.tenant_id,
+    member_count: r.member_count,
+    high_stress_rate: r.high_stress_rate,
+    health_risk: r.health_risk,
+    workload: r.workload,
+    control: r.control,
+    supervisor_support: r.supervisor_support,
+    colleague_support: r.colleague_support,
+    previous_health_risk: r.previous_health_risk,
+    period_name: r.period_name,
+    is_latest: r.is_latest,
+    is_suppressed: r.is_suppressed,
+    analysis_kind: 'establishment' as const,
+  })) as GroupData[]
+}
+
+/** 拠点別トレンド */
+export async function getGroupTrendEstablishment(tenantId: string): Promise<GroupTrendRow[]> {
+  const supabase = await getSupabase()
+  const { data } = await supabase
+    .from('stress_group_analysis_establishment')
+    .select('division_establishment_id, name, period_name, health_risk')
+    .eq('tenant_id', tenantId)
+    .order('period_name', { ascending: true })
+
+  return ((data || []) as any[]).map((r) => ({
+    division_id: r.division_establishment_id,
+    name: r.name,
+    period_name: r.period_name,
+    health_risk: r.health_risk,
+  }))
+}
+
+/** 組織レイヤー一覧（集団分析の軸選択用） */
+export async function getDistinctDivisionLayers(tenantId: string): Promise<number[]> {
+  const supabase = await getSupabase()
+  const { data } = await supabase
+    .from('divisions')
+    .select('layer')
+    .eq('tenant_id', tenantId)
+    .not('layer', 'is', null)
+
+  const set = new Set<number>()
+  for (const row of data ?? []) {
+    if (row.layer != null) set.add(row.layer as number)
+  }
+  return Array.from(set).sort((a, b) => a - b)
+}
+
+/** 指定レイヤーでの集団分析（RPC） */
+export async function getGroupAnalysisForLayer(
+  tenantId: string,
+  layer: number,
+  latestOnly = true,
+): Promise<GroupData[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
+    p_tenant_id: tenantId,
+    p_layer: layer,
+  })
+  if (error) {
+    console.error('getGroupAnalysisForLayer', error)
+    throw error
+  }
+  let rows = (data || []) as any[]
+  if (latestOnly) {
+    rows = rows.filter((r) => r.is_latest)
+    rows.sort((a, b) => (b.health_risk ?? -1) - (a.health_risk ?? -1))
+  } else {
+    rows.sort((a, b) => a.period_name.localeCompare(b.period_name))
+  }
+  return rows.map((r) => ({
+    division_id: r.rollup_division_id,
+    name: r.name,
+    tenant_id: r.tenant_id,
+    member_count: Number(r.member_count),
+    high_stress_rate: r.high_stress_rate,
+    health_risk: r.health_risk,
+    workload: r.workload,
+    control: r.control,
+    supervisor_support: r.supervisor_support,
+    colleague_support: r.colleague_support,
+    previous_health_risk: r.previous_health_risk,
+    period_name: r.period_name,
+    is_latest: r.is_latest,
+    is_suppressed: r.is_suppressed,
+    analysis_kind: 'layer' as const,
+  }))
+}
+
+export async function getGroupTrendForLayer(
+  tenantId: string,
+  layer: number,
+): Promise<GroupTrendRow[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
+    p_tenant_id: tenantId,
+    p_layer: layer,
+  })
+  if (error) {
+    console.error('getGroupTrendForLayer', error)
+    throw error
+  }
+  return ((data || []) as any[]).map((r) => ({
+    division_id: r.rollup_division_id,
+    name: r.name,
+    period_name: r.period_name,
+    health_risk: r.health_risk,
+  }))
 }
 
 export async function getGroupTrend(tenantId: string): Promise<GroupTrendRow[]> {
@@ -87,20 +241,40 @@ export async function getGroupTrend(tenantId: string): Promise<GroupTrendRow[]> 
 // ========== ここから追加（既存の getGroupAnalysis の下に貼り付け）==========
 
 // 進行状況ページ用（元々存在していた関数）
+/** テナント全体（拠点未設定）の実施中を最優先。無ければ拠点別の実施中から最新1件。 */
 export async function getActiveStressCheckPeriod(tenantId: string) {
   const supabase = await getSupabase()
-  const { data, error } = await supabase
+
+  const { data: legacy, error: errLegacy } = await supabase
     .from('stress_check_periods')
     .select('*')
     .eq('tenant_id', tenantId)
     .eq('status', 'active')
+    .is('division_establishment_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
 
-  if (error) {
-    console.error('getActiveStressCheckPeriod error:', error)
+  if (errLegacy) {
+    console.error('getActiveStressCheckPeriod error:', errLegacy)
     return null
   }
-  return data
+  if (legacy) return legacy
+
+  const { data: rows, error: errEst } = await supabase
+    .from('stress_check_periods')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'active')
+    .not('division_establishment_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (errEst) {
+    console.error('getActiveStressCheckPeriod error:', errEst)
+    return null
+  }
+  return rows?.[0] ?? null
 }
 
 /**
@@ -289,6 +463,73 @@ export async function getProgressStats(
     })
   }
 
+  // 拠点別（マスタがあれば）
+  const { data: estMaster } = await supabase
+    .from('division_establishments')
+    .select('id, name')
+    .eq('tenant_id', tenantId)
+
+  let establishments: EstablishmentProgressStat[] | undefined
+  if (estMaster && estMaster.length > 0) {
+    const [{ data: divRowsForEst }, { data: anchorRows }] = await Promise.all([
+      supabase.from('divisions').select('id, parent_id').eq('tenant_id', tenantId),
+      supabase
+        .from('division_establishment_anchors')
+        .select('division_establishment_id, division_id')
+        .eq('tenant_id', tenantId),
+    ])
+    const { buildEmployeeEstablishmentMap } = await import('@/lib/stress/resolve-establishment')
+    const estMap = buildEmployeeEstablishmentMap(
+      targetEmployees,
+      tenantId,
+      (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
+      divRowsForEst ?? [],
+    )
+    const byEst = new Map<string, { id: string; division_id: string | null }[]>()
+    for (const e of targetEmployees) {
+      const estId = estMap.get(e.id)
+      const key = estId ?? 'unassigned'
+      if (!byEst.has(key)) byEst.set(key, [])
+      byEst.get(key)!.push(e)
+    }
+    establishments = []
+    for (const est of estMaster) {
+      const emps = byEst.get(est.id) ?? []
+      if (emps.length === 0) continue
+      const submitted = emps.filter((e) => submittedEmployeeIds.has(e.id)).length
+      const notSubmitted = emps.length - submitted
+      const inProgress =
+        submissions?.filter(
+          (s) =>
+            emps.some((x) => x.id === s.employee_id) && s.consent_to_employer === false
+        ).length ?? 0
+      establishments.push({
+        id: est.id,
+        name: est.name,
+        submitted,
+        notSubmitted,
+        inProgress,
+        rate: emps.length ? Math.round((submitted / emps.length) * 100) : 0,
+      })
+    }
+    const unasEst = byEst.get('unassigned') ?? []
+    if (unasEst.length > 0) {
+      const submitted = unasEst.filter((e) => submittedEmployeeIds.has(e.id)).length
+      establishments.push({
+        id: 'unassigned',
+        name: '拠点未割当',
+        submitted,
+        notSubmitted: unasEst.length - submitted,
+        inProgress:
+          submissions?.filter(
+            (s) =>
+              unasEst.some((x) => x.id === s.employee_id) && s.consent_to_employer === false
+          ).length ?? 0,
+        rate: unasEst.length ? Math.round((submitted / unasEst.length) * 100) : 0,
+      })
+    }
+  }
+
   return {
     totalEmployees,
     submittedCount,
@@ -297,6 +538,7 @@ export async function getProgressStats(
     submissionRate: totalEmployees ? Math.round((submittedCount / totalEmployees) * 100) : 0,
     consentRate: submittedCount ? Math.round((consentCount / submittedCount) * 100) : 0,
     departments,
+    establishments,
   }
 }
 
@@ -416,6 +658,13 @@ export async function getGroupAnalysisData(
     return { departments: [], summary: createEmptySummary() }
   }
 
+  const { data: tss } = await supabase
+    .from('tenant_stress_settings')
+    .select('min_group_analysis_respondents')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const minRespondents = tss?.min_group_analysis_respondents ?? 11
+
   // stress_group_analysis から該当期間のデータを取得（period_name でフィルタ）
   const { data: rows, error } = await supabase
     .from('stress_group_analysis')
@@ -443,7 +692,8 @@ export async function getGroupAnalysisData(
 
   const raw = (rows || []) as GroupData[]
   const departments: GroupAnalysisDepartment[] = raw.map((r) => {
-    const isMasked = r.member_count < 10
+    const isMasked = r.member_count < minRespondents
+    const hr = r.high_stress_rate ?? 0
     const scaleAverages: ScaleAverages = {
       workloadQuantity: r.workload,
       workloadQuality: null,
@@ -461,8 +711,8 @@ export async function getGroupAnalysisData(
       avgScoreB: r.control,
       avgScoreC: r.supervisor_support,
       avgScoreD: r.colleague_support,
-      highStressCount: Math.round((r.member_count * r.high_stress_rate) / 100),
-      highStressRate: r.high_stress_rate,
+      highStressCount: Math.round((r.member_count * hr) / 100),
+      highStressRate: hr,
       totalHealthRisk: isMasked ? null : r.health_risk,
     }
   })

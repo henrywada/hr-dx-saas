@@ -10,6 +10,8 @@ interface PeriodFormDialogProps {
   onClose: () => void;
   period?: StressCheckPeriod | null;
   tenantId: string;
+  /** 新規作成時のみ必須（拠点マスタの id） */
+  divisionEstablishmentId?: string | null;
 }
 
 export function PeriodFormDialog({
@@ -17,6 +19,7 @@ export function PeriodFormDialog({
   onClose,
   period,
   tenantId,
+  divisionEstablishmentId = null,
 }: PeriodFormDialogProps) {
   const isEdit = !!period;
   const [isPending, startTransition] = useTransition();
@@ -33,8 +36,8 @@ export function PeriodFormDialog({
       setTitle(period?.title || '');
       setQType(period?.questionnaire_type || '57');
       setStatus(period?.status || 'draft');
-      setStartDate(period?.start_date || '');
-      setEndDate(period?.end_date || '');
+      setStartDate((period?.start_date || '').split('T')[0] || '');
+      setEndDate((period?.end_date || '').split('T')[0] || '');
       setFiscalYear(period?.fiscal_year || new Date().getFullYear());
     }
   }, [open, period]);
@@ -54,9 +57,25 @@ export function PeriodFormDialog({
       };
 
       if (isEdit && period) {
-        await updateStressCheckPeriod(period.id, data);
+        const res = await updateStressCheckPeriod(period.id, data);
+        if (!res.success) {
+          alert(res.error ?? '更新に失敗しました');
+          return;
+        }
       } else {
-        await createStressCheckPeriod({ ...data, tenant_id: tenantId });
+        if (!divisionEstablishmentId) {
+          alert('拠点が特定できません。拠点を保存してから実施期間を追加してください。');
+          return;
+        }
+        const res = await createStressCheckPeriod({
+          ...data,
+          tenant_id: tenantId,
+          division_establishment_id: divisionEstablishmentId,
+        });
+        if (!res.success) {
+          alert(res.error ?? '登録に失敗しました');
+          return;
+        }
       }
       onClose();
     });
@@ -153,7 +172,7 @@ export function PeriodFormDialog({
             </select>
             {status === 'active' && (
               <p className="mt-1 flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                ※「実施中」の期間は1つのテナントにつき1つのみにするよう推奨します。
+                ※「実施中」は拠点ごとに同時に1件までです（DBで一意制約）。テナント全体の旧データは拠点未設定のまま運用できます。
               </p>
             )}
           </div>

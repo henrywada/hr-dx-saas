@@ -99,6 +99,7 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
               <tr>
                 <th className="px-6 py-4 font-semibold">社員名 / No.</th>
                 <th className="px-6 py-4 font-semibold">部署</th>
+                <th className="px-6 py-4 font-semibold">拠点</th>
                 <th className="px-6 py-4 font-semibold">面談希望 (本人)</th>
                 <th className="px-6 py-4 font-semibold">ステータス表示</th>
                 <th className="px-6 py-4 font-semibold text-right">アクション</th>
@@ -107,7 +108,7 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
             <tbody className="divide-y divide-gray-100">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     対象となる高ストレス者はいません。
                   </td>
                 </tr>
@@ -120,6 +121,9 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                       {emp.division_name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                      {emp.establishment_name || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {emp.interview_requested ? (
@@ -178,6 +182,9 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                   <div className="text-xs text-blue-800 font-semibold uppercase tracking-wider mb-1">対象社員</div>
                   <div className="text-xl font-bold text-gray-900">{selectedUser.name}</div>
                   <div className="text-sm text-gray-600 mt-0.5">{selectedUser.division_name || '部署未設定'}</div>
+                    {selectedUser.establishment_name && (
+                      <div className="text-xs text-teal-700 mt-1">拠点: {selectedUser.establishment_name}</div>
+                    )}
                 </div>
                 {selectedUser.interview_requested && (
                   <div className="text-right flex flex-col items-end">

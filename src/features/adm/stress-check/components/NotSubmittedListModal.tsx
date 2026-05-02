@@ -9,14 +9,18 @@ interface NotSubmittedListModalProps {
   open: boolean;
   onClose: () => void;
   periodId: string;
+  establishmentId?: string;
+  title?: string;
 }
 
 export default function NotSubmittedListModal({
   open,
   onClose,
   periodId,
+  establishmentId,
+  title,
 }: NotSubmittedListModalProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<NotSubmittedEmployee[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,10 +28,18 @@ export default function NotSubmittedListModal({
 
   useEffect(() => {
     if (!open || !periodId) return;
-    setError(null);
-    setLoading(true);
-    fetchNotSubmittedEmployees(periodId)
+    let cancelled = false;
+
+    Promise.resolve()
+      .then(async () => {
+        if (cancelled) return null;
+        setError(null);
+        setLoading(true);
+        setEmployees([]);
+        return fetchNotSubmittedEmployees(periodId, establishmentId);
+      })
       .then((result) => {
+        if (cancelled || !result) return;
         if (result.success) {
           setEmployees(result.data);
         } else {
@@ -35,8 +47,19 @@ export default function NotSubmittedListModal({
           setEmployees([]);
         }
       })
-      .finally(() => setLoading(false));
-  }, [open, periodId]);
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : '取得に失敗しました');
+        setEmployees([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, periodId, establishmentId]);
 
   const divisions = useMemo(() => {
     const names = [...new Set(employees.map((e) => e.division_name).filter(Boolean))] as string[];
@@ -70,7 +93,7 @@ export default function NotSubmittedListModal({
         <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
             <Users className="w-5 h-5 text-amber-500" />
-            未受検者一覧
+            {title ?? '未受検者一覧'}
           </h3>
           <button
             onClick={onClose}

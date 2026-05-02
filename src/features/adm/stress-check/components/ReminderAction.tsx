@@ -1,29 +1,28 @@
 'use client';
 
 import { Bell, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import NotSubmittedListModal from './NotSubmittedListModal';
-import ReminderComposeModal from './ReminderComposeModal';
+import ReminderComposeModal, { type ReminderEstablishmentOption } from './ReminderComposeModal';
 
 interface ReminderActionProps {
   periodId?: string;
   notSubmittedCount?: number;
+  establishmentOptions?: ReminderEstablishmentOption[];
 }
 
 export default function ReminderAction({
   periodId,
   notSubmittedCount = 0,
+  establishmentOptions = [],
 }: ReminderActionProps) {
-  const [sent, setSent] = useState(false);
+  const router = useRouter();
   const [listModalOpen, setListModalOpen] = useState(false);
   const [composeModalOpen, setComposeModalOpen] = useState(false);
 
-  const handleReminderSent = () => {
-    setSent(true);
-  };
-
   return (
-    <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 rounded-2xl p-5">
+    <div className="flex items-center justify-between bg-linear-to-r from-slate-50 to-gray-50 border border-gray-200 rounded-2xl p-5">
       <div className="flex items-center gap-4">
         <div className="bg-amber-100 p-3 rounded-xl">
           <Bell className="w-5 h-5 text-amber-600" />
@@ -31,7 +30,7 @@ export default function ReminderAction({
         <div>
           <p className="text-sm font-bold text-gray-800">リマインド通知</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            未受検の従業員に対してリマインドメールを送信します
+            未受検の従業員に対してリマインドメールを送信します（全員または拠点指定）
           </p>
         </div>
       </div>
@@ -48,32 +47,22 @@ export default function ReminderAction({
           </button>
         )}
         <button
-        type="button"
-        onClick={() => setComposeModalOpen(true)}
-        disabled={sent || notSubmittedCount === 0}
-        className={`
+          type="button"
+          onClick={() => setComposeModalOpen(true)}
+          disabled={notSubmittedCount === 0}
+          className={`
           inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
           transition-all duration-300 shadow-sm
-          ${sent
-            ? 'bg-emerald-100 text-emerald-700 cursor-default'
-            : notSubmittedCount === 0
+          ${
+            notSubmittedCount === 0
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-md active:scale-95'
+              : 'bg-linear-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 hover:shadow-md active:scale-95'
           }
         `}
-      >
-        {sent ? (
-          <>
-            <span>✓</span>
-            送信完了
-          </>
-        ) : (
-          <>
-            <Bell className="w-4 h-4" />
-            未受検者にリマインドを送る
-          </>
-        )}
-      </button>
+        >
+          <Bell className="w-4 h-4" />
+          未受検者にリマインドを送る
+        </button>
       </div>
 
       {periodId && (
@@ -86,9 +75,10 @@ export default function ReminderAction({
           <ReminderComposeModal
             open={composeModalOpen}
             onClose={() => setComposeModalOpen(false)}
-            onSent={handleReminderSent}
+            onSent={() => router.refresh()}
             periodId={periodId}
             notSubmittedCount={notSubmittedCount}
+            establishmentOptions={establishmentOptions}
           />
         </>
       )}

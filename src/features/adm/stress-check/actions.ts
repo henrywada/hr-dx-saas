@@ -7,7 +7,8 @@ import { getNotSubmittedEmployees, getNotSubmittedEmployeesForReminder } from '.
 import type { NotSubmittedEmployee } from './types';
 
 export async function fetchNotSubmittedEmployees(
-  periodId: string
+  periodId: string,
+  establishmentId?: string
 ): Promise<{ success: true; data: NotSubmittedEmployee[] } | { success: false; error: string }> {
   const user = await getServerUser();
   if (!user?.tenant_id) {
@@ -15,7 +16,7 @@ export async function fetchNotSubmittedEmployees(
   }
 
   try {
-    const data = await getNotSubmittedEmployees(user.tenant_id, periodId);
+    const data = await getNotSubmittedEmployees(user.tenant_id, periodId, establishmentId);
     return { success: true, data };
   } catch (err) {
     console.error('fetchNotSubmittedEmployees error:', err);
@@ -33,11 +34,13 @@ export type SendReminderResult =
 /**
  * 未受検者へリマインドメールを一括送信
  * user_id が紐づきメールアドレスが取得できる従業員のみ送信
+ * @param establishmentId 省略時はテナント全体の未受検者。指定時は当該拠点（または unassigned で拠点未割当）
  */
 export async function sendStressCheckReminders(
   periodId: string,
   subject: string,
-  message: string
+  message: string,
+  establishmentId?: string | null
 ): Promise<SendReminderResult> {
   const user = await getServerUser();
   if (!user?.tenant_id) {
@@ -52,7 +55,11 @@ export async function sendStressCheckReminders(
   }
 
   try {
-    const employees = await getNotSubmittedEmployeesForReminder(user.tenant_id, periodId);
+    const employees = await getNotSubmittedEmployeesForReminder(
+      user.tenant_id,
+      periodId,
+      establishmentId ?? undefined
+    );
     const admin = createAdminClient();
 
     let sentCount = 0;

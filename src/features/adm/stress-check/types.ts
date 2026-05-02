@@ -1,5 +1,7 @@
 // ストレスチェック進捗管理ダッシュボード用の型定義
 
+import type { StressCheckPeriod } from '@/features/stress-check/types';
+
 /** 部署別進捗統計 */
 export interface DepartmentStat {
   id: string;
@@ -22,7 +24,13 @@ export interface EstablishmentProgressStat {
   notSubmitted: number;
   inProgress: number;
   rate: number;
+  total: number;
 }
+
+/** 進捗表に載せる拠点1件（拠点設定画面と同じ実施期間1行を付与） */
+export type EstablishmentProgressTableRow = EstablishmentProgressStat & {
+  stressCheckPeriod: StressCheckPeriod | null;
+};
 
 /** 進捗統計データ */
 export interface ProgressStats {
@@ -52,6 +60,8 @@ export interface NotSubmittedEmployee {
   job_title: string | null;
   division_id: string | null;
   division_name: string | null;
+  establishment_id: string | null;
+  establishment_name: string | null;
 }
 
 /** アクティブ実施期間の情報 */

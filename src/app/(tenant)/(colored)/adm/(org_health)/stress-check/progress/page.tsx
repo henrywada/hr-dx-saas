@@ -2,14 +2,14 @@ import { getServerUser } from '@/lib/auth/server-user';
 import { redirect } from 'next/navigation';
 import { APP_ROUTES } from '@/config/routes';
 import { getActiveStressCheckPeriod, getProgressStats } from '@/features/adm/stress-check/queries';
+import { listDivisionEstablishments } from '@/features/adm/division-establishments/queries';
 import SummaryCards from '@/features/adm/stress-check/components/SummaryCards';
 import DepartmentChart from '@/features/adm/stress-check/components/DepartmentChart';
-import DepartmentProgressTree from '@/features/adm/stress-check/components/DepartmentProgressTree';
+import EstablishmentProgressTable from '@/features/adm/stress-check/components/EstablishmentProgressTable';
 import ReminderAction from '@/features/adm/stress-check/components/ReminderAction';
-import { formatDateInJST } from '@/lib/datetime';
-import { ClipboardCheck, Calendar, Activity } from 'lucide-react';
+import { ClipboardCheck, Building2 } from 'lucide-react';
 import Link from 'next/link';
-import type { DepartmentStat } from '@/features/adm/stress-check/types';
+import type { DepartmentStat, EstablishmentProgressTableRow } from '@/features/adm/stress-check/types';
 
 export default async function StressCheckProgressPage() {
   const user = await getServerUser();
@@ -39,16 +39,20 @@ export default async function StressCheckProgressPage() {
   // 2. 進捗統計の取得
   const stats = await getProgressStats(user.tenant_id, period.id);
 
-  // ストレスチェック進捗管理は全社の受検状況を表示するため、常に全部署を表示
-  const visibleDepartments = stats.departments;
+  const establishments = stats.establishments ?? [];
 
-  // バーチャート用：従業員がいない部署は非表示
-  const chartDepartments = visibleDepartments.filter(
-    (d) => d.submitted + d.notSubmitted > 0
+  const { establishments: divisionEstablishmentRows } = await listDivisionEstablishments(user.tenant_id);
+  const periodByEstablishmentId = new Map(
+    divisionEstablishmentRows.map((row) => [row.id, row.stress_check_period_list]),
   );
 
-  const est = stats.establishments;
-  const chartEstablishments: DepartmentStat[] = (est ?? [])
+  const establishmentTableRows: EstablishmentProgressTableRow[] = establishments.map((est) => ({
+    ...est,
+    stressCheckPeriod:
+      est.id === 'unassigned' ? null : periodByEstablishmentId.get(est.id) ?? null,
+  }));
+
+  const chartEstablishments: DepartmentStat[] = establishments
     .filter((d) => d.submitted + d.notSubmitted > 0)
     .map((d) => ({
       id: d.id,
@@ -59,8 +63,6 @@ export default async function StressCheckProgressPage() {
       inProgress: d.inProgress,
       rate: d.rate,
     }));
-
-  const formatDate = formatDateInJST;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
@@ -77,31 +79,6 @@ export default async function StressCheckProgressPage() {
         </Link>
       </div>
 
-      {/* 実施期間情報 */}
-      <div className="flex flex-wrap items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 px-6">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-bold text-gray-800">{period.title}</span>
-        </div>
-        <span className="text-gray-300">|</span>
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{formatDate(period.start_date)} 〜 {formatDate(period.end_date)}</span>
-        </div>
-        <span className={`
-          inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-          ${period.status === 'active'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            : 'bg-gray-100 text-gray-500 border border-gray-200'
-          }
-        `}>
-          {period.status === 'active' ? '● 実施中' : period.status}
-        </span>
-        <span className="text-xs text-gray-400 ml-auto">
-          {period.fiscal_year}年度
-        </span>
-      </div>
-
       {/* サマリーカード */}
       <SummaryCards
         totalEmployees={stats.totalEmployees}
@@ -112,53 +89,59 @@ export default async function StressCheckProgressPage() {
         consentRate={stats.consentRate}
       />
 
-      {/* 部署別進捗グラフ */}
+      {/* 拠点別進捗 */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100">
+        <div className="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-            <span className="w-1.5 h-5 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full" />
-            部署別 受検進捗
+            <span className="w-1.5 h-5 bg-linear-to-b from-teal-500 to-emerald-600 rounded-full" />
+            拠点別 受検進捗
           </h2>
-          <p className="text-xs text-gray-400 mt-1 ml-4">
-            各部署の受検済み・未受検人数を表示しています。
-            <span className="font-bold text-blue-600">青</span>＝受検済み人数、
-            <span className="font-bold text-red-600">赤</span>＝受検率（%）
-          </p>
+          <Link href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS} className="text-xs text-blue-600 hover:underline">
+            拠点マスタを編集
+          </Link>
         </div>
-        <div className="p-4">
-          <DepartmentChart departments={chartDepartments} />
-        </div>
-
-        {/* 部署別テーブル（階層表示） */}
-        {visibleDepartments.length > 0 && (
-          <div className="border-t border-gray-100">
-            <DepartmentProgressTree departments={visibleDepartments} />
+        {establishments.length > 0 ? (
+          <>
+            <div className="px-6 pt-4 text-xs text-gray-400">
+              <code className="font-mono text-[11px] text-gray-500">/adm/establishments</code> で登録した拠点単位で、対象者・受検済み・未受検・否提出を確認できます。
+              <span className="font-bold text-blue-600">青</span>＝受検済み人数、
+              <span className="font-bold text-red-600">赤</span>＝受検率（%）
+            </div>
+            <div className="p-4">
+              <DepartmentChart departments={chartEstablishments} />
+            </div>
+            <div className="border-t border-gray-100">
+              <EstablishmentProgressTable periodId={period.id} rows={establishmentTableRows} />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <div className="bg-teal-50 p-4 rounded-full mb-4">
+              <Building2 className="w-8 h-8 text-teal-500" />
+            </div>
+            <p className="text-base font-semibold text-gray-700">拠点が未登録です</p>
+            <p className="text-sm text-gray-400 mt-2">
+              拠点マスタを登録すると、拠点単位で進捗を確認できます。
+            </p>
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
+              className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              拠点マスタを登録
+            </Link>
           </div>
         )}
       </div>
-
-      {/* 拠点別進捗（マスタ登録時のみ） */}
-      {est && est.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-              <span className="w-1.5 h-5 bg-gradient-to-b from-teal-500 to-emerald-600 rounded-full" />
-              拠点別 受検進捗
-            </h2>
-            <Link href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS} className="text-xs text-blue-600 hover:underline">
-              拠点マスタを編集
-            </Link>
-          </div>
-          <div className="p-4">
-            <DepartmentChart departments={chartEstablishments} />
-          </div>
-        </div>
-      )}
 
       {/* リマインドアクション */}
       <ReminderAction
         periodId={period.id}
         notSubmittedCount={stats.notSubmittedCount}
+        establishmentOptions={establishments.map((e) => ({
+          id: e.id,
+          name: e.name,
+          notSubmittedCount: e.notSubmitted,
+        }))}
       />
     </div>
   );
@@ -168,12 +151,12 @@ export default async function StressCheckProgressPage() {
 function PageHeader() {
   return (
     <div className="relative pl-5">
-      <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-violet-500 rounded-full" />
+      <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-linear-to-b from-blue-500 to-violet-500 rounded-full" />
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
         ストレスチェック進捗管理
       </h1>
       <p className="text-sm text-gray-500 mt-1 font-medium pl-0.5">
-        全社の受検状況をリアルタイムで確認
+        拠点ごとの受検状況をリアルタイムで確認
       </p>
     </div>
   );

@@ -1,9 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-
-// Supabase の型推論が深すぎるため、クエリ用に any でラップ
-async function getSupabase() {
-  return (await createClient()) as any
-}
+import { buildEmployeeEstablishmentMap } from '@/lib/stress/resolve-establishment'
 import type {
   GroupAnalysisDepartment,
   GroupAnalysisSummary,
@@ -11,7 +7,14 @@ import type {
   DepartmentStat,
   ProgressStats,
   EstablishmentProgressStat,
+  NotSubmittedEmployee,
 } from './types'
+import { buildEstablishmentProgressStats } from './progress-establishments'
+
+// Supabase の型推論が深すぎるため、クエリ用に any でラップ
+async function getSupabase() {
+  return (await createClient()) as any
+}
 
 export type GroupData = {
   division_id: string
@@ -348,10 +351,10 @@ export async function getProgressStats(
     .select('employee_id, status, consent_to_employer')
     .eq('period_id', periodId)
 
-  const submittedEmployeeIds = new Set(
+  const submittedEmployeeIds = new Set<string>(
     (submissions ?? [])
       .filter((s) => s.status === 'submitted')
-      .map((s) => s.employee_id)
+      .map((s) => String(s.employee_id))
   )
 
   // 対象者数・受検済み・未受検を is_eligible でフィルタ
@@ -381,87 +384,8 @@ export async function getProgressStats(
       (s) => s.status === 'submitted' && s.consent_to_employer === true
     ).length ?? 0
 
-  // 部署一覧取得
-  const { data: divisions } = await supabase
-    .from('divisions')
-    .select('id, parent_id, name, layer')
-    .eq('tenant_id', tenantId)
-
-  // 部署別: 対象者（eligible）のみで集計
-  const empByDiv = new Map<string, { id: string; division_id: string | null }[]>()
-  for (const e of targetEmployees) {
-    const did = e.division_id ?? 'unassigned'
-    if (!empByDiv.has(did)) empByDiv.set(did, [])
-    empByDiv.get(did)!.push(e)
-  }
-
-  type DivRow = { id: string; parent_id: string | null; name: string | null; layer: number | null }
-  const divById = new Map<string, DivRow>(
-    (divisions ?? []).map((d) => [d.id, d as DivRow])
-  )
-
-  // empByDiv に存在するが divisions に無い division_id を補完（従業員の division_id が正しく参照される）
-  const orphanDivIds = [...empByDiv.keys()].filter(
-    (id) => id !== 'unassigned' && !divById.has(id)
-  )
-  if (orphanDivIds.length > 0) {
-    const { data: orphanDivs } = await supabase
-      .from('divisions')
-      .select('id, parent_id, name, layer')
-      .in('id', orphanDivIds)
-    for (const d of (orphanDivs ?? []) as DivRow[]) {
-      divById.set(d.id, d)
-    }
-  }
-
-  // 全部署（divisions + 対象者がいる部署）を対象に集計
-  const allDivIds = new Set([
-    ...(divisions ?? []).map((d) => d.id),
-    ...empByDiv.keys(),
-  ])
+  // この画面は拠点別進捗を主軸にするため、部署別ツリー用の集計は行わない。
   const departments: DepartmentStat[] = []
-  for (const divId of allDivIds) {
-    if (divId === 'unassigned') continue
-    const d = divById.get(divId)
-    const emps = empByDiv.get(divId) ?? []
-    const submitted = emps.filter((e) => submittedEmployeeIds.has(e.id)).length
-    const notSubmitted = emps.length - submitted
-    const inProgress =
-      submissions?.filter(
-        (s) =>
-          emps.some((e) => e.id === s.employee_id) && s.consent_to_employer === false
-      ).length ?? 0
-    departments.push({
-      id: divId,
-      parent_id: d?.parent_id ?? null,
-      name: d?.name ?? '不明',
-      submitted,
-      notSubmitted,
-      inProgress,
-      rate: emps.length ? Math.round((submitted / emps.length) * 100) : 0,
-      layer: d?.layer ?? null,
-    })
-  }
-
-  // 未配属（対象者のみ）
-  const unassigned = empByDiv.get('unassigned') ?? []
-  if (unassigned.length > 0) {
-    const submitted = unassigned.filter((e) => submittedEmployeeIds.has(e.id)).length
-    departments.push({
-      id: 'unassigned',
-      parent_id: null,
-      name: '未配属',
-      submitted,
-      notSubmitted: unassigned.length - submitted,
-      inProgress:
-        submissions?.filter(
-          (s) =>
-            unassigned.some((e) => e.id === s.employee_id) &&
-            s.consent_to_employer === false
-        ).length ?? 0,
-      rate: unassigned.length ? Math.round((submitted / unassigned.length) * 100) : 0,
-    })
-  }
 
   // 拠点別（マスタがあれば）
   const { data: estMaster } = await supabase
@@ -478,56 +402,22 @@ export async function getProgressStats(
         .select('division_establishment_id, division_id')
         .eq('tenant_id', tenantId),
     ])
-    const { buildEmployeeEstablishmentMap } = await import('@/lib/stress/resolve-establishment')
     const estMap = buildEmployeeEstablishmentMap(
       targetEmployees,
       tenantId,
       (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
       divRowsForEst ?? [],
     )
-    const byEst = new Map<string, { id: string; division_id: string | null }[]>()
-    for (const e of targetEmployees) {
-      const estId = estMap.get(e.id)
-      const key = estId ?? 'unassigned'
-      if (!byEst.has(key)) byEst.set(key, [])
-      byEst.get(key)!.push(e)
-    }
-    establishments = []
-    for (const est of estMaster) {
-      const emps = byEst.get(est.id) ?? []
-      if (emps.length === 0) continue
-      const submitted = emps.filter((e) => submittedEmployeeIds.has(e.id)).length
-      const notSubmitted = emps.length - submitted
-      const inProgress =
-        submissions?.filter(
-          (s) =>
-            emps.some((x) => x.id === s.employee_id) && s.consent_to_employer === false
-        ).length ?? 0
-      establishments.push({
+    establishments = buildEstablishmentProgressStats({
+      establishments: estMaster.map((est: { id: string; name: string | null }) => ({
         id: est.id,
-        name: est.name,
-        submitted,
-        notSubmitted,
-        inProgress,
-        rate: emps.length ? Math.round((submitted / emps.length) * 100) : 0,
-      })
-    }
-    const unasEst = byEst.get('unassigned') ?? []
-    if (unasEst.length > 0) {
-      const submitted = unasEst.filter((e) => submittedEmployeeIds.has(e.id)).length
-      establishments.push({
-        id: 'unassigned',
-        name: '拠点未割当',
-        submitted,
-        notSubmitted: unasEst.length - submitted,
-        inProgress:
-          submissions?.filter(
-            (s) =>
-              unasEst.some((x) => x.id === s.employee_id) && s.consent_to_employer === false
-          ).length ?? 0,
-        rate: unasEst.length ? Math.round((submitted / unasEst.length) * 100) : 0,
-      })
-    }
+        name: est.name ?? '名称未設定',
+      })),
+      employees: targetEmployees,
+      submittedEmployeeIds,
+      submissions: submissions ?? [],
+      employeeEstablishmentMap: estMap,
+    })
   }
 
   return {
@@ -545,7 +435,8 @@ export async function getProgressStats(
 /** 未受検者一覧を取得（氏名・社員番号・部署・役職） */
 export async function getNotSubmittedEmployees(
   tenantId: string,
-  periodId: string
+  periodId: string,
+  establishmentId?: string
 ) {
   const supabase = await getSupabase()
 
@@ -561,10 +452,12 @@ export async function getNotSubmittedEmployees(
     (submissions ?? []).map((s: { employee_id: string }) => s.employee_id)
   )
 
-  const { data: employees } = await supabase
+  const { data: employees, error: employeesError } = await supabase
     .from('employees')
     .select('id, name, employee_no, job_title, division_id')
     .eq('tenant_id', tenantId)
+
+  if (employeesError) throw employeesError
 
   const allEmployees = employees ?? []
   const targetEmployees = eligibleIds
@@ -579,33 +472,73 @@ export async function getNotSubmittedEmployees(
     return []
   }
 
-  const { data: rows } = await supabase
-    .from('employees')
-    .select(`
-      id,
-      name,
-      employee_no,
-      job_title,
-      division_id,
-      division:division_id(id, name)
-    `)
-    .in('id', notSubmittedIds)
-    .order('employee_no', { ascending: true })
+  const [divisionsResult, anchorsResult, establishmentsResult] =
+    await Promise.all([
+      supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
+      supabase
+        .from('division_establishment_anchors')
+        .select('division_establishment_id, division_id')
+        .eq('tenant_id', tenantId),
+      supabase.from('division_establishments').select('id, name').eq('tenant_id', tenantId),
+    ])
 
-  return (rows ?? []).map((r: any) => ({
-    id: r.id,
-    name: r.name ?? null,
-    employee_no: r.employee_no ?? null,
-    job_title: r.job_title ?? null,
-    division_id: r.division_id ?? null,
-    division_name: r.division?.name ?? null,
-  }))
+  if (divisionsResult.error) throw divisionsResult.error
+  if (anchorsResult.error) throw anchorsResult.error
+  if (establishmentsResult.error) throw establishmentsResult.error
+
+  const divRowsForEst = divisionsResult.data
+  const anchorRows = anchorsResult.data
+  const estRows = establishmentsResult.data
+  const divNameById = new Map(
+    ((divRowsForEst ?? []) as { id: string; name: string | null }[]).map((division) => [
+      division.id,
+      division.name,
+    ]),
+  )
+
+  const estMap = buildEmployeeEstablishmentMap(
+    allEmployees,
+    tenantId,
+    (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
+    divRowsForEst ?? [],
+  )
+  const estNameById = new Map(
+    ((estRows ?? []) as { id: string; name: string | null }[]).map((est) => [
+      est.id,
+      est.name ?? '名称未設定',
+    ]),
+  )
+
+  return targetEmployees
+    .filter((employee) => !submittedEmployeeIds.has(employee.id))
+    .sort((a, b) => (a.employee_no ?? '').localeCompare(b.employee_no ?? '', 'ja'))
+    .map((r): NotSubmittedEmployee => {
+      const resolvedEstablishmentId = estMap.get(r.id) ?? null
+      return {
+        id: r.id,
+        name: r.name ?? null,
+        employee_no: r.employee_no ?? null,
+        job_title: r.job_title ?? null,
+        division_id: r.division_id ?? null,
+        division_name: r.division_id ? (divNameById.get(r.division_id) ?? null) : null,
+        establishment_id: resolvedEstablishmentId,
+        establishment_name: resolvedEstablishmentId
+          ? (estNameById.get(resolvedEstablishmentId) ?? '名称未設定')
+          : '拠点未割当',
+      }
+    })
+    .filter((employee) => {
+      if (!establishmentId) return true
+      if (establishmentId === 'unassigned') return employee.establishment_id === null
+      return employee.establishment_id === establishmentId
+    })
 }
 
 /** リマインド送信用：未受検者の id, name, user_id を取得（メール送信先の特定に使用） */
 export async function getNotSubmittedEmployeesForReminder(
   tenantId: string,
-  periodId: string
+  periodId: string,
+  establishmentId?: string | null
 ): Promise<{ id: string; name: string | null; user_id: string | null }[]> {
   const supabase = await getSupabase()
 
@@ -623,7 +556,7 @@ export async function getNotSubmittedEmployeesForReminder(
 
   const { data: employees } = await supabase
     .from('employees')
-    .select('id, name, user_id')
+    .select('id, name, user_id, division_id')
     .eq('tenant_id', tenantId)
 
   const allEmployees = employees ?? []
@@ -631,13 +564,39 @@ export async function getNotSubmittedEmployeesForReminder(
     ? allEmployees.filter((e) => eligibleIds.has(e.id))
     : allEmployees
 
-  return targetEmployees
-    .filter((e) => !submittedEmployeeIds.has(e.id))
-    .map((e) => ({
-      id: e.id,
-      name: e.name ?? null,
-      user_id: e.user_id ?? null,
-    }))
+  let notSubmitted = targetEmployees.filter((e) => !submittedEmployeeIds.has(e.id))
+
+  if (establishmentId) {
+    const [divisionsResult, anchorsResult] = await Promise.all([
+      supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
+      supabase
+        .from('division_establishment_anchors')
+        .select('division_establishment_id, division_id')
+        .eq('tenant_id', tenantId),
+    ])
+
+    if (divisionsResult.error) throw divisionsResult.error
+    if (anchorsResult.error) throw anchorsResult.error
+
+    const estMap = buildEmployeeEstablishmentMap(
+      allEmployees,
+      tenantId,
+      (anchorsResult.data ?? []) as { division_establishment_id: string; division_id: string }[],
+      divisionsResult.data ?? [],
+    )
+
+    notSubmitted = notSubmitted.filter((e) => {
+      const resolved = estMap.get(e.id) ?? null
+      if (establishmentId === 'unassigned') return resolved === null
+      return resolved === establishmentId
+    })
+  }
+
+  return notSubmitted.map((e) => ({
+    id: e.id,
+    name: e.name ?? null,
+    user_id: e.user_id ?? null,
+  }))
 }
 
 /** ヒートマップページ用：期間指定で集団分析データを取得（10名未満はマスキング） */

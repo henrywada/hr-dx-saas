@@ -22,7 +22,7 @@ export default async function SubMenuPage({
   }
 
   return (
-    <Suspense fallback={<RouteSegmentLoading />}>
+    <Suspense fallback={<RouteSegmentLoading embedded />}>
       <AdminSubMenuCategoryContent categoryId={categoryId} />
     </Suspense>
   );

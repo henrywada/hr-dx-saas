@@ -21,7 +21,7 @@ export default async function SubMenuPage({
   }
 
   return (
-    <Suspense fallback={<RouteSegmentLoading />}>
+    <Suspense fallback={<RouteSegmentLoading embedded />}>
       <SaasSubMenuCategoryContent categoryId={categoryId} />
     </Suspense>
   );

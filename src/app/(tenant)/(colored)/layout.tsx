@@ -1,10 +1,15 @@
-import React from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
+import React, { Suspense } from 'react'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading'
 
 export default function TenantColoredLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  return <AppLayout variant="admin">{children}</AppLayout>;
+  return (
+    <Suspense fallback={<RouteSegmentLoading />}>
+      <AppLayout variant="admin">{children}</AppLayout>
+    </Suspense>
+  )
 }

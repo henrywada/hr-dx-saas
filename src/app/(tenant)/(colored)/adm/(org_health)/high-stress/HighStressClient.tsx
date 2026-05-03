@@ -1,17 +1,26 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { HighStressEmployee } from '@/features/adm/high-stress/queries';
-import { updateInterviewRecord } from '@/features/adm/high-stress/actions';
-import { formatDateInJST } from '@/lib/datetime';
+import { useState, useTransition } from 'react'
+import { HighStressEmployee, DivisionNode } from '@/features/adm/high-stress/queries'
+import { updateInterviewRecord } from '@/features/adm/high-stress/actions'
+import { formatDateInJST } from '@/lib/datetime'
 import {
-  UserCog, FileWarning, CalendarCheck, CheckCircle2, Clock, X
-} from 'lucide-react';
+  UserCog,
+  FileWarning,
+  CalendarCheck,
+  CheckCircle2,
+  Clock,
+  X,
+  BarChart2,
+} from 'lucide-react'
+import HighStressLayerChart from '@/features/adm/high-stress/components/HighStressLayerChart'
 
 interface Props {
-  data: HighStressEmployee[];
-  periodId: string;
-  isDoctor: false; // 人事用は常に false
+  data: HighStressEmployee[]
+  periodId: string
+  isDoctor: false // 人事用は常に false
+  divisionStats: DivisionNode[]
+  submissionCounts: Record<string, number>
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,34 +28,48 @@ const STATUS_LABELS: Record<string, string> = {
   scheduled: '面談予定',
   completed: '面談実施済',
   cancelled: 'キャンセル',
-};
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-gray-100 text-gray-600',
   scheduled: 'bg-amber-100 text-amber-700',
   completed: 'bg-emerald-100 text-emerald-700',
   cancelled: 'bg-rose-100 text-rose-700',
-};
+}
 
-export default function HighStressClient({ data, periodId, isDoctor }: Props) {
-  const [selectedUser, setSelectedUser] = useState<HighStressEmployee | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+export default function HighStressClient({
+  data,
+  periodId,
+  isDoctor,
+  divisionStats,
+  submissionCounts,
+}: Props) {
+  const [selectedUser, setSelectedUser] = useState<HighStressEmployee | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const [status, setStatus] = useState<string>('pending');
-  const [date, setDate] = useState<string>('');
+  const [status, setStatus] = useState<string>('pending')
+  const [date, setDate] = useState<string>('')
+
+  // 組織層セレクター用（null = 全て = ルート表示）
+  const allLayers = Array.from(
+    new Set(divisionStats.filter(d => d.layer != null).map(d => d.layer as number))
+  ).sort((a, b) => a - b)
+  const [selectedLayer, setSelectedLayer] = useState<number | null>(
+    allLayers[allLayers.length - 1] ?? null
+  )
 
   const handleOpenDetail = (emp: HighStressEmployee) => {
-    setSelectedUser(emp);
-    const rec = emp.interview_record;
-    setStatus(rec?.interview_status || 'pending');
-    setDate(rec?.interview_date || '');
-    setIsModalOpen(true);
-  };
+    setSelectedUser(emp)
+    const rec = emp.interview_record
+    setStatus(rec?.interview_status || 'pending')
+    setDate(rec?.interview_date || '')
+    setIsModalOpen(true)
+  }
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
+    e.preventDefault()
+    if (!selectedUser) return
 
     startTransition(async () => {
       try {
@@ -56,14 +79,14 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
           doctor_opinion: null,
           work_measures: null,
           measure_details: null,
-        });
-        alert('面談記録を保存しました。');
-        setIsModalOpen(false);
+        })
+        alert('面談記録を保存しました。')
+        setIsModalOpen(false)
       } catch (err: unknown) {
-        alert((err as Error).message || '更新中にエラーが発生しました。');
+        alert((err as Error).message || '更新中にエラーが発生しました。')
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -113,7 +136,7 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                   </td>
                 </tr>
               ) : (
-                data.map((emp) => (
+                data.map(emp => (
                   <tr key={emp.employee_id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-bold text-gray-900">{emp.name}</div>
@@ -136,7 +159,9 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[emp.interview_record?.interview_status || 'pending']}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[emp.interview_record?.interview_status || 'pending']}`}
+                      >
                         {STATUS_LABELS[emp.interview_record?.interview_status || 'pending']}
                       </span>
                       {emp.interview_record?.interview_date && (
@@ -163,6 +188,39 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
         </div>
       </div>
 
+      {/* 組織層別チャート */}
+      {divisionStats.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-sm font-bold text-gray-700 whitespace-nowrap">
+              <BarChart2 className="w-4 h-4 text-indigo-500" />
+              組織層を選択
+            </span>
+            <select
+              value={selectedLayer ?? ''}
+              onChange={e => {
+                const v = e.target.value
+                setSelectedLayer(v === '' ? null : Number(v))
+              }}
+              className="text-sm rounded-lg border border-gray-200 py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-gray-700"
+            >
+              <option value="">全て</option>
+              {allLayers.map(layer => (
+                <option key={layer} value={layer}>
+                  層{layer}
+                </option>
+              ))}
+            </select>
+          </div>
+          <HighStressLayerChart
+            data={data}
+            divisionStats={divisionStats}
+            submissionCounts={submissionCounts}
+            targetLayer={selectedLayer}
+          />
+        </div>
+      )}
+
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -171,7 +229,10 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                 <UserCog className="text-gray-600 w-5 h-5" />
                 面談サポート・記録管理
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-md transition-colors">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-md transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -179,12 +240,18 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex justify-between">
                 <div>
-                  <div className="text-xs text-blue-800 font-semibold uppercase tracking-wider mb-1">対象社員</div>
+                  <div className="text-xs text-blue-800 font-semibold uppercase tracking-wider mb-1">
+                    対象社員
+                  </div>
                   <div className="text-xl font-bold text-gray-900">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-600 mt-0.5">{selectedUser.division_name || '部署未設定'}</div>
-                    {selectedUser.establishment_name && (
-                      <div className="text-xs text-teal-700 mt-1">拠点: {selectedUser.establishment_name}</div>
-                    )}
+                  <div className="text-sm text-gray-600 mt-0.5">
+                    {selectedUser.division_name || '部署未設定'}
+                  </div>
+                  {selectedUser.establishment_name && (
+                    <div className="text-xs text-teal-700 mt-1">
+                      拠点: {selectedUser.establishment_name}
+                    </div>
+                  )}
                 </div>
                 {selectedUser.interview_requested && (
                   <div className="text-right flex flex-col items-end">
@@ -193,7 +260,9 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                       面談希望あり
                     </span>
                     <span className="text-xs text-gray-400 mt-2">
-                      {selectedUser.interview_requested_at ? formatDateInJST(selectedUser.interview_requested_at) : ''}
+                      {selectedUser.interview_requested_at
+                        ? formatDateInJST(selectedUser.interview_requested_at)
+                        : ''}
                     </span>
                   </div>
                 )}
@@ -205,7 +274,7 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                     <label className="text-xs font-bold text-gray-700">面談ステータス</label>
                     <select
                       value={status}
-                      onChange={(e) => setStatus(e.target.value)}
+                      onChange={e => setStatus(e.target.value)}
                       className="w-full text-sm rounded-lg border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     >
                       <option value="pending">未対応</option>
@@ -222,7 +291,7 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
                     <input
                       type="date"
                       value={date}
-                      onChange={(e) => setDate(e.target.value)}
+                      onChange={e => setDate(e.target.value)}
                       className="w-full text-sm rounded-lg border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     />
                   </div>
@@ -264,5 +333,5 @@ export default function HighStressClient({ data, periodId, isDoctor }: Props) {
         </div>
       )}
     </div>
-  );
+  )
 }

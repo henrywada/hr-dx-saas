@@ -6,7 +6,9 @@ export interface HighStressEmployee {
   employee_id: string
   name: string
   employee_no: string | null
+  division_id: string | null
   division_name: string | null
+  division_layer: number | null
   /** 拠点マスタ解決結果（未登録時は null） */
   establishment_name: string | null
   score_a: number | null
@@ -52,12 +54,12 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
       employee_id,
       employees (
         id, name, employee_no, division_id,
-        divisions (name)
+        divisions (name, layer)
       ),
       stress_check_interviews (
         id, interview_status, doctor_opinion, work_measures, measure_details, interview_date
       )
-    `,
+    `
     )
     .eq('period_id', periodId)
     .eq('is_high_stress', true)
@@ -69,7 +71,7 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
 
   if (results.length === 0) return []
 
-  const empIds = results.map((r) => r.employee_id)
+  const empIds = results.map(r => r.employee_id)
   const { data: submissions, error: subError } = await supabase
     .from('stress_check_submissions')
     .select('employee_id, consent_to_employer')
@@ -82,9 +84,9 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
     return []
   }
 
-  const consentedEmpIds = new Set(submissions.map((s) => s.employee_id))
+  const consentedEmpIds = new Set(submissions.map(s => s.employee_id))
 
-  const filtered = results.filter((r) => consentedEmpIds.has(r.employee_id))
+  const filtered = results.filter(r => consentedEmpIds.has(r.employee_id))
 
   let estNameByEmp = new Map<string, string | null>()
   if (tenantId) {
@@ -92,13 +94,16 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
       .from('division_establishments')
       .select('id, name')
       .eq('tenant_id', tenantId)
-    const { data: divRows } = await supabase.from('divisions').select('id, parent_id').eq('tenant_id', tenantId)
+    const { data: divRows } = await supabase
+      .from('divisions')
+      .select('id, parent_id')
+      .eq('tenant_id', tenantId)
     const { data: anchorRows } = await supabase
       .from('division_establishment_anchors')
       .select('division_establishment_id, division_id')
       .eq('tenant_id', tenantId)
     if (estMaster && estMaster.length > 0 && divRows) {
-      const empsMini = filtered.map((r) => {
+      const empsMini = filtered.map(r => {
         const emp = r.employees as { division_id?: string | null } | null
         return { id: r.employee_id, division_id: emp?.division_id ?? null }
       })
@@ -106,21 +111,24 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
         empsMini,
         tenantId,
         (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
-        divRows as { id: string; parent_id: string | null }[],
+        divRows as { id: string; parent_id: string | null }[]
       )
-      const nameByEstId = new Map((estMaster as { id: string; name: string }[]).map((e) => [e.id, e.name]))
+      const nameByEstId = new Map(
+        (estMaster as { id: string; name: string }[]).map(e => [e.id, e.name])
+      )
       for (const r of filtered) {
         const eid = estMap.get(r.employee_id)
-        estNameByEmp.set(r.employee_id, eid ? nameByEstId.get(eid) ?? null : null)
+        estNameByEmp.set(r.employee_id, eid ? (nameByEstId.get(eid) ?? null) : null)
       }
     }
   }
 
-  return filtered.map((r) => {
+  return filtered.map(r => {
     const emp = r.employees as {
       name?: string | null
       employee_no?: string | null
-      divisions?: { name?: string | null } | null
+      division_id?: string | null
+      divisions?: { name?: string | null; layer?: number | null } | null
     } | null
     const div = emp?.divisions
     const interviewList = (r.stress_check_interviews as unknown[]) || []
@@ -131,7 +139,9 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
       employee_id: r.employee_id,
       name: emp?.name || '不明',
       employee_no: emp?.employee_no || null,
+      division_id: emp?.division_id ?? null,
       division_name: div?.name || null,
+      division_layer: div?.layer ?? null,
       establishment_name: estNameByEmp.get(r.employee_id) ?? null,
       score_a: r.score_a,
       score_b: r.score_b,
@@ -152,4 +162,58 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
         : null,
     }
   })
+}
+
+export interface DivisionNode {
+  id: string
+  name: string
+  parent_id: string | null
+  layer: number | null
+  directEmployeeCount: number
+}
+
+/** テナントの全部署を従業員直接所属数付きで返す */
+export async function getDivisionsWithCounts(tenantId: string): Promise<DivisionNode[]> {
+  const supabase = await createClient()
+  const [{ data: divs }, { data: emps }] = await Promise.all([
+    supabase.from('divisions').select('id, name, parent_id, layer').eq('tenant_id', tenantId),
+    supabase.from('employees').select('division_id').eq('tenant_id', tenantId),
+  ])
+  if (!divs) return []
+  const countMap = new Map<string, number>()
+  emps?.forEach(e => {
+    if (e.division_id) countMap.set(e.division_id, (countMap.get(e.division_id) ?? 0) + 1)
+  })
+  return divs.map(d => ({
+    id: d.id,
+    name: d.name,
+    parent_id: d.parent_id ?? null,
+    layer: d.layer ?? null,
+    directEmployeeCount: countMap.get(d.id) ?? 0,
+  }))
+}
+
+/** ストレスチェック期間の部署別提出者数（直接所属のみ）を返す */
+export async function getSubmissionCountsByDivision(
+  tenantId: string,
+  periodId: string
+): Promise<Record<string, number>> {
+  const supabase = await createClient()
+  const { data: submissions } = await supabase
+    .from('stress_check_submissions')
+    .select('employee_id')
+    .eq('period_id', periodId)
+  if (!submissions || submissions.length === 0) return {}
+  const empIds = submissions.map(s => s.employee_id)
+  const { data: emps } = await supabase
+    .from('employees')
+    .select('id, division_id')
+    .eq('tenant_id', tenantId)
+    .in('id', empIds)
+  if (!emps) return {}
+  const result: Record<string, number> = {}
+  emps.forEach(e => {
+    if (e.division_id) result[e.division_id] = (result[e.division_id] ?? 0) + 1
+  })
+  return result
 }

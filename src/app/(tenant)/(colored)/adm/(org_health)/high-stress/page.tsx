@@ -1,32 +1,26 @@
-import { getServerUser } from '@/lib/auth/server-user';
-import { redirect } from 'next/navigation';
-import { APP_ROUTES } from '@/config/routes';
-import { getActivePeriod } from '@/features/stress-check/queries';
-import { getHighStressEmployees } from '@/features/adm/high-stress/queries';
-import HighStressClient from './HighStressClient';
-import { HeartHandshake, ShieldAlert } from 'lucide-react';
+import { getServerUser } from '@/lib/auth/server-user'
+import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
+import { getActivePeriod } from '@/features/stress-check/queries'
+import {
+  getHighStressEmployees,
+  getDivisionsWithCounts,
+  getSubmissionCountsByDivision,
+  DivisionNode,
+} from '@/features/adm/high-stress/queries'
+import HighStressClient from './HighStressClient'
+import { HeartHandshake, ShieldAlert } from 'lucide-react'
 
 /**
  * 人事向け高ストレス者一覧（実名表示）
- * hr / hr_manager のみアクセス可能
  */
 export default async function HighStressPage() {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user?.tenant_id) {
-    redirect(APP_ROUTES.AUTH.LOGIN);
+    redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const isHr =
-    user.appRole === 'hr' || user.appRole === 'hr_manager';
-
-  // 開発・テスト用: ENABLE_HIGH_STRESS_PREVIEW=true で任意ロールからアクセス可能
-  const allowPreview = process.env.ENABLE_HIGH_STRESS_PREVIEW === 'true';
-
-  if (!isHr && !allowPreview) {
-    redirect(APP_ROUTES.TENANT.ADMIN);
-  }
-
-  const period = await getActivePeriod();
+  const period = await getActivePeriod()
 
   if (!period) {
     return (
@@ -44,10 +38,14 @@ export default async function HighStressPage() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
-  const employees = await getHighStressEmployees(period.id);
+  const [employees, divisionStats, submissionCounts] = await Promise.all([
+    getHighStressEmployees(period.id),
+    getDivisionsWithCounts(user.tenant_id),
+    getSubmissionCountsByDivision(user.tenant_id, period.id),
+  ])
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
@@ -55,11 +53,10 @@ export default async function HighStressPage() {
       <div className="flex items-start gap-3 bg-blue-50/70 border border-blue-200 rounded-2xl p-4 px-5">
         <ShieldAlert className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-bold text-blue-800">
-            高ストレス者フォローアップ運用について
-          </p>
+          <p className="text-sm font-bold text-blue-800">高ストレス者フォローアップ運用について</p>
           <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-            ※本ページでは「高ストレス判定」かつ「事業者への結果提供に同意」した従業員のみが表示されます。<br />
+            ※本ページでは「高ストレス判定」かつ「事業者への結果提供に同意」した従業員のみが表示されます。
+            <br />
             人事担当者はステータスの確認・更新のみ可能です。詳細な面談記録は産業医・保健師専用画面で管理されています。
           </p>
         </div>
@@ -68,9 +65,11 @@ export default async function HighStressPage() {
         data={employees}
         periodId={period.id}
         isDoctor={false}
+        divisionStats={divisionStats}
+        submissionCounts={submissionCounts}
       />
     </div>
-  );
+  )
 }
 
 function PageHeader() {
@@ -81,9 +80,7 @@ function PageHeader() {
         <HeartHandshake className="w-8 h-8 text-blue-600" />
         高ストレス者一覧（人事用）
       </h1>
-      <p className="text-sm text-gray-500 mt-1 font-medium pl-11">
-        ステータス確認・更新
-      </p>
+      <p className="text-sm text-gray-500 mt-1 font-medium pl-11">ステータス確認・更新</p>
     </div>
-  );
+  )
 }

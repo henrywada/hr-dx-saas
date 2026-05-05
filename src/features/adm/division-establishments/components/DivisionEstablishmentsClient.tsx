@@ -185,12 +185,20 @@ export default function DivisionEstablishmentsClient({
   return (
     <div className="space-y-8 max-w-5xl">
       <div className="flex flex-wrap gap-3 items-center justify-between">
-        <Link
-          href={APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_GROUP_ANALYSIS}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          ← 集団分析ダッシュボード
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_GROUP_ANALYSIS}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← 集団分析ダッシュボード
+          </Link>
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_PROGRAM_TARGETS}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← 実施対象者管理
+          </Link>
+        </div>
         <button
           type="button"
           onClick={() => setMinSettingsOpen(true)}

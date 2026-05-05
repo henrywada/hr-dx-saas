@@ -24,6 +24,14 @@ export function ProgramInstanceTable({ instances }: ProgramInstanceTableProps) {
         <p className="text-sm text-slate-500 mt-1">
           ストレスチェック・パルスサーベイ等の実施枠ごとに対象者を管理します
         </p>
+        <div className="flex justify-end mt-3">
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
+            className="text-sm text-blue-600 hover:underline whitespace-nowrap"
+          >
+            ← 実施拠点の登録
+          </Link>
+        </div>
       </div>
 
       {/* ストレスチェック */}
@@ -44,6 +52,15 @@ export function ProgramInstanceTable({ instances }: ProgramInstanceTableProps) {
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
                     実施枠
                   </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    年度
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+                    実施拠点
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    状態
+                  </th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
                     期間
                   </th>
@@ -62,7 +79,19 @@ export function ProgramInstanceTable({ instances }: ProgramInstanceTableProps) {
                     className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-slate-800">{inst.label}</td>
-                    <td className="px-4 py-3 text-slate-600">{inst.subLabel ?? '-'}</td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {inst.fiscalYearDisplay ?? '—'}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-slate-600 max-w-56 truncate"
+                      title={inst.establishmentDisplay ?? undefined}
+                    >
+                      {inst.establishmentDisplay ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {inst.statusDisplay ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{inst.subLabel ?? '—'}</td>
                     <td className="px-4 py-3 text-right text-slate-600">
                       {inst.targetCount ?? 0}名
                     </td>
@@ -101,6 +130,15 @@ export function ProgramInstanceTable({ instances }: ProgramInstanceTableProps) {
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
                     実施枠
                   </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    年度
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+                    実施拠点
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    状態
+                  </th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
                     期限
                   </th>
@@ -119,7 +157,19 @@ export function ProgramInstanceTable({ instances }: ProgramInstanceTableProps) {
                     className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-slate-800">{inst.label}</td>
-                    <td className="px-4 py-3 text-slate-600">{inst.subLabel ?? '-'}</td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {inst.fiscalYearDisplay ?? '—'}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-slate-600 max-w-56 truncate"
+                      title={inst.establishmentDisplay ?? undefined}
+                    >
+                      {inst.establishmentDisplay ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {inst.statusDisplay ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{inst.subLabel ?? '—'}</td>
                     <td className="px-4 py-3 text-right text-slate-600">
                       {inst.targetCount ?? 0}名
                     </td>

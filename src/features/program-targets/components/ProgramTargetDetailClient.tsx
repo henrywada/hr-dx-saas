@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Users, RefreshCw, Trash2, Plus } from 'lucide-react'
+import { Users, RefreshCw, Trash2, Plus } from 'lucide-react'
 import type { ProgramTargetWithEmployee } from '../types'
 import type { ProgramType } from '../types'
 import { PROGRAM_TYPE_LABELS } from '../constants'
@@ -96,11 +96,6 @@ export function ProgramTargetDetailClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href={basePath} className="hover:underline flex items-center gap-1">
-          <ArrowLeft className="w-4 h-4" />
-          実施対象者管理
-        </Link>
-        <span>/</span>
         <span>{typeLabel}</span>
         <span>/</span>
         <span>{instanceLabel}</span>
@@ -109,8 +104,13 @@ export function ProgramTargetDetailClient({
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{instanceLabel}</h1>
         <p className="text-sm text-slate-500 mt-1">
-          {typeLabel}の対象者を管理します（test/developer/company_doctor は除外）
+          登録がない場合、全従業員が対象になります。
         </p>
+        <div className="flex justify-end mt-3">
+          <Link href={basePath} className="text-sm text-blue-600 hover:underline whitespace-nowrap">
+            ← 戻る
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -131,7 +131,7 @@ export function ProgramTargetDetailClient({
               <span className="text-xs text-slate-400 ml-2">({targets.length}件)</span>
             </span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => setAddDialogOpen(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"

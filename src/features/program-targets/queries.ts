@@ -10,6 +10,20 @@ async function getSupabase() {
   return (await createClient()) as any
 }
 
+/** ストレスチェック実施期間ステータスの表示ラベル */
+function stressPeriodStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'active':
+      return '実施中'
+    case 'closed':
+      return '終了'
+    case 'draft':
+      return '準備中'
+    default:
+      return status?.trim() || '—'
+  }
+}
+
 /** プログラム種別のラベル（re-export for Server 利用） */
 export { PROGRAM_TYPE_LABELS } from './constants'
 
@@ -22,10 +36,21 @@ export async function getProgramInstancesForAdmin(
 
   const results: ProgramInstanceRow[] = []
 
-  // ストレスチェック期間
+  // ストレスチェック期間（実施拠点名は division_establishments を JOIN）
   const { data: scPeriods } = await supabase
     .from('stress_check_periods')
-    .select('id, fiscal_year, title, start_date, end_date')
+    .select(
+      `
+      id,
+      fiscal_year,
+      title,
+      start_date,
+      end_date,
+      status,
+      division_establishment_id,
+      division_establishments ( name )
+    `,
+    )
     .eq('tenant_id', tenantId)
     .order('fiscal_year', { ascending: false })
 
@@ -34,12 +59,20 @@ export async function getProgramInstancesForAdmin(
     const end = p.end_date ? new Date(p.end_date).toLocaleDateString('ja-JP') : ''
     const subLabel = start && end ? `${start} - ${end}` : undefined
     const targetCount = await getTargetCount(supabase, 'stress_check', p.id)
+    const nestedEst = (p as { division_establishments?: { name: string } | { name: string }[] })
+      .division_establishments
+    const estNameRaw = Array.isArray(nestedEst) ? nestedEst[0]?.name : nestedEst?.name
+    const establishmentDisplay =
+      p.division_establishment_id == null ? 'テナント全体（旧データ）' : estNameRaw?.trim() || '—'
     results.push({
       programType: 'stress_check',
       instanceId: p.id,
       label: p.title || `${p.fiscal_year}年度ストレスチェック`,
       subLabel,
       targetCount,
+      fiscalYearDisplay: `${p.fiscal_year}年度`,
+      establishmentDisplay,
+      statusDisplay: stressPeriodStatusLabel(p.status),
     })
   }
 
@@ -61,6 +94,9 @@ export async function getProgramInstancesForAdmin(
       label: p.title || p.survey_period,
       subLabel: deadline ? `期限: ${deadline}` : undefined,
       targetCount,
+      fiscalYearDisplay: '—',
+      establishmentDisplay: '—',
+      statusDisplay: '—',
     })
   }
 

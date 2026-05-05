@@ -12,6 +12,12 @@ export type ProgramInstanceRow = {
   label: string
   subLabel?: string
   targetCount?: number
+  /** 一覧「年度」（ストレス: fiscal_year + 年度。パルス等: 未定義時は UI で「—」） */
+  fiscalYearDisplay?: string
+  /** 一覧「実施拠点」列（ストレス: 事業場名／拠点未設定はテナント全体表記） */
+  establishmentDisplay?: string
+  /** 一覧「状態」（ストレス: draft/active/closed の日本語。パルス等は未定義で「—」） */
+  statusDisplay?: string
 }
 
 /** 対象者一覧用（従業員情報結合） */

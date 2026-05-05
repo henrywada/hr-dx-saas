@@ -169,6 +169,7 @@ export interface DivisionNode {
   name: string
   parent_id: string | null
   layer: number | null
+  code: string | null
   directEmployeeCount: number
 }
 
@@ -176,7 +177,7 @@ export interface DivisionNode {
 export async function getDivisionsWithCounts(tenantId: string): Promise<DivisionNode[]> {
   const supabase = await createClient()
   const [{ data: divs }, { data: emps }] = await Promise.all([
-    supabase.from('divisions').select('id, name, parent_id, layer').eq('tenant_id', tenantId),
+    supabase.from('divisions').select('id, name, parent_id, layer, code').eq('tenant_id', tenantId),
     supabase.from('employees').select('division_id').eq('tenant_id', tenantId),
   ])
   if (!divs) return []
@@ -189,6 +190,7 @@ export async function getDivisionsWithCounts(tenantId: string): Promise<Division
     name: d.name,
     parent_id: d.parent_id ?? null,
     layer: d.layer ?? null,
+    code: d.code ?? null,
     directEmployeeCount: countMap.get(d.id) ?? 0,
   }))
 }

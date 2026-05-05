@@ -2,6 +2,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import { getImprovementPlans } from '@/features/adm/ai-workplace-improvement/queries'
+import { getDistinctDivisionLayers } from '@/features/adm/stress-check/queries'
 import AIWorkplaceImprovementClient from './components/AIWorkplaceImprovementClient'
 
 /**
@@ -16,12 +17,16 @@ export default async function AIWorkplaceImprovementPage() {
     redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const plans = await getImprovementPlans(user.tenant_id)
+  const [plans, availableLayers] = await Promise.all([
+    getImprovementPlans(user.tenant_id),
+    getDistinctDivisionLayers(user.tenant_id),
+  ])
 
   return (
     <AIWorkplaceImprovementClient
       tenantId={user.tenant_id}
       initialPlans={plans}
+      availableLayers={availableLayers}
     />
   )
 }

@@ -51,13 +51,32 @@ export default function HighStressClient({
   const [status, setStatus] = useState<string>('pending')
   const [date, setDate] = useState<string>('')
 
-  // 組織層セレクター用（null = 全て = ルート表示）
-  const allLayers = Array.from(
-    new Set(divisionStats.filter(d => d.layer != null).map(d => d.layer as number))
-  ).sort((a, b) => a - b)
-  const [selectedLayer, setSelectedLayer] = useState<number | null>(
-    allLayers[allLayers.length - 1] ?? null
+  // 組織層セレクター用（layer列は不正確なためparent_idからBFS深さを計算）
+  const depthMap = new Map<string, number>()
+  for (const d of divisionStats) {
+    if (d.parent_id === null) depthMap.set(d.id, 1)
+  }
+  let depthChanged = true
+  while (depthChanged) {
+    depthChanged = false
+    for (const d of divisionStats) {
+      if (!depthMap.has(d.id) && d.parent_id != null && depthMap.has(d.parent_id)) {
+        depthMap.set(d.id, depthMap.get(d.parent_id)! + 1)
+        depthChanged = true
+      }
+    }
+  }
+  const allLayers = Array.from(new Set(depthMap.values()))
+    .filter(v => v > 1)
+    .sort((a, b) => a - b)
+  // ドロップダウンの選択値（文字列）: 'all'=全て, ''=層1(ルート), '2'=層2, '3'=層3...
+  const [selectValue, setSelectValue] = useState<string>(
+    allLayers.length > 0 ? allLayers[0].toString() : 'all'
   )
+  const selectedLayer: number | null =
+    selectValue === 'all' || selectValue === '' ? null : Number(selectValue)
+  const layerLabel =
+    selectValue === 'all' ? '全て' : selectValue === '' ? '層1' : `層${Number(selectValue)}`
 
   const handleOpenDetail = (emp: HighStressEmployee) => {
     setSelectedUser(emp)
@@ -197,14 +216,12 @@ export default function HighStressClient({
               組織層を選択
             </span>
             <select
-              value={selectedLayer ?? ''}
-              onChange={e => {
-                const v = e.target.value
-                setSelectedLayer(v === '' ? null : Number(v))
-              }}
+              value={selectValue}
+              onChange={e => setSelectValue(e.target.value)}
               className="text-sm rounded-lg border border-gray-200 py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-gray-700"
             >
-              <option value="">全て</option>
+              <option value="all">全て</option>
+              <option value="">層1</option>
               {allLayers.map(layer => (
                 <option key={layer} value={layer}>
                   層{layer}
@@ -217,6 +234,7 @@ export default function HighStressClient({
             divisionStats={divisionStats}
             submissionCounts={submissionCounts}
             targetLayer={selectedLayer}
+            layerLabel={layerLabel}
           />
         </div>
       )}

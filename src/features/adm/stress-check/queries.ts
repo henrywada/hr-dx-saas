@@ -45,7 +45,8 @@ export type GroupTrendRow = {
 export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
   const supabase = await getSupabase()
 
-  let query = supabase.from('stress_group_analysis')
+  let query = supabase
+    .from('stress_group_analysis')
     .select(
       `
       division_id,
@@ -77,7 +78,10 @@ export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
     throw error
   }
 
-  return ((data || []) as any[]).map((r) => ({ ...r, analysis_kind: 'division' as const })) as GroupData[]
+  return ((data || []) as any[]).map(r => ({
+    ...r,
+    analysis_kind: 'division' as const,
+  })) as GroupData[]
 }
 
 /** 拠点別・最新期間の集団分析 */
@@ -102,12 +106,14 @@ export async function getGroupAnalysisEstablishment(tenantId: string, latestOnly
       is_latest,
       is_suppressed,
       min_respondents_threshold
-    `,
+    `
     )
     .eq('tenant_id', tenantId)
 
   if (latestOnly) {
-    query = query.eq('is_latest', true).order('health_risk', { ascending: false, nullsFirst: false })
+    query = query
+      .eq('is_latest', true)
+      .order('health_risk', { ascending: false, nullsFirst: false })
   } else {
     query = query.order('period_name', { ascending: true })
   }
@@ -117,7 +123,7 @@ export async function getGroupAnalysisEstablishment(tenantId: string, latestOnly
     console.error('getGroupAnalysisEstablishment', error)
     throw error
   }
-  return ((data || []) as any[]).map((r) => ({
+  return ((data || []) as any[]).map(r => ({
     division_id: r.division_establishment_id,
     name: r.name,
     tenant_id: r.tenant_id,
@@ -145,7 +151,7 @@ export async function getGroupTrendEstablishment(tenantId: string): Promise<Grou
     .eq('tenant_id', tenantId)
     .order('period_name', { ascending: true })
 
-  return ((data || []) as any[]).map((r) => ({
+  return ((data || []) as any[]).map(r => ({
     division_id: r.division_establishment_id,
     name: r.name,
     period_name: r.period_name,
@@ -153,27 +159,43 @@ export async function getGroupTrendEstablishment(tenantId: string): Promise<Grou
   }))
 }
 
-/** 組織レイヤー一覧（集団分析の軸選択用） */
+/** 組織レイヤー一覧（集団分析の軸選択用）
+ *  layer 列は不正確な場合があるため parent_id から実際の木深さを計算して返す
+ */
 export async function getDistinctDivisionLayers(tenantId: string): Promise<number[]> {
   const supabase = await getSupabase()
   const { data } = await supabase
     .from('divisions')
-    .select('layer')
+    .select('id, parent_id')
     .eq('tenant_id', tenantId)
-    .not('layer', 'is', null)
 
-  const set = new Set<number>()
-  for (const row of data ?? []) {
-    if (row.layer != null) set.add(row.layer as number)
+  const nodes = (data ?? []) as { id: string; parent_id: string | null }[]
+
+  // parent_id を辿って実際の深さを計算（ルート = 1）
+  const depthMap = new Map<string, number>()
+  for (const n of nodes) {
+    if (n.parent_id === null) depthMap.set(n.id, 1)
   }
-  return Array.from(set).sort((a, b) => a - b)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const n of nodes) {
+      if (!depthMap.has(n.id) && n.parent_id != null && depthMap.has(n.parent_id)) {
+        depthMap.set(n.id, depthMap.get(n.parent_id)! + 1)
+        changed = true
+      }
+    }
+  }
+
+  const depths = new Set<number>(depthMap.values())
+  return Array.from(depths).sort((a, b) => a - b)
 }
 
 /** 指定レイヤーでの集団分析（RPC） */
 export async function getGroupAnalysisForLayer(
   tenantId: string,
   layer: number,
-  latestOnly = true,
+  latestOnly = true
 ): Promise<GroupData[]> {
   const supabase = await getSupabase()
   const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
@@ -186,12 +208,12 @@ export async function getGroupAnalysisForLayer(
   }
   let rows = (data || []) as any[]
   if (latestOnly) {
-    rows = rows.filter((r) => r.is_latest)
+    rows = rows.filter(r => r.is_latest)
     rows.sort((a, b) => (b.health_risk ?? -1) - (a.health_risk ?? -1))
   } else {
     rows.sort((a, b) => a.period_name.localeCompare(b.period_name))
   }
-  return rows.map((r) => ({
+  return rows.map(r => ({
     division_id: r.rollup_division_id,
     name: r.name,
     tenant_id: r.tenant_id,
@@ -212,7 +234,7 @@ export async function getGroupAnalysisForLayer(
 
 export async function getGroupTrendForLayer(
   tenantId: string,
-  layer: number,
+  layer: number
 ): Promise<GroupTrendRow[]> {
   const supabase = await getSupabase()
   const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
@@ -223,7 +245,7 @@ export async function getGroupTrendForLayer(
     console.error('getGroupTrendForLayer', error)
     throw error
   }
-  return ((data || []) as any[]).map((r) => ({
+  return ((data || []) as any[]).map(r => ({
     division_id: r.rollup_division_id,
     name: r.name,
     period_name: r.period_name,
@@ -352,9 +374,7 @@ export async function getProgressStats(
     .eq('period_id', periodId)
 
   const submittedEmployeeIds = new Set<string>(
-    (submissions ?? [])
-      .filter((s) => s.status === 'submitted')
-      .map((s) => String(s.employee_id))
+    (submissions ?? []).filter(s => s.status === 'submitted').map(s => String(s.employee_id))
   )
 
   // 対象者数・受検済み・未受検を is_eligible でフィルタ
@@ -365,14 +385,14 @@ export async function getProgressStats(
 
   const allEmployees = employees ?? []
   const targetEmployees = eligibleIds
-    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    ? allEmployees.filter(e => eligibleIds.has(e.id))
     : allEmployees
 
   // 対象者数: program_targets と提出済み employee_id の和集合（非合意者を含める）
   const allTargetIds = new Set([
     ...(eligibleIds ?? []),
     ...submittedEmployeeIds,
-    ...targetEmployees.map((e) => e.id),
+    ...targetEmployees.map(e => e.id),
   ])
   const totalEmployees = allTargetIds.size
   const submittedCount = submittedEmployeeIds.size
@@ -380,9 +400,7 @@ export async function getProgressStats(
 
   // 同意数: 受検完了（status='submitted'）かつ同意した者のみ（対象者全体から集計）
   const consentCount =
-    submissions?.filter(
-      (s) => s.status === 'submitted' && s.consent_to_employer === true
-    ).length ?? 0
+    submissions?.filter(s => s.status === 'submitted' && s.consent_to_employer === true).length ?? 0
 
   // この画面は拠点別進捗を主軸にするため、部署別ツリー用の集計は行わない。
   const departments: DepartmentStat[] = []
@@ -406,7 +424,7 @@ export async function getProgressStats(
       targetEmployees,
       tenantId,
       (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
-      divRowsForEst ?? [],
+      divRowsForEst ?? []
     )
     establishments = buildEstablishmentProgressStats({
       establishments: estMaster.map((est: { id: string; name: string | null }) => ({
@@ -461,26 +479,25 @@ export async function getNotSubmittedEmployees(
 
   const allEmployees = employees ?? []
   const targetEmployees = eligibleIds
-    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    ? allEmployees.filter(e => eligibleIds.has(e.id))
     : allEmployees
 
   const notSubmittedIds = targetEmployees
-    .filter((e) => !submittedEmployeeIds.has(e.id))
-    .map((e) => e.id)
+    .filter(e => !submittedEmployeeIds.has(e.id))
+    .map(e => e.id)
 
   if (notSubmittedIds.length === 0) {
     return []
   }
 
-  const [divisionsResult, anchorsResult, establishmentsResult] =
-    await Promise.all([
-      supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
-      supabase
-        .from('division_establishment_anchors')
-        .select('division_establishment_id, division_id')
-        .eq('tenant_id', tenantId),
-      supabase.from('division_establishments').select('id, name').eq('tenant_id', tenantId),
-    ])
+  const [divisionsResult, anchorsResult, establishmentsResult] = await Promise.all([
+    supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
+    supabase
+      .from('division_establishment_anchors')
+      .select('division_establishment_id, division_id')
+      .eq('tenant_id', tenantId),
+    supabase.from('division_establishments').select('id, name').eq('tenant_id', tenantId),
+  ])
 
   if (divisionsResult.error) throw divisionsResult.error
   if (anchorsResult.error) throw anchorsResult.error
@@ -490,27 +507,27 @@ export async function getNotSubmittedEmployees(
   const anchorRows = anchorsResult.data
   const estRows = establishmentsResult.data
   const divNameById = new Map(
-    ((divRowsForEst ?? []) as { id: string; name: string | null }[]).map((division) => [
+    ((divRowsForEst ?? []) as { id: string; name: string | null }[]).map(division => [
       division.id,
       division.name,
-    ]),
+    ])
   )
 
   const estMap = buildEmployeeEstablishmentMap(
     allEmployees,
     tenantId,
     (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
-    divRowsForEst ?? [],
+    divRowsForEst ?? []
   )
   const estNameById = new Map(
-    ((estRows ?? []) as { id: string; name: string | null }[]).map((est) => [
+    ((estRows ?? []) as { id: string; name: string | null }[]).map(est => [
       est.id,
       est.name ?? '名称未設定',
-    ]),
+    ])
   )
 
   return targetEmployees
-    .filter((employee) => !submittedEmployeeIds.has(employee.id))
+    .filter(employee => !submittedEmployeeIds.has(employee.id))
     .sort((a, b) => (a.employee_no ?? '').localeCompare(b.employee_no ?? '', 'ja'))
     .map((r): NotSubmittedEmployee => {
       const resolvedEstablishmentId = estMap.get(r.id) ?? null
@@ -527,7 +544,7 @@ export async function getNotSubmittedEmployees(
           : '拠点未割当',
       }
     })
-    .filter((employee) => {
+    .filter(employee => {
       if (!establishmentId) return true
       if (establishmentId === 'unassigned') return employee.establishment_id === null
       return employee.establishment_id === establishmentId
@@ -561,10 +578,10 @@ export async function getNotSubmittedEmployeesForReminder(
 
   const allEmployees = employees ?? []
   const targetEmployees = eligibleIds
-    ? allEmployees.filter((e) => eligibleIds.has(e.id))
+    ? allEmployees.filter(e => eligibleIds.has(e.id))
     : allEmployees
 
-  let notSubmitted = targetEmployees.filter((e) => !submittedEmployeeIds.has(e.id))
+  let notSubmitted = targetEmployees.filter(e => !submittedEmployeeIds.has(e.id))
 
   if (establishmentId) {
     const [divisionsResult, anchorsResult] = await Promise.all([
@@ -582,17 +599,17 @@ export async function getNotSubmittedEmployeesForReminder(
       allEmployees,
       tenantId,
       (anchorsResult.data ?? []) as { division_establishment_id: string; division_id: string }[],
-      divisionsResult.data ?? [],
+      divisionsResult.data ?? []
     )
 
-    notSubmitted = notSubmitted.filter((e) => {
+    notSubmitted = notSubmitted.filter(e => {
       const resolved = estMap.get(e.id) ?? null
       if (establishmentId === 'unassigned') return resolved === null
       return resolved === establishmentId
     })
   }
 
-  return notSubmitted.map((e) => ({
+  return notSubmitted.map(e => ({
     id: e.id,
     name: e.name ?? null,
     user_id: e.user_id ?? null,
@@ -650,7 +667,7 @@ export async function getGroupAnalysisData(
   }
 
   const raw = (rows || []) as GroupData[]
-  const departments: GroupAnalysisDepartment[] = raw.map((r) => {
+  const departments: GroupAnalysisDepartment[] = raw.map(r => {
     const isMasked = r.member_count < minRespondents
     const hr = r.high_stress_rate ?? 0
     const scaleAverages: ScaleAverages = {
@@ -676,7 +693,7 @@ export async function getGroupAnalysisData(
     }
   })
 
-  const visible = departments.filter((d) => !d.isMasked)
+  const visible = departments.filter(d => !d.isMasked)
   const totalRespondents = visible.reduce((s, d) => s + d.respondentCount, 0)
   const totalHighStress = visible.reduce((s, d) => s + d.highStressCount, 0)
   const healthRiskSum = visible.reduce(
@@ -687,9 +704,8 @@ export async function getGroupAnalysisData(
   const summary: GroupAnalysisSummary = {
     totalRespondents,
     overallHighStressRate: totalRespondents ? (totalHighStress / totalRespondents) * 100 : 0,
-    overallHealthRisk:
-      totalRespondents > 0 ? healthRiskSum / totalRespondents : null,
-    maskedDepartmentCount: departments.filter((d) => d.isMasked).length,
+    overallHealthRisk: totalRespondents > 0 ? healthRiskSum / totalRespondents : null,
+    maskedDepartmentCount: departments.filter(d => d.isMasked).length,
     overallScaleAverages: computeOverallScaleAverages(visible),
   }
 
@@ -713,9 +729,7 @@ function createEmptySummary(): GroupAnalysisSummary {
   }
 }
 
-function computeOverallScaleAverages(
-  depts: GroupAnalysisDepartment[]
-): ScaleAverages {
+function computeOverallScaleAverages(depts: GroupAnalysisDepartment[]): ScaleAverages {
   const n = depts.length
   if (n === 0) return createEmptySummary().overallScaleAverages
 

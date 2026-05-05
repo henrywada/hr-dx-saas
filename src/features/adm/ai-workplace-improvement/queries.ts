@@ -14,6 +14,7 @@ export type ImprovementPlan = {
   id: string
   tenant_id: string
   division_id: string | null
+  division_name?: string | null
   source_analysis_id: string | null
   ai_generated_title: string
   ai_reason: string
@@ -34,7 +35,7 @@ export async function getImprovementPlans(tenantId: string): Promise<Improvement
   const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('workplace_improvement_plans')
-    .select('*')
+    .select('*, divisions(name)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -46,6 +47,7 @@ export async function getImprovementPlans(tenantId: string): Promise<Improvement
   return (data || []).map((row: Record<string, unknown>) => ({
     ...row,
     proposed_actions: Array.isArray(row.proposed_actions) ? row.proposed_actions : [],
+    division_name: (row.divisions as { name?: string } | null)?.name ?? null,
   })) as ImprovementPlan[]
 }
 

@@ -8,6 +8,7 @@ interface Props {
   divisionStats: DivisionNode[]
   submissionCounts: Record<string, number>
   targetLayer: number | null
+  layerLabel: string
 }
 
 interface ChartEntry {
@@ -51,6 +52,24 @@ function buildPath(id: string, nodeMap: Map<string, DivisionNode>): string {
   return parts.join('/')
 }
 
+function buildDepthMap(nodes: DivisionNode[]): Map<string, number> {
+  const depthMap = new Map<string, number>()
+  for (const n of nodes) {
+    if (n.parent_id === null) depthMap.set(n.id, 1)
+  }
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const n of nodes) {
+      if (!depthMap.has(n.id) && n.parent_id != null && depthMap.has(n.parent_id)) {
+        depthMap.set(n.id, depthMap.get(n.parent_id)! + 1)
+        changed = true
+      }
+    }
+  }
+  return depthMap
+}
+
 function getEffectiveDivisions(
   nodes: DivisionNode[],
   targetLayer: number | null,
@@ -59,12 +78,14 @@ function getEffectiveDivisions(
   if (targetLayer === null) {
     return nodes.filter(n => n.parent_id === null)
   }
-  const atLayer = nodes.filter(n => n.layer === targetLayer)
+  // layer列は不正確なためparent_idから実際の深さを計算
+  const depthMap = buildDepthMap(nodes)
+  const atDepth = nodes.filter(n => depthMap.get(n.id) === targetLayer)
   const shallowLeaves = nodes.filter(n => {
-    if (n.layer === null || n.layer >= targetLayer) return false
-    return (childrenMap.get(n.id) ?? []).length === 0
+    const depth = depthMap.get(n.id) ?? 0
+    return depth < targetLayer && (childrenMap.get(n.id) ?? []).length === 0
   })
-  return [...atLayer, ...shallowLeaves]
+  return [...atDepth, ...shallowLeaves]
 }
 
 // 3層重ね棒: 灰（全体）→ 青（実施者）→ 赤（高ストレス者）
@@ -111,34 +132,53 @@ export default function HighStressLayerChart({
   divisionStats,
   submissionCounts,
   targetLayer,
+  layerLabel,
 }: Props) {
   const nodeMap = new Map(divisionStats.map(d => [d.id, d]))
   const childrenMap = buildChildrenMap(divisionStats)
   const effectiveDivs = getEffectiveDivisions(divisionStats, targetLayer, childrenMap)
 
-  const chartData: ChartEntry[] = effectiveDivs
-    .map(div => {
-      const descendantIds = getAllDescendantIds(div.id, childrenMap)
-      const totalEmployees = Array.from(descendantIds).reduce(
-        (sum, id) => sum + (nodeMap.get(id)?.directEmployeeCount ?? 0),
-        0
-      )
-      const submittedCount = Array.from(descendantIds).reduce(
-        (sum, id) => sum + (submissionCounts[id] ?? 0),
-        0
-      )
-      const highStressCount = data.filter(
-        e => e.division_id && descendantIds.has(e.division_id)
-      ).length
-      return {
-        path: buildPath(div.id, nodeMap),
-        divisionName: div.name,
-        totalEmployees,
-        submittedCount,
-        highStressCount,
-      }
-    })
-    .sort((a, b) => b.totalEmployees - a.totalEmployees)
+  const chartData: ChartEntry[] =
+    layerLabel === '全て'
+      ? (() => {
+          const allIds = new Set(divisionStats.map(d => d.id))
+          const totalEmployees = Array.from(allIds).reduce(
+            (sum, id) => sum + (nodeMap.get(id)?.directEmployeeCount ?? 0),
+            0
+          )
+          const submittedCount = Array.from(allIds).reduce(
+            (sum, id) => sum + (submissionCounts[id] ?? 0),
+            0
+          )
+          const highStressCount = data.filter(e => e.division_id != null).length
+          return [
+            { path: '全て', divisionName: '全て', totalEmployees, submittedCount, highStressCount },
+          ]
+        })()
+      : effectiveDivs
+          .slice()
+          .sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
+          .map(div => {
+            const descendantIds = getAllDescendantIds(div.id, childrenMap)
+            const totalEmployees = Array.from(descendantIds).reduce(
+              (sum, id) => sum + (nodeMap.get(id)?.directEmployeeCount ?? 0),
+              0
+            )
+            const submittedCount = Array.from(descendantIds).reduce(
+              (sum, id) => sum + (submissionCounts[id] ?? 0),
+              0
+            )
+            const highStressCount = data.filter(
+              e => e.division_id && descendantIds.has(e.division_id)
+            ).length
+            return {
+              path: buildPath(div.id, nodeMap),
+              divisionName: div.name,
+              totalEmployees,
+              submittedCount,
+              highStressCount,
+            }
+          })
 
   const maxTotal = Math.max(...chartData.map(d => d.totalEmployees), 1)
   const chartHeight = Math.max(180, chartData.length * 64)
@@ -150,9 +190,7 @@ export default function HighStressLayerChart({
           <span className="w-1.5 h-5 bg-linear-to-b from-indigo-500 to-purple-600 rounded-full" />
           組織別 実施者・未実施者・高ストレス者分布
         </h2>
-        <p className="text-xs text-gray-400 mt-0.5 pl-4">
-          {targetLayer === null ? '全組織（ルートレベル）の集計' : `組織層 ${targetLayer} の集計`}
-        </p>
+        <p className="text-xs text-gray-400 mt-0.5 pl-4">{layerLabel}の集計</p>
       </div>
 
       <div className="flex gap-5 text-xs font-medium text-gray-600">

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 
-export type GroupAnalysisMode = 'division' | 'establishment' | 'layer'
+export type GroupAnalysisMode = 'all' | 'division' | 'establishment' | 'layer'
 
 type Props = {
   mode: GroupAnalysisMode
@@ -51,12 +51,12 @@ export default function GroupAnalysisToolbar({ mode, layer, layers }: Props) {
               id="stress-layer-select"
               className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
               value={mode === 'layer' && layer != null ? String(layer) : String(layers[0])}
-              onChange={(e) => {
+              onChange={e => {
                 const v = e.target.value
                 router.push(`${base}?mode=layer&layer=${encodeURIComponent(v)}`)
               }}
             >
-              {layers.map((L) => (
+              {layers.map(L => (
                 <option key={L} value={L}>
                   レイヤー {L}
                 </option>
@@ -68,7 +68,9 @@ export default function GroupAnalysisToolbar({ mode, layer, layers }: Props) {
       <p className="text-xs text-slate-500">
         {mode === 'division' && '所属部署を単位に集計します。'}
         {mode === 'establishment' && '拠点マスタに基づき事業場単位で集計します。'}
-        {mode === 'layer' && layer != null && `階層ツリー上の深さ ${layer} のノード単位で subtree を集約します。`}
+        {mode === 'layer' &&
+          layer != null &&
+          `階層ツリー上の深さ ${layer} のノード単位で subtree を集約します。`}
       </p>
     </div>
   )

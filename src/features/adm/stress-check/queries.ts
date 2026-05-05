@@ -32,6 +32,7 @@ export type GroupData = {
   is_latest: boolean
   is_suppressed?: boolean
   analysis_kind?: 'division' | 'establishment' | 'layer'
+  code?: string | null
 }
 
 /** 推移グラフ用：期間×グループの健康リスク */
@@ -262,6 +263,102 @@ export async function getGroupTrend(tenantId: string): Promise<GroupTrendRow[]> 
     .order('period_name', { ascending: true })
 
   return (data || []) as GroupTrendRow[]
+}
+
+/** 全社集計（1行）: 部署別データを人数加重平均で合算して返す */
+export async function getGroupAnalysisCompanyWide(tenantId: string): Promise<GroupData[]> {
+  const divisions = await getGroupAnalysis(tenantId, true)
+  const totalMembers = divisions.reduce((s, d) => s + d.member_count, 0)
+
+  const wavg = (key: keyof GroupData): number | null => {
+    const valid = divisions.filter(d => !d.is_suppressed && d[key] != null)
+    if (valid.length === 0) return null
+    const tm = valid.reduce((s, d) => s + d.member_count, 0)
+    return valid.reduce((s, d) => s + (d[key] as number) * d.member_count, 0) / tm
+  }
+
+  const prevValid = divisions.filter(d => !d.is_suppressed && d.previous_health_risk != null)
+  const prevTm = prevValid.reduce((s, d) => s + d.member_count, 0)
+  const previousAvg =
+    prevTm > 0
+      ? prevValid.reduce((s, d) => s + (d.previous_health_risk as number) * d.member_count, 0) /
+        prevTm
+      : null
+
+  const periodName = divisions.find(d => d.period_name)?.period_name ?? ''
+  const isSuppressed = divisions.every(d => d.is_suppressed)
+
+  return [
+    {
+      division_id: 'all',
+      name: '全社',
+      tenant_id: tenantId,
+      member_count: totalMembers,
+      high_stress_rate: wavg('high_stress_rate'),
+      health_risk: wavg('health_risk'),
+      workload: wavg('workload'),
+      control: wavg('control'),
+      supervisor_support: wavg('supervisor_support'),
+      colleague_support: wavg('colleague_support'),
+      previous_health_risk: previousAvg,
+      period_name: periodName,
+      is_latest: true,
+      is_suppressed: isSuppressed,
+      analysis_kind: 'division' as const,
+    },
+  ]
+}
+
+/** divisions テーブルをフラットに取得（フルパス構築・コードソート用） */
+export async function getDivisionsFlat(tenantId: string) {
+  const supabase = await getSupabase()
+  const { data } = await supabase
+    .from('divisions')
+    .select('id, name, parent_id, code')
+    .eq('tenant_id', tenantId)
+  return (data ?? []) as {
+    id: string
+    name: string
+    parent_id: string | null
+    code: string | null
+  }[]
+}
+
+/** division_id から上位層を遡って ` / ` 区切りのフルパスを生成 */
+export function buildFullPath(
+  divisionId: string,
+  divisions: { id: string; name: string; parent_id: string | null }[]
+): string {
+  const divMap = new Map(divisions.map(d => [d.id, d]))
+  const parts: string[] = []
+  let current = divMap.get(divisionId)
+  while (current) {
+    parts.unshift(current.name)
+    current = current.parent_id ? divMap.get(current.parent_id) : undefined
+  }
+  return parts.join(' / ')
+}
+
+/** 全社推移（1系列）: 期間ごとに健康リスクを単純平均して返す */
+export async function getGroupTrendCompanyWide(tenantId: string): Promise<GroupTrendRow[]> {
+  const rows = await getGroupTrend(tenantId)
+
+  const byPeriod = new Map<string, number[]>()
+  for (const r of rows) {
+    if (r.health_risk == null) continue
+    const arr = byPeriod.get(r.period_name) ?? []
+    arr.push(r.health_risk)
+    byPeriod.set(r.period_name, arr)
+  }
+
+  return Array.from(byPeriod.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([period_name, vals]) => ({
+      division_id: 'all',
+      name: '全社',
+      period_name,
+      health_risk: Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10,
+    }))
 }
 // ========== ここから追加（既存の getGroupAnalysis の下に貼り付け）==========
 

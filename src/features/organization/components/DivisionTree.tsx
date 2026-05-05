@@ -51,12 +51,27 @@ function buildTree(
   }
   roots.forEach(calcTotal);
 
-  // layer順にソート
+  /** 兄弟ノードの並び: divisions.code 昇順（numeric）、未入力コードは後方、同順位は layer → 部署名 */
+  function compareDivisionTreeSiblings(a: DivisionTreeNode, b: DivisionTreeNode): number {
+    const codeA = a.code?.trim() ?? '';
+    const codeB = b.code?.trim() ?? '';
+    if (codeA && codeB) {
+      const cmp = codeA.localeCompare(codeB, 'ja', { numeric: true });
+      if (cmp !== 0) return cmp;
+    } else if (codeA !== codeB) {
+      if (!codeA) return 1;
+      if (!codeB) return -1;
+    }
+    const layerCmp = (a.layer || 0) - (b.layer || 0);
+    if (layerCmp !== 0) return layerCmp;
+    return (a.name || '').localeCompare(b.name || '', 'ja');
+  }
+
   function sortChildren(node: DivisionTreeNode) {
-    node.children.sort((a, b) => (a.layer || 0) - (b.layer || 0));
+    node.children.sort(compareDivisionTreeSiblings);
     node.children.forEach(sortChildren);
   }
-  roots.sort((a, b) => (a.layer || 0) - (b.layer || 0));
+  roots.sort(compareDivisionTreeSiblings);
   roots.forEach(sortChildren);
 
   return roots;
@@ -110,12 +125,13 @@ function TreeNodeComponent({
           : <Folder className="w-4 h-4 text-blue-400 shrink-0" />
         }
 
-        {/* Division Name */}
+        {/* 部署名（レイヤー番号） */}
         <span
           className="text-sm font-medium text-slate-800 truncate flex-1"
           onClick={() => setExpanded(!expanded)}
         >
           {node.name || '名前未設定'}
+          ({node.layer != null ? node.layer : '—'}){' '}[{node.code?.trim() || '—'}]
         </span>
 
         {/* Employee Count Badge */}

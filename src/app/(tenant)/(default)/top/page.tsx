@@ -1,5 +1,13 @@
 import React from 'react'
-import { AlertCircle, Calendar, ChevronRight, Bell, CheckCircle2, Zap } from 'lucide-react'
+import {
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  Bell,
+  CheckCircle2,
+  ClipboardList,
+  Zap,
+} from 'lucide-react'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
 import {
@@ -7,6 +15,11 @@ import {
   getPendingAssignedQuestionnairesForTop,
   getTopAnnouncements,
 } from '@/features/dashboard/queries'
+import {
+  getActivePeriod,
+  checkStressCheckEligibility,
+  checkExistingResponse,
+} from '@/features/stress-check/queries'
 import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
 import QuickAccessCards from '../../(colored)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
@@ -20,11 +33,24 @@ export default async function DashboardPage() {
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
   const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
 
-  const [importantTask, announcements, pendingQuestionnaires] = await Promise.all([
+  const [importantTask, announcements, pendingQuestionnaires, activePeriod] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
     getPendingAssignedQuestionnairesForTop(user?.employee_id),
+    getActivePeriod(),
   ])
+
+  // ストレスチェック受検ボタン表示判定
+  let showStressCheckTask = false
+  let stressCheckAlreadyAnswered = false
+  if (activePeriod && user?.id) {
+    const [eligibility, alreadyAnswered] = await Promise.all([
+      checkStressCheckEligibility(activePeriod.id, user.id),
+      checkExistingResponse(activePeriod.id, user.id),
+    ])
+    showStressCheckTask = eligibility.eligible
+    stressCheckAlreadyAnswered = alreadyAnswered
+  }
 
   const displayName = user?.name || 'ゲスト'
 
@@ -89,6 +115,54 @@ export default async function DashboardPage() {
                 >
                   <CheckCircle2 className="w-5 h-5 mr-2 opacity-90" />
                   今すぐ回答する
+                  <ChevronRight className="w-5 h-5 ml-1 opacity-70 group-hover:translate-x-1.5 transition-transform" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ストレスチェック受検タスク */}
+      {showStressCheckTask && (
+        <div className="relative overflow-hidden bg-white rounded-2xl border-t-2 border-t-teal-500 border border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-backwards">
+          <div className="relative p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
+                    <ClipboardList className="w-3.5 h-3.5 mr-1" />
+                    ストレスチェック
+                  </span>
+                  {activePeriod?.end_date && (
+                    <span className="text-sm font-semibold text-slate-500 flex items-center">
+                      <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
+                      {String(activePeriod.end_date).split('T')[0].replace(/-/g, '/')} まで
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                  {stressCheckAlreadyAnswered
+                    ? '✅ 回答済み'
+                    : `【未回答】${activePeriod?.title ?? 'ストレスチェック'}`}
+                </h2>
+                {activePeriod?.comment && (
+                  <p className="text-slate-600 text-sm max-w-2xl leading-relaxed">
+                    {activePeriod.comment}
+                  </p>
+                )}
+              </div>
+              <div className="w-full sm:w-auto shrink-0 z-10">
+                <Link
+                  href="/stress-check"
+                  className={`flex items-center justify-center w-full sm:w-auto font-bold shadow-sm group h-14 px-8 rounded-xl text-base transition-colors ${
+                    stressCheckAlreadyAnswered
+                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-500/20'
+                  }`}
+                >
+                  <ClipboardList className="w-5 h-5 mr-2 opacity-90" />
+                  {stressCheckAlreadyAnswered ? '結果を確認する' : '今すぐ回答する'}
                   <ChevronRight className="w-5 h-5 ml-1 opacity-70 group-hover:translate-x-1.5 transition-transform" />
                 </Link>
               </div>

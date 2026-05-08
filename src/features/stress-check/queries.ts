@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { getServerUser } from '@/lib/auth/server-user';
+import { createClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/auth/server-user'
 import type {
   StressCheckPeriod,
   StressCheckQuestion,
@@ -8,49 +8,49 @@ import type {
   CategoryGroup,
   QuestionnaireType,
   CategoryCode,
-} from './types';
-import { CATEGORY_LABELS } from './types';
-import { calculateScoresFromResponses } from './score-calculator';
-import type { MergedResponse } from './score-calculator';
+} from './types'
+import { CATEGORY_LABELS } from './types'
+import { calculateScoresFromResponses } from './score-calculator'
+import type { MergedResponse } from './score-calculator'
 
 // --------------------------------------------------
 // 結果データ用の型
 // --------------------------------------------------
 export interface CategoryScore {
-  category: CategoryCode;
-  label: string;
-  score: number;
-  maxScore: number;
-  questionCount: number;
-  percentage: number;
+  category: CategoryCode
+  label: string
+  score: number
+  maxScore: number
+  questionCount: number
+  percentage: number
 }
 
 /** 尺度別スコア（scale_name 単位） */
 export interface ScaleScore {
-  scaleName: string;
-  rawScore: number;       // 素点（公式計算済み）
-  evalPoint: number;      // 5段階評価点（換算表により変換）
-  questionCount: number;
-  sumAnswers: number;     // 回答値合計（デバッグ用）
-  category: string;       // 所属カテゴリ A/B/C/D
+  scaleName: string
+  rawScore: number // 素点（公式計算済み）
+  evalPoint: number // 5段階評価点（換算表により変換）
+  questionCount: number
+  sumAnswers: number // 回答値合計（デバッグ用）
+  category: string // 所属カテゴリ A/B/C/D
 }
 
 export interface StressCheckResultData {
-  periodTitle: string;
-  periodId: string;
-  scores: CategoryScore[];
-  scaleScores: ScaleScore[];    // 尺度別スコア（全量）
-  totalScore: number;
-  totalMaxScore: number;
-  totalPercentage: number;
-  isHighStress: boolean;
-  answeredAt: string | null;
-  consentToEmployer: boolean;   // 事業者への結果提供同意
+  periodTitle: string
+  periodId: string
+  scores: CategoryScore[]
+  scaleScores: ScaleScore[] // 尺度別スコア（全量）
+  totalScore: number
+  totalMaxScore: number
+  totalPercentage: number
+  isHighStress: boolean
+  answeredAt: string | null
+  consentToEmployer: boolean // 事業者への結果提供同意
   /** stress_check_results.id（面談希望用） */
-  resultId?: string | null;
+  resultId?: string | null
   /** 面談希望の申出済みフラグ */
-  interviewRequested?: boolean;
-  interviewRequestedAt?: string | null;
+  interviewRequested?: boolean
+  interviewRequestedAt?: string | null
 }
 
 /**
@@ -66,7 +66,8 @@ export async function getMergedResponses(
 ): Promise<any[] | null> {
   const { data: responses, error: respError } = await db
     .from('stress_check_responses')
-    .select(`
+    .select(
+      `
       answer,
       answered_at,
       question_id,
@@ -79,12 +80,13 @@ export async function getMergedResponses(
         score_weights,
         scale_name
       )
-    `)
+    `
+    )
     .eq('period_id', periodId)
-    .eq('employee_id', employeeId);
+    .eq('employee_id', employeeId)
 
   if (!respError && responses && responses.length > 0) {
-    return responses;
+    return responses
   }
 
   // フォールバック: 回答と質問を別々に取得してマージ
@@ -92,29 +94,29 @@ export async function getMergedResponses(
     .from('stress_check_responses')
     .select('answer, answered_at, question_id')
     .eq('period_id', periodId)
-    .eq('employee_id', employeeId);
+    .eq('employee_id', employeeId)
 
   if (rawError || !rawResponses || rawResponses.length === 0) {
-    return null;
+    return null
   }
 
   const { data: allQuestions } = await db
     .from('stress_check_questions')
-    .select('id, category, question_no, question_text, is_reverse, score_weights, scale_name');
+    .select('id, category, question_no, question_text, is_reverse, score_weights, scale_name')
 
   if (!allQuestions || allQuestions.length === 0) {
-    return null;
+    return null
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const questionMap = new Map(allQuestions.map((q: any) => [q.id, q]));
+  const questionMap = new Map(allQuestions.map((q: any) => [q.id, q]))
   return rawResponses.map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (r: any) => ({
       ...r,
       stress_check_questions: questionMap.get(r.question_id) || null,
     })
-  );
+  )
 }
 
 /**
@@ -125,54 +127,55 @@ export async function getStressCheckResult(
   periodId: string,
   authUserId: string
 ): Promise<StressCheckResultData | null> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
-  // auth UUID → employees.id
+  // auth UUID → employees.id + sex
   const { data: employee } = await supabase
     .from('employees')
-    .select('id')
+    .select('id, sex')
     .eq('user_id', authUserId)
-    .single();
+    .single()
 
-  if (!employee) return null;
+  if (!employee) return null
 
-  const employeeId = employee.id;
+  const employeeId = employee.id
+  const gender: 'male' | 'female' = employee.sex === 'female' ? 'female' : 'male'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  const db = supabase as any
 
   // 実施期間情報を取得
   const { data: period } = await db
     .from('stress_check_periods')
     .select('*')
     .eq('id', periodId)
-    .single();
+    .single()
 
-  if (!period) return null;
+  if (!period) return null
 
-  const mergedResponses = await getMergedResponses(db, periodId, employeeId);
+  const mergedResponses = await getMergedResponses(db, periodId, employeeId)
   if (!mergedResponses || mergedResponses.length === 0) {
-    console.error('[StressCheck] No merged responses available');
-    return null;
+    console.error('[StressCheck] No merged responses available')
+    return null
   }
 
-  const calculated = calculateScoresFromResponses(mergedResponses as MergedResponse[]);
+  const calculated = calculateScoresFromResponses(mergedResponses as MergedResponse[], gender)
 
   // scale_scores からカテゴリ別集計を再構築（CategoryScore 用）
-  const categoryAgg: Record<string, { total: number; max: number; count: number }> = {};
+  const categoryAgg: Record<string, { total: number; max: number; count: number }> = {}
   for (const scale of calculated.scale_scores) {
-    const cat = scale.category;
-    if (!categoryAgg[cat]) categoryAgg[cat] = { total: 0, max: 0, count: 0 };
-    categoryAgg[cat].total += scale.sumAnswers;
-    categoryAgg[cat].max += scale.questionCount * 4;
-    categoryAgg[cat].count += scale.questionCount;
+    const cat = scale.category
+    if (!categoryAgg[cat]) categoryAgg[cat] = { total: 0, max: 0, count: 0 }
+    categoryAgg[cat].total += scale.sumAnswers
+    categoryAgg[cat].max += scale.questionCount * 4
+    categoryAgg[cat].count += scale.questionCount
   }
 
-  const categoryOrder: CategoryCode[] = ['A', 'B', 'C', 'D'];
+  const categoryOrder: CategoryCode[] = ['A', 'B', 'C', 'D']
   const scores: CategoryScore[] = categoryOrder
-    .filter((cat) => categoryAgg[cat])
-    .map((cat) => {
-      const s = categoryAgg[cat];
+    .filter(cat => categoryAgg[cat])
+    .map(cat => {
+      const s = categoryAgg[cat]
       return {
         category: cat as CategoryCode,
         label: CATEGORY_LABELS[cat as CategoryCode],
@@ -180,13 +183,13 @@ export async function getStressCheckResult(
         maxScore: s.max,
         questionCount: s.count,
         percentage: Math.round((s.total / s.max) * 100),
-      };
-    });
+      }
+    })
 
-  const scaleScores: ScaleScore[] = calculated.scale_scores;
-  const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
-  const totalMaxScore = scores.reduce((sum, s) => sum + s.maxScore, 0);
-  const answeredAt = mergedResponses[0]?.answered_at || null;
+  const scaleScores: ScaleScore[] = calculated.scale_scores
+  const totalScore = scores.reduce((sum, s) => sum + s.score, 0)
+  const totalMaxScore = scores.reduce((sum, s) => sum + s.maxScore, 0)
+  const answeredAt = mergedResponses[0]?.answered_at || null
 
   // 同意状態を submissions テーブルから取得
   const { data: submission } = await db
@@ -194,9 +197,9 @@ export async function getStressCheckResult(
     .select('consent_to_employer')
     .eq('period_id', periodId)
     .eq('employee_id', employeeId)
-    .single();
+    .single()
 
-  const consentToEmployer = submission?.consent_to_employer ?? false;
+  const consentToEmployer = submission?.consent_to_employer ?? false
 
   // stress_check_results から面談希望情報を取得（本人は sc_results_select_own で SELECT 可能）
   const { data: resultRow } = await db
@@ -204,7 +207,7 @@ export async function getStressCheckResult(
     .select('id, interview_requested, interview_requested_at')
     .eq('period_id', periodId)
     .eq('employee_id', employeeId)
-    .maybeSingle();
+    .maybeSingle()
 
   return {
     periodTitle: period.title,
@@ -220,69 +223,104 @@ export async function getStressCheckResult(
     resultId: resultRow?.id ?? null,
     interviewRequested: resultRow?.interview_requested ?? false,
     interviewRequestedAt: resultRow?.interview_requested_at ?? null,
-  };
+  }
 }
 
 /**
  * 現在アクティブな実施期間を取得
- * 所属拠点に紐づく期間を優先し、なければ拠点未設定（旧テナント全体）の期間を参照
+ * 優先順: 1) division ベース新方式（RPC v2）→ 2) 拠点ベース旧方式 → 3) テナント全体フォールバック
  */
 export async function getActivePeriod(): Promise<StressCheckPeriod | null> {
-  const user = await getServerUser();
-  if (!user?.tenant_id) return null;
+  const user = await getServerUser()
+  if (!user?.tenant_id) return null
 
-  const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
+  const supabase = await createClient()
+  const today = new Date().toISOString().split('T')[0]
 
-  let establishmentId: string | null = null;
+  // 優先1: division ベース新方式（stress_check_period_divisions による ancestor 解決）
   if (user.employee_id) {
-    const { data: est, error: rpcErr } = await supabase.rpc('resolve_division_establishment_for_employee', {
-      p_employee_id: user.employee_id,
-    });
-    if (rpcErr) {
-      console.error('getActivePeriod rpc:', rpcErr.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: periodId, error: v2Err } = await (supabase as any).rpc(
+      'resolve_active_period_for_employee_v2',
+      { p_employee_id: user.employee_id }
+    )
+    if (v2Err) {
+      console.error('getActivePeriod rpc v2:', v2Err.message)
     }
-    establishmentId = (est as string | null) ?? null;
+    if (periodId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: period } = await (supabase as any)
+        .from('stress_check_periods')
+        .select('*')
+        .eq('id', periodId)
+        .single()
+      if (period) return period as StressCheckPeriod
+    }
+  }
+
+  // 優先2: 拠点ベース旧方式（division_establishment_id）
+  let establishmentId: string | null = null
+  if (user.employee_id) {
+    const { data: est, error: rpcErr } = await supabase.rpc(
+      'resolve_division_establishment_for_employee',
+      { p_employee_id: user.employee_id }
+    )
+    if (rpcErr) {
+      console.error('getActivePeriod rpc v1:', rpcErr.message)
+    }
+    establishmentId = (est as string | null) ?? null
   }
 
   const base = () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('stress_check_periods')
       .select('*')
       .eq('tenant_id', user.tenant_id)
-      .eq('status', 'active')
       .lte('start_date', today)
       .gte('end_date', today)
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(1)
 
   if (establishmentId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: scoped, error: err1 } = await base().eq('division_establishment_id', establishmentId).maybeSingle();
+    const { data: scoped, error: err1 } = await base()
+      .eq('division_establishment_id', establishmentId)
+      .maybeSingle()
     if (err1) {
-      console.error('getActivePeriod error:', err1.message);
+      console.error('getActivePeriod error:', err1.message)
     }
-    if (scoped) return scoped as StressCheckPeriod;
+    if (scoped) return scoped as StressCheckPeriod
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await base().is('division_establishment_id', null).maybeSingle();
-
+  // 優先3: テナント全体フォールバック（旧データ互換）
+  // division ベース新方式（stress_check_period_divisions にエントリあり）は除外する
+  const { data: allPeriods, error } = await base().is('division_establishment_id', null)
   if (error) {
-    console.error('getActivePeriod error:', error.message);
-    return null;
+    console.error('getActivePeriod error:', error.message)
+    return null
   }
+  if (!allPeriods || allPeriods.length === 0) return null
 
-  return (data as StressCheckPeriod) ?? null;
+  // division エントリを持つ period_id を取得して除外
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: divPeriodIds } = await (supabase as any)
+    .from('stress_check_period_divisions')
+    .select('period_id')
+    .eq('tenant_id', user.tenant_id)
+
+  const divSet = new Set<string>(
+    (divPeriodIds ?? []).map((r: { period_id: string }) => r.period_id)
+  )
+  const fallback = (allPeriods as StressCheckPeriod[]).find(p => !divSet.has(p.id))
+
+  return fallback ?? null
 }
 
 /**
  * 質問一覧を取得し、カテゴリ（領域）ごとにグループ化
  */
-export async function getQuestions(
-  questionnaireType: QuestionnaireType
-): Promise<CategoryGroup[]> {
-  const supabase = await createClient();
+export async function getQuestions(questionnaireType: QuestionnaireType): Promise<CategoryGroup[]> {
+  const supabase = await createClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: questions, error: qError } = await (supabase as any)
@@ -290,11 +328,11 @@ export async function getQuestions(
     .select('*')
     .eq('questionnaire_type', questionnaireType)
     .order('category', { ascending: true })
-    .order('question_no', { ascending: true });
+    .order('question_no', { ascending: true })
 
   if (qError || !questions || questions.length === 0) {
-    console.error('getQuestions error:', qError?.message);
-    return [];
+    console.error('getQuestions error:', qError?.message)
+    return []
   }
 
   // ============================================================
@@ -332,30 +370,30 @@ export async function getQuestions(
       { id: 'd-opt-3', scale_type: 'D', score: 3, label: 'やや不満足' },
       { id: 'd-opt-4', scale_type: 'D', score: 4, label: '不満足' },
     ],
-  };
+  }
 
   // 質問に厚労省準拠の選択肢を結合
-  const questionsWithOptions: QuestionWithOptions[] = (
-    questions as StressCheckQuestion[]
-  ).map((q) => ({
-    ...q,
-    options: MHLW_OPTIONS[q.category as CategoryCode] || MHLW_OPTIONS['A'],
-  }));
+  const questionsWithOptions: QuestionWithOptions[] = (questions as StressCheckQuestion[]).map(
+    q => ({
+      ...q,
+      options: MHLW_OPTIONS[q.category as CategoryCode] || MHLW_OPTIONS['A'],
+    })
+  )
 
   // カテゴリ（領域）ごとにグループ化
-  const categoryMap = new Map<string, CategoryGroup>();
+  const categoryMap = new Map<string, CategoryGroup>()
   for (const q of questionsWithOptions) {
     if (!categoryMap.has(q.category)) {
       categoryMap.set(q.category, {
         category: q.category as CategoryCode,
         categoryLabel: CATEGORY_LABELS[q.category as CategoryCode] || q.category,
         questions: [],
-      });
+      })
     }
-    categoryMap.get(q.category)!.questions.push(q);
+    categoryMap.get(q.category)!.questions.push(q)
   }
 
-  return Array.from(categoryMap.values());
+  return Array.from(categoryMap.values())
 }
 
 /**
@@ -369,16 +407,16 @@ export async function checkStressCheckEligibility(
   periodId: string,
   authUserId: string
 ): Promise<{ eligible: boolean; exclusionReason?: string }> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   const { data: employee } = await supabase
     .from('employees')
     .select('id')
     .eq('user_id', authUserId)
-    .single();
+    .single()
 
   if (!employee) {
-    return { eligible: false, exclusionReason: '従業員情報が見つかりません' };
+    return { eligible: false, exclusionReason: '従業員情報が見つかりません' }
   }
 
   const { data: target } = await (supabase as any)
@@ -387,21 +425,21 @@ export async function checkStressCheckEligibility(
     .eq('program_type', 'stress_check')
     .eq('program_instance_id', periodId)
     .eq('employee_id', employee.id)
-    .maybeSingle();
+    .maybeSingle()
 
   // program_targets にレコードが無い場合は後方互換のため受検可
   if (!target) {
-    return { eligible: true };
+    return { eligible: true }
   }
 
   if (target.is_eligible) {
-    return { eligible: true };
+    return { eligible: true }
   }
 
   return {
     eligible: false,
     exclusionReason: target.exclusion_reason ?? '対象外に設定されています',
-  };
+  }
 }
 
 /**
@@ -413,20 +451,20 @@ export async function checkExistingResponse(
   periodId: string,
   authUserId: string
 ): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   // auth UUID → employees.id を解決
   const { data: employee } = await supabase
     .from('employees')
     .select('id')
     .eq('user_id', authUserId)
-    .single();
+    .single()
 
   if (!employee) {
-    return false;
+    return false
   }
 
-  const employeeId = employee.id;
+  const employeeId = employee.id
 
   // stress_check_submissions テーブルで提出済みチェック
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -434,14 +472,14 @@ export async function checkExistingResponse(
     .from('stress_check_submissions')
     .select('id', { count: 'exact', head: true })
     .eq('period_id', periodId)
-    .eq('employee_id', employeeId);
+    .eq('employee_id', employeeId)
 
   if (subError) {
-    console.error('checkExistingResponse submissions error:', subError.message);
+    console.error('checkExistingResponse submissions error:', subError.message)
   }
 
   if (subCount && subCount > 0) {
-    return true;
+    return true
   }
 
   // submissions に無い場合でも responses テーブルにデータがあれば回答済みとみなす
@@ -450,12 +488,12 @@ export async function checkExistingResponse(
     .from('stress_check_responses')
     .select('id', { count: 'exact', head: true })
     .eq('period_id', periodId)
-    .eq('employee_id', employeeId);
+    .eq('employee_id', employeeId)
 
   if (resError) {
-    console.error('checkExistingResponse responses error:', resError.message);
-    return false;
+    console.error('checkExistingResponse responses error:', resError.message)
+    return false
   }
 
-  return (resCount ?? 0) > 0;
+  return (resCount ?? 0) > 0
 }

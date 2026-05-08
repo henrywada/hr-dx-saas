@@ -1,60 +1,89 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { PeriodFormDialog } from './PeriodFormDialog';
-import { deleteStressCheckPeriod } from '../actions';
-import type { StressCheckPeriod } from '@/features/stress-check/types';
+import React, { useState } from 'react'
+import { Plus, Edit2, Trash2, Users } from 'lucide-react'
+import { PeriodFormDialog } from './PeriodFormDialog'
+import { PeriodTargetsModal } from './PeriodTargetsModal'
+import { deleteStressCheckPeriod } from '../actions'
+import type { StressCheckPeriodWithDivisions } from '@/features/stress-check/types'
+import type { Division } from '@/features/organization/types'
+import { buildDivisionFullPath } from '@/features/organization/types'
 
 interface MntSetsUIProps {
-  tenantId: string;
-  periods: StressCheckPeriod[];
+  tenantId: string
+  periods: StressCheckPeriodWithDivisions[]
+  allDivisions: Division[]
 }
 
-export function MntSetsUI({ tenantId, periods }: MntSetsUIProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingPeriod, setEditingPeriod] = useState<StressCheckPeriod | null>(null);
+export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingPeriod, setEditingPeriod] = useState<StressCheckPeriodWithDivisions | null>(null)
+  const [targetsPeriod, setTargetsPeriod] = useState<StressCheckPeriodWithDivisions | null>(null)
 
   const handleCreate = () => {
-    setEditingPeriod(null);
-    setIsDialogOpen(true);
-  };
+    setEditingPeriod(null)
+    setIsDialogOpen(true)
+  }
 
-  const handleEdit = (p: StressCheckPeriod) => {
-    setEditingPeriod(p);
-    setIsDialogOpen(true);
-  };
+  const handleEdit = (p: StressCheckPeriodWithDivisions) => {
+    setEditingPeriod(p)
+    setIsDialogOpen(true)
+  }
 
   const handleDelete = async (id: string, title: string) => {
-    if (confirm(`本当に「${title}」を削除しますか？\n※関連する回答データがある場合は削除できません。`)) {
-      const res = await deleteStressCheckPeriod(id);
+    if (
+      confirm(`本当に「${title}」を削除しますか？\n※関連する回答データがある場合は削除できません。`)
+    ) {
+      const res = await deleteStressCheckPeriod(id)
       if (!res.success) {
-        alert(`削除に失敗しました: ${res.error}`);
+        alert(`削除に失敗しました: ${res.error}`)
       }
     }
-  };
+  }
 
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'active':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">実施中</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            実施中
+          </span>
+        )
       case 'closed':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">終了</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+            終了
+          </span>
+        )
       case 'draft':
       default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">準備中</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            準備中
+          </span>
+        )
     }
-  };
+  }
+
+  const getDivisionSummary = (divisionIds: string[]): string => {
+    if (divisionIds.length === 0) return '—'
+    const names = divisionIds.slice(0, 3).map(id => {
+      const div = allDivisions.find(d => d.id === id)
+      return div?.name ?? '不明'
+    })
+    const suffix = divisionIds.length > 3 ? ` 他${divisionIds.length - 3}件` : ''
+    return names.join('、') + suffix
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 border-b-2 border-green-500 pb-2 inline-block">
-            実施期間の管理
+            実施グループの管理
           </h1>
           <p className="text-sm text-slate-500 mt-2">
-            ストレスチェックの実施期間（受検期間）を設定します。
+            対象部署を指定してストレスチェックの実施グループを設定します。
           </p>
         </div>
         <button
@@ -72,7 +101,8 @@ export function MntSetsUI({ tenantId, periods }: MntSetsUIProps) {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
                 <th className="px-6 py-4 font-semibold">タイトル</th>
-                <th className="px-6 py-4 font-semibold text-center mt-2">対象年度</th>
+                <th className="px-6 py-4 font-semibold">対象部署</th>
+                <th className="px-6 py-4 font-semibold text-center">対象年度</th>
                 <th className="px-6 py-4 font-semibold text-center">質問数</th>
                 <th className="px-6 py-4 font-semibold text-center">ステータス</th>
                 <th className="px-6 py-4 font-semibold">期間</th>
@@ -82,15 +112,30 @@ export function MntSetsUI({ tenantId, periods }: MntSetsUIProps) {
             <tbody className="divide-y divide-slate-100">
               {periods.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                    登録されている実施期間はありません。
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    登録されている実施グループはありません。
                   </td>
                 </tr>
               ) : (
-                periods.map((period) => (
+                periods.map(period => (
                   <tr key={period.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">
                       {period.title}
+                      {period.comment && (
+                        <p className="text-xs text-slate-400 font-normal mt-0.5 truncate max-w-50">
+                          {period.comment}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 max-w-55">
+                      <span
+                        className="truncate block"
+                        title={period.divisionIds
+                          .map(id => buildDivisionFullPath(id, allDivisions))
+                          .join('\n')}
+                      >
+                        {getDivisionSummary(period.divisionIds)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-center text-slate-600">
                       {period.fiscal_year}年度
@@ -98,14 +143,19 @@ export function MntSetsUI({ tenantId, periods }: MntSetsUIProps) {
                     <td className="px-6 py-4 text-center text-slate-600">
                       {period.questionnaire_type}問
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {getStatusLabel(period.status)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 text-center">{getStatusLabel(period.status)}</td>
+                    <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                       {period.start_date.split('T')[0]} ～ {period.end_date.split('T')[0]}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setTargetsPeriod(period)}
+                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                          title="対象者管理"
+                        >
+                          <Users className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleEdit(period)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -135,7 +185,16 @@ export function MntSetsUI({ tenantId, periods }: MntSetsUIProps) {
         onClose={() => setIsDialogOpen(false)}
         period={editingPeriod}
         tenantId={tenantId}
+        allDivisions={allDivisions}
       />
+
+      {targetsPeriod && (
+        <PeriodTargetsModal
+          period={targetsPeriod}
+          allDivisions={allDivisions}
+          onClose={() => setTargetsPeriod(null)}
+        />
+      )}
     </div>
-  );
+  )
 }

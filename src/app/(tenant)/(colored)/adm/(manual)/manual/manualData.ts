@@ -1,19 +1,19 @@
 /** マニュアル集：カテゴリー別の項目（タイトル・本文は src/content/help/markdown を参照） */
 
-import { ATT_QR_DISPLAY_TITLE } from '@/content/help/entryMeta';
+import { ATT_QR_DISPLAY_TITLE } from '@/content/help/entryMeta'
 
 export type ManualEntry = {
-  id: string;
-  title: string;
-};
+  id: string
+  title: string
+}
 
 export type ManualCategory = {
-  id: string;
-  name: string;
-  description: string;
-  accentClass: string;
-  entries: ManualEntry[];
-};
+  id: string
+  name: string
+  description: string
+  accentClass: string
+  entries: ManualEntry[]
+}
 
 export const MANUAL_CATEGORIES: ManualCategory[] = [
   {
@@ -79,10 +79,6 @@ export const MANUAL_CATEGORIES: ManualCategory[] = [
         title: '回答状況・進捗の確認',
       },
       {
-        id: 'stress-heatmap',
-        title: 'ヒートマップ・グループ分析の読み方',
-      },
-      {
         id: 'stress-high',
         title: '高ストレス者へのフォロー（面接・記録）',
       },
@@ -139,10 +135,6 @@ export const MANUAL_CATEGORIES: ManualCategory[] = [
         title: 'お知らせの掲載',
       },
       {
-        id: 'set-program-targets',
-        title: 'プログラム対象者の設定',
-      },
-      {
         id: 'set-service-assign',
         title: 'サービス割当（テナント契約と表示）',
       },
@@ -172,4 +164,4 @@ export const MANUAL_CATEGORIES: ManualCategory[] = [
       },
     ],
   },
-];
+]

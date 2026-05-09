@@ -9,7 +9,6 @@ import type { StressCheckPeriod } from '@/features/stress-check/types'
 function revalidateStressPeriodPaths() {
   revalidatePath(APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS)
   revalidatePath('/adm/stress-check/progress')
-  revalidatePath('/adm/stress-check/heat-map')
   revalidatePath('/adm/stress-check/mnt_sets')
 }
 

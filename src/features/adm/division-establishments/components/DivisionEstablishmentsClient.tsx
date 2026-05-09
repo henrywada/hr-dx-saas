@@ -102,12 +102,6 @@ export default function DivisionEstablishmentsClient({
           >
             ← 集団分析ダッシュボード
           </Link>
-          <Link
-            href={APP_ROUTES.TENANT.ADMIN_PROGRAM_TARGETS}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            ← 実施対象者管理
-          </Link>
         </div>
         <button
           type="button"

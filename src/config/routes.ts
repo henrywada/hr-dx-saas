@@ -12,7 +12,6 @@ export const APP_ROUTES = {
     /** テナント基本設定（お問合せメール等）— (base_mnt)/settings */
     ADMIN_SETTINGS: '/adm/settings',
     ADMIN_SERVICE_ASSIGNMENTS: '/adm/service-assignments',
-    ADMIN_PROGRAM_TARGETS: '/adm/program-targets',
     ADMIN_HIGH_STRESS: '/adm/high-stress',
     ADMIN_HIGH_STRESS_FOLLOWUP: '/adm/high-stress-followup',
     /** 拠点（事業場）マスタ — (org_health)/establishments */

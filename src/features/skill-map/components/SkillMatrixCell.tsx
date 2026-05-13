@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { SkillProficiencyDef } from '../types'
 import { upsertEmployeeSkill } from '../actions'
 
@@ -15,20 +15,40 @@ export function SkillMatrixCell({ employeeId, skillId, level, proficiencyDefs }:
   const [open, setOpen] = useState(false)
   const [currentLevel, setCurrentLevel] = useState(level)
   const [pending, setPending] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const currentDef = proficiencyDefs.find((d) => d.level === currentLevel)
   const bgColor = currentDef ? currentDef.color_hex : '#f3f4f6'
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
   async function handleSelect(newLevel: number) {
     setPending(true)
     setOpen(false)
-    const result = await upsertEmployeeSkill({ employeeId, skillId, proficiencyLevel: newLevel })
-    if (result.success) setCurrentLevel(newLevel)
-    setPending(false)
+    try {
+      const result = await upsertEmployeeSkill({ employeeId, skillId, proficiencyLevel: newLevel })
+      if (result.success) {
+        setCurrentLevel(newLevel)
+      } else {
+        console.error('習熟度の更新に失敗しました:', result.error)
+      }
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
         disabled={pending}

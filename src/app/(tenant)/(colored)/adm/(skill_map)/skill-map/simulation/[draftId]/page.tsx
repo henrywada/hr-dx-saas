@@ -4,7 +4,6 @@ import { redirect, notFound } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import { getSkillMapDraft, getSkillMatrixRows } from '@/features/skill-map/queries'
 import { SimulationBoard } from '@/features/skill-map/components/SimulationBoard'
-import { saveSkillMapDraft } from '@/features/skill-map/actions'
 
 type Props = { params: Promise<{ draftId: string }> }
 
@@ -13,15 +12,25 @@ export default async function SimulationDetailPage({ params }: Props) {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
+  const supabase = await createClient()
+
   if (draftId === 'new') {
-    const result = await saveSkillMapDraft({ name: '新しいシミュレーション', snapshot: {} })
-    if (result.success && result.draftId) {
-      redirect(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION_DETAIL(result.draftId))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: newDraft, error: createErr } = await (supabase as any)
+      .from('skill_map_drafts')
+      .insert({
+        tenant_id: user.tenant_id,
+        name: '新しいシミュレーション',
+        snapshot: {},
+        created_by: user.employee_id,
+      })
+      .select('id')
+      .single()
+    if (!createErr && newDraft) {
+      redirect(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION_DETAIL(newDraft.id))
     }
     redirect(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
   }
-
-  const supabase = await createClient()
   const [draft, rows] = await Promise.all([
     getSkillMapDraft(supabase, draftId),
     getSkillMatrixRows(supabase),

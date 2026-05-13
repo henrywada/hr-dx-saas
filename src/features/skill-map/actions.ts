@@ -166,6 +166,7 @@ export async function saveSkillMapDraft(input: {
       .eq('id', input.draftId)
       .eq('tenant_id', user.tenant_id)
     if (error) return { success: false, error: error.message }
+    revalidatePath(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
     return { success: true, draftId: input.draftId }
   }
 
@@ -214,10 +215,11 @@ export async function confirmSkillMapDraft(
     if (error) return { success: false, error: `更新失敗 (employee: ${employeeId}): ${error.message}` }
   }
 
-  await db
+  const { error: statusErr } = await db
     .from('skill_map_drafts')
     .update({ status: 'confirmed', updated_at: new Date().toISOString() })
     .eq('id', draftId)
+  if (statusErr) return { success: false, error: `ステータス更新失敗: ${statusErr.message}` }
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
   return { success: true }

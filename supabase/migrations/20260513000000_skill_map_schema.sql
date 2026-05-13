@@ -130,6 +130,12 @@ CREATE INDEX idx_employee_skills_employee ON public.employee_skills(employee_id)
 CREATE INDEX idx_employee_qualifications_tenant ON public.employee_qualifications(tenant_id);
 CREATE INDEX idx_employee_qualifications_expiry ON public.employee_qualifications(expiry_date);
 CREATE INDEX idx_skill_map_drafts_tenant ON public.skill_map_drafts(tenant_id);
+CREATE INDEX idx_employee_qualifications_employee ON public.employee_qualifications(employee_id);
+CREATE INDEX idx_qualifications_tenant ON public.qualifications(tenant_id);
+CREATE INDEX idx_skill_proficiency_defs_tenant ON public.skill_proficiency_defs(tenant_id);
+CREATE INDEX idx_global_skill_categories_template ON public.global_skill_categories(template_id);
+CREATE INDEX idx_global_skills_template ON public.global_skills(template_id);
+CREATE INDEX idx_global_proficiency_defs_template ON public.global_proficiency_defs(template_id);
 
 -- RLSポリシー（既存パターンと同一）
 ALTER TABLE public.skill_categories ENABLE ROW LEVEL SECURITY;

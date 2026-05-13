@@ -34,6 +34,8 @@ export function SetupWizard({ templates }: Props) {
       } else {
         setError(result.error ?? '不明なエラー')
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '不明なエラーが発生しました')
     } finally {
       setPending(false)
     }

@@ -20,7 +20,7 @@ export async function getGlobalTemplates(supabase: DB): Promise<GlobalSkillTempl
     .eq('is_active', true)
     .order('industry_type')
   if (error) throw error
-  return data ?? []
+  return (data ?? []) as GlobalSkillTemplate[]
 }
 
 /** テナントのスキルカテゴリ一覧 */
@@ -40,7 +40,7 @@ export async function getSkills(supabase: DB): Promise<Skill[]> {
     .select('*, category:skill_categories(id, name, sort_order)')
     .order('sort_order')
   if (error) throw error
-  return (data ?? []) as Skill[]
+  return (data ?? []) as unknown as Skill[]
 }
 
 /** テナントの習熟度定義 */
@@ -136,7 +136,7 @@ export async function getSkillMapDrafts(supabase: DB): Promise<SkillMapDraft[]> 
     .select('*')
     .order('updated_at', { ascending: false })
   if (error) throw error
-  return data ?? []
+  return (data ?? []) as SkillMapDraft[]
 }
 
 /** 配置シミュレーション下書き1件 */
@@ -150,5 +150,5 @@ export async function getSkillMapDraft(
     .eq('id', draftId)
     .maybeSingle()
   if (error) throw error
-  return data
+  return data as SkillMapDraft | null
 }

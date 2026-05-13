@@ -16,7 +16,7 @@ export default async function GlobalSkillTemplatesPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-1 space-y-2">
           <h2 className="font-semibold">テンプレート</h2>
-          {templates.map((t) => (
+          {templates.map(t => (
             <div key={t.id} className="border rounded p-3">
               <div className="font-medium">{t.name}</div>
               <div className="text-xs text-gray-500">{t.industry_type}</div>
@@ -34,13 +34,13 @@ export default async function GlobalSkillTemplatesPage() {
           {firstTemplate && (
             <>
               <h2 className="font-semibold mb-2">{firstTemplate.name} のスキル項目</h2>
-              {detail.categories.map((cat) => (
+              {detail.categories.map(cat => (
                 <div key={cat.id} className="mb-4">
                   <h3 className="font-medium text-sm text-gray-700 mb-1">{cat.name}</h3>
                   <ul className="space-y-1">
                     {detail.skills
-                      .filter((s) => s.category_id === cat.id)
-                      .map((s) => (
+                      .filter(s => s.category_id === cat.id)
+                      .map(s => (
                         <li
                           key={s.id}
                           className="text-sm text-gray-600 pl-3 border-l-2 border-gray-200"

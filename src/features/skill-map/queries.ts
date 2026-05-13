@@ -25,10 +25,7 @@ export async function getGlobalTemplates(supabase: DB): Promise<GlobalSkillTempl
 
 /** テナントのスキルカテゴリ一覧 */
 export async function getSkillCategories(supabase: DB): Promise<SkillCategory[]> {
-  const { data, error } = await supabase
-    .from('skill_categories')
-    .select('*')
-    .order('sort_order')
+  const { data, error } = await supabase.from('skill_categories').select('*').order('sort_order')
   if (error) throw error
   return data ?? []
 }
@@ -69,7 +66,7 @@ export async function getSkillMatrixRows(
   if (empError) throw empError
 
   const skills = await getSkills(supabase)
-  const employeeIds = (employees ?? []).map((e) => e.id)
+  const employeeIds = (employees ?? []).map(e => e.id)
   if (employeeIds.length === 0) return []
 
   const { data: empSkills, error: esError } = await supabase
@@ -84,9 +81,9 @@ export async function getSkillMatrixRows(
     skillMap[es.employee_id][es.skill_id] = es.proficiency_level
   }
 
-  return (employees ?? []).map((emp) => {
+  return (employees ?? []).map(emp => {
     const empSkillMap = skillMap[emp.id] ?? {}
-    const evaluatedCount = Object.values(empSkillMap).filter((l) => l > 1).length
+    const evaluatedCount = Object.values(empSkillMap).filter(l => l > 1).length
     const coverage = skills.length > 0 ? Math.round((evaluatedCount / skills.length) * 100) : 0
     return {
       employee_id: emp.id,

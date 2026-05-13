@@ -24,7 +24,7 @@ export default async function SimulationListPage() {
         </Link>
       </div>
       <div className="space-y-2">
-        {drafts.map((draft) => (
+        {drafts.map(draft => (
           <Link
             key={draft.id}
             href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION_DETAIL(draft.id)}

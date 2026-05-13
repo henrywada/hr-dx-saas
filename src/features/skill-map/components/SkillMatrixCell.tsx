@@ -17,7 +17,7 @@ export function SkillMatrixCell({ employeeId, skillId, level, proficiencyDefs }:
   const [pending, setPending] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const currentDef = proficiencyDefs.find((d) => d.level === currentLevel)
+  const currentDef = proficiencyDefs.find(d => d.level === currentLevel)
   const bgColor = currentDef ? currentDef.color_hex : '#f3f4f6'
 
   useEffect(() => {
@@ -59,13 +59,16 @@ export function SkillMatrixCell({ employeeId, skillId, level, proficiencyDefs }:
       />
       {open && (
         <div className="absolute z-10 top-11 left-0 bg-white border border-gray-200 rounded shadow-lg min-w-28">
-          {proficiencyDefs.map((def) => (
+          {proficiencyDefs.map(def => (
             <button
               key={def.level}
               onClick={() => handleSelect(def.level)}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left"
             >
-              <span className="w-4 h-4 rounded-sm inline-block" style={{ backgroundColor: def.color_hex }} />
+              <span
+                className="w-4 h-4 rounded-sm inline-block"
+                style={{ backgroundColor: def.color_hex }}
+              />
               {def.label}
             </button>
           ))}

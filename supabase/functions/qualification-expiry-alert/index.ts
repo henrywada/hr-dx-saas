@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +9,7 @@ const corsHeaders = {
 // アラート対象日数（当日=0、7日前=7、30日前=30）
 const ALERT_DAYS = [30, 7, 0]
 
-serve(async (req) => {
+serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -30,11 +30,13 @@ serve(async (req) => {
 
       const { data: expiringItems, error } = await supabase
         .from('employee_qualifications')
-        .select(`
+        .select(
+          `
           id, expiry_date, cert_number,
           employee:employees(id, name, tenant_id, tenants(id, name)),
           qualification:qualifications(name, issuing_body)
-        `)
+        `
+        )
         .eq('expiry_date', targetStr)
 
       if (error) throw error
@@ -44,9 +46,10 @@ serve(async (req) => {
         const emp = item.employee as any
         const qual = item.qualification as any
 
-        const subject = days === 0
-          ? `【資格期限】本日期限：${qual?.name}`
-          : `【資格期限】${days}日後に期限：${qual?.name}`
+        const subject =
+          days === 0
+            ? `【資格期限】本日期限：${qual?.name}`
+            : `【資格期限】${days}日後に期限：${qual?.name}`
 
         const body = `${emp?.name} 様の資格が期限を迎えます。\n\n資格名：${qual?.name}\n発行機関：${qual?.issuing_body ?? '不明'}\n有効期限：${item.expiry_date}\n証明書番号：${item.cert_number ?? '未登録'}`
 
@@ -67,7 +70,7 @@ serve(async (req) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
             },
             body: JSON.stringify({ to: authUser.user.email, subject, text: body }),
           })

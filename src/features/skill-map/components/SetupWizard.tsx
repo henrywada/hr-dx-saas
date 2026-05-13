@@ -45,25 +45,33 @@ export function SetupWizard({ templates }: Props) {
     <div className="max-w-lg space-y-6">
       <div>
         <h2 className="text-lg font-semibold mb-1">業種テンプレートを選択</h2>
-        <p className="text-sm text-gray-500">選択したテンプレートのスキル項目をコピーします。後から自由に編集できます。</p>
+        <p className="text-sm text-gray-500">
+          選択したテンプレートのスキル項目をコピーします。後から自由に編集できます。
+        </p>
       </div>
       <div className="space-y-3">
-        {templates.map((tmpl) => (
+        {templates.map(tmpl => (
           <button
             key={tmpl.id}
             onClick={() => setSelectedId(tmpl.id)}
             className={`w-full text-left border-2 rounded-lg p-4 transition-colors ${
-              selectedId === tmpl.id ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              selectedId === tmpl.id
+                ? 'border-primary bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="font-medium">{INDUSTRY_LABELS[tmpl.industry_type] ?? tmpl.industry_type}</div>
+            <div className="font-medium">
+              {INDUSTRY_LABELS[tmpl.industry_type] ?? tmpl.industry_type}
+            </div>
             <div className="text-sm text-gray-500 mt-1">{tmpl.description}</div>
           </button>
         ))}
         <button
           onClick={() => setSelectedId('custom')}
           className={`w-full text-left border-2 rounded-lg p-4 transition-colors ${
-            selectedId === 'custom' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            selectedId === 'custom'
+              ? 'border-primary bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
           }`}
         >
           <div className="font-medium">カスタム（ゼロから作成）</div>

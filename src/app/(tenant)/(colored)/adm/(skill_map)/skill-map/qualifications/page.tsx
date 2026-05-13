@@ -17,9 +17,11 @@ export default async function QualificationsPage() {
       <h1 className="text-2xl font-bold">資格管理</h1>
       {expiring.length > 0 ? (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h2 className="font-semibold text-orange-700 mb-3">⚠ 期限30日以内の資格 ({expiring.length}件)</h2>
+          <h2 className="font-semibold text-orange-700 mb-3">
+            ⚠ 期限30日以内の資格 ({expiring.length}件)
+          </h2>
           <div className="space-y-2">
-            {expiring.map((eq) => (
+            {expiring.map(eq => (
               <div key={eq.id} className="flex items-center gap-3">
                 <QualificationBadge eq={eq} />
                 <span className="text-sm text-gray-600">有効期限: {eq.expiry_date}</span>

@@ -1,13 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import {
-  DndContext,
-  DragEndEvent,
-  closestCenter,
-  useDraggable,
-  useDroppable,
-} from '@dnd-kit/core'
+import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core'
 import { useRouter } from 'next/navigation'
 import type { SkillMapDraft, SkillMatrixRow } from '../types'
 import { saveSkillMapDraft, confirmSkillMapDraft } from '../actions'
@@ -27,7 +21,7 @@ function calcDivisionCoverage(
   employees: SkillMatrixRow[],
   snapshot: Record<string, string>
 ): number {
-  const members = employees.filter((e) => (snapshot[e.employee_id] ?? '') === divisionId)
+  const members = employees.filter(e => (snapshot[e.employee_id] ?? '') === divisionId)
   if (members.length === 0) return 0
   return Math.round(members.reduce((sum, m) => sum + m.coverage, 0) / members.length)
 }
@@ -77,17 +71,15 @@ function DivisionDropZone({
         isOver
           ? 'border-primary bg-blue-50'
           : coverage < 50 && memberCount > 0
-          ? 'border-red-300 bg-red-50'
-          : 'border-gray-200 bg-gray-50'
+            ? 'border-red-300 bg-red-50'
+            : 'border-gray-200 bg-gray-50'
       }`}
     >
       <div className="flex items-center justify-between">
         <span className="font-medium text-sm">{division.name ?? '未設定'}</span>
         <span className="text-xs text-gray-500">{memberCount}名</span>
       </div>
-      {memberCount > 0 && (
-        <SkillCoverageBar coverage={coverage} label="充足率" showPercentage />
-      )}
+      {memberCount > 0 && <SkillCoverageBar coverage={coverage} label="充足率" showPercentage />}
     </div>
   )
 }
@@ -104,7 +96,7 @@ export function SimulationBoard({ draft, employees, divisions }: Props) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over) return
-    setSnapshot((prev) => ({ ...prev, [String(active.id)]: String(over.id) }))
+    setSnapshot(prev => ({ ...prev, [String(active.id)]: String(over.id) }))
   }
 
   const handleSave = useCallback(async () => {
@@ -145,7 +137,7 @@ export function SimulationBoard({ draft, employees, divisions }: Props) {
         <div className="flex items-center gap-3 flex-wrap">
           <input
             value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
+            onChange={e => setDraftName(e.target.value)}
             className="border rounded px-2 py-1 text-sm"
             placeholder="シミュレーション名"
           />
@@ -194,7 +186,7 @@ export function SimulationBoard({ draft, employees, divisions }: Props) {
           <div>
             <h3 className="font-semibold mb-2 text-sm">従業員</h3>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-              {employees.map((emp) => (
+              {employees.map(emp => (
                 <EmployeeCard key={emp.employee_id} emp={emp} />
               ))}
             </div>
@@ -202,10 +194,10 @@ export function SimulationBoard({ draft, employees, divisions }: Props) {
           <div>
             <h3 className="font-semibold mb-2 text-sm">部署</h3>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-              {divisions.map((div) => {
+              {divisions.map(div => {
                 const coverage = calcDivisionCoverage(div.id, employees, snapshot)
                 const memberCount = employees.filter(
-                  (e) => (snapshot[e.employee_id] ?? '') === div.id
+                  e => (snapshot[e.employee_id] ?? '') === div.id
                 ).length
                 return (
                   <DivisionDropZone

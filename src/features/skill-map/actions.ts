@@ -212,7 +212,8 @@ export async function confirmSkillMapDraft(
       .update({ division_id: divisionId })
       .eq('id', employeeId)
       .eq('tenant_id', user.tenant_id)
-    if (error) return { success: false, error: `更新失敗 (employee: ${employeeId}): ${error.message}` }
+    if (error)
+      return { success: false, error: `更新失敗 (employee: ${employeeId}): ${error.message}` }
   }
 
   const { error: statusErr } = await db

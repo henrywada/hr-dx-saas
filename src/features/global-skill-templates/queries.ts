@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { GlobalSkillTemplate, GlobalSkillCategory, GlobalSkill } from '@/features/skill-map/types'
+import type {
+  GlobalSkillTemplate,
+  GlobalSkillCategory,
+  GlobalSkill,
+} from '@/features/skill-map/types'
 
 type DB = SupabaseClient
 
@@ -19,7 +23,11 @@ export async function getTemplateDetail(
   templateId: string
 ): Promise<{ categories: GlobalSkillCategory[]; skills: GlobalSkill[] }> {
   const [catRes, skillRes] = await Promise.all([
-    supabase.from('global_skill_categories').select('*').eq('template_id', templateId).order('sort_order'),
+    supabase
+      .from('global_skill_categories')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('sort_order'),
     supabase.from('global_skills').select('*').eq('template_id', templateId).order('sort_order'),
   ])
   if (catRes.error) throw catRes.error

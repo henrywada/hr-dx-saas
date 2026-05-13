@@ -2,7 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getSkillMatrixRows, getSkills, getSkillCategories, getProficiencyDefs } from '@/features/skill-map/queries'
+import {
+  getSkillMatrixRows,
+  getSkills,
+  getSkillCategories,
+  getProficiencyDefs,
+} from '@/features/skill-map/queries'
 import { SkillMatrix } from '@/features/skill-map/components/SkillMatrix'
 
 export default async function SkillMapPage() {
@@ -24,9 +29,19 @@ export default async function SkillMapPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">スキルマップ</h1>
-        <a href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SETUP} className="text-sm text-primary underline">スキル設定</a>
+        <a
+          href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SETUP}
+          className="text-sm text-primary underline"
+        >
+          スキル設定
+        </a>
       </div>
-      <SkillMatrix rows={rows} skills={skills} categories={categories} proficiencyDefs={proficiencyDefs} />
+      <SkillMatrix
+        rows={rows}
+        skills={skills}
+        categories={categories}
+        proficiencyDefs={proficiencyDefs}
+      />
     </div>
   )
 }

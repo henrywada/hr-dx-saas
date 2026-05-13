@@ -93,7 +93,7 @@ export type SkillMapDraft = {
   name: string
   created_by: string | null
   status: 'draft' | 'confirmed'
-  snapshot: Record<string, string>  // { employee_id: division_id }
+  snapshot: Record<string, string> // { employee_id: division_id }
   created_at: string
   updated_at: string
 }

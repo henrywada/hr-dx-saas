@@ -18,6 +18,8 @@
     "recalculate-stress-results": "tsx scripts/recalculate_stress_results.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@stitches/react": "^1.2.8",
     "@supabase/ssr": "^0.8.0",

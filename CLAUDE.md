@@ -84,6 +84,55 @@ npm run recalculate-stress-results                       # ストレス結果の
 p/                         # パブリックページ（認証不要）
 ```
 
+### src/ ディレクトリ構成
+
+```
+src/
+├── app/                          # Next.js App Router
+│   ├── (auth)/                   # 未認証ユーザー向け（login, signup 等）
+│   ├── (tenant)/
+│   │   ├── (default)/            # ★ 一般従業員向け画面（白基調）
+│   │   └── (colored)/adm/        # ★ テナント管理者向け画面（テーマカラー）
+│   ├── (admin)/                  # 内部管理
+│   ├── (saas-admin)/saas_adm/    # ★ SaaS 運営者向け全体管理画面
+│   ├── api/                      # Webhook 等の外部連携のみ（原則 NG）
+│   └── p/                        # パブリックページ（認証不要）
+│
+├── features/                     # ★ 機能ドメイン（ここに実装を集約）
+│   └── [domain]/
+│       ├── components/           # UI コンポーネント
+│       ├── queries.ts            # 読み取り（SELECT）専用
+│       ├── actions.ts            # 書き込み（INSERT/UPDATE/DELETE）Server Actions
+│       └── types.ts              # ドメイン固有の型
+│
+├── components/
+│   ├── ui/                       # 基礎 UI コンポーネント（Button, Card 等）
+│   ├── layout/                   # AppLayout, AppHeader, AppSidebar 等
+│   └── common/                   # LoadingSpinner, TenantGuard 等
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── server.ts             # サーバー用クライアント（RLS 有効）
+│   │   ├── client.ts             # ブラウザ用クライアント（RLS 有効）
+│   │   └── admin.ts             # 管理者用クライアント（RLS バイパス）
+│   ├── auth/
+│   │   └── server-user.ts        # getServerUser() を定義
+│   └── mail/, log/, tenant/, 等
+│
+├── config/
+│   └── routes.ts                 # APP_ROUTES 定数（URL はここから参照）
+│
+├── types/                        # アプリ全体共通の型定義
+├── hooks/                        # useAuth(), useTenant() 等
+├── styles/
+│   └── globals.css               # Tailwind v4 + CSS 変数
+└── middleware.ts                 # Edge Middleware（認証・セッション更新）
+
+supabase/
+├── migrations/                   # SQL マイグレーション
+└── seed.sql                      # 開発用シードデータ
+```
+
 ### データアクセスパターン（厳守）
 
 ```

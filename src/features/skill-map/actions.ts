@@ -23,23 +23,26 @@ export async function copyTemplateToTenant(
     .single()
   if (tErr || !template) return { success: false, error: 'テンプレートが見つかりません' }
 
-  const { data: globalCategories } = await db
+  const { data: globalCategories, error: catFetchErr } = await db
     .from('global_skill_categories')
     .select('*')
     .eq('template_id', templateId)
     .order('sort_order')
+  if (catFetchErr) return { success: false, error: `カテゴリ取得失敗: ${catFetchErr.message}` }
 
-  const { data: globalSkills } = await db
+  const { data: globalSkills, error: skillFetchErr } = await db
     .from('global_skills')
     .select('*')
     .eq('template_id', templateId)
     .order('sort_order')
+  if (skillFetchErr) return { success: false, error: `スキル取得失敗: ${skillFetchErr.message}` }
 
-  const { data: globalProfDefs } = await db
+  const { data: globalProfDefs, error: profFetchErr } = await db
     .from('global_proficiency_defs')
     .select('*')
     .eq('template_id', templateId)
     .order('level', { ascending: false })
+  if (profFetchErr) return { success: false, error: `習熟度定義取得失敗: ${profFetchErr.message}` }
 
   const categoryIdMap: Record<string, string> = {}
   for (const cat of globalCategories ?? []) {
@@ -161,6 +164,7 @@ export async function saveSkillMapDraft(input: {
       .from('skill_map_drafts')
       .update({ name: input.name, snapshot: input.snapshot, updated_at: new Date().toISOString() })
       .eq('id', input.draftId)
+      .eq('tenant_id', user.tenant_id)
     if (error) return { success: false, error: error.message }
     return { success: true, draftId: input.draftId }
   }
@@ -196,7 +200,8 @@ export async function confirmSkillMapDraft(
     .from('skill_map_drafts')
     .select('snapshot')
     .eq('id', draftId)
-    .single()
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle()
   if (dErr || !draft) return { success: false, error: '下書きが見つかりません' }
 
   const snapshot = draft.snapshot as Record<string, string>

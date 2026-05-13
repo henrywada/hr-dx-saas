@@ -148,7 +148,7 @@ export async function getSkillMapDraft(
     .from('skill_map_drafts')
     .select('*')
     .eq('id', draftId)
-    .single()
+    .maybeSingle()
   if (error) throw error
   return data
 }

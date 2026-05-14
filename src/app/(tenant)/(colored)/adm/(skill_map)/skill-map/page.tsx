@@ -2,46 +2,35 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import {
-  getSkillMatrixRows,
-  getSkills,
-  getSkillCategories,
-  getProficiencyDefs,
-} from '@/features/skill-map/queries'
-import { SkillMatrix } from '@/features/skill-map/components/SkillMatrix'
+import { getTenantSkills, getEmployeeSkillRows, getSkillGroupRows } from '@/features/skill-map/queries'
+import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 
 export default async function SkillMapPage() {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
   const supabase = await createClient()
-  const [rows, skills, categories, proficiencyDefs] = await Promise.all([
-    getSkillMatrixRows(supabase),
-    getSkills(supabase),
-    getSkillCategories(supabase),
-    getProficiencyDefs(supabase),
+  const [skills, employeeRows, skillGroups] = await Promise.all([
+    getTenantSkills(supabase),
+    getEmployeeSkillRows(supabase),
+    getSkillGroupRows(supabase),
   ])
 
-  // スキルが未設定の場合はセットアップ画面にリダイレクト
-  if (skills.length === 0) redirect(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SETUP)
+  const divisionMap = new Map<string, string>()
+  for (const row of employeeRows) {
+    if (row.division_id && row.division_name) divisionMap.set(row.division_id, row.division_name)
+  }
+  const divisions = Array.from(divisionMap.entries()).map(([id, name]) => ({ id, name }))
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">スキルマップ</h1>
-        <a
-          href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SETUP}
-          className="text-sm text-primary underline"
-        >
-          スキル設定
+        <h1 className="text-2xl font-bold text-gray-900">スキルマップ</h1>
+        <a href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_REQUIREMENTS} className="text-sm text-primary hover:underline">
+          技能別要件 →
         </a>
       </div>
-      <SkillMatrix
-        rows={rows}
-        skills={skills}
-        categories={categories}
-        proficiencyDefs={proficiencyDefs}
-      />
+      <SkillMapTabs employeeRows={employeeRows} skillGroups={skillGroups} skills={skills} divisions={divisions} />
     </div>
   )
 }

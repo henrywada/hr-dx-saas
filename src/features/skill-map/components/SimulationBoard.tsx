@@ -6,7 +6,22 @@ import { useRouter } from 'next/navigation'
 import type { SkillMapDraft, SkillMatrixRow } from '../types'
 import { saveSkillMapDraft, confirmSkillMapDraft } from '../actions'
 import { APP_ROUTES } from '@/config/routes'
-import { SkillCoverageBar } from './SkillCoverageBar'
+
+/** スキル充足率バー（インライン） */
+function SkillCoverageBar({ coverage, label, showPercentage }: { coverage: number; label: string; showPercentage?: boolean }) {
+  const color = coverage >= 80 ? '#22c55e' : coverage >= 50 ? '#f97316' : '#ef4444'
+  return (
+    <div className="mt-1">
+      <div className="flex justify-between text-xs text-gray-500 mb-0.5">
+        <span>{label}</span>
+        {showPercentage && <span>{coverage}%</span>}
+      </div>
+      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${coverage}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  )
+}
 
 type Division = { id: string; name: string | null }
 
@@ -121,7 +136,8 @@ export function SimulationBoard({ draft, employees, divisions }: Props) {
       if (result.success) {
         router.push(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
       } else {
-        setError(result.error ?? '適用に失敗しました')
+        const failResult = result as { success: false; error: string }
+        setError(failResult.error)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '適用に失敗しました')

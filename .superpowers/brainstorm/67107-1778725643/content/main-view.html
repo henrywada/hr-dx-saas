@@ -1,0 +1,53 @@
+<h2>スキルマップ：メイン画面のレイアウト</h2>
+<p class="subtitle">「/adm/skill-map」を開いたとき、最初に見える画面はどちらですか？</p>
+
+<div class="options" style="margin-top: 24px;">
+
+  <div class="option" data-choice="employee_view" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>従業員起点ビュー（推奨）</h3>
+      <p>従業員一覧＋各自の技能バッジを表示。行クリックで技能履歴を確認・編集。</p>
+      <div style="margin-top:12px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; font-size:11px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb;">従業員</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">現在の技能</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">部署</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">操作</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:6px 8px;">田中 太郎</td><td style="padding:6px 8px;"><span style="background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:10px;">旋盤工</span> <span style="background:#dcfce7;color:#15803d;padding:1px 8px;border-radius:10px;">品質検査員</span></td><td style="padding:6px 8px;">製造1課</td><td style="padding:6px 8px;"><span style="color:#6b7280;">✏️ 編集</span></td></tr>
+            <tr style="background:#fafafa;"><td style="padding:6px 8px;">鈴木 花子</td><td style="padding:6px 8px;"><span style="background:#fef9c3;color:#92400e;padding:1px 8px;border-radius:10px;">品質管理士</span></td><td style="padding:6px 8px;">品質管理部</td><td style="padding:6px 8px;"><span style="color:#6b7280;">✏️ 編集</span></td></tr>
+            <tr><td style="padding:6px 8px;">山田 一郎</td><td style="padding:6px 8px;"><span style="color:#9ca3af; font-size:10px;">（未設定）</span></td><td style="padding:6px 8px;">営業部</td><td style="padding:6px 8px;"><span style="color:#0055ff;">＋ 追加</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="skill_view" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>技能起点ビュー</h3>
+      <p>技能ごとにグループ化して表示。「旋盤工は何人いるか」を把握したい場合に向いている。</p>
+      <div style="margin-top:12px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; font-size:11px;">
+        <div style="background:#dbeafe; padding:6px 10px; font-weight:600; color:#1d4ed8;">旋盤工（3名）</div>
+        <div style="padding:6px 10px;">田中 太郎・佐藤 次郎・中村 三郎</div>
+        <div style="background:#dcfce7; padding:6px 10px; font-weight:600; color:#15803d; border-top:1px solid #e5e7eb;">品質管理士（2名）</div>
+        <div style="padding:6px 10px;">鈴木 花子・伊藤 四郎</div>
+        <div style="background:#fef9c3; padding:6px 10px; font-weight:600; color:#92400e; border-top:1px solid #e5e7eb;">プログラマー（1名）</div>
+        <div style="padding:6px 10px;">山田 一郎</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>タブ切り替え（従業員ビュー ⇔ 技能ビュー）</h3>
+      <p>両方を切り替えて使える。実装コストはやや高め。</p>
+    </div>
+  </div>
+
+</div>

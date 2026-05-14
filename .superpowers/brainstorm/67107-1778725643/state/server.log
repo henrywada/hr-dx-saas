@@ -1,0 +1,13 @@
+{"type":"server-started","port":55809,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:55809","screen_dir":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content","state_dir":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/state"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/concept-compare.html"}
+{"source":"user-event","type":"click","text":"B\n      \n        1人・複数技能（兼務あり）\n        「旋盤工 + 品質検査員」のように複数保持。各技能に開始日・履歴を持つ。","choice":"multi","id":null,"timestamp":1778725783261}
+{"source":"user-event","type":"click","text":"B\n      \n        1人・複数技能（兼務あり）\n        「旋盤工 + 品質検査員」のように複数保持。各技能に開始日・履歴を持つ。","choice":"multi","id":null,"timestamp":1778725786136}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/assignment-detail.html"}
+{"source":"user-event","type":"click","text":"②\n      \n        変更理由・メモ\n        「兼務辞令」「部署異動に伴い」など自由テキスト。","choice":"reason","id":null,"timestamp":1778725940377}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/main-view.html"}
+{"source":"user-event","type":"click","text":"C\n    \n      タブ切り替え（従業員ビュー ⇔ 技能ビュー）\n      両方を切り替えて使える。実装コストはやや高め。","choice":"both","id":null,"timestamp":1778726049677}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/migration.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/full-design.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/67107-1778725643/content/requirements-screen.html"}
+{"type":"server-stopped","reason":"idle timeout"}
+{"source":"user-event","type":"click","text":"B\n      \n        テナントがカスタム定義\n        「★1〜★5」「見習い・一人前・エキスパート」など会社ごとに自由設定。実装コスト高め。","choice":"custom","id":null,"timestamp":1778732707655}

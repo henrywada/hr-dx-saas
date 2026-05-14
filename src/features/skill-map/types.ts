@@ -82,6 +82,14 @@ export type EmployeeQualification = {
   qualification?: Qualification
 }
 
+export type SkillMatrixRow = {
+  employee_id: string
+  employee_name: string
+  division_name: string | null
+  division_id: string | null
+  coverage: number   // 0-100 スキル充足率
+}
+
 export type SkillMapDraft = {
   id: string
   tenant_id: string

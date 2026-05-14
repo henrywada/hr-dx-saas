@@ -1,0 +1,124 @@
+<h2>技能別要件 定義画面（/adm/skill-map/requirements）</h2>
+<p class="subtitle">技能ごとに「必要なスキル・深度・基準」を定義する画面のイメージです</p>
+
+<div class="mockup" style="margin-top: 24px;">
+  <div class="mockup-header">/adm/skill-map/requirements — 技能別要件管理</div>
+  <div class="mockup-body" style="padding: 16px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <h3 style="margin:0; font-size:17px;">技能別要件</h3>
+      <button style="padding:5px 14px; border:none; border-radius:6px; background:#0055ff; color:white; font-size:12px;">＋ 要件を追加</button>
+    </div>
+
+    <!-- 技能選択タブ -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+      <span style="padding:4px 14px; border-radius:12px; background:#0055ff; color:white; font-size:12px;">旋盤工</span>
+      <span style="padding:4px 14px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:12px;">プログラマー</span>
+      <span style="padding:4px 14px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:12px;">品質管理士</span>
+      <span style="padding:4px 14px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:12px;">会計士</span>
+    </div>
+
+    <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:10px;">旋盤工 の要件</div>
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th style="border:1px solid #e5e7eb; padding:7px 10px; text-align:left;">要件名</th>
+          <th style="border:1px solid #e5e7eb; padding:7px 10px; text-align:left;">カテゴリ</th>
+          <th style="border:1px solid #e5e7eb; padding:7px 10px;">スキルレベル</th>
+          <th style="border:1px solid #e5e7eb; padding:7px 10px;">達成基準</th>
+          <th style="border:1px solid #e5e7eb; padding:7px 10px;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">旋盤基本操作</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">技術</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;"><span style="background:#dcfce7; color:#15803d; padding:2px 10px; border-radius:10px;">熟練</span></td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280; font-size:11px;">実務経験3年以上</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280; font-size:11px;">✏️ ✕</td>
+        </tr>
+        <tr style="background:#fafafa;">
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">図面読解</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">技術</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;"><span style="background:#fef9c3; color:#92400e; padding:2px 10px; border-radius:10px;">中級</span></td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280; font-size:11px;">JIS規格図面を自力で読める</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280; font-size:11px;">✏️ ✕</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">フォークリフト免許</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">資格</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;"><span style="background:#dbeafe; color:#1d4ed8; padding:2px 10px; border-radius:10px;">必須</span></td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280; font-size:11px;">取得済みであること</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280; font-size:11px;">✏️ ✕</td>
+        </tr>
+        <tr style="background:#fafafa;">
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">安全管理知識</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">知識</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;"><span style="background:#fee2e2; color:#991b1b; padding:2px 10px; border-radius:10px;">初級</span></td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280; font-size:11px;">社内安全研修修了</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280; font-size:11px;">✏️ ✕</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- モーダル -->
+<div class="mockup" style="margin-top: 20px;">
+  <div class="mockup-header">要件追加モーダル</div>
+  <div class="mockup-body" style="padding: 16px;">
+    <div style="max-width: 440px; border:1px solid #e5e7eb; border-radius:10px; padding:20px; background:white; font-size:12px;">
+      <div style="font-weight:600; font-size:14px; margin-bottom:14px;">要件を追加 — 旋盤工</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+        <div>
+          <div style="font-weight:600; margin-bottom:4px;">要件名 <span style="color:#ef4444;">*</span></div>
+          <input type="text" placeholder="例：旋盤基本操作" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; box-sizing:border-box;">
+        </div>
+        <div>
+          <div style="font-weight:600; margin-bottom:4px;">カテゴリ</div>
+          <select style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px;">
+            <option>技術</option><option>知識</option><option>資格</option><option>経験</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-weight:600; margin-bottom:6px;">スキルレベル <span style="color:#ef4444;">*</span></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; padding:4px 10px; border:1px solid #fca5a5; border-radius:6px; background:#fee2e2; cursor:pointer;"><input type="radio" name="level" value="初級"> <span style="color:#991b1b; font-size:11px;">初級</span></label>
+          <label style="display:flex; align-items:center; gap:4px; padding:4px 10px; border:1px solid #fcd34d; border-radius:6px; cursor:pointer;"><input type="radio" name="level" value="中級"> <span style="color:#92400e; font-size:11px;">中級</span></label>
+          <label style="display:flex; align-items:center; gap:4px; padding:4px 10px; border:1px solid #0055ff; border-radius:6px; background:#dbeafe; cursor:pointer;"><input type="radio" name="level" value="必須" checked> <span style="color:#1d4ed8; font-size:11px;">必須</span></label>
+          <label style="display:flex; align-items:center; gap:4px; padding:4px 10px; border:1px solid #86efac; border-radius:6px; cursor:pointer;"><input type="radio" name="level" value="熟練"> <span style="color:#15803d; font-size:11px;">熟練</span></label>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-weight:600; margin-bottom:4px;">達成基準・メモ</div>
+        <textarea style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; box-sizing:border-box; height:52px; resize:vertical;" placeholder="例：実務経験3年以上、社内検定合格..."></textarea>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button style="padding:6px 14px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:12px;">キャンセル</button>
+        <button style="padding:6px 14px; border:none; border-radius:6px; background:#0055ff; color:white; font-size:12px;">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 確認質問 -->
+<div style="margin-top: 28px;">
+  <h3>確認：スキルレベルの定義はどちらにしますか？</h3>
+  <div class="options" style="margin-top:12px;">
+    <div class="option" data-choice="fixed" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>固定4段階（推奨）</h3>
+        <p>初級 / 中級 / 熟練 / 必須 の4種類に固定。シンプルで迷わない。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="custom" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>テナントがカスタム定義</h3>
+        <p>「★1〜★5」「見習い・一人前・エキスパート」など会社ごとに自由設定。実装コスト高め。</p>
+      </div>
+    </div>
+  </div>
+</div>

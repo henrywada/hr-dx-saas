@@ -1,0 +1,198 @@
+<h2>新スキルマップ：設計全体像</h2>
+<p class="subtitle">決定事項をもとに画面全体をプレビューします。確認してください。</p>
+
+<!-- ===== メイン画面 ===== -->
+<div class="mockup" style="margin-top: 24px;">
+  <div class="mockup-header">① メイン画面（/adm/skill-map）― タブ切り替え</div>
+  <div class="mockup-body" style="padding: 16px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <h3 style="margin:0; font-size:18px;">スキルマップ</h3>
+      <button style="padding:4px 14px; border-radius:6px; border:none; background:#0055ff; color:white; font-size:12px;">＋ 技能を割り当て</button>
+    </div>
+
+    <!-- タブ -->
+    <div style="display:flex; border-bottom:2px solid #e5e7eb; margin-bottom:12px;">
+      <div style="padding:6px 16px; border-bottom:2px solid #0055ff; color:#0055ff; font-size:13px; font-weight:600; margin-bottom:-2px;">👤 従業員ビュー</div>
+      <div style="padding:6px 16px; color:#6b7280; font-size:13px;">🏷️ 技能ビュー</div>
+    </div>
+
+    <!-- 部署フィルタ -->
+    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+      <span style="padding:3px 12px; border-radius:12px; background:#0055ff; color:white; font-size:11px;">すべて</span>
+      <span style="padding:3px 12px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:11px;">製造1課</span>
+      <span style="padding:3px 12px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:11px;">品質管理部</span>
+      <span style="padding:3px 12px; border-radius:12px; background:#f3f4f6; color:#6b7280; font-size:11px;">営業部</span>
+    </div>
+
+    <!-- テーブル -->
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead><tr style="background:#f9fafb;">
+        <th style="border:1px solid #e5e7eb; padding:7px 10px; text-align:left;">従業員</th>
+        <th style="border:1px solid #e5e7eb; padding:7px 10px; text-align:left;">部署</th>
+        <th style="border:1px solid #e5e7eb; padding:7px 10px;">現在の技能</th>
+        <th style="border:1px solid #e5e7eb; padding:7px 10px;">直近変更日</th>
+        <th style="border:1px solid #e5e7eb; padding:7px 10px;">操作</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">田中 太郎</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">製造1課</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:10px;margin-right:4px;">旋盤工</span>
+            <span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:10px;">品質検査員</span>
+          </td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280;">2025/10/01</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="color:#0055ff; font-size:11px;">✏️ 編集</span>
+            <span style="color:#6b7280; font-size:11px; margin-left:8px;">📋 履歴</span>
+          </td>
+        </tr>
+        <tr style="background:#fafafa;">
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">鈴木 花子</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">品質管理部</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="background:#fef9c3;color:#92400e;padding:2px 9px;border-radius:10px;">品質管理士</span>
+          </td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#6b7280;">2026/01/01</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="color:#0055ff; font-size:11px;">✏️ 編集</span>
+            <span style="color:#6b7280; font-size:11px; margin-left:8px;">📋 履歴</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; font-weight:500;">山田 一郎</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; color:#6b7280;">営業部</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="color:#9ca3af; font-size:11px;">未設定</span>
+          </td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center; color:#9ca3af;">—</td>
+          <td style="border:1px solid #e5e7eb; padding:7px 10px; text-align:center;">
+            <span style="color:#0055ff; font-size:11px;">＋ 割り当て</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== 技能ビュー ===== -->
+<div class="mockup" style="margin-top: 20px;">
+  <div class="mockup-header">② 技能ビュー（タブ切り替え後）</div>
+  <div class="mockup-body" style="padding: 16px;">
+    <div style="display:flex; border-bottom:2px solid #e5e7eb; margin-bottom:12px;">
+      <div style="padding:6px 16px; color:#6b7280; font-size:13px;">👤 従業員ビュー</div>
+      <div style="padding:6px 16px; border-bottom:2px solid #0055ff; color:#0055ff; font-size:13px; font-weight:600; margin-bottom:-2px;">🏷️ 技能ビュー</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="border:1px solid #bfdbfe; border-radius:8px; overflow:hidden;">
+        <div style="background:#dbeafe; padding:8px 12px; font-weight:600; color:#1d4ed8; font-size:13px; display:flex; justify-content:space-between;">
+          <span>旋盤工</span><span style="font-weight:400; font-size:12px;">3名</span>
+        </div>
+        <div style="padding:8px 12px; font-size:12px; color:#374151;">田中 太郎（製造1課）・佐藤 次郎（製造2課）・中村 三郎（製造1課）</div>
+      </div>
+      <div style="border:1px solid #bbf7d0; border-radius:8px; overflow:hidden;">
+        <div style="background:#dcfce7; padding:8px 12px; font-weight:600; color:#15803d; font-size:13px; display:flex; justify-content:space-between;">
+          <span>品質管理士</span><span style="font-weight:400; font-size:12px;">2名</span>
+        </div>
+        <div style="padding:8px 12px; font-size:12px; color:#374151;">鈴木 花子（品質管理部）・田中 太郎（製造1課・兼務）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル ===== -->
+<div class="split" style="margin-top: 20px; gap: 16px; align-items: flex-start;">
+  <div class="mockup" style="flex:1;">
+    <div class="mockup-header">③ 技能割り当てモーダル</div>
+    <div class="mockup-body" style="padding: 16px;">
+      <div style="border:1px solid #e5e7eb; border-radius:10px; padding:20px; background:white; font-size:12px;">
+        <div style="font-weight:600; font-size:14px; margin-bottom:4px;">技能を割り当て</div>
+        <div style="color:#6b7280; font-size:11px; margin-bottom:14px;">田中 太郎</div>
+        <div style="margin-bottom:10px;">
+          <div style="font-weight:600; margin-bottom:4px;">技能名 <span style="color:#ef4444;">*</span></div>
+          <select style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px;">
+            <option>品質検査員</option>
+            <option>旋盤工</option>
+            <option>── 新しい技能を作成...</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-weight:600; margin-bottom:4px;">開始日 <span style="color:#ef4444;">*</span></div>
+          <input type="text" value="2025-10-01" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:600; margin-bottom:4px;">変更理由・メモ</div>
+          <textarea style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; box-sizing:border-box; height:52px; resize:vertical;" placeholder="例：兼務辞令、部署異動に伴い..."></textarea>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button style="padding:6px 14px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:12px;">キャンセル</button>
+          <button style="padding:6px 14px; border:none; border-radius:6px; background:#0055ff; color:white; font-size:12px;">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="flex:1;">
+    <div class="mockup-header">④ 技能変更履歴パネル</div>
+    <div class="mockup-body" style="padding: 16px;">
+      <div style="font-size:13px; font-weight:600; margin-bottom:12px;">田中 太郎 の技能履歴</div>
+      <div style="position:relative; padding-left:20px; font-size:12px;">
+        <div style="position:absolute; left:6px; top:0; bottom:0; width:2px; background:#e5e7eb;"></div>
+        <div style="margin-bottom:14px; position:relative;">
+          <div style="position:absolute; left:-18px; top:3px; width:10px; height:10px; border-radius:50%; background:#0055ff;"></div>
+          <div style="font-weight:600;">品質検査員 を追加</div>
+          <div style="color:#6b7280; margin-top:2px; font-size:11px;">2025/10/01 · 兼務辞令</div>
+        </div>
+        <div style="margin-bottom:14px; position:relative;">
+          <div style="position:absolute; left:-18px; top:3px; width:10px; height:10px; border-radius:50%; background:#d1d5db;"></div>
+          <div style="font-weight:600;">旋盤工 を割り当て</div>
+          <div style="color:#6b7280; margin-top:2px; font-size:11px;">2023/04/01 · 入社時配属</div>
+        </div>
+      </div>
+      <button style="margin-top:8px; padding:5px 12px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:11px; width:100%;">＋ 技能を追加・変更</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DB変更 ===== -->
+<div class="mockup" style="margin-top: 20px;">
+  <div class="mockup-header">⑤ DB変更概要</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 12px;">
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:600; color:#991b1b; margin-bottom:6px;">🗑️ 削除するテーブル</div>
+        <ul style="margin:0; padding-left:16px; color:#6b7280; line-height:1.9;">
+          <li>skill_categories</li>
+          <li>skills</li>
+          <li>skill_proficiency_defs</li>
+          <li>employee_skills</li>
+          <li>global_skill_templates（関連3テーブル）</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-weight:600; color:#15803d; margin-bottom:6px;">✅ 新規追加</div>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px; font-family:monospace; font-size:11px; line-height:1.8;">
+          <div style="color:#15803d; font-weight:700;">tenant_skills</div>
+          id, tenant_id, name, color_hex, sort_order<br><br>
+          <div style="color:#15803d; font-weight:700;">employee_skill_assignments</div>
+          id, tenant_id, employee_id,<br>
+          skill_id, started_at, reason,<br>
+          assigned_by, created_at
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:600; color:#1d4ed8; margin-bottom:6px;">♻️ 維持</div>
+        <ul style="margin:0; padding-left:16px; color:#6b7280; line-height:1.9;">
+          <li>qualifications</li>
+          <li>employee_qualifications</li>
+          <li>skill_map_drafts</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 14px 18px; background: #f0f9ff; border:1px solid #bfdbfe; border-radius: 8px; font-size: 13px;">
+  <strong>この設計でよければ「OK」と教えてください。</strong>仕様書を書いて実装プランに移ります。
+</div>

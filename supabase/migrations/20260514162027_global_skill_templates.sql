@@ -41,3 +41,9 @@ CREATE TABLE public.global_skill_levels (
 CREATE INDEX ON public.global_job_roles (category_id);
 CREATE INDEX ON public.global_skill_items (job_role_id);
 CREATE INDEX ON public.global_skill_levels (job_role_id);
+
+-- 名前の重複防止
+ALTER TABLE public.global_job_categories ADD CONSTRAINT global_job_categories_name_key UNIQUE (name);
+ALTER TABLE public.global_job_roles ADD CONSTRAINT global_job_roles_category_name_key UNIQUE (category_id, name);
+ALTER TABLE public.global_skill_items ADD CONSTRAINT global_skill_items_role_name_key UNIQUE (job_role_id, name);
+ALTER TABLE public.global_skill_levels ADD CONSTRAINT global_skill_levels_role_name_key UNIQUE (job_role_id, name);

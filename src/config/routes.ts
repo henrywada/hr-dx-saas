@@ -74,5 +74,9 @@ export const APP_ROUTES = {
     EL_TEMPLATES: '/saas_adm/el-templates',
     /** eラーニング テンプレートコース詳細（スライド編集） */
     EL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/el-templates/${id}`,
+    /** グローバルスキルテンプレート管理 */
+    SKILL_TEMPLATES: '/saas_adm/skill-templates',
+    /** グローバルスキルテンプレート詳細 */
+    SKILL_TEMPLATE_DETAIL: (roleId: string) => `/saas_adm/skill-templates/${roleId}`,
   },
 } as const

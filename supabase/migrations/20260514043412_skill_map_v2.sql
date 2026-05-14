@@ -21,7 +21,10 @@ CREATE TABLE public.tenant_skills (
 );
 ALTER TABLE public.tenant_skills ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON public.tenant_skills
-  FOR ALL USING (tenant_id = public.current_tenant_id());
+  FOR ALL
+  USING  (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
+CREATE INDEX ON public.tenant_skills (tenant_id);
 
 -- 3. 従業員技能割り当て（履歴テーブル兼用）
 CREATE TABLE public.employee_skill_assignments (
@@ -36,7 +39,9 @@ CREATE TABLE public.employee_skill_assignments (
 );
 ALTER TABLE public.employee_skill_assignments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON public.employee_skill_assignments
-  FOR ALL USING (tenant_id = public.current_tenant_id());
+  FOR ALL
+  USING  (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 CREATE INDEX ON public.employee_skill_assignments (tenant_id, employee_id);
 CREATE INDEX ON public.employee_skill_assignments (tenant_id, skill_id);
 
@@ -51,7 +56,10 @@ CREATE TABLE public.skill_levels (
 );
 ALTER TABLE public.skill_levels ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON public.skill_levels
-  FOR ALL USING (tenant_id = public.current_tenant_id());
+  FOR ALL
+  USING  (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
+CREATE INDEX ON public.skill_levels (tenant_id);
 
 -- 5. 技能別要件定義
 CREATE TABLE public.skill_requirements (
@@ -67,5 +75,7 @@ CREATE TABLE public.skill_requirements (
 );
 ALTER TABLE public.skill_requirements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON public.skill_requirements
-  FOR ALL USING (tenant_id = public.current_tenant_id());
+  FOR ALL
+  USING  (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 CREATE INDEX ON public.skill_requirements (tenant_id, skill_id);

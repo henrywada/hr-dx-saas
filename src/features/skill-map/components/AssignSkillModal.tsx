@@ -25,7 +25,7 @@ export function AssignSkillModal({ employeeId, employeeName, skills, currentAssi
     if (!selectedSkillId || !startedAt) return
     startTransition(async () => {
       const res = await assignSkill({ employeeId, skillId: selectedSkillId, startedAt, reason: reason || undefined })
-      if (!res.success) { setError(res.error); return }
+      if ('error' in res) { setError(res.error); return }
       setSelectedSkillId(''); setReason(''); setError(null)
     })
   }
@@ -34,7 +34,7 @@ export function AssignSkillModal({ employeeId, employeeName, skills, currentAssi
     if (!confirm('この技能の割り当てを削除しますか？')) return
     startTransition(async () => {
       const res = await removeSkillAssignment(assignmentId)
-      if (!res.success) setError(res.error)
+      if ('error' in res) setError(res.error)
     })
   }
 

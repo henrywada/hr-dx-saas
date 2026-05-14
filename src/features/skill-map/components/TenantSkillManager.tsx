@@ -21,7 +21,7 @@ export function TenantSkillManager({ skills }: Props) {
     if (!newName.trim()) return
     startTransition(async () => {
       const res = await createTenantSkill({ name: newName.trim(), colorHex: newColor })
-      if (!res.success) { setError(res.error); return }
+      if ('error' in res) { setError(res.error); return }
       setNewName(''); setError(null)
     })
   }
@@ -30,7 +30,7 @@ export function TenantSkillManager({ skills }: Props) {
     if (!editId || !editName.trim()) return
     startTransition(async () => {
       const res = await updateTenantSkill({ id: editId, name: editName.trim(), colorHex: editColor })
-      if (!res.success) { setError(res.error); return }
+      if ('error' in res) { setError(res.error); return }
       setEditId(null); setError(null)
     })
   }
@@ -39,7 +39,7 @@ export function TenantSkillManager({ skills }: Props) {
     if (!confirm('この技能を削除しますか？割り当てデータも削除されます。')) return
     startTransition(async () => {
       const res = await deleteTenantSkill(id)
-      if (!res.success) setError(res.error)
+      if ('error' in res) setError(res.error)
     })
   }
 

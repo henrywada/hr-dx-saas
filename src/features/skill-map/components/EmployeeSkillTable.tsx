@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import type { TenantSkill, EmployeeSkillRow } from '../types'
+import { useState, useTransition } from 'react'
+import type { TenantSkill, EmployeeSkillRow, EmployeeSkillAssignment } from '../types'
 import { SkillBadge } from './SkillBadge'
 import { AssignSkillModal } from './AssignSkillModal'
 import { SkillHistoryPanel } from './SkillHistoryPanel'
+import { getEmployeeSkillHistory } from '../actions'
 
 type Props = {
   rows: EmployeeSkillRow[]
@@ -16,8 +17,18 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
   const [divisionId, setDivisionId] = useState('all')
   const [assignTarget, setAssignTarget] = useState<EmployeeSkillRow | null>(null)
   const [historyTarget, setHistoryTarget] = useState<EmployeeSkillRow | null>(null)
+  const [historyData, setHistoryData] = useState<EmployeeSkillAssignment[]>([])
+  const [isPending, startTransition] = useTransition()
 
   const filtered = divisionId === 'all' ? rows : rows.filter((r) => r.division_id === divisionId)
+
+  function handleOpenHistory(row: EmployeeSkillRow) {
+    startTransition(async () => {
+      const history = await getEmployeeSkillHistory(row.employee_id)
+      setHistoryData(history)
+      setHistoryTarget(row)
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -47,6 +58,7 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
             ) : filtered.map((row) => {
               const assignments = Object.values(row.currentAssignments)
               const assignedSkills = assignments.map((a) => skills.find((s) => s.id === a.skill_id)).filter(Boolean) as TenantSkill[]
+              const isLoadingHistory = isPending && historyTarget?.employee_id === row.employee_id
               return (
                 <tr key={row.employee_id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{row.employee_name}</td>
@@ -65,7 +77,10 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
                         {assignments.length === 0 ? '＋ 割り当て' : '✏️ 編集'}
                       </button>
                       {assignments.length > 0 && (
-                        <button onClick={() => setHistoryTarget(row)} className="text-xs text-gray-400 hover:text-gray-600">📋 履歴</button>
+                        <button onClick={() => handleOpenHistory(row)} disabled={isPending}
+                          className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50">
+                          {isLoadingHistory ? '読込中...' : '📋 履歴'}
+                        </button>
                       )}
                     </div>
                   </td>
@@ -87,7 +102,8 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
         <SkillHistoryPanel
           employeeId={historyTarget.employee_id} employeeName={historyTarget.employee_name}
           skills={skills} currentAssignments={historyTarget.currentAssignments}
-          onClose={() => setHistoryTarget(null)}
+          history={historyData}
+          onClose={() => { setHistoryTarget(null); setHistoryData([]) }}
         />
       )}
     </div>

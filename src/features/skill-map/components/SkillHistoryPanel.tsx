@@ -1,9 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 import type { TenantSkill, EmployeeSkillAssignment } from '../types'
-import { getEmployeeSkillAssignments } from '../queries'
 import { AssignSkillModal } from './AssignSkillModal'
 
 type Props = {
@@ -11,20 +9,12 @@ type Props = {
   employeeName: string
   skills: TenantSkill[]
   currentAssignments: Record<string, EmployeeSkillAssignment>
+  history: EmployeeSkillAssignment[]
   onClose: () => void
 }
 
-export function SkillHistoryPanel({ employeeId, employeeName, skills, currentAssignments, onClose }: Props) {
-  const [history, setHistory] = useState<EmployeeSkillAssignment[]>([])
+export function SkillHistoryPanel({ employeeId, employeeName, skills, currentAssignments, history, onClose }: Props) {
   const [showAssign, setShowAssign] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const supabase = createClient()
-    getEmployeeSkillAssignments(supabase, employeeId)
-      .then(setHistory)
-      .finally(() => setLoading(false))
-  }, [employeeId])
 
   return (
     <>
@@ -39,9 +29,7 @@ export function SkillHistoryPanel({ employeeId, employeeName, skills, currentAss
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            {loading ? (
-              <p className="text-sm text-gray-400 text-center py-8">読み込み中...</p>
-            ) : history.length === 0 ? (
+            {history.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-8">履歴がありません</p>
             ) : (
               <div className="relative pl-5">

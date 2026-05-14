@@ -5,11 +5,17 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
+import type { EmployeeSkillAssignment } from './types'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
 const SKILL_MAP_PATH = APP_ROUTES.TENANT.ADMIN_SKILL_MAP
 const REQUIREMENTS_PATH = APP_ROUTES.TENANT.ADMIN_SKILL_MAP_REQUIREMENTS
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+function isValidHex(hex: string | undefined): boolean {
+  return !hex || HEX_RE.test(hex)
+}
 
 // ---- 技能マスタ (tenant_skills) ----
 
@@ -19,6 +25,7 @@ export async function createTenantSkill(input: {
 }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
   const supabase = await createClient()
   const { error } = await (supabase as any).from('tenant_skills').insert({
     tenant_id: user.tenant_id,
@@ -37,11 +44,14 @@ export async function updateTenantSkill(input: {
 }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
   const supabase = await createClient()
   const updates: Record<string, string> = {}
   if (input.name !== undefined) updates.name = input.name
   if (input.colorHex !== undefined) updates.color_hex = input.colorHex
-  const { error } = await (supabase as any).from('tenant_skills').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('tenant_skills').update(updates)
+    .eq('id', input.id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
   return { success: true }
@@ -51,7 +61,9 @@ export async function deleteTenantSkill(id: string): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
-  const { error } = await (supabase as any).from('tenant_skills').delete().eq('id', id)
+  const { error } = await (supabase as any)
+    .from('tenant_skills').delete()
+    .eq('id', id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
   return { success: true }
@@ -65,6 +77,7 @@ export async function createSkillLevel(input: {
 }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
   const supabase = await createClient()
   const { error } = await (supabase as any).from('skill_levels').insert({
     tenant_id: user.tenant_id,
@@ -83,11 +96,14 @@ export async function updateSkillLevel(input: {
 }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
   const supabase = await createClient()
   const updates: Record<string, string> = {}
   if (input.name !== undefined) updates.name = input.name
   if (input.colorHex !== undefined) updates.color_hex = input.colorHex
-  const { error } = await (supabase as any).from('skill_levels').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('skill_levels').update(updates)
+    .eq('id', input.id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(REQUIREMENTS_PATH)
   return { success: true }
@@ -97,7 +113,9 @@ export async function deleteSkillLevel(id: string): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
-  const { error } = await (supabase as any).from('skill_levels').delete().eq('id', id)
+  const { error } = await (supabase as any)
+    .from('skill_levels').delete()
+    .eq('id', id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(REQUIREMENTS_PATH)
   return { success: true }
@@ -131,10 +149,26 @@ export async function removeSkillAssignment(id: string): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
-  const { error } = await (supabase as any).from('employee_skill_assignments').delete().eq('id', id)
+  const { error } = await (supabase as any)
+    .from('employee_skill_assignments').delete()
+    .eq('id', id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
   return { success: true }
+}
+
+export async function getEmployeeSkillHistory(employeeId: string): Promise<EmployeeSkillAssignment[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('employee_skill_assignments')
+    .select('*, skill:tenant_skills(*)')
+    .eq('employee_id', employeeId)
+    .eq('tenant_id', user.tenant_id)
+    .order('started_at', { ascending: false })
+  if (error) return []
+  return data ?? []
 }
 
 // ---- 技能別要件 (skill_requirements) ----
@@ -177,7 +211,9 @@ export async function updateSkillRequirement(input: {
   if ('category' in input) updates.category = input.category
   if ('levelId' in input) updates.level_id = input.levelId
   if ('criteria' in input) updates.criteria = input.criteria
-  const { error } = await (supabase as any).from('skill_requirements').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('skill_requirements').update(updates)
+    .eq('id', input.id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(REQUIREMENTS_PATH)
   return { success: true }
@@ -187,7 +223,9 @@ export async function deleteSkillRequirement(id: string): Promise<ActionResult> 
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
-  const { error } = await (supabase as any).from('skill_requirements').delete().eq('id', id)
+  const { error } = await (supabase as any)
+    .from('skill_requirements').delete()
+    .eq('id', id).eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(REQUIREMENTS_PATH)
   return { success: true }
@@ -207,7 +245,7 @@ export async function saveSkillMapDraft(input: {
     const { error } = await (supabase as any)
       .from('skill_map_drafts')
       .update({ name: input.name, snapshot: input.snapshot, updated_at: new Date().toISOString() })
-      .eq('id', input.draftId)
+      .eq('id', input.draftId).eq('tenant_id', user.tenant_id)
     if (error) return { success: false, error: error.message }
     revalidatePath(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
     return { success: true, draftId: input.draftId }
@@ -227,7 +265,8 @@ export async function confirmSkillMapDraft(draftId: string): Promise<ActionResul
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
   const { data: draft, error: draftError } = await (supabase as any)
-    .from('skill_map_drafts').select('snapshot').eq('id', draftId).single()
+    .from('skill_map_drafts').select('snapshot')
+    .eq('id', draftId).eq('tenant_id', user.tenant_id).single()
   if (draftError) return { success: false, error: draftError.message }
   const snapshot: Record<string, string> = draft.snapshot ?? {}
   for (const [employeeId, divisionId] of Object.entries(snapshot)) {
@@ -235,7 +274,8 @@ export async function confirmSkillMapDraft(draftId: string): Promise<ActionResul
     if (error) return { success: false, error: error.message }
   }
   const { error: confirmError } = await (supabase as any)
-    .from('skill_map_drafts').update({ status: 'confirmed' }).eq('id', draftId)
+    .from('skill_map_drafts').update({ status: 'confirmed' })
+    .eq('id', draftId).eq('tenant_id', user.tenant_id)
   if (confirmError) return { success: false, error: confirmError.message }
   revalidatePath(APP_ROUTES.TENANT.ADMIN_SKILL_MAP_SIMULATION)
   return { success: true }

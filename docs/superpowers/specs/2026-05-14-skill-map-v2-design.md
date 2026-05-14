@@ -81,6 +81,45 @@ CREATE INDEX ON public.employee_skill_assignments (tenant_id, employee_id);
 CREATE INDEX ON public.employee_skill_assignments (tenant_id, skill_id);
 ```
 
+### 技能別要件テーブル（新規追加）
+
+技能別要件は採用・育成計画の基準として使用する。スキルレベルはテナントが自由定義。
+
+```sql
+-- テナントが定義するスキルレベルマスタ（初級・熟練・★1〜★5 など自由設定）
+CREATE TABLE public.skill_levels (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,           -- 例: '初級', '熟練', '★★★'
+  color_hex   TEXT NOT NULL DEFAULT '#6b7280',
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.skill_levels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_isolation" ON public.skill_levels
+  FOR ALL USING (tenant_id = public.current_tenant_id());
+
+-- 技能ごとの要件定義
+CREATE TABLE public.skill_requirements (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  skill_id    UUID NOT NULL REFERENCES public.tenant_skills(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,           -- 例: 'Python', '旋盤基本操作'
+  category    TEXT,                    -- '技術' | '知識' | '資格' | '経験'
+  level_id    UUID REFERENCES public.skill_levels(id) ON DELETE SET NULL,
+  criteria    TEXT,                    -- 達成基準・メモ（例: '実務経験3年以上'）
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.skill_requirements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_isolation" ON public.skill_requirements
+  FOR ALL USING (tenant_id = public.current_tenant_id());
+
+CREATE INDEX ON public.skill_requirements (tenant_id, skill_id);
+```
+
 ### 維持するテーブル
 
 変更なし：
@@ -114,6 +153,8 @@ src/app/(tenant)/(colored)/adm/
 └── skill-map/
     ├── page.tsx                    # メイン画面（タブ切り替え）
     ├── loading.tsx / error.tsx
+    ├── requirements/
+    │   └── page.tsx                # 技能別要件管理（新規）
     ├── qualifications/
     │   └── page.tsx                # 資格管理（既存のまま）
     └── simulation/
@@ -134,6 +175,9 @@ src/features/skill-map/
     SkillHistoryPanel.tsx         # 変更履歴タイムライン
     SkillBadge.tsx                # 技能バッジ（color_hex対応）
     TenantSkillManager.tsx        # 技能マスタ管理（追加・編集・削除）
+    SkillRequirementsTable.tsx    # 技能別要件一覧テーブル
+    SkillRequirementModal.tsx     # 要件追加・編集モーダル
+    SkillLevelManager.tsx         # スキルレベルマスタ管理（テナント自由定義）
   queries.ts
   actions.ts
   types.ts
@@ -189,6 +233,33 @@ src/app/(saas-admin)/saas_adm/global-skill-templates/（削除）
 
 ドロップダウン末尾に「── 新しい技能を作成...」オプションを配置。
 
+### 技能別要件画面（`/adm/skill-map/requirements`）
+
+**スキルレベルマスタ（テナント自由定義）:**
+- 画面上部でスキルレベルを管理（追加・名前変更・色変更・並び替え・削除）
+- デフォルト例：初級 / 中級 / 熟練 を初期シードとして提供（テナント側で変更自由）
+
+**技能選択:**
+- 技能チップ（`tenant_skills` 一覧）で絞り込み。1度に1技能の要件を表示・編集
+
+**要件テーブル:**
+
+| カラム | 内容 |
+|---|---|
+| 要件名 | スキル・資格・経験の名称（例: Python, AWS SAA） |
+| カテゴリ | 技術 / 知識 / 資格 / 経験（固定選択肢） |
+| スキルレベル | `skill_levels` から選択（テナント定義） |
+| 達成基準・メモ | 自由テキスト（例: 実務経験3年以上） |
+
+**SkillRequirementModal フィールド:**
+
+| フィールド | バリデーション |
+|---|---|
+| 要件名 | 必須 |
+| カテゴリ | 任意（技術 / 知識 / 資格 / 経験） |
+| スキルレベル | 任意（`skill_levels` から選択） |
+| 達成基準・メモ | 任意 |
+
 ### SkillHistoryPanel
 
 - タイムライン形式（新→旧）
@@ -231,7 +302,8 @@ TenantSkillManager
 | 5 | SkillHistoryPanel（履歴タイムライン） | 全履歴が時系列表示 |
 | 6 | 技能ビュー（SkillGroupView） | 技能ごとのグループ表示 |
 | 7 | TenantSkillManager（マスタ管理） | 追加・色変更・削除が動作 |
-| 8 | 旧コンポーネント・ページ削除 | `npm run build` エラーなし |
+| 8 | 技能別要件画面（/adm/skill-map/requirements） | スキルレベル定義・要件CRUD動作 |
+| 9 | 旧コンポーネント・ページ削除 | `npm run build` エラーなし |
 
 ---
 
@@ -243,7 +315,9 @@ TenantSkillManager
 4. **削除:** 物理削除で履歴から消える
 5. **技能ビュー:** タブ切り替えでグループ表示される
 6. **マスタ管理:** 技能名・色変更がバッジに即反映
-7. **ビルド:** `npm run build` エラーなし
+7. **スキルレベル管理:** テナントがカスタムレベル（名前・色）を追加・削除・並び替えできる
+8. **要件CRUD:** 技能を選択して要件を追加・編集・削除できる。スキルレベルが正しく紐づく
+9. **ビルド:** `npm run build` エラーなし
 
 ---
 

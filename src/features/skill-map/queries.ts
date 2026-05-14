@@ -96,7 +96,7 @@ export async function getEmployeeSkillRows(
 
   return (employees ?? []).map((emp: any) => {
     const current = currentMap[emp.id] ?? {}
-    const startedAts = Object.values(current).map((a) => (a as EmployeeSkillAssignment).started_at)
+    const startedAts = Object.values(current).map(a => (a as EmployeeSkillAssignment).started_at)
     const latestStartedAt = startedAts.length > 0 ? startedAts.sort().reverse()[0] : null
     return {
       employee_id: emp.id,
@@ -114,12 +114,22 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
 
   const { data: assignments, error } = await (supabase as any)
     .from('employee_skill_assignments')
-    .select('employee_id, skill_id, started_at, employees:employees(id, employee_no, divisions:divisions(name))')
+    .select(
+      'employee_id, skill_id, started_at, employees:employees(id, employee_no, divisions:divisions(name))'
+    )
     .order('started_at', { ascending: false })
   if (error) throw error
 
   const seen: Record<string, Set<string>> = {}
-  const grouped: Record<string, Array<{ employee_id: string; employee_name: string; division_name: string | null; started_at: string }>> = {}
+  const grouped: Record<
+    string,
+    Array<{
+      employee_id: string
+      employee_name: string
+      division_name: string | null
+      started_at: string
+    }>
+  > = {}
 
   for (const a of assignments ?? []) {
     if (!seen[a.skill_id]) seen[a.skill_id] = new Set()
@@ -135,7 +145,7 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
     })
   }
 
-  return skills.map((skill) => ({ skill, employees: grouped[skill.id] ?? [] }))
+  return skills.map(skill => ({ skill, employees: grouped[skill.id] ?? [] }))
 }
 
 export async function getEmployeeQualifications(
@@ -160,7 +170,10 @@ export async function getSkillMapDrafts(supabase: DB): Promise<SkillMapDraft[]> 
   return data ?? []
 }
 
-export async function getSkillMapDraft(supabase: DB, draftId: string): Promise<SkillMapDraft | null> {
+export async function getSkillMapDraft(
+  supabase: DB,
+  draftId: string
+): Promise<SkillMapDraft | null> {
   const { data, error } = await (supabase as any)
     .from('skill_map_drafts')
     .select('*')
@@ -185,7 +198,10 @@ export async function getSkillMatrixRows(supabase: DB): Promise<SkillMatrixRow[]
   const { data: assignments } = await (supabase as any)
     .from('employee_skill_assignments')
     .select('employee_id, skill_id')
-    .in('employee_id', (employees ?? []).map((e: any) => e.id))
+    .in(
+      'employee_id',
+      (employees ?? []).map((e: any) => e.id)
+    )
 
   const skillCountMap: Record<string, Set<string>> = {}
   for (const a of assignments ?? []) {
@@ -198,7 +214,8 @@ export async function getSkillMatrixRows(supabase: DB): Promise<SkillMatrixRow[]
     employee_name: emp.employee_no ?? emp.id,
     division_name: (emp.divisions as any)?.name ?? null,
     division_id: emp.division_id ?? null,
-    coverage: totalSkills > 0 ? Math.round(((skillCountMap[emp.id]?.size ?? 0) / totalSkills) * 100) : 0,
+    coverage:
+      totalSkills > 0 ? Math.round(((skillCountMap[emp.id]?.size ?? 0) / totalSkills) * 100) : 0,
   }))
 }
 

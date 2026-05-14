@@ -8,7 +8,15 @@ import { saveSkillMapDraft, confirmSkillMapDraft } from '../actions'
 import { APP_ROUTES } from '@/config/routes'
 
 /** スキル充足率バー（インライン） */
-function SkillCoverageBar({ coverage, label, showPercentage }: { coverage: number; label: string; showPercentage?: boolean }) {
+function SkillCoverageBar({
+  coverage,
+  label,
+  showPercentage,
+}: {
+  coverage: number
+  label: string
+  showPercentage?: boolean
+}) {
   const color = coverage >= 80 ? '#22c55e' : coverage >= 50 ? '#f97316' : '#ef4444'
   return (
     <div className="mt-1">
@@ -17,7 +25,10 @@ function SkillCoverageBar({ coverage, label, showPercentage }: { coverage: numbe
         {showPercentage && <span>{coverage}%</span>}
       </div>
       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${coverage}%`, backgroundColor: color }} />
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${coverage}%`, backgroundColor: color }}
+        />
       </div>
     </div>
   )

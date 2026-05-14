@@ -21,17 +21,24 @@ export function SkillMapTabs({ employeeRows, skillGroups, skills, divisions }: P
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-gray-200">
         <div className="flex">
-          {(['employee', 'skill'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+          {(['employee', 'skill'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                tab === t ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>
+                tab === t
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
               {t === 'employee' ? '👤 従業員ビュー' : '🏷️ 技能ビュー'}
             </button>
           ))}
         </div>
-        <button onClick={() => setShowManager(!showManager)}
-          className="text-sm text-gray-500 hover:text-primary border border-gray-200 px-3 py-1.5 rounded mb-1">
+        <button
+          onClick={() => setShowManager(!showManager)}
+          className="text-sm text-gray-500 hover:text-primary border border-gray-200 px-3 py-1.5 rounded mb-1"
+        >
           ⚙️ 技能マスタ管理
         </button>
       </div>
@@ -42,10 +49,11 @@ export function SkillMapTabs({ employeeRows, skillGroups, skills, divisions }: P
         </div>
       )}
 
-      {tab === 'employee'
-        ? <EmployeeSkillTable rows={employeeRows} skills={skills} divisions={divisions} />
-        : <SkillGroupView groups={skillGroups} />
-      }
+      {tab === 'employee' ? (
+        <EmployeeSkillTable rows={employeeRows} skills={skills} divisions={divisions} />
+      ) : (
+        <SkillGroupView groups={skillGroups} />
+      )}
     </div>
   )
 }

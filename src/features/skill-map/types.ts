@@ -14,7 +14,7 @@ export type EmployeeSkillAssignment = {
   tenant_id: string
   employee_id: string
   skill_id: string
-  started_at: string        // DATE 'YYYY-MM-DD'
+  started_at: string // DATE 'YYYY-MM-DD'
   reason: string | null
   assigned_by: string | null
   created_at: string
@@ -35,7 +35,7 @@ export type SkillRequirement = {
   tenant_id: string
   skill_id: string
   name: string
-  category: string | null   // '技術' | '知識' | '資格' | '経験'
+  category: string | null // '技術' | '知識' | '資格' | '経験'
   level_id: string | null
   criteria: string | null
   sort_order: number
@@ -48,7 +48,7 @@ export type EmployeeSkillRow = {
   employee_name: string
   division_name: string | null
   division_id: string | null
-  currentAssignments: Record<string, EmployeeSkillAssignment>  // skill_id → 最新割り当て
+  currentAssignments: Record<string, EmployeeSkillAssignment> // skill_id → 最新割り当て
   latestStartedAt: string | null
 }
 
@@ -87,7 +87,7 @@ export type SkillMatrixRow = {
   employee_name: string
   division_name: string | null
   division_id: string | null
-  coverage: number   // 0-100 スキル充足率
+  coverage: number // 0-100 スキル充足率
 }
 
 export type SkillMapDraft = {

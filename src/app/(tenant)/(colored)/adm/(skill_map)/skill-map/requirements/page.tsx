@@ -23,10 +23,14 @@ export default async function SkillRequirementsPage({ searchParams }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">技能別要件</h1>
-          <p className="text-sm text-gray-500 mt-1">採用・育成計画の基準となる要件を技能ごとに定義します</p>
+          <p className="text-sm text-gray-500 mt-1">
+            採用・育成計画の基準となる要件を技能ごとに定義します
+          </p>
         </div>
-        <a href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP}
-          className="text-sm text-gray-500 hover:text-primary border border-gray-200 px-3 py-1.5 rounded">
+        <a
+          href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP}
+          className="text-sm text-gray-500 hover:text-primary border border-gray-200 px-3 py-1.5 rounded"
+        >
           ← スキルマップ
         </a>
       </div>
@@ -36,8 +40,10 @@ export default async function SkillRequirementsPage({ searchParams }: Props) {
       </div>
 
       <SkillRequirementsTable
-        skills={skills} levels={levels}
-        initialRequirements={requirements} initialSkillId={activeSkillId}
+        skills={skills}
+        levels={levels}
+        initialRequirements={requirements}
+        initialSkillId={activeSkillId}
       />
     </div>
   )

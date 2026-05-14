@@ -6,6 +6,7 @@ import { LogOut, Settings, Shield, ArrowLeft, Menu, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/context'
+import { useTenant } from '@/lib/tenant/context'
 import { useMobileMenu } from '@/components/layout/MobileMenuContext'
 import { APP_ROUTES } from '@/config/routes'
 import { writeAuditLog } from '@/lib/log/actions'
@@ -17,9 +18,24 @@ interface AppHeaderProps {
 
 export function AppHeader({ variant }: AppHeaderProps) {
   const { user } = useAuth()
+  const { tenantName: tenantNameFromContext } = useTenant()
   const router = useRouter()
   const supabase = createClient()
   const { isMobileMenuOpen, toggleMobileMenu } = useMobileMenu()
+
+  // tenants.name（サーバー側 getServerUser / TenantProvider 経由）
+  const tenantBrandName =
+    [tenantNameFromContext, user?.tenant_name]
+      .find(s => typeof s === 'string' && s.trim().length > 0)
+      ?.trim() ??
+    (variant === 'saas' ? 'プラットフォーム運営' : 'ワークスペース')
+
+  const homeHref =
+    variant === 'saas'
+      ? APP_ROUTES.SAAS.DASHBOARD
+      : variant === 'admin'
+        ? APP_ROUTES.TENANT.ADMIN
+        : APP_ROUTES.TENANT.PORTAL
 
   const handleLogout = async () => {
     await writeAuditLog({ action: 'LOGOUT', path: '/logout' }).catch(console.error)
@@ -60,21 +76,33 @@ export function AppHeader({ variant }: AppHeaderProps) {
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        <Link href={APP_ROUTES.TENANT.PORTAL} className="flex items-center gap-2 group">
-          <div
-            className={`w-8 h-8 rounded-lg bg-linear-to-br from-[#FF6B00] to-orange-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 ${variant !== 'portal' ? 'border border-white/20' : ''}`}
-          >
-            <span className="text-white font-bold text-lg tracking-tight">H</span>
-          </div>
-          <div
-            className={`text-xl md:text-2xl font-bold tracking-tighter drop-shadow-sm select-none ${variant === 'portal' ? 'text-accent-orange' : 'text-white'}`}
+        <Link
+          href={homeHref}
+          title={tenantBrandName}
+          className="group flex min-w-0 max-w-[min(100%,22rem)] items-center gap-3"
+        >
+          {/* ミニマルな縦線アクセント（旧ロゴ枠の代わりに余白とリズムを確保） */}
+          <span
+            className={`hidden h-8 w-px shrink-0 sm:block ${
+              variant === 'portal' ? 'bg-primary/35' : 'bg-white/35'
+            }`}
+            aria-hidden
+          />
+          <span
+            className={`min-w-0 truncate text-[0.9375rem] font-bold leading-snug tracking-[0.05em] select-none md:text-[1.0625rem] ${
+              variant === 'portal' ? 'text-slate-800' : 'text-white'
+            }`}
             style={{
+              fontFamily:
+                "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', 'Yu Mincho', 'Noto Serif JP', serif",
+              fontFeatureSettings: '"palt", "kern"',
               textShadow:
-                variant !== 'portal' ? '0 1px 2px rgba(0,0,0,0.2)' : '0 1px 1px rgba(0,0,0,0.05)',
+                variant !== 'portal' ? '0 1px 2px rgba(0,0,0,0.25)' : '0 1px 2px rgba(255,255,255,0.8)',
+              letterSpacing: '0.05em',
             }}
           >
-            HR-dx
-          </div>
+            {tenantBrandName}
+          </span>
         </Link>
       </div>
 

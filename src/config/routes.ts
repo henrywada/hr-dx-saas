@@ -60,6 +60,7 @@ export const APP_ROUTES = {
     // スキルマップ
     ADMIN_SKILL_MAP: '/adm/skill-map',
     ADMIN_SKILL_MAP_SETUP: '/adm/skill-map/setup',
+    ADMIN_SKILL_MAP_REQUIREMENTS: '/adm/skill-map/requirements',
     ADMIN_SKILL_MAP_QUALIFICATIONS: '/adm/skill-map/qualifications',
     ADMIN_SKILL_MAP_SIMULATION: '/adm/skill-map/simulation',
     ADMIN_SKILL_MAP_SIMULATION_DETAIL: (draftId: string) => `/adm/skill-map/simulation/${draftId}`,
@@ -74,7 +75,5 @@ export const APP_ROUTES = {
     EL_TEMPLATES: '/saas_adm/el-templates',
     /** eラーニング テンプレートコース詳細（スライド編集） */
     EL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/el-templates/${id}`,
-    /** グローバルスキルテンプレート管理 */
-    GLOBAL_SKILL_TEMPLATES: '/saas_adm/global-skill-templates',
   },
 } as const

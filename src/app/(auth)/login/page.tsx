@@ -47,21 +47,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
-        {/* 1行目: ロゴ + HR-dx／2行目: ログイン */}
-        <div className="flex w-full flex-col items-start gap-6 pb-2">
-          <div
-            className="flex items-center gap-2 w-full justify-center lg:justify-start"
-            aria-label="HR-dx"
-          >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-[#FF6B00] to-orange-600 shadow-md">
-              <span className="text-lg font-bold tracking-tight text-white">H</span>
-            </div>
-            <span className="select-none text-accent-orange text-xl font-bold tracking-tighter drop-shadow-sm">
-              HR-dx
-            </span>
-          </div>
-
-          <div className="w-full flex flex-row items-center justify-center gap-4 pt-2 pb-1">
+        <div className="flex w-full flex-col items-start pb-2">
+          <div className="w-full flex flex-row items-center justify-center gap-4 pb-1">
             <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-blue-50 to-indigo-50 shadow-inner ring-1 ring-blue-100/60 overflow-hidden">
               <div className="absolute inset-0 bg-linear-to-b from-white/60 to-transparent"></div>
               <Lock className="relative h-6 w-6 text-blue-600 stroke-[1.5]" aria-hidden />

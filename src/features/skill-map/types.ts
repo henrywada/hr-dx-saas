@@ -1,73 +1,68 @@
-// スキルマップ関連の型定義
+// src/features/skill-map/types.ts
 
-export type GlobalSkillTemplate = {
+export type TenantSkill = {
   id: string
-  industry_type: 'manufacturing' | 'it'
+  tenant_id: string
   name: string
-  description: string | null
-  is_active: boolean
-}
-
-export type GlobalSkillCategory = {
-  id: string
-  template_id: string
-  name: string
-  sort_order: number
-}
-
-export type GlobalSkill = {
-  id: string
-  template_id: string
-  category_id: string
-  name: string
-  description: string | null
-  sort_order: number
-}
-
-export type GlobalProficiencyDef = {
-  id: string
-  template_id: string
-  level: number
-  label: string
   color_hex: string
-}
-
-export type SkillCategory = {
-  id: string
-  tenant_id: string
-  name: string
-  source_template_id: string | null
   sort_order: number
+  created_at: string
 }
 
-export type Skill = {
-  id: string
-  tenant_id: string
-  category_id: string
-  name: string
-  description: string | null
-  sort_order: number
-  category?: SkillCategory
-}
-
-export type SkillProficiencyDef = {
-  id: string
-  tenant_id: string
-  level: number
-  label: string
-  color_hex: string
-}
-
-export type EmployeeSkill = {
+export type EmployeeSkillAssignment = {
   id: string
   tenant_id: string
   employee_id: string
   skill_id: string
-  proficiency_level: number
-  evaluated_at: string
-  evaluated_by: string | null
+  started_at: string        // DATE 'YYYY-MM-DD'
+  reason: string | null
+  assigned_by: string | null
+  created_at: string
+  skill?: TenantSkill
 }
 
+export type SkillLevel = {
+  id: string
+  tenant_id: string
+  name: string
+  color_hex: string
+  sort_order: number
+  created_at: string
+}
+
+export type SkillRequirement = {
+  id: string
+  tenant_id: string
+  skill_id: string
+  name: string
+  category: string | null   // '技術' | '知識' | '資格' | '経験'
+  level_id: string | null
+  criteria: string | null
+  sort_order: number
+  created_at: string
+  level?: SkillLevel
+}
+
+export type EmployeeSkillRow = {
+  employee_id: string
+  employee_name: string
+  division_name: string | null
+  division_id: string | null
+  currentAssignments: Record<string, EmployeeSkillAssignment>  // skill_id → 最新割り当て
+  latestStartedAt: string | null
+}
+
+export type SkillGroupRow = {
+  skill: TenantSkill
+  employees: Array<{
+    employee_id: string
+    employee_name: string
+    division_name: string | null
+    started_at: string
+  }>
+}
+
+// 資格管理（維持）
 export type Qualification = {
   id: string
   tenant_id: string
@@ -93,34 +88,20 @@ export type SkillMapDraft = {
   name: string
   created_by: string | null
   status: 'draft' | 'confirmed'
-  snapshot: Record<string, string> // { employee_id: division_id }
+  snapshot: Record<string, string>
   created_at: string
   updated_at: string
 }
 
-/** マトリクス表示用: 従業員 × スキル の習熟度マップ */
-export type SkillMatrixRow = {
-  employee_id: string
-  employee_name: string
-  job_title: string | null
-  division_name: string | null
-  /** { skill_id: proficiency_level } */
-  skills: Record<string, number>
-  /** スキル充足率 0-100 */
-  coverage: number
-}
-
-/** 資格期限ステータス */
 export type QualificationAlertStatus = 'valid' | 'expiring_soon' | 'expired'
 
-/** 表示用の期限ステータスを計算 */
 export function getQualificationStatus(expiryDate: string | null): QualificationAlertStatus {
   if (!expiryDate) return 'valid'
   const expiry = new Date(expiryDate)
-  const today = new Date()
-  const thirtyDaysLater = new Date()
-  thirtyDaysLater.setDate(today.getDate() + 30)
-  if (expiry < today) return 'expired'
-  if (expiry <= thirtyDaysLater) return 'expiring_soon'
+  const now = new Date()
+  const days30 = new Date(now)
+  days30.setDate(days30.getDate() + 30)
+  if (expiry < now) return 'expired'
+  if (expiry <= days30) return 'expiring_soon'
   return 'valid'
 }

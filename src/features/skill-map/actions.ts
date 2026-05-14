@@ -282,6 +282,59 @@ export async function saveSkillMapDraft(input: {
   return { success: true, draftId: data.id }
 }
 
+// ---- グローバルテンプレートから取り込み ----
+
+export async function importFromGlobalTemplate(jobRoleId: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+
+  const [roleRes, itemsRes, levelsRes] = await Promise.all([
+    (supabase as any).from('global_job_roles').select('name, color_hex').eq('id', jobRoleId).single(),
+    (supabase as any).from('global_skill_items').select('name, category').eq('job_role_id', jobRoleId).order('sort_order'),
+    (supabase as any).from('global_skill_levels').select('name, criteria, color_hex').eq('job_role_id', jobRoleId).order('sort_order'),
+  ])
+
+  if (roleRes.error || !roleRes.data) return { success: false, error: 'テンプレートが見つかりません' }
+
+  const { data: skillData, error: skillError } = await (supabase as any)
+    .from('tenant_skills')
+    .insert({
+      tenant_id: user.tenant_id,
+      name: roleRes.data.name,
+      color_hex: roleRes.data.color_hex,
+    })
+    .select('id')
+    .single()
+  if (skillError) return { success: false, error: skillError.message }
+
+  const tenantSkillId = skillData.id
+
+  if (itemsRes.data && itemsRes.data.length > 0) {
+    const requirementsRows = itemsRes.data.map((item: any) => ({
+      tenant_id: user.tenant_id,
+      skill_id: tenantSkillId,
+      name: item.name,
+      category: item.category ?? null,
+    }))
+    const { error: reqError } = await (supabase as any).from('skill_requirements').insert(requirementsRows)
+    if (reqError) return { success: false, error: reqError.message }
+  }
+
+  if (levelsRes.data && levelsRes.data.length > 0) {
+    const levelsRows = levelsRes.data.map((level: any) => ({
+      tenant_id: user.tenant_id,
+      name: level.name,
+      color_hex: level.color_hex,
+    }))
+    const { error: levelError } = await (supabase as any).from('skill_levels').insert(levelsRows)
+    if (levelError) return { success: false, error: levelError.message }
+  }
+
+  revalidatePath(SKILL_MAP_PATH)
+  return { success: true }
+}
+
 export async function confirmSkillMapDraft(draftId: string): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }

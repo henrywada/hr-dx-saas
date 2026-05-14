@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { TenantSkill, EmployeeSkillRow, SkillGroupRow } from '../types'
+import type { GlobalJobCategory, GlobalJobRole } from '@/features/global-skill-templates/types'
 import { EmployeeSkillTable } from './EmployeeSkillTable'
 import { SkillGroupView } from './SkillGroupView'
 import { TenantSkillManager } from './TenantSkillManager'
@@ -11,9 +12,11 @@ type Props = {
   skillGroups: SkillGroupRow[]
   skills: TenantSkill[]
   divisions: Array<{ id: string; name: string }>
+  templateCategories: GlobalJobCategory[]
+  templateRoles: GlobalJobRole[]
 }
 
-export function SkillMapTabs({ employeeRows, skillGroups, skills, divisions }: Props) {
+export function SkillMapTabs({ employeeRows, skillGroups, skills, divisions, templateCategories, templateRoles }: Props) {
   const [tab, setTab] = useState<'employee' | 'skill'>('employee')
   const [showManager, setShowManager] = useState(false)
 
@@ -45,7 +48,7 @@ export function SkillMapTabs({ employeeRows, skillGroups, skills, divisions }: P
 
       {showManager && (
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <TenantSkillManager skills={skills} />
+          <TenantSkillManager skills={skills} templateCategories={templateCategories} templateRoles={templateRoles} />
         </div>
       )}
 

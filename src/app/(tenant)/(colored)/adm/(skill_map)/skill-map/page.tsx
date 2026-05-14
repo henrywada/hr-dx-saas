@@ -8,16 +8,19 @@ import {
   getSkillGroupRows,
 } from '@/features/skill-map/queries'
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
+import { getGlobalJobCategories, getGlobalJobRoles } from '@/features/global-skill-templates/queries'
 
 export default async function SkillMapPage() {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
   const supabase = await createClient()
-  const [skills, employeeRows, skillGroups] = await Promise.all([
+  const [skills, employeeRows, skillGroups, templateCategories, templateRoles] = await Promise.all([
     getTenantSkills(supabase),
     getEmployeeSkillRows(supabase),
     getSkillGroupRows(supabase),
+    getGlobalJobCategories(supabase),
+    getGlobalJobRoles(supabase),
   ])
 
   const divisionMap = new Map<string, string>()
@@ -42,6 +45,8 @@ export default async function SkillMapPage() {
         skillGroups={skillGroups}
         skills={skills}
         divisions={divisions}
+        templateCategories={templateCategories}
+        templateRoles={templateRoles}
       />
     </div>
   )

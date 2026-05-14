@@ -3,8 +3,14 @@
 import { useState, useTransition } from 'react'
 import type { TenantSkill } from '../types'
 import { createTenantSkill, updateTenantSkill, deleteTenantSkill } from '../actions'
+import { ImportFromTemplateModal } from './ImportFromTemplateModal'
+import type { GlobalJobCategory, GlobalJobRole } from '@/features/global-skill-templates/types'
 
-type Props = { skills: TenantSkill[] }
+type Props = {
+  skills: TenantSkill[]
+  templateCategories: GlobalJobCategory[]
+  templateRoles: GlobalJobRole[]
+}
 
 const COLORS = [
   '#3b82f6',
@@ -17,7 +23,7 @@ const COLORS = [
   '#84cc16',
 ]
 
-export function TenantSkillManager({ skills }: Props) {
+export function TenantSkillManager({ skills, templateCategories, templateRoles }: Props) {
   const [isPending, startTransition] = useTransition()
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState('#3b82f6')
@@ -25,6 +31,7 @@ export function TenantSkillManager({ skills }: Props) {
   const [editName, setEditName] = useState('')
   const [editColor, setEditColor] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showImport, setShowImport] = useState(false)
 
   function handleCreate() {
     if (!newName.trim()) return
@@ -67,6 +74,12 @@ export function TenantSkillManager({ skills }: Props) {
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-gray-700">技能マスタ管理</h3>
+      <button
+        onClick={() => setShowImport(true)}
+        className="text-xs text-primary border border-primary px-2 py-1 rounded hover:bg-primary hover:text-white transition-colors"
+      >
+        📥 テンプレートから取り込む
+      </button>
       {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{error}</p>}
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -172,6 +185,14 @@ export function TenantSkillManager({ skills }: Props) {
           </div>
         ))}
       </div>
+
+      {showImport && (
+        <ImportFromTemplateModal
+          categories={templateCategories}
+          roles={templateRoles}
+          onClose={() => setShowImport(false)}
+        />
+      )}
     </div>
   )
 }

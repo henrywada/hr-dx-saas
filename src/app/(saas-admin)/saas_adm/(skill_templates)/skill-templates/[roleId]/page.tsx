@@ -22,7 +22,10 @@ export default async function SkillTemplateDetailPage({
     <main className="flex-1 w-full min-h-screen bg-white">
       <div className="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 max-w-3xl">
         <div className="mb-6">
-          <Link href={APP_ROUTES.SAAS.SKILL_TEMPLATES} className="text-sm text-gray-400 hover:text-primary">
+          <Link
+            href={APP_ROUTES.SAAS.SKILL_TEMPLATES}
+            className="text-sm text-gray-400 hover:text-primary"
+          >
             ← スキルテンプレート一覧
           </Link>
           <div className="flex items-center gap-3 mt-2">

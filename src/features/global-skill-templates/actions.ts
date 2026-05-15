@@ -34,7 +34,10 @@ export async function createGlobalJobCategory(input: { name: string }): Promise<
   return { success: true }
 }
 
-export async function updateGlobalJobCategory(input: { id: string; name: string }): Promise<ActionResult> {
+export async function updateGlobalJobCategory(input: {
+  id: string
+  name: string
+}): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
   const supabase = await createClient()
@@ -97,7 +100,10 @@ export async function updateGlobalJobRole(input: {
   if (input.colorHex !== undefined) updates.color_hex = input.colorHex
   if (input.categoryId !== undefined) updates.category_id = input.categoryId
   if (Object.keys(updates).length === 0) return { success: true }
-  const { error } = await (supabase as any).from('global_job_roles').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('global_job_roles')
+    .update(updates)
+    .eq('id', input.id)
   if (error) return { success: false, error: error.message }
   revalidatePath(TEMPLATES_PATH)
   return { success: true }
@@ -145,7 +151,10 @@ export async function updateGlobalSkillItem(input: {
   if (input.name !== undefined) updates.name = input.name
   if ('category' in input) updates.category = input.category
   if (Object.keys(updates).length === 0) return { success: true }
-  const { error } = await (supabase as any).from('global_skill_items').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('global_skill_items')
+    .update(updates)
+    .eq('id', input.id)
   if (error) return { success: false, error: error.message }
   revalidatePath(TEMPLATES_PATH)
   return { success: true }
@@ -199,7 +208,10 @@ export async function updateGlobalSkillLevel(input: {
   if ('criteria' in input) updates.criteria = input.criteria
   if (input.colorHex !== undefined) updates.color_hex = input.colorHex
   if (Object.keys(updates).length === 0) return { success: true }
-  const { error } = await (supabase as any).from('global_skill_levels').update(updates).eq('id', input.id)
+  const { error } = await (supabase as any)
+    .from('global_skill_levels')
+    .update(updates)
+    .eq('id', input.id)
   if (error) return { success: false, error: error.message }
   revalidatePath(TEMPLATES_PATH)
   return { success: true }

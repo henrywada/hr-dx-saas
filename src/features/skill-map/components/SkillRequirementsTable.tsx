@@ -40,12 +40,17 @@ export function SkillRequirementsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-wrap gap-2">
         {skills.map(skill => (
           <button
             key={skill.id}
+            type="button"
             onClick={() => handleSkillChange(skill.id)}
-            className={`px-3 py-1 rounded-full text-sm transition-colors ${skill.id === selectedSkillId ? 'text-white font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`rounded-full px-3 py-1 text-sm transition-colors ${
+              skill.id === selectedSkillId
+                ? 'font-medium text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
             style={skill.id === selectedSkillId ? { backgroundColor: skill.color_hex } : {}}
           >
             {skill.name}
@@ -63,7 +68,7 @@ export function SkillRequirementsTable({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">
               <span
-                className="px-2 py-0.5 rounded-full text-xs mr-2"
+                className="mr-2 rounded-full px-2 py-0.5 text-xs"
                 style={{
                   backgroundColor: selectedSkill.color_hex + '33',
                   color: selectedSkill.color_hex,
@@ -74,33 +79,34 @@ export function SkillRequirementsTable({
               の要件
             </h3>
             <button
+              type="button"
               onClick={() => {
                 setEditingReq(undefined)
                 setShowModal(true)
               }}
-              className="bg-primary text-white px-3 py-1.5 rounded text-sm"
+              className="rounded bg-primary px-3 py-1.5 text-sm text-white"
             >
               ＋ 要件を追加
             </button>
           </div>
 
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border border-gray-200">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="border-b border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                <tr className="bg-gray-200">
+                  <th className="border-b border-gray-300 px-4 py-3 text-left font-semibold text-gray-800">
                     要件名
                   </th>
-                  <th className="border-b border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="border-b border-gray-300 px-4 py-3 text-left font-semibold text-gray-800">
                     カテゴリ
                   </th>
-                  <th className="border-b border-gray-200 px-4 py-3 text-center font-medium text-gray-700">
+                  <th className="border-b border-gray-300 px-4 py-3 text-center font-semibold text-gray-800">
                     スキルレベル
                   </th>
-                  <th className="border-b border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="border-b border-gray-300 px-4 py-3 text-left font-semibold text-gray-800">
                     達成基準
                   </th>
-                  <th className="border-b border-gray-200 px-4 py-3 text-center font-medium text-gray-700">
+                  <th className="border-b border-gray-300 px-4 py-3 text-center font-semibold text-gray-800">
                     操作
                   </th>
                 </tr>
@@ -113,16 +119,21 @@ export function SkillRequirementsTable({
                     </td>
                   </tr>
                 ) : (
-                  requirements.map(req => {
+                  requirements.map((req, index) => {
                     const level = levels.find(l => l.id === req.level_id)
                     return (
-                      <tr key={req.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr
+                        key={req.id}
+                        className={`border-b border-gray-100 transition-[background-color,box-shadow] duration-300 ease-out hover:bg-gray-100 hover:shadow-[0_6px_22px_-4px_rgba(15,23,42,0.22)] ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }`}
+                      >
                         <td className="px-4 py-3 font-medium text-gray-900">{req.name}</td>
                         <td className="px-4 py-3 text-gray-500">{req.category ?? '—'}</td>
                         <td className="px-4 py-3 text-center">
                           {level ? (
                             <span
-                              className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                              className="rounded-full px-2.5 py-0.5 text-xs font-medium"
                               style={{
                                 backgroundColor: level.color_hex + '33',
                                 color: level.color_hex,
@@ -134,10 +145,11 @@ export function SkillRequirementsTable({
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{req.criteria ?? '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{req.criteria ?? '—'}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
+                              type="button"
                               onClick={() => {
                                 setEditingReq(req)
                                 setShowModal(true)
@@ -147,6 +159,7 @@ export function SkillRequirementsTable({
                               ✏️ 編集
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDelete(req.id)}
                               disabled={isPending}
                               className="text-xs text-gray-400 hover:text-red-500"

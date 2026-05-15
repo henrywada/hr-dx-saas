@@ -25,8 +25,13 @@ export function GlobalSkillItemManager({ jobRoleId, items }: Props) {
         name: newName.trim(),
         category: newCategory || undefined,
       })
-      if ('error' in res) { setError(res.error); return }
-      setNewName(''); setNewCategory(''); setError(null)
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
+      setNewName('')
+      setNewCategory('')
+      setError(null)
     })
   }
 
@@ -38,8 +43,12 @@ export function GlobalSkillItemManager({ jobRoleId, items }: Props) {
         name: editName.trim(),
         category: editCategory || null,
       })
-      if ('error' in res) { setError(res.error); return }
-      setEditId(null); setError(null)
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
+      setEditId(null)
+      setError(null)
     })
   }
 
@@ -71,7 +80,11 @@ export function GlobalSkillItemManager({ jobRoleId, items }: Props) {
           className="border border-gray-300 rounded px-2 py-1.5 text-sm"
         >
           <option value="">カテゴリ（任意）</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map(c => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
         <button
           onClick={handleCreate}
@@ -93,37 +106,77 @@ export function GlobalSkillItemManager({ jobRoleId, items }: Props) {
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-400 text-xs">未登録</td></tr>
-            ) : items.map(item => (
-              <tr key={item.id} className="border-b border-gray-100 last:border-0">
-                {editId === item.id ? (
-                  <>
-                    <td className="px-2 py-1.5">
-                      <input value={editName} onChange={e => setEditName(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm w-full" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <select value={editCategory} onChange={e => setEditCategory(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
-                        <option value="">—</option>
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-2 py-1.5 text-right">
-                      <button onClick={handleUpdate} disabled={isPending} className="text-xs text-primary font-medium mr-2">保存</button>
-                      <button onClick={() => setEditId(null)} className="text-xs text-gray-500">×</button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="px-3 py-2">{item.name}</td>
-                    <td className="px-3 py-2 text-gray-500">{item.category ?? '—'}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button onClick={() => { setEditId(item.id); setEditName(item.name); setEditCategory(item.category ?? '') }} className="text-xs text-gray-400 hover:text-primary mr-2">編集</button>
-                      <button onClick={() => handleDelete(item.id)} className="text-xs text-gray-400 hover:text-red-500">削除</button>
-                    </td>
-                  </>
-                )}
+              <tr>
+                <td colSpan={3} className="px-3 py-4 text-center text-gray-400 text-xs">
+                  未登録
+                </td>
               </tr>
-            ))}
+            ) : (
+              items.map(item => (
+                <tr key={item.id} className="border-b border-gray-100 last:border-0">
+                  {editId === item.id ? (
+                    <>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <select
+                          value={editCategory}
+                          onChange={e => setEditCategory(e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        >
+                          <option value="">—</option>
+                          {CATEGORIES.map(c => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-1.5 text-right">
+                        <button
+                          onClick={handleUpdate}
+                          disabled={isPending}
+                          className="text-xs text-primary font-medium mr-2"
+                        >
+                          保存
+                        </button>
+                        <button onClick={() => setEditId(null)} className="text-xs text-gray-500">
+                          ×
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-3 py-2">{item.name}</td>
+                      <td className="px-3 py-2 text-gray-500">{item.category ?? '—'}</td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => {
+                            setEditId(item.id)
+                            setEditName(item.name)
+                            setEditCategory(item.category ?? '')
+                          }}
+                          className="text-xs text-gray-400 hover:text-primary mr-2"
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="text-xs text-gray-400 hover:text-red-500"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

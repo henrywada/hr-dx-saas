@@ -290,12 +290,25 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   const supabase = await createClient()
 
   const [roleRes, itemsRes, levelsRes] = await Promise.all([
-    (supabase as any).from('global_job_roles').select('name, color_hex').eq('id', jobRoleId).single(),
-    (supabase as any).from('global_skill_items').select('name, category').eq('job_role_id', jobRoleId).order('sort_order'),
-    (supabase as any).from('global_skill_levels').select('name, color_hex').eq('job_role_id', jobRoleId).order('sort_order'),
+    (supabase as any)
+      .from('global_job_roles')
+      .select('name, color_hex')
+      .eq('id', jobRoleId)
+      .single(),
+    (supabase as any)
+      .from('global_skill_items')
+      .select('name, category')
+      .eq('job_role_id', jobRoleId)
+      .order('sort_order'),
+    (supabase as any)
+      .from('global_skill_levels')
+      .select('name, color_hex')
+      .eq('job_role_id', jobRoleId)
+      .order('sort_order'),
   ])
 
-  if (roleRes.error || !roleRes.data) return { success: false, error: 'テンプレートが見つかりません' }
+  if (roleRes.error || !roleRes.data)
+    return { success: false, error: 'テンプレートが見つかりません' }
 
   const { data: skillData, error: skillError } = await (supabase as any)
     .from('tenant_skills')
@@ -317,7 +330,9 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
       name: item.name,
       category: item.category ?? null,
     }))
-    const { error: reqError } = await (supabase as any).from('skill_requirements').insert(requirementsRows)
+    const { error: reqError } = await (supabase as any)
+      .from('skill_requirements')
+      .insert(requirementsRows)
     if (reqError) return { success: false, error: reqError.message }
   }
 

@@ -1,0 +1,16 @@
+---
+description: 管理者向けのカードコンテナとデータテーブルは docs/ui/admin-card-and-table.md の共通規約とスキルマップ実装に従う
+globs: src/app/(tenant)/(colored)/adm/**/*.tsx,src/features/**/*
+alwaysApply: false
+---
+
+# 管理者向けカード＋テーブル
+
+一覧まわりの UI を書くときは、**共通ドキュメントを必ず読むこと**。
+
+- **全文規約**: `docs/ui/admin-card-and-table.md`
+- **単一ソースの実装**（読み込み順）  
+  `src/app/(tenant)/(colored)/adm/(skill_map)/skill-map/page.tsx`  
+  → `SkillMapTabs.tsx` → `EmployeeSkillTable.tsx` / `SkillRequirementsTable.tsx`
+
+`docs/ui/admin-card-and-table.md` の改訂を正とし、ここにはパスだけを残す運用としてよい。

@@ -207,6 +207,10 @@ Edge Runtime で動作。全 GET リクエストで `access_logs` に PAGE_VIEW 
 - Supabase への日時書き込みは `Asia/Tokyo` タイムゾーンで行う
 - データ取得が発生するルートには `loading.tsx` と `error.tsx` を配置する
 
+### UI — 管理者向けカード／一覧テーブル（共通）
+
+一覧まわりのカードコンテナ／`<table>` の見た目は **[docs/ui/admin-card-and-table.md](./docs/ui/admin-card-and-table.md)** に準拠する。**Claude Code** では同内容を **`.claude/rules/admin-card-table.md`** と合わせて参照する。**Cursor** では **`.cursor/rules/admin-card-table-style.mdc`**（該当 globs で編集中）が適用される。実装の単一ソースは `skill-map/page.tsx` および `SkillMapTabs`／`EmployeeSkillTable`／`SkillRequirementsTable` を参照すること。
+
 ### ルーティング
 
 ```typescript

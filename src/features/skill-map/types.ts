@@ -45,7 +45,12 @@ export type SkillRequirement = {
 
 export type EmployeeSkillRow = {
   employee_id: string
-  employee_name: string
+  /** 従業員番号 */
+  employee_no: string | null
+  /** 氏名（employees.name） */
+  full_name: string | null
+  /** 所属部署コード（divisions.code、一覧の並びに使用） */
+  division_code: string | null
   division_name: string | null
   division_id: string | null
   currentAssignments: Record<string, EmployeeSkillAssignment> // skill_id → 最新割り当て

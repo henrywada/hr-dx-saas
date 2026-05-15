@@ -39,6 +39,7 @@ trigger: always_on
 
 - データ取得が発生するルートには `loading.tsx`（スケルトン）と `error.tsx`（再試行付き）を配置する
 - 日時を Supabase へ書き込む時は `Asia/Tokyo` タイムゾーンで書き込む
+- 管理者向けのメインカード＋一覧テーブルを新規・改修するときは `docs/ui/admin-card-and-table.md` に準拠する（スキルマップ実装が単一ソース）
 
 ### AI・外部API
 

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import type { GlobalSkillLevel } from '../types'
 import { createGlobalSkillLevel, updateGlobalSkillLevel, deleteGlobalSkillLevel } from '../actions'
 
-const COLORS = ['#6b7280','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6']
+const COLORS = ['#6b7280', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 type Props = { jobRoleId: string; levels: GlobalSkillLevel[] }
 
@@ -28,8 +28,13 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
         criteria: newCriteria.trim() || undefined,
         colorHex: newColor,
       })
-      if ('error' in res) { setError(res.error); return }
-      setNewName(''); setNewCriteria(''); setError(null)
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
+      setNewName('')
+      setNewCriteria('')
+      setError(null)
     })
   }
 
@@ -42,8 +47,12 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
         criteria: editCriteria.trim() || null,
         colorHex: editColor,
       })
-      if ('error' in res) { setError(res.error); return }
-      setEditId(null); setError(null)
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
+      setEditId(null)
+      setError(null)
     })
   }
 
@@ -77,46 +86,94 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
         />
         <div className="flex gap-1">
           {COLORS.map(c => (
-            <button key={c} onClick={() => setNewColor(c)}
+            <button
+              key={c}
+              onClick={() => setNewColor(c)}
               className="w-6 h-6 rounded-full border-2 transition-all"
-              style={{ backgroundColor: c, borderColor: newColor === c ? '#374151' : 'transparent' }}
+              style={{
+                backgroundColor: c,
+                borderColor: newColor === c ? '#374151' : 'transparent',
+              }}
             />
           ))}
         </div>
-        <button onClick={handleCreate} disabled={isPending || !newName.trim()}
-          className="bg-primary text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+        <button
+          onClick={handleCreate}
+          disabled={isPending || !newName.trim()}
+          className="bg-primary text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
+        >
           追加
         </button>
       </div>
 
       <div className="space-y-2">
         {levels.map(level => (
-          <div key={level.id} className="flex items-center gap-2 p-2 border border-gray-200 rounded">
+          <div
+            key={level.id}
+            className="flex items-center gap-2 p-2 border border-gray-200 rounded"
+          >
             {editId === level.id ? (
               <>
-                <input value={editName} onChange={e => setEditName(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm w-28" />
-                <input value={editCriteria} onChange={e => setEditCriteria(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm flex-1" />
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm w-28"
+                />
+                <input
+                  value={editCriteria}
+                  onChange={e => setEditCriteria(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm flex-1"
+                />
                 <div className="flex gap-1">
                   {COLORS.map(c => (
-                    <button key={c} onClick={() => setEditColor(c)}
+                    <button
+                      key={c}
+                      onClick={() => setEditColor(c)}
                       className="w-5 h-5 rounded-full border-2"
-                      style={{ backgroundColor: c, borderColor: editColor === c ? '#374151' : 'transparent' }}
+                      style={{
+                        backgroundColor: c,
+                        borderColor: editColor === c ? '#374151' : 'transparent',
+                      }}
                     />
                   ))}
                 </div>
-                <button onClick={handleUpdate} disabled={isPending} className="text-xs text-primary font-medium">保存</button>
-                <button onClick={() => setEditId(null)} className="text-xs text-gray-500">×</button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={isPending}
+                  className="text-xs text-primary font-medium"
+                >
+                  保存
+                </button>
+                <button onClick={() => setEditId(null)} className="text-xs text-gray-500">
+                  ×
+                </button>
               </>
             ) : (
               <>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  style={{ backgroundColor: level.color_hex + '33', color: level.color_hex }}>
+                <span
+                  className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: level.color_hex + '33', color: level.color_hex }}
+                >
                   {level.name}
                 </span>
                 <span className="text-xs text-gray-500 flex-1">{level.criteria ?? '—'}</span>
-                <button onClick={() => { setEditId(level.id); setEditName(level.name); setEditCriteria(level.criteria ?? ''); setEditColor(level.color_hex) }}
-                  className="text-xs text-gray-400 hover:text-primary">編集</button>
-                <button onClick={() => handleDelete(level.id)} className="text-xs text-gray-400 hover:text-red-500">削除</button>
+                <button
+                  onClick={() => {
+                    setEditId(level.id)
+                    setEditName(level.name)
+                    setEditCriteria(level.criteria ?? '')
+                    setEditColor(level.color_hex)
+                  }}
+                  className="text-xs text-gray-400 hover:text-primary"
+                >
+                  編集
+                </button>
+                <button
+                  onClick={() => handleDelete(level.id)}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  削除
+                </button>
               </>
             )}
           </div>

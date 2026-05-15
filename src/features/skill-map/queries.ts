@@ -12,6 +12,7 @@ import type {
   SkillMapDraft,
   SkillMatrixRow,
 } from './types'
+import type { DivisionHierarchyNode } from './division-paths'
 
 type DB = SupabaseClient<Database>
 
@@ -66,9 +67,8 @@ export async function getEmployeeSkillRows(
 ): Promise<EmployeeSkillRow[]> {
   let empQuery = (supabase as any)
     .from('employees')
-    .select('id, employee_no, division_id, divisions:divisions(id, name)')
+    .select('id, employee_no, name, division_id, divisions:divisions(id, name, code)')
     .eq('active_status', 'active')
-    .order('employee_no', { ascending: true })
 
   if (divisionId) empQuery = empQuery.eq('division_id', divisionId)
 
@@ -94,19 +94,51 @@ export async function getEmployeeSkillRows(
     }
   }
 
-  return (employees ?? []).map((emp: any) => {
+  const rows: EmployeeSkillRow[] = (employees ?? []).map((emp: any) => {
     const current = currentMap[emp.id] ?? {}
     const startedAts = Object.values(current).map(a => (a as EmployeeSkillAssignment).started_at)
     const latestStartedAt = startedAts.length > 0 ? startedAts.sort().reverse()[0] : null
     return {
       employee_id: emp.id,
-      employee_name: emp.employee_no ?? emp.id,
+      employee_no: emp.employee_no ?? null,
+      full_name: emp.name ?? null,
+      division_code: (emp.divisions as any)?.code ?? null,
       division_name: (emp.divisions as any)?.name ?? null,
       division_id: emp.division_id ?? null,
       currentAssignments: current,
       latestStartedAt,
-    } as EmployeeSkillRow
+    }
   })
+
+  // テーブル表示順: divisions.code → 社員番号（未配属・コードなしは後方）
+  const sortKeyCode = (c: string | null) => (c?.trim() ? c.trim() : '\uffff')
+  const sortKeyNo = (n: string | null) => (n?.trim() ? n.trim() : '\uffff')
+
+  rows.sort((a, b) => {
+    const dc = sortKeyCode(a.division_code).localeCompare(sortKeyCode(b.division_code), 'ja', {
+      numeric: true,
+    })
+    if (dc !== 0) return dc
+    return sortKeyNo(a.employee_no).localeCompare(sortKeyNo(b.employee_no), 'ja', { numeric: true })
+  })
+
+  return rows
+}
+
+/** テナント配下の全 divisions（親子情報つき）。RLS でテナント分離。 */
+export async function getTenantDivisionHierarchy(
+  supabase: DB
+): Promise<DivisionHierarchyNode[]> {
+  const { data, error } = await (supabase as any)
+    .from('divisions')
+    .select('id, name, parent_id')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map((r: any) => ({
+    id: r.id as string,
+    name: r.name ?? null,
+    parent_id: r.parent_id ?? null,
+  }))
 }
 
 export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> {
@@ -115,7 +147,8 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
   const { data: assignments, error } = await (supabase as any)
     .from('employee_skill_assignments')
     .select(
-      'employee_id, skill_id, started_at, employees:employees(id, employee_no, divisions:divisions(name))'
+      // assigned_by も employees を参照するため、embed 先を employee_id の FK で明示する
+      'employee_id, skill_id, started_at, employees:employees!employee_skill_assignments_employee_id_fkey(id, employee_no, divisions:divisions(name))'
     )
     .order('started_at', { ascending: false })
   if (error) throw error

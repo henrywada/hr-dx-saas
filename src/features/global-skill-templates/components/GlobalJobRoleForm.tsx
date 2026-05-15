@@ -4,15 +4,31 @@ import { useState, useTransition } from 'react'
 import type { GlobalJobCategory } from '../types'
 import { createGlobalJobRole } from '../actions'
 
-const COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16']
+const COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#84cc16',
+]
 
 type Props = {
   categories: GlobalJobCategory[]
   defaultCategoryId?: string
+  /** 業種行から開いたときなど、業種プルダウンを固定する */
+  lockCategorySelect?: boolean
   onClose: () => void
 }
 
-export function GlobalJobRoleForm({ categories, defaultCategoryId, onClose }: Props) {
+export function GlobalJobRoleForm({
+  categories,
+  defaultCategoryId,
+  lockCategorySelect = false,
+  onClose,
+}: Props) {
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -29,7 +45,10 @@ export function GlobalJobRoleForm({ categories, defaultCategoryId, onClose }: Pr
         description: description.trim() || undefined,
         colorHex,
       })
-      if ('error' in res) { setError(res.error); return }
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
       onClose()
     })
   }
@@ -43,12 +62,22 @@ export function GlobalJobRoleForm({ categories, defaultCategoryId, onClose }: Pr
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">業種カテゴリ</label>
+            {lockCategorySelect && (
+              <p className="mb-1.5 text-xs text-gray-500">
+                テーブルの業種に紐づけて追加します（変更できません）
+              </p>
+            )}
             <select
               value={categoryId}
               onChange={e => setCategoryId(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+              disabled={lockCategorySelect}
+              className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-700"
             >
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -77,7 +106,10 @@ export function GlobalJobRoleForm({ categories, defaultCategoryId, onClose }: Pr
                   key={c}
                   onClick={() => setColorHex(c)}
                   className="w-7 h-7 rounded-full border-2 transition-all"
-                  style={{ backgroundColor: c, borderColor: colorHex === c ? '#374151' : 'transparent' }}
+                  style={{
+                    backgroundColor: c,
+                    borderColor: colorHex === c ? '#374151' : 'transparent',
+                  }}
                 />
               ))}
             </div>
@@ -92,7 +124,10 @@ export function GlobalJobRoleForm({ categories, defaultCategoryId, onClose }: Pr
           >
             追加
           </button>
-          <button onClick={onClose} className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm"
+          >
             キャンセル
           </button>
         </div>

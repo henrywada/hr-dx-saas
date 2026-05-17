@@ -289,7 +289,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
-  const [roleRes, itemsRes, levelsRes] = await Promise.all([
+  const [roleRes, itemsRes, setsRes] = await Promise.all([
     (supabase as any)
       .from('global_job_roles')
       .select('name, color_hex')
@@ -297,18 +297,30 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
       .single(),
     (supabase as any)
       .from('global_skill_items')
-      .select('name, category')
+      .select('*')
       .eq('job_role_id', jobRoleId)
       .order('sort_order'),
     (supabase as any)
-      .from('global_skill_levels')
-      .select('name, color_hex')
-      .eq('job_role_id', jobRoleId)
-      .order('sort_order'),
+      .from('global_skill_level_sets')
+      .select('id')
+      .eq('job_role_id', jobRoleId),
   ])
 
   if (roleRes.error || !roleRes.data)
     return { success: false, error: 'テンプレートが見つかりません' }
+  if (setsRes.error) return { success: false, error: setsRes.error.message }
+
+  const setIds = (setsRes.data ?? []).map((s: { id: string }) => s.id)
+
+  let levelsRes: { data: any[] | null; error?: any } = { data: [] }
+  if (setIds.length > 0) {
+    levelsRes = await (supabase as any)
+      .from('global_skill_levels')
+      .select('id, name, color_hex, skill_level_set_id, sort_order')
+      .in('skill_level_set_id', setIds)
+      .order('sort_order')
+    if (levelsRes.error) return { success: false, error: levelsRes.error.message }
+  }
 
   const { data: skillData, error: skillError } = await (supabase as any)
     .from('tenant_skills')
@@ -322,19 +334,6 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   if (skillError) return { success: false, error: skillError.message }
 
   const tenantSkillId = skillData.id
-
-  if (itemsRes.data && itemsRes.data.length > 0) {
-    const requirementsRows = itemsRes.data.map((item: any) => ({
-      tenant_id: user.tenant_id,
-      skill_id: tenantSkillId,
-      name: item.name,
-      category: item.category ?? null,
-    }))
-    const { error: reqError } = await (supabase as any)
-      .from('skill_requirements')
-      .insert(requirementsRows)
-    if (reqError) return { success: false, error: reqError.message }
-  }
 
   if (levelsRes.data && levelsRes.data.length > 0) {
     const { data: existingLevels } = await (supabase as any)
@@ -352,6 +351,58 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
       const { error: levelError } = await (supabase as any).from('skill_levels').insert(levelsRows)
       if (levelError) return { success: false, error: levelError.message }
     }
+  }
+
+  const { data: tenantLevelsForMap } = await (supabase as any)
+    .from('skill_levels')
+    .select('id, name')
+    .eq('tenant_id', user.tenant_id)
+
+  const tenantLevelIdByName = new Map<string, string>()
+  for (const row of tenantLevelsForMap ?? []) {
+    if (!tenantLevelIdByName.has(row.name)) tenantLevelIdByName.set(row.name, row.id)
+  }
+
+  const levelsBySetId = new Map<string, Array<{ name: string; sort_order: number }>>()
+  for (const lv of levelsRes.data ?? []) {
+    const row = lv as {
+      skill_level_set_id: string
+      name: string
+      sort_order: number
+    }
+    const list = levelsBySetId.get(row.skill_level_set_id) ?? []
+    list.push({ name: row.name, sort_order: row.sort_order })
+    levelsBySetId.set(row.skill_level_set_id, list)
+  }
+
+  function firstLevelNameInSet(setId: string): string | undefined {
+    const list = levelsBySetId.get(setId)
+    if (!list?.length) return undefined
+    return [...list].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'))[0]
+      ?.name
+  }
+
+  if (itemsRes.data && itemsRes.data.length > 0) {
+    const requirementsRows = itemsRes.data.map((item: any) => {
+      const levelName = item.skill_level_set_id
+        ? firstLevelNameInSet(item.skill_level_set_id as string)
+        : undefined
+      const level_id =
+        levelName && tenantLevelIdByName.has(levelName)
+          ? tenantLevelIdByName.get(levelName)!
+          : null
+      return {
+        tenant_id: user.tenant_id,
+        skill_id: tenantSkillId,
+        name: item.name,
+        category: item.category ?? null,
+        level_id,
+      }
+    })
+    const { error: reqError } = await (supabase as any)
+      .from('skill_requirements')
+      .insert(requirementsRows)
+    if (reqError) return { success: false, error: reqError.message }
   }
 
   revalidatePath(SKILL_MAP_PATH)

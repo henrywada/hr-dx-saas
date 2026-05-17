@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import type { GlobalJobCategory } from '../types'
 import { createGlobalJobRole } from '../actions'
 
@@ -29,28 +30,39 @@ export function GlobalJobRoleForm({
   lockCategorySelect = false,
   onClose,
 }: Props) {
-  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [colorHex, setColorHex] = useState('#3b82f6')
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? categories[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit() {
-    if (!name.trim() || !categoryId) return
-    startTransition(async () => {
+  async function handleSubmit() {
+    if (!name.trim()) return
+    if (!categoryId) {
+      setError('業種カテゴリを選択してください')
+      return
+    }
+    setError(null)
+    setIsSubmitting(true)
+    try {
       const res = await createGlobalJobRole({
         categoryId,
         name: name.trim(),
         description: description.trim() || undefined,
         colorHex,
       })
-      if ('error' in res) {
+      if (res.success === false) {
         setError(res.error)
         return
       }
+      // revalidatePath のみでは Client に渡した roles が更新されないため RSC を再取得する
+      router.refresh()
       onClose()
-    })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -104,6 +116,7 @@ export function GlobalJobRoleForm({
               {COLORS.map(c => (
                 <button
                   key={c}
+                  type="button"
                   onClick={() => setColorHex(c)}
                   className="w-7 h-7 rounded-full border-2 transition-all"
                   style={{
@@ -118,13 +131,15 @@ export function GlobalJobRoleForm({
 
         <div className="flex gap-2 pt-2">
           <button
-            onClick={handleSubmit}
-            disabled={isPending || !name.trim()}
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={isSubmitting || !name.trim()}
             className="flex-1 bg-primary text-white py-2 rounded text-sm disabled:opacity-50"
           >
             追加
           </button>
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm"
           >

@@ -1,14 +1,26 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import type { GlobalSkillLevel } from '../types'
-import { createGlobalSkillLevel, updateGlobalSkillLevel, deleteGlobalSkillLevel } from '../actions'
+import { createGlobalSkillLevel, updateGlobalSkillLevel, deleteGlobalSkillLevel, globalTemplateActionError } from '../actions'
 
 const COLORS = ['#6b7280', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
-type Props = { jobRoleId: string; levels: GlobalSkillLevel[] }
+type Props = {
+  skillLevelSetId: string
+  jobRoleId: string
+  levels: GlobalSkillLevel[]
+  onMutationSuccess?: () => void
+}
 
-export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
+export function GlobalSkillLevelManager({
+  skillLevelSetId,
+  jobRoleId,
+  levels,
+  onMutationSuccess,
+}: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [newName, setNewName] = useState('')
   const [newCriteria, setNewCriteria] = useState('')
@@ -23,18 +35,22 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
     if (!newName.trim()) return
     startTransition(async () => {
       const res = await createGlobalSkillLevel({
+        skillLevelSetId,
         jobRoleId,
         name: newName.trim(),
         criteria: newCriteria.trim() || undefined,
         colorHex: newColor,
       })
-      if ('error' in res) {
-        setError(res.error)
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
         return
       }
       setNewName('')
       setNewCriteria('')
       setError(null)
+      onMutationSuccess?.()
+      router.refresh()
     })
   }
 
@@ -43,24 +59,35 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
     startTransition(async () => {
       const res = await updateGlobalSkillLevel({
         id: editId,
+        jobRoleId,
         name: editName.trim(),
         criteria: editCriteria.trim() || null,
         colorHex: editColor,
       })
-      if ('error' in res) {
-        setError(res.error)
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
         return
       }
       setEditId(null)
       setError(null)
+      onMutationSuccess?.()
+      router.refresh()
     })
   }
 
   function handleDelete(id: string) {
     if (!confirm('このスキルレベルを削除しますか？')) return
     startTransition(async () => {
-      const res = await deleteGlobalSkillLevel(id)
-      if ('error' in res) setError(res.error)
+      const res = await deleteGlobalSkillLevel({ id, jobRoleId })
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
+        return
+      }
+      setError(null)
+      onMutationSuccess?.()
+      router.refresh()
     })
   }
 
@@ -88,6 +115,7 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
           {COLORS.map(c => (
             <button
               key={c}
+              type="button"
               onClick={() => setNewColor(c)}
               className="w-6 h-6 rounded-full border-2 transition-all"
               style={{
@@ -98,6 +126,7 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
           ))}
         </div>
         <button
+          type="button"
           onClick={handleCreate}
           disabled={isPending || !newName.trim()}
           className="bg-primary text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
@@ -128,6 +157,7 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
                   {COLORS.map(c => (
                     <button
                       key={c}
+                      type="button"
                       onClick={() => setEditColor(c)}
                       className="w-5 h-5 rounded-full border-2"
                       style={{
@@ -138,13 +168,14 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={handleUpdate}
                   disabled={isPending}
                   className="text-xs text-primary font-medium"
                 >
                   保存
                 </button>
-                <button onClick={() => setEditId(null)} className="text-xs text-gray-500">
+                <button type="button" onClick={() => setEditId(null)} className="text-xs text-gray-500">
                   ×
                 </button>
               </>
@@ -158,6 +189,7 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
                 </span>
                 <span className="text-xs text-gray-500 flex-1">{level.criteria ?? '—'}</span>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditId(level.id)
                     setEditName(level.name)
@@ -169,6 +201,7 @@ export function GlobalSkillLevelManager({ jobRoleId, levels }: Props) {
                   編集
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(level.id)}
                   className="text-xs text-gray-400 hover:text-red-500"
                 >

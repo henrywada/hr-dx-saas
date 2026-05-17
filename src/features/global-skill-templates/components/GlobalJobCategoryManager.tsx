@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import type { GlobalJobCategory } from '../types'
 import {
@@ -14,13 +15,18 @@ type Props = {
   onSelect: (id: string | null) => void
 }
 
-/** 管理者カード準拠: 業種リストはテーブル行相当（ゼブラ・ホバー・左線で選択） */
+/** 業種カテゴリのフォームとリスト（モーダル本文向け・外枠カードなし） */
 export function GlobalJobCategoryManager({ categories, selectedId, onSelect }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [newName, setNewName] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  function afterMutation() {
+    router.refresh()
+  }
 
   function handleCreate() {
     if (!newName.trim()) return
@@ -32,6 +38,7 @@ export function GlobalJobCategoryManager({ categories, selectedId, onSelect }: P
       }
       setNewName('')
       setError(null)
+      afterMutation()
     })
   }
 
@@ -45,6 +52,7 @@ export function GlobalJobCategoryManager({ categories, selectedId, onSelect }: P
       }
       setEditId(null)
       setError(null)
+      afterMutation()
     })
   }
 
@@ -57,44 +65,36 @@ export function GlobalJobCategoryManager({ categories, selectedId, onSelect }: P
         return
       }
       if (selectedId === id) onSelect(null)
+      afterMutation()
     })
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-300 bg-gray-200 px-4 py-3">
-        <h3 className="text-sm font-semibold text-gray-800">業種カテゴリ</h3>
-        <p className="mt-1 text-xs text-gray-600">
-          全テナント共通の業種です。クリックで職種の絞り込みと同期します。
-        </p>
+    <div className="space-y-3">
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          placeholder="業種名（例：IT）"
+          onKeyDown={e => e.key === 'Enter' && handleCreate()}
+          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+        />
+        <button
+          type="button"
+          onClick={handleCreate}
+          disabled={isPending || !newName.trim()}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+        >
+          追加
+        </button>
       </div>
 
-      <div className="space-y-3 p-4">
-        {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
-        )}
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="業種名（例：IT）"
-            onKeyDown={e => e.key === 'Enter' && handleCreate()}
-            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-          />
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isPending || !newName.trim()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50"
-          >
-            追加
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100 px-4 pb-4">
+      <div className="border-t border-gray-100 pt-3">
         {categories.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
             業種がありません。上のフォームから追加してください。

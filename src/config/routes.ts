@@ -59,9 +59,6 @@ export const APP_ROUTES = {
     EL_MY_COURSE_VIEWER: (assignmentId: string) => `/el-courses/${assignmentId}`,
     // スキルマップ
     ADMIN_SKILL_MAP: '/adm/skill-map',
-    ADMIN_SKILL_MAP_QUALIFICATIONS: '/adm/skill-map/qualifications',
-    ADMIN_SKILL_MAP_SIMULATION: '/adm/skill-map/simulation',
-    ADMIN_SKILL_MAP_SIMULATION_DETAIL: (draftId: string) => `/adm/skill-map/simulation/${draftId}`,
     /** 技能マスタ管理（テンプレートからのコピー専用画面） */
     ADMIN_SKILL_TEMP_COPY: '/adm/skill-tempCopy',
   },

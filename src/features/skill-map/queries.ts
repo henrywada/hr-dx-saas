@@ -9,9 +9,6 @@ import type {
   EmployeeSkillAssignment,
   EmployeeSkillRow,
   SkillGroupRow,
-  EmployeeQualification,
-  SkillMapDraft,
-  SkillMatrixRow,
 } from './types'
 import type { DivisionHierarchyNode } from './division-paths'
 
@@ -234,90 +231,4 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
   }
 
   return skills.map(skill => ({ skill, employees: grouped[skill.id] ?? [] }))
-}
-
-export async function getEmployeeQualifications(
-  supabase: DB,
-  employeeId: string
-): Promise<EmployeeQualification[]> {
-  const { data, error } = await (supabase as any)
-    .from('employee_qualifications')
-    .select('*, qualification:qualifications(*)')
-    .eq('employee_id', employeeId)
-    .order('expiry_date', { ascending: true })
-  if (error) throw error
-  return data ?? []
-}
-
-export async function getSkillMapDrafts(supabase: DB): Promise<SkillMapDraft[]> {
-  const { data, error } = await (supabase as any)
-    .from('skill_map_drafts')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data ?? []
-}
-
-export async function getSkillMapDraft(
-  supabase: DB,
-  draftId: string
-): Promise<SkillMapDraft | null> {
-  const { data, error } = await (supabase as any)
-    .from('skill_map_drafts')
-    .select('*')
-    .eq('id', draftId)
-    .single()
-  if (error) throw error
-  return data
-}
-
-/** 配置シミュレーション用: 従業員ごとのスキル充足率を返す */
-export async function getSkillMatrixRows(supabase: DB): Promise<SkillMatrixRow[]> {
-  const { data: employees, error: empError } = await (supabase as any)
-    .from('employees')
-    .select('id, employee_no, division_id, divisions:divisions(name)')
-    .eq('active_status', 'active')
-    .order('employee_no', { ascending: true })
-  if (empError) throw empError
-
-  const { data: skills } = await (supabase as any).from('tenant_skills').select('id')
-  const totalSkills = (skills ?? []).length
-
-  const { data: assignments } = await (supabase as any)
-    .from('employee_skill_assignments')
-    .select('employee_id, skill_id')
-    .in(
-      'employee_id',
-      (employees ?? []).map((e: any) => e.id)
-    )
-
-  const skillCountMap: Record<string, Set<string>> = {}
-  for (const a of assignments ?? []) {
-    if (!skillCountMap[a.employee_id]) skillCountMap[a.employee_id] = new Set()
-    skillCountMap[a.employee_id].add(a.skill_id)
-  }
-
-  return (employees ?? []).map((emp: any) => ({
-    employee_id: emp.id,
-    employee_name: emp.employee_no ?? emp.id,
-    division_name: (emp.divisions as any)?.name ?? null,
-    division_id: emp.division_id ?? null,
-    coverage:
-      totalSkills > 0 ? Math.round(((skillCountMap[emp.id]?.size ?? 0) / totalSkills) * 100) : 0,
-  }))
-}
-
-/** 期限30日以内の資格一覧を返す */
-export async function getExpiringQualifications(supabase: DB): Promise<EmployeeQualification[]> {
-  const today = new Date()
-  const limit30 = new Date(today)
-  limit30.setDate(limit30.getDate() + 30)
-  const { data, error } = await (supabase as any)
-    .from('employee_qualifications')
-    .select('*, qualification:qualifications(*)')
-    .lte('expiry_date', limit30.toISOString().split('T')[0])
-    .gte('expiry_date', today.toISOString().split('T')[0])
-    .order('expiry_date', { ascending: true })
-  if (error) throw error
-  return data ?? []
 }

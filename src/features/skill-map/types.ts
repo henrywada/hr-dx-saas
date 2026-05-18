@@ -68,45 +68,6 @@ export type SkillGroupRow = {
   }>
 }
 
-// 資格管理（維持）
-export type Qualification = {
-  id: string
-  tenant_id: string
-  name: string
-  issuing_body: string | null
-  renewal_years: number | null
-}
-
-export type EmployeeQualification = {
-  id: string
-  tenant_id: string
-  employee_id: string
-  qualification_id: string
-  acquired_date: string | null
-  expiry_date: string | null
-  cert_number: string | null
-  qualification?: Qualification
-}
-
-export type SkillMatrixRow = {
-  employee_id: string
-  employee_name: string
-  division_name: string | null
-  division_id: string | null
-  coverage: number // 0-100 スキル充足率
-}
-
-export type SkillMapDraft = {
-  id: string
-  tenant_id: string
-  name: string
-  created_by: string | null
-  status: 'draft' | 'confirmed'
-  snapshot: Record<string, string>
-  created_at: string
-  updated_at: string
-}
-
 /** テナント職種（tenant_skills）と、紐づく要件一覧（skill_requirements + level）を保持 */
 export type TenantSkillWithRequirements = TenantSkill & {
   requirements: SkillRequirement[]
@@ -115,17 +76,4 @@ export type TenantSkillWithRequirements = TenantSkill & {
 /** 詳細モーダル用: 要件 + テナントのスキルレベルマスタを含む */
 export type TenantSkillDetail = TenantSkillWithRequirements & {
   levels: SkillLevel[]
-}
-
-export type QualificationAlertStatus = 'valid' | 'expiring_soon' | 'expired'
-
-export function getQualificationStatus(expiryDate: string | null): QualificationAlertStatus {
-  if (!expiryDate) return 'valid'
-  const expiry = new Date(expiryDate)
-  const now = new Date()
-  const days30 = new Date(now)
-  days30.setDate(days30.getDate() + 30)
-  if (expiry < now) return 'expired'
-  if (expiry <= days30) return 'expiring_soon'
-  return 'valid'
 }

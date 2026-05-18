@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getGlobalJobRoleDetail } from '@/features/global-skill-templates/queries'
 import { GlobalSkillItemManager } from '@/features/global-skill-templates/components/GlobalSkillItemManager'
-import { GlobalSkillLevelSetWorkspace } from '@/features/global-skill-templates/components/GlobalSkillLevelSetWorkspace'
 import { APP_ROUTES } from '@/config/routes'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -41,7 +40,6 @@ export default async function SkillTemplateDetailPage({
         </div>
 
         <div className="space-y-8">
-          <GlobalSkillLevelSetWorkspace jobRoleId={role.id} skillLevelSets={role.skillLevelSets} />
           <GlobalSkillItemManager
             jobRoleId={role.id}
             items={role.skillItems}

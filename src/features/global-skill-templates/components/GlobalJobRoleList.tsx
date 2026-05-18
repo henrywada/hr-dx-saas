@@ -144,7 +144,7 @@ export function GlobalJobRoleList({
   const showIndustrySectionRow = selectedCategoryId === null
 
   function handleDelete(id: string, name: string) {
-    if (!confirm(`「${name}」を削除しますか？スキル項目・スキルレベルセットもすべて削除されます。`))
+    if (!confirm(`「${name}」を削除しますか？この職種のスキル項目もすべて削除されます。（共通のスキルレベルセット定義は残ります）`))
       return
     startTransition(async () => {
       const res = await deleteGlobalJobRole(id)
@@ -191,9 +191,7 @@ export function GlobalJobRoleList({
           <button
             type="button"
             onClick={onOpenSkillLevelSet}
-            disabled={filtered.length === 0}
-            title={filtered.length === 0 ? '職種を追加すると利用できます' : undefined}
-            className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white shadow-sm hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
+            className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white shadow-sm hover:opacity-95 sm:text-sm"
           >
             +スキルレベルセット登録
           </button>

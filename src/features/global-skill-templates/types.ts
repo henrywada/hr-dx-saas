@@ -1,3 +1,12 @@
+/** グローバルスキルテンプレート系 Server Actions の共通戻り値 */
+export type GlobalSkillTemplateActionResult = { success: true } | { success: false; error: string }
+
+/** クライアント側で ActionResult を扱いやすくする */
+export function globalTemplateActionError(r: GlobalSkillTemplateActionResult): string | undefined {
+  if ('error' in r) return r.error
+  return undefined
+}
+
 export type GlobalJobCategory = {
   id: string
   name: string
@@ -5,10 +14,9 @@ export type GlobalJobCategory = {
   created_at: string
 }
 
-/** 職種に紐づくスキルレベルセット（評価軸ラダー） */
+/** スキルレベルセット（評価軸ラダー）。職種とは独立したテンプレート全体のマスタ */
 export type GlobalSkillLevelSet = {
   id: string
-  job_role_id: string
   name: string
   sort_order: number
   created_at: string

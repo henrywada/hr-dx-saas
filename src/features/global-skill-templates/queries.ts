@@ -100,11 +100,52 @@ export async function getGlobalJobRoles(
   })
 }
 
+/** スキルレベルセットをすべて取得（レベルネスト。職種に依存しない） */
+export async function getGlobalSkillLevelSetsWithLevels(
+  supabase: SupabaseClient
+): Promise<GlobalSkillLevelSetWithLevels[]> {
+  const { data: sets, error } = await (supabase as any)
+    .from('global_skill_level_sets')
+    .select('*')
+    .order('sort_order')
+    .order('created_at')
+  if (error) {
+    console.warn('[getGlobalSkillLevelSetsWithLevels] sets select failed:', error.message)
+    return []
+  }
+  const rows = (sets ?? []) as GlobalSkillLevelSet[]
+  if (rows.length === 0) return []
+
+  const setIds = rows.map(s => s.id)
+  const { data: lvRows, error: lvErr } = await (supabase as any)
+    .from('global_skill_levels')
+    .select('*')
+    .in('skill_level_set_id', setIds)
+    .order('sort_order')
+    .order('created_at')
+  if (lvErr) {
+    console.warn('[getGlobalSkillLevelSetsWithLevels] levels select failed:', lvErr.message)
+  }
+  const levels = (lvRows ?? []) as GlobalSkillLevel[]
+
+  const levelsBySet = new Map<string, GlobalSkillLevel[]>()
+  for (const lv of levels) {
+    const list = levelsBySet.get(lv.skill_level_set_id) ?? []
+    list.push(lv)
+    levelsBySet.set(lv.skill_level_set_id, list)
+  }
+
+  return rows.map(s => ({
+    ...s,
+    levels: levelsBySet.get(s.id) ?? [],
+  }))
+}
+
 export async function getGlobalJobRoleDetail(
   supabase: SupabaseClient,
   roleId: string
 ): Promise<GlobalJobRoleDetail | null> {
-  const [roleRes, itemsRes, setsRes] = await Promise.all([
+  const [roleRes, itemsRes, skillLevelSets] = await Promise.all([
     (supabase as any)
       .from('global_job_roles')
       .select('*, category:global_job_categories(name)')
@@ -116,50 +157,15 @@ export async function getGlobalJobRoleDetail(
       .eq('job_role_id', roleId)
       .order('sort_order')
       .order('created_at'),
-    (supabase as any)
-      .from('global_skill_level_sets')
-      .select('*')
-      .eq('job_role_id', roleId)
-      .order('sort_order')
-      .order('created_at'),
+    getGlobalSkillLevelSetsWithLevels(supabase),
   ])
   if (roleRes.error || !roleRes.data) return null
   if (itemsRes.error) {
     console.warn('[getGlobalJobRoleDetail] items select failed:', itemsRes.error.message)
   }
 
-  const sets = (setsRes.data ?? []) as GlobalSkillLevelSet[]
-  const setIds = sets.map(s => s.id)
-
-  let levels: GlobalSkillLevel[] = []
-  if (setIds.length > 0) {
-    const { data: lvRows, error: lvErr } = await (supabase as any)
-      .from('global_skill_levels')
-      .select('*')
-      .in('skill_level_set_id', setIds)
-      .order('sort_order')
-      .order('created_at')
-    if (lvErr) {
-      console.warn('[getGlobalJobRoleDetail] levels select failed:', lvErr.message)
-    } else {
-      levels = (lvRows ?? []) as GlobalSkillLevel[]
-    }
-  }
-
-  const levelsBySet = new Map<string, GlobalSkillLevel[]>()
-  for (const lv of levels) {
-    const list = levelsBySet.get(lv.skill_level_set_id) ?? []
-    list.push(lv)
-    levelsBySet.set(lv.skill_level_set_id, list)
-  }
-
-  const skillLevelSets: GlobalSkillLevelSetWithLevels[] = sets.map(s => ({
-    ...s,
-    levels: levelsBySet.get(s.id) ?? [],
-  }))
-
   const setMetaById = new Map<string, Pick<GlobalSkillLevelSet, 'id' | 'name'>>()
-  for (const s of sets) setMetaById.set(s.id, { id: s.id, name: s.name })
+  for (const s of skillLevelSets) setMetaById.set(s.id, { id: s.id, name: s.name })
 
   const skillItems = (itemsRes.data ?? []).map((row: any) =>
     normalizeSkillItemRow(row, setMetaById)

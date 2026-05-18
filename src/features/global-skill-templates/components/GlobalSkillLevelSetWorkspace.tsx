@@ -1,28 +1,35 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
-import type { GlobalSkillLevelSetWithLevels } from '../types'
+import { Fragment, useMemo, useState, useTransition } from 'react'
+import type { GlobalSkillLevel, GlobalSkillLevelSetWithLevels } from '../types'
 import {
+  createGlobalSkillLevel,
   createGlobalSkillLevelSet,
+  deleteGlobalSkillLevel,
   deleteGlobalSkillLevelSet,
+  updateGlobalSkillLevel,
   updateGlobalSkillLevelSet,
-  globalTemplateActionError,
 } from '../actions'
-import { GlobalSkillLevelManager } from './GlobalSkillLevelManager'
+import { globalTemplateActionError } from '../types'
+
+const LEVEL_COLORS = ['#6b7280', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] as const
 
 type Props = {
-  jobRoleId: string
   skillLevelSets: GlobalSkillLevelSetWithLevels[]
   onMutationSuccess?: () => void
 }
 
-/** スキルレベルセットの CRUD と、選択セット内のレベル編集 */
-export function GlobalSkillLevelSetWorkspace({
-  jobRoleId,
-  skillLevelSets,
-  onMutationSuccess,
-}: Props) {
+function sortLevels(levels: GlobalSkillLevel[]): GlobalSkillLevel[] {
+  return [...levels].sort(
+    (a, b) =>
+      a.sort_order - b.sort_order ||
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+}
+
+/** スキルレベルセットをテーブルで登録し、セット単位でレベル（コメント付き）を CRUD（職種と非連動） */
+export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const sortedSets = useMemo(
@@ -35,28 +42,26 @@ export function GlobalSkillLevelSetWorkspace({
     [skillLevelSets]
   )
 
-  const [selectedSetId, setSelectedSetId] = useState('')
-  useEffect(() => {
-    if (sortedSets.length === 0) {
-      setSelectedSetId('')
-      return
-    }
-    setSelectedSetId(prev =>
-      prev && sortedSets.some(s => s.id === prev) ? prev : sortedSets[0].id
-    )
-  }, [sortedSets])
-
-  const selectedSet = sortedSets.find(s => s.id === selectedSetId)
-
   const [newSetName, setNewSetName] = useState('')
-  const [renameOpen, setRenameOpen] = useState(false)
-  const [renameValue, setRenameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  function handleAddSet() {
+  const [editSetId, setEditSetId] = useState<string | null>(null)
+  const [editSetName, setEditSetName] = useState('')
+
+  const [addingForSetId, setAddingForSetId] = useState<string | null>(null)
+  const [newLvName, setNewLvName] = useState('')
+  const [newLvCriteria, setNewLvCriteria] = useState('')
+  const [newLvColor, setNewLvColor] = useState<string>(LEVEL_COLORS[0])
+
+  const [editLvId, setEditLvId] = useState<string | null>(null)
+  const [editLvName, setEditLvName] = useState('')
+  const [editLvCriteria, setEditLvCriteria] = useState('')
+  const [editLvColor, setEditLvColor] = useState('')
+
+  function handleRegisterSet() {
     if (!newSetName.trim()) return
     startTransition(async () => {
-      const res = await createGlobalSkillLevelSet({ jobRoleId, name: newSetName.trim() })
+      const res = await createGlobalSkillLevelSet({ name: newSetName.trim() })
       const err = globalTemplateActionError(res)
       if (err) {
         setError(err)
@@ -69,8 +74,23 @@ export function GlobalSkillLevelSetWorkspace({
     })
   }
 
-  function handleDeleteSet() {
-    if (!selectedSetId) return
+  function handleSaveSetName() {
+    if (!editSetId || !editSetName.trim()) return
+    startTransition(async () => {
+      const res = await updateGlobalSkillLevelSet({ id: editSetId, name: editSetName.trim() })
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
+        return
+      }
+      setEditSetId(null)
+      setError(null)
+      onMutationSuccess?.()
+      router.refresh()
+    })
+  }
+
+  function handleDeleteSet(id: string) {
     if (
       !confirm(
         'このスキルレベルセットを削除しますか？セット内のレベル定義も削除されます。（スキル項目から参照されている場合は削除できません）'
@@ -78,32 +98,75 @@ export function GlobalSkillLevelSetWorkspace({
     )
       return
     startTransition(async () => {
-      const res = await deleteGlobalSkillLevelSet({ id: selectedSetId, jobRoleId })
+      const res = await deleteGlobalSkillLevelSet({ id })
       const err = globalTemplateActionError(res)
       if (err) {
         setError(err)
         return
       }
       setError(null)
+      setEditSetId(null)
+      setAddingForSetId(null)
       onMutationSuccess?.()
       router.refresh()
     })
   }
 
-  function handleRenameSave() {
-    if (!selectedSetId || !renameValue.trim()) return
+  function handleAddLevel(setId: string) {
+    if (!newLvName.trim()) return
     startTransition(async () => {
-      const res = await updateGlobalSkillLevelSet({
-        id: selectedSetId,
-        jobRoleId,
-        name: renameValue.trim(),
+      const res = await createGlobalSkillLevel({
+        skillLevelSetId: setId,
+        name: newLvName.trim(),
+        criteria: newLvCriteria.trim() || undefined,
+        colorHex: newLvColor,
       })
       const err = globalTemplateActionError(res)
       if (err) {
         setError(err)
         return
       }
-      setRenameOpen(false)
+      setNewLvName('')
+      setNewLvCriteria('')
+      setNewLvColor(LEVEL_COLORS[0])
+      setAddingForSetId(null)
+      setError(null)
+      onMutationSuccess?.()
+      router.refresh()
+    })
+  }
+
+  function handleSaveLevel() {
+    if (!editLvId || !editLvName.trim()) return
+    startTransition(async () => {
+      const res = await updateGlobalSkillLevel({
+        id: editLvId,
+        name: editLvName.trim(),
+        criteria: editLvCriteria.trim() || null,
+        colorHex: editLvColor,
+      })
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
+        return
+      }
+      setEditLvId(null)
+      setError(null)
+      onMutationSuccess?.()
+      router.refresh()
+    })
+  }
+
+  function handleDeleteLevel(id: string) {
+    if (!confirm('このスキルレベルを削除しますか？')) return
+    startTransition(async () => {
+      const res = await deleteGlobalSkillLevel({ id })
+      const err = globalTemplateActionError(res)
+      if (err) {
+        setError(err)
+        return
+      }
+      setEditLvId(null)
       setError(null)
       onMutationSuccess?.()
       router.refresh()
@@ -112,129 +175,306 @@ export function GlobalSkillLevelSetWorkspace({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700">スキルレベルセット</h3>
-        <p className="mt-1 text-xs text-gray-500">
-          セットごとに評価レベル（例：初級・中級・上級／検定1・検定2）を定義します。スキル項目では「どのセットで評価するか」を割り当てます。
-        </p>
-      </div>
+      {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-600">{error}</p>}
 
-      {error && (
-        <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-600">{error}</p>
-      )}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="min-w-[220px] flex-1">
-          <label
-            htmlFor="skill-level-set-picker"
-            className="text-xs font-semibold text-gray-700"
-          >
-            編集中のセット
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <label htmlFor="new-level-set-name" className="text-xs font-semibold text-gray-700">
+            レベルセット名
           </label>
-          <select
-            id="skill-level-set-picker"
-            value={selectedSetId}
-            onChange={e => {
-              setSelectedSetId(e.target.value)
-              setRenameOpen(false)
-              setError(null)
-            }}
-            disabled={sortedSets.length === 0}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-50"
-          >
-            {sortedSets.length === 0 ? (
-              <option value="">セットなし</option>
-            ) : (
-              sortedSets.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name}（{s.levels.length}段階）
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        {selectedSet && !renameOpen && (
-          <button
-            type="button"
-            onClick={() => {
-              setRenameOpen(true)
-              setRenameValue(selectedSet.name)
-              setError(null)
-            }}
-            className="text-xs font-medium text-primary hover:underline sm:mb-2"
-          >
-            セット名を変更
-          </button>
-        )}
-      </div>
-
-      {renameOpen && selectedSet && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <input
+            id="new-level-set-name"
             type="text"
-            value={renameValue}
-            onChange={e => setRenameValue(e.target.value)}
-            className="min-w-[160px] flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm"
-            placeholder="セット名"
+            value={newSetName}
+            onChange={e => setNewSetName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRegisterSet()}
+            placeholder="例：プログラミング／検定レベル"
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
           />
-          <button
-            type="button"
-            disabled={isPending || !renameValue.trim()}
-            onClick={handleRenameSave}
-            className="rounded bg-primary px-3 py-1.5 text-sm text-white disabled:opacity-50"
-          >
-            保存
-          </button>
-          <button
-            type="button"
-            onClick={() => setRenameOpen(false)}
-            className="text-sm text-gray-500 hover:text-gray-800"
-          >
-            キャンセル
-          </button>
         </div>
-      )}
-
-      <div className="flex flex-wrap items-end gap-2">
-        <input
-          type="text"
-          value={newSetName}
-          onChange={e => setNewSetName(e.target.value)}
-          placeholder="新しいセット名（例：検定レベル）"
-          className="min-w-[200px] flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm"
-          onKeyDown={e => e.key === 'Enter' && handleAddSet()}
-        />
         <button
           type="button"
           disabled={isPending || !newSetName.trim()}
-          onClick={handleAddSet}
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+          onClick={handleRegisterSet}
+          className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50"
         >
-          セットを追加
-        </button>
-        <button
-          type="button"
-          disabled={isPending || sortedSets.length === 0 || !selectedSetId}
-          onClick={handleDeleteSet}
-          className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-700 shadow-sm hover:bg-red-50 disabled:opacity-50"
-        >
-          選択中のセットを削除
+          登録
         </button>
       </div>
 
-      {selectedSet ? (
-        <GlobalSkillLevelManager
-          skillLevelSetId={selectedSet.id}
-          jobRoleId={jobRoleId}
-          levels={selectedSet.levels}
-          onMutationSuccess={onMutationSuccess}
-        />
-      ) : (
-        <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">
-          セットがありません。上のフォームからセットを追加してください。
-        </p>
-      )}
+      <hr className="border-gray-200" />
+
+      <div className="overflow-hidden rounded-lg border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
+                  レベルセット名
+                </th>
+                <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
+                  レベル
+                </th>
+                <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
+                  コメント
+                </th>
+                <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800">
+                  変更
+                </th>
+                <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800">
+                  削除
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedSets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+                    セットがありません。上のフォームからレベルセット名を登録してください。
+                  </td>
+                </tr>
+              ) : (
+                sortedSets.map(set => {
+                  const levels = sortLevels(set.levels)
+                  return (
+                    <Fragment key={set.id}>
+                      <tr className="border-b border-gray-100 bg-gray-50/80">
+                        <td className="px-3 py-2 align-top">
+                          {editSetId === set.id ? (
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <input
+                                value={editSetName}
+                                onChange={e => setEditSetName(e.target.value)}
+                                className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isPending || !editSetName.trim()}
+                                  onClick={handleSaveSetName}
+                                  className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditSetId(null)}
+                                  className="text-xs text-gray-500 hover:text-gray-800"
+                                >
+                                  キャンセル
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-gray-900">{set.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddingForSetId(set.id)
+                                  setError(null)
+                                }}
+                                className="text-xs font-medium text-primary hover:underline"
+                              >
+                                [+レベル]
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 align-top text-gray-400">—</td>
+                        <td className="px-3 py-2 align-top text-gray-400">—</td>
+                        <td className="px-3 py-2 text-center align-top">
+                          {editSetId !== set.id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditSetId(set.id)
+                                setEditSetName(set.name)
+                                setError(null)
+                              }}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              変更
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center align-top">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSet(set.id)}
+                            disabled={isPending}
+                            className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                          >
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+
+                      {addingForSetId === set.id && (
+                        <tr className="border-b border-gray-100 bg-blue-50/40">
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2 align-top">
+                            <input
+                              value={newLvName}
+                              onChange={e => setNewLvName(e.target.value)}
+                              placeholder="レベル名"
+                              className="w-full min-w-[100px] rounded border border-gray-300 px-2 py-1 text-sm"
+                            />
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            <input
+                              value={newLvCriteria}
+                              onChange={e => setNewLvCriteria(e.target.value)}
+                              placeholder="コメント（例：経験年数）"
+                              className="w-full min-w-[120px] rounded border border-gray-300 px-2 py-1 text-sm"
+                            />
+                          </td>
+                          <td className="px-3 py-2 align-top" colSpan={2}>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex gap-1">
+                                {LEVEL_COLORS.map(c => (
+                                  <button
+                                    key={c}
+                                    type="button"
+                                    aria-label={`色 ${c}`}
+                                    onClick={() => setNewLvColor(c)}
+                                    className="h-5 w-5 rounded-full border-2 transition-all"
+                                    style={{
+                                      backgroundColor: c,
+                                      borderColor: newLvColor === c ? '#374151' : 'transparent',
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                disabled={isPending || !newLvName.trim()}
+                                onClick={() => handleAddLevel(set.id)}
+                                className="rounded bg-primary px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                              >
+                                追加
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddingForSetId(null)
+                                  setNewLvName('')
+                                  setNewLvCriteria('')
+                                }}
+                                className="text-xs text-gray-500 hover:text-gray-800"
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+
+                      {levels.map(lv => (
+                        <tr key={lv.id} className="border-b border-gray-100">
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2 align-top">
+                            {editLvId === lv.id ? (
+                              <input
+                                value={editLvName}
+                                onChange={e => setEditLvName(e.target.value)}
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                            ) : (
+                              <span
+                                className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
+                                style={{
+                                  backgroundColor: lv.color_hex + '33',
+                                  color: lv.color_hex,
+                                }}
+                              >
+                                {lv.name}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top text-gray-700">
+                            {editLvId === lv.id ? (
+                              <input
+                                value={editLvCriteria}
+                                onChange={e => setEditLvCriteria(e.target.value)}
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                            ) : (
+                              <span className="text-xs">{lv.criteria ?? '—'}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-center align-top">
+                            {editLvId === lv.id ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex justify-center gap-0.5">
+                                  {LEVEL_COLORS.map(c => (
+                                    <button
+                                      key={c}
+                                      type="button"
+                                      aria-label={`色 ${c}`}
+                                      onClick={() => setEditLvColor(c)}
+                                      className="h-4 w-4 rounded-full border-2"
+                                      style={{
+                                        backgroundColor: c,
+                                        borderColor: editLvColor === c ? '#374151' : 'transparent',
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isPending}
+                                  onClick={handleSaveLevel}
+                                  className="text-xs font-medium text-primary hover:underline"
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditLvId(null)}
+                                  className="text-[11px] text-gray-500"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditLvId(lv.id)
+                                  setEditLvName(lv.name)
+                                  setEditLvCriteria(lv.criteria ?? '')
+                                  setEditLvColor(lv.color_hex)
+                                  setError(null)
+                                }}
+                                className="text-xs font-medium text-primary hover:underline"
+                              >
+                                変更
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-center align-top">
+                            {editLvId !== lv.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLevel(lv.id)}
+                                disabled={isPending}
+                                className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                              >
+                                削除
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

@@ -87,13 +87,7 @@ export function SkillTemplatesPageClient({ categories, roles }: Props) {
         roleId={detailRoleId}
       />
 
-      <GlobalSkillLevelSetModal
-        open={skillLevelSetOpen}
-        onOpenChange={setSkillLevelSetOpen}
-        roles={roles}
-        categories={categories}
-        selectedCategoryId={selectedCategoryId}
-      />
+      <GlobalSkillLevelSetModal open={skillLevelSetOpen} onOpenChange={setSkillLevelSetOpen} />
     </div>
   )
 }

@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import type { GlobalSkillItem, GlobalSkillLevelSetWithLevels } from '../types'
-import { createGlobalSkillItem, updateGlobalSkillItem, deleteGlobalSkillItem, globalTemplateActionError } from '../actions'
+import { createGlobalSkillItem, updateGlobalSkillItem, deleteGlobalSkillItem } from '../actions'
+import { globalTemplateActionError } from '../types'
 
 const CATEGORIES = ['技術', '知識', '資格', '経験'] as const
 
@@ -108,7 +109,7 @@ export function GlobalSkillItemManager({
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-gray-700">スキル項目</h3>
       <p className="text-xs text-gray-500">
-        各スキルに、この職種のスキルレベルセットを1つ割り当てます（例：技術スキルには「経験年数セット」、資格には「検定セット」）。セット未定義のときは「スキルレベルセット登録」から先に作成してください。
+        各スキルに、登録済みのスキルレベルセットを1つ割り当てます（例：技術スキルには「経験年数セット」、資格には「検定セット」）。セット未定義のときは「スキルレベルセット登録」から先に作成してください。
       </p>
       {error && <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{error}</p>}
 
@@ -152,9 +153,7 @@ export function GlobalSkillItemManager({
         <button
           type="button"
           onClick={handleCreate}
-          disabled={
-            isPending || !newName.trim() || sortedSets.length === 0 || !newSkillLevelSetId
-          }
+          disabled={isPending || !newName.trim() || sortedSets.length === 0 || !newSkillLevelSetId}
           className="bg-primary text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
         >
           追加

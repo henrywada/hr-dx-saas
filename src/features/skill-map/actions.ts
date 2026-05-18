@@ -289,7 +289,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
-  const [roleRes, itemsRes, setsRes] = await Promise.all([
+  const [roleRes, itemsRes] = await Promise.all([
     (supabase as any)
       .from('global_job_roles')
       .select('name, color_hex')
@@ -300,17 +300,19 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
       .select('*')
       .eq('job_role_id', jobRoleId)
       .order('sort_order'),
-    (supabase as any)
-      .from('global_skill_level_sets')
-      .select('id')
-      .eq('job_role_id', jobRoleId),
   ])
 
   if (roleRes.error || !roleRes.data)
     return { success: false, error: 'テンプレートが見つかりません' }
-  if (setsRes.error) return { success: false, error: setsRes.error.message }
+  if (itemsRes.error) return { success: false, error: itemsRes.error.message }
 
-  const setIds = (setsRes.data ?? []).map((s: { id: string }) => s.id)
+  const setIds = [
+    ...new Set(
+      (itemsRes.data ?? [])
+        .map((it: { skill_level_set_id?: string }) => it.skill_level_set_id)
+        .filter(Boolean)
+    ),
+  ] as string[]
 
   let levelsRes: { data: any[] | null; error?: any } = { data: [] }
   if (setIds.length > 0) {

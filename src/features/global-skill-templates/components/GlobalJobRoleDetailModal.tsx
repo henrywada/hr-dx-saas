@@ -58,7 +58,7 @@ export function GlobalJobRoleDetailModal({ open, onOpenChange, roleId }: Props) 
             職種テンプレート詳細
           </DialogTitle>
           <DialogPrimitive.Description className="mt-1 text-sm leading-snug text-white/90">
-            この職種のスキル項目と、割り当てるスキルレベルセットを編集します。セット本体の追加・変更は一覧の「+スキルレベルセット登録」から行えます。
+            この職種のスキル項目と、割り当てるスキルレベルセットを編集します。セット本体の追加・変更は一覧の「+スキルレベルセット登録」から行えます（職種に依存しない共通マスタです）。
           </DialogPrimitive.Description>
           {detail && (
             <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getTenantSkills } from '@/features/skill-map/queries'
+import { getTenantSkillsWithRequirements } from '@/features/skill-map/queries'
 import {
   getGlobalJobCategories,
   getGlobalJobRoles,
 } from '@/features/global-skill-templates/queries'
-import { TenantSkillManager } from '@/features/skill-map/components/TenantSkillManager'
+import { SkillTempCopyPageClient } from './SkillTempCopyPageClient'
+import { SkillTempCopyTemplateButton } from './SkillTempCopyTemplateButton'
 
 export default async function SkillTempCopyPage() {
   const user = await getServerUser()
@@ -16,7 +17,7 @@ export default async function SkillTempCopyPage() {
   const supabase = await createClient()
 
   const [skills, templateCategories, templateRoles] = await Promise.all([
-    getTenantSkills(supabase),
+    getTenantSkillsWithRequirements(supabase),
     getGlobalJobCategories(supabase),
     getGlobalJobRoles(supabase),
   ])
@@ -48,21 +49,27 @@ export default async function SkillTempCopyPage() {
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-[1.35rem] font-bold leading-snug tracking-tight text-transparent sm:text-[1.65rem]">
-                  技能マスタ管理
+                  スキルの管理
                 </h1>
+                <p className="mt-1 text-xs text-gray-600">
+                  自社のスキル（職種・スキル要件・レベル）を管理します。テンプレートからコピーして編集できます。
+                </p>
                 <div
                   className="mt-1.5 h-1 w-12 rounded-full bg-linear-to-r from-primary to-primary/60 sm:w-14"
                   aria-hidden
                 />
               </div>
             </div>
+            <div className="shrink-0 pt-0.5">
+              <SkillTempCopyTemplateButton
+                categories={templateCategories}
+                roles={templateRoles}
+              />
+            </div>
           </div>
+
           <div className="p-6">
-            <TenantSkillManager
-              skills={skills}
-              templateCategories={templateCategories}
-              templateRoles={templateRoles}
-            />
+            <SkillTempCopyPageClient skills={skills} />
           </div>
         </div>
       </div>

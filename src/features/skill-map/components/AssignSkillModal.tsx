@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import type { TenantSkill, EmployeeSkillAssignment } from '../types'
 import { assignSkill, removeSkillAssignment } from '../actions'
 
@@ -19,6 +20,7 @@ export function AssignSkillModal({
   currentAssignments,
   onClose,
 }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [selectedSkillId, setSelectedSkillId] = useState('')
   const [startedAt, setStartedAt] = useState(new Date().toISOString().split('T')[0])
@@ -43,6 +45,7 @@ export function AssignSkillModal({
       setSelectedSkillId('')
       setReason('')
       setError(null)
+      router.refresh()
     })
   }
 
@@ -50,7 +53,12 @@ export function AssignSkillModal({
     if (!confirm('この技能の割り当てを削除しますか？')) return
     startTransition(async () => {
       const res = await removeSkillAssignment(assignmentId)
-      if ('error' in res) setError(res.error)
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
+      setError(null)
+      router.refresh()
     })
   }
 
@@ -73,7 +81,7 @@ export function AssignSkillModal({
           {currentAssignments.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                現在の技能
+                現在の履歴
               </p>
               <div className="space-y-1">
                 {currentAssignments.map(a => {
@@ -95,6 +103,7 @@ export function AssignSkillModal({
                       <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span>{a.started_at}</span>
                         <button
+                          type="button"
                           onClick={() => handleRemove(a.id)}
                           disabled={isPending}
                           className="text-red-400 hover:text-red-600"
@@ -109,10 +118,12 @@ export function AssignSkillModal({
             </div>
           )}
 
-          <div className="space-y-3 border-t pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              技能を追加
-            </p>
+          <div
+            className={
+              currentAssignments.length > 0 ? 'space-y-3 border-t border-gray-200 pt-4' : 'space-y-3'
+            }
+          >
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">技能を追加</p>
             <div>
               <label className="text-xs font-medium text-gray-700 block mb-1">
                 技能名 <span className="text-red-500">*</span>
@@ -148,12 +159,13 @@ export function AssignSkillModal({
               <textarea
                 value={reason}
                 onChange={e => setReason(e.target.value)}
-                placeholder="例：兼務辞令、部署異動に伴い..."
+                placeholder="例：業務辞令、部署異動に伴い..."
                 rows={2}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none"
               />
             </div>
             <button
+              type="button"
               onClick={handleAssign}
               disabled={isPending || !selectedSkillId || !startedAt}
               className="w-full bg-primary text-white py-2 rounded font-medium text-sm disabled:opacity-50"

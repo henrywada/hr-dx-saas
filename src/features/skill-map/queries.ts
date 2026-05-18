@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type {
   TenantSkill,
+  TenantSkillWithRequirements,
   SkillLevel,
   SkillRequirement,
   EmployeeSkillAssignment,
@@ -25,23 +26,42 @@ export async function getTenantSkills(supabase: DB): Promise<TenantSkill[]> {
   return data ?? []
 }
 
+/** skill-tempCopy 用: テナント職種 + 紐づく要件（level情報込み）を一括取得 */
+export async function getTenantSkillsWithRequirements(
+  supabase: DB
+): Promise<TenantSkillWithRequirements[]> {
+  const { data: skills, error: skillError } = await (supabase as any)
+    .from('tenant_skills')
+    .select('*')
+    .order('sort_order', { ascending: true })
+  if (skillError) throw skillError
+  if (!skills?.length) return []
+
+  const skillIds = (skills as TenantSkill[]).map(s => s.id)
+  const { data: reqs, error: reqError } = await (supabase as any)
+    .from('skill_requirements')
+    .select('*, level:skill_levels(*)')
+    .in('skill_id', skillIds)
+    .order('sort_order', { ascending: true })
+  if (reqError) throw reqError
+
+  const reqsBySkill = new Map<string, SkillRequirement[]>()
+  for (const req of (reqs ?? []) as SkillRequirement[]) {
+    const list = reqsBySkill.get(req.skill_id) ?? []
+    list.push(req)
+    reqsBySkill.set(req.skill_id, list)
+  }
+
+  return (skills as TenantSkill[]).map(skill => ({
+    ...skill,
+    requirements: reqsBySkill.get(skill.id) ?? [],
+  }))
+}
+
 export async function getSkillLevels(supabase: DB): Promise<SkillLevel[]> {
   const { data, error } = await (supabase as any)
     .from('skill_levels')
     .select('*')
-    .order('sort_order', { ascending: true })
-  if (error) throw error
-  return data ?? []
-}
-
-export async function getSkillRequirements(
-  supabase: DB,
-  skillId: string
-): Promise<SkillRequirement[]> {
-  const { data, error } = await (supabase as any)
-    .from('skill_requirements')
-    .select('*, level:skill_levels(*)')
-    .eq('skill_id', skillId)
     .order('sort_order', { ascending: true })
   if (error) throw error
   return data ?? []
@@ -58,6 +78,40 @@ export async function getEmployeeSkillAssignments(
     .order('started_at', { ascending: false })
   if (error) throw error
   return data ?? []
+}
+
+/** 従業員が On にした技能要件（requirement_id の集合。行が無い＝Off） */
+export async function getEmployeeSkillRequirementSelections(
+  supabase: DB,
+  employeeId: string
+): Promise<Set<string>> {
+  const { data, error } = await (supabase as any)
+    .from('employee_skill_requirement_selections')
+    .select('requirement_id')
+    .eq('employee_id', employeeId)
+  if (error) throw error
+  return new Set((data ?? []).map((r: { requirement_id: string }) => r.requirement_id))
+}
+
+/** 複数従業員の技能要件選択を一括取得（職種ビューのレベル表示用） */
+export async function getEmployeeSkillRequirementSelectionsBatch(
+  supabase: DB,
+  employeeIds: string[]
+): Promise<Map<string, Set<string>>> {
+  if (employeeIds.length === 0) return new Map()
+  const { data, error } = await (supabase as any)
+    .from('employee_skill_requirement_selections')
+    .select('employee_id, requirement_id')
+    .in('employee_id', employeeIds)
+  if (error) throw error
+  const map = new Map<string, Set<string>>()
+  for (const r of data ?? []) {
+    const eid = r.employee_id as string
+    const rid = r.requirement_id as string
+    if (!map.has(eid)) map.set(eid, new Set())
+    map.get(eid)!.add(rid)
+  }
+  return map
 }
 
 // 現在有効な割り当て = employee_id × skill_id で started_at が最新の行
@@ -147,8 +201,7 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
   const { data: assignments, error } = await (supabase as any)
     .from('employee_skill_assignments')
     .select(
-      // assigned_by も employees を参照するため、embed 先を employee_id の FK で明示する
-      'employee_id, skill_id, started_at, employees:employees!employee_skill_assignments_employee_id_fkey(id, employee_no, divisions:divisions(name))'
+      'employee_id, skill_id, started_at, employees:employees!employee_skill_assignments_employee_id_fkey(id, name, employee_no, divisions:divisions(name))'
     )
     .order('started_at', { ascending: false })
   if (error) throw error
@@ -158,7 +211,8 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
     string,
     Array<{
       employee_id: string
-      employee_name: string
+      employee_no: string | null
+      full_name: string | null
       division_name: string | null
       started_at: string
     }>
@@ -172,7 +226,8 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
     const emp = a.employees as any
     grouped[a.skill_id].push({
       employee_id: a.employee_id,
-      employee_name: emp?.employee_no ?? a.employee_id,
+      employee_no: emp?.employee_no ?? null,
+      full_name: emp?.name ?? null,
       division_name: emp?.divisions?.name ?? null,
       started_at: a.started_at,
     })

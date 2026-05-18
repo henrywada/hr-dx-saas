@@ -6,71 +6,66 @@ import type { GlobalJobRole, GlobalJobCategory, GlobalSkillItem } from '../types
 import { deleteGlobalJobRole } from '../actions'
 import { GlobalJobRoleForm } from './GlobalJobRoleForm'
 
-/** 業種グループ内で職種横断のユニークなスキル名（sort_order 昇順・同名は初出優先） */
-function aggregatedSkillNamesForCategory(roles: GlobalJobRole[]): string[] {
-  const seenOrder = new Map<string, number>()
-  for (const r of roles) {
-    const items = [...(r.skill_items ?? [])].sort(
-      (a: GlobalSkillItem, b: GlobalSkillItem) =>
-        a.sort_order - b.sort_order ||
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
-    for (const it of items) {
-      if (!seenOrder.has(it.name)) seenOrder.set(it.name, it.sort_order)
-    }
-  }
-  return [...seenOrder.entries()]
-    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], 'ja'))
-    .map(([n]) => n)
+function sortGlobalSkillItems(items: GlobalSkillItem[] | undefined): GlobalSkillItem[] {
+  return [...(items ?? [])].sort(
+    (a, b) =>
+      a.sort_order - b.sort_order ||
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
 }
 
-/** 業種グループ内で、スキル項目に紐づくスキルレベルセット名のユニーク一覧（項目の並び順どおりに初出優先） */
-function aggregatedSkillLevelSetNamesFromItems(roles: GlobalJobRole[]): string[] {
-  const seen = new Set<string>()
-  const ordered: string[] = []
-  for (const r of roles) {
-    const items = [...(r.skill_items ?? [])].sort(
-      (a: GlobalSkillItem, b: GlobalSkillItem) =>
-        a.sort_order - b.sort_order ||
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
-    for (const it of items) {
-      const name = it.skill_level_set?.name
-      if (!name || seen.has(name)) continue
-      seen.add(name)
-      ordered.push(name)
-    }
-  }
-  return ordered
-}
-
-function SkillItemPills({ items }: { items: GlobalSkillItem[] }) {
-  if (items.length === 0)
+function SkillNameList({ items }: { items: GlobalSkillItem[] }) {
+  const sorted = sortGlobalSkillItems(items)
+  if (sorted.length === 0)
     return <span className="text-xs text-gray-400">—</span>
   return (
     <div className="flex flex-wrap gap-1.5">
-      {items.map(it => (
+      {sorted.map(it => (
         <span
           key={it.id}
-          className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-800 ring-1 ring-gray-200/80"
-          title={
-            it.category
-              ? `${it.name}（${it.category}）`
-              : it.skill_level_set
-                ? `${it.name} — ${it.skill_level_set.name}`
-                : it.name
-          }
+          className="inline-flex max-w-full items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 ring-1 ring-gray-200/80"
+          title={it.category ? `カテゴリ: ${it.category}` : undefined}
         >
-          <span className="font-medium">{it.name}</span>
-          {it.skill_level_set ? (
-            <span className="rounded px-1.5 py-0 text-[11px] font-semibold bg-slate-100 text-slate-800 ring-1 ring-slate-200/90">
-              {it.skill_level_set.name}
-            </span>
-          ) : (
-            <span className="text-[11px] text-amber-700">セット未設定</span>
-          )}
+          {it.name}
         </span>
       ))}
+    </div>
+  )
+}
+
+function LevelSetNameList({ items }: { items: GlobalSkillItem[] }) {
+  const sorted = sortGlobalSkillItems(items)
+  if (sorted.length === 0)
+    return <span className="text-xs text-gray-400">—</span>
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {sorted.map(it => {
+        const set = it.skill_level_set
+        const line =
+          set?.name != null
+            ? (() => {
+                const levels = [...(set.levels ?? [])].sort(
+                  (a, b) =>
+                    a.sort_order - b.sort_order ||
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                )
+                const inner =
+                  levels.length > 0 ? levels.map(l => l.name).join(' / ') : '—'
+                return `${set.name}：（${inner}）`
+              })()
+            : null
+        return (
+          <span
+            key={it.id}
+            className="inline-flex max-w-full items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 ring-1 ring-slate-200/90"
+            title={line ?? undefined}
+          >
+            {line ?? (
+              <span className="font-normal text-amber-700">未設定</span>
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -182,11 +177,11 @@ export function GlobalJobRoleList({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-800">職種一覧</h3>
-            <p className="mt-1 text-xs text-gray-600">
-              {selectedCategoryId
-                ? `表示中: ${categories.find(c => c.id === selectedCategoryId)?.name ?? '—'}`
-                : 'すべての業種の職種を表示しています'}
-            </p>
+            {selectedCategoryId != null && (
+              <p className="mt-1 text-xs text-gray-600">
+                表示中: {categories.find(c => c.id === selectedCategoryId)?.name ?? '—'}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -238,55 +233,6 @@ export function GlobalJobRoleList({
           </div>
         ) : (
           <>
-            {selectedCategoryId != null && groups.length > 0 && (() => {
-              const allRoles = groups.flatMap(g => g.roles)
-              const skillNames = aggregatedSkillNamesForCategory(allRoles)
-              const levelNames = aggregatedSkillLevelSetNamesFromItems(allRoles)
-              return (
-                <div className="mb-3 space-y-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-                  <div>
-                    <span className="text-xs font-semibold text-gray-700">業種に紐づくスキル</span>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      {skillNames.length === 0 ? (
-                        <span className="text-xs text-gray-500">
-                          まだスキル項目がありません（各職種の詳細から追加できます）
-                        </span>
-                      ) : (
-                        skillNames.map(name => (
-                          <span
-                            key={name}
-                            className="rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-800 shadow-sm ring-1 ring-gray-200/90"
-                          >
-                            {name}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-gray-700">
-                      業種に紐づくスキルレベルセット
-                    </span>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      {levelNames.length === 0 ? (
-                        <span className="text-xs text-gray-500">
-                          まだスキルレベルセットがありません（「+スキルレベルセット登録」または各職種の詳細から追加できます）
-                        </span>
-                      ) : (
-                        levelNames.map(name => (
-                          <span
-                            key={name}
-                            className="rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-800 shadow-sm ring-1 ring-gray-200/90"
-                          >
-                            {name}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
@@ -296,7 +242,10 @@ export function GlobalJobRoleList({
                       職種
                     </th>
                     <th className="border-b border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-800">
-                      スキル・レベルセット
+                      スキル名
+                    </th>
+                    <th className="border-b border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-800">
+                      レベル
                     </th>
                     <th className="border-b border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-800">
                       操作
@@ -308,60 +257,10 @@ export function GlobalJobRoleList({
                     {showIndustrySectionRow && (
                       <tr className="border-b border-gray-200 bg-gray-100">
                         <td
-                          colSpan={2}
+                          colSpan={3}
                           className="px-4 py-2.5 align-top text-sm font-semibold tracking-wide text-gray-800"
                         >
-                          <div>
-                            {group.categoryName}
-                            <span className="ml-2 font-normal text-xs text-gray-500">
-                              （{group.roles.length}件）
-                            </span>
-                          </div>
-                          {(() => {
-                            const skillNames = aggregatedSkillNamesForCategory(group.roles)
-                            const levelNames = aggregatedSkillLevelSetNamesFromItems(group.roles)
-                            if (skillNames.length === 0 && levelNames.length === 0) {
-                              return (
-                                <p className="mt-1.5 text-xs font-normal text-gray-500">
-                                  この業種の職種にはまだスキル項目・スキルレベルセットがありません（詳細から追加できます）
-                                </p>
-                              )
-                            }
-                            return (
-                              <div className="mt-2 space-y-2">
-                                {skillNames.length > 0 && (
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="text-xs font-normal text-gray-600">
-                                      業種に紐づくスキル:
-                                    </span>
-                                    {skillNames.map(name => (
-                                      <span
-                                        key={name}
-                                        className="rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800 shadow-sm ring-1 ring-gray-200/90"
-                                      >
-                                        {name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                {levelNames.length > 0 && (
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="text-xs font-normal text-gray-600">
-                                      業種に紐づくスキルレベルセット:
-                                    </span>
-                                    {levelNames.map(name => (
-                                      <span
-                                        key={name}
-                                        className="rounded-md bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800 shadow-sm ring-1 ring-gray-200/90"
-                                      >
-                                        {name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })()}
+                          {group.categoryName}
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-right align-top">
                           <button
@@ -404,11 +303,18 @@ export function GlobalJobRoleList({
                           </span>
                         </td>
                         <td
-                          className="max-w-xl min-w-[200px] px-4 py-3 align-top"
+                          className="max-w-xl min-w-[160px] px-4 py-3 align-top"
                           onClick={e => e.stopPropagation()}
                           onKeyDown={e => e.stopPropagation()}
                         >
-                          <SkillItemPills items={role.skill_items ?? []} />
+                          <SkillNameList items={role.skill_items ?? []} />
+                        </td>
+                        <td
+                          className="max-w-xl min-w-[160px] px-4 py-3 align-top"
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => e.stopPropagation()}
+                        >
+                          <LevelSetNameList items={role.skill_items ?? []} />
                         </td>
                         <td className="px-4 py-3 text-center align-top">
                           <div className="flex flex-wrap items-center justify-center gap-2">

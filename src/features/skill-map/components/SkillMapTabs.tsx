@@ -1,35 +1,38 @@
 'use client'
 
 import { useState } from 'react'
-import type { TenantSkill, EmployeeSkillRow, SkillGroupRow } from '../types'
-import type { GlobalJobCategory, GlobalJobRole } from '@/features/global-skill-templates/types'
+import type {
+  TenantSkillWithRequirements,
+  SkillLevel,
+  EmployeeSkillRow,
+  SkillGroupRow,
+} from '../types'
 import { EmployeeSkillTable } from './EmployeeSkillTable'
 import { SkillGroupView } from './SkillGroupView'
-import { TenantSkillManager } from './TenantSkillManager'
 
 type Props = {
   employeeRows: EmployeeSkillRow[]
   skillGroups: SkillGroupRow[]
-  skills: TenantSkill[]
+  skills: TenantSkillWithRequirements[]
+  levels: SkillLevel[]
   divisions: Array<{ id: string; name: string; pathLabel: string }>
-  templateCategories: GlobalJobCategory[]
-  templateRoles: GlobalJobRole[]
+  /** 職種ビュー用：employee_id → 有効な requirement_id 一覧 */
+  skillViewRequirementSelections: Record<string, string[]>
 }
 
 export function SkillMapTabs({
   employeeRows,
   skillGroups,
   skills,
+  levels,
   divisions,
-  templateCategories,
-  templateRoles,
+  skillViewRequirementSelections,
 }: Props) {
   const [tab, setTab] = useState<'employee' | 'skill'>('employee')
-  const [showManager, setShowManager] = useState(false)
 
   return (
     <div className="space-y-6">
-      <div className="-mx-6 -mt-6 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3.5">
+      <div className="-mx-6 -mt-6 mb-6 flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-6 py-3.5">
         <div className="flex flex-wrap gap-2">
           {(['employee', 'skill'] as const).map(t => (
             <button
@@ -42,43 +45,21 @@ export function SkillMapTabs({
                   : 'border border-gray-200 bg-gray-50 text-gray-700 shadow-sm hover:bg-gray-100'
               }`}
             >
-              {t === 'employee' ? '従業員ビュー' : '技能ビュー'}
+              {t === 'employee' ? '従業員ビュー' : '職種ビュー'}
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowManager(!showManager)}
-          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-            showManager
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
-          }`}
-        >
-          技能マスタ管理
-        </button>
       </div>
-
-      {showManager && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <TenantSkillManager
-            skills={skills}
-            templateCategories={templateCategories}
-            templateRoles={templateRoles}
-          />
-        </div>
-      )}
 
       {tab === 'employee' ? (
         <EmployeeSkillTable rows={employeeRows} skills={skills} divisions={divisions} />
       ) : (
-        <>
-          <h2 className="text-sm font-semibold text-gray-800">
-            <span className="text-gray-900">技能ビュー</span>
-            <span className="font-normal text-gray-500"> の担当者</span>
-          </h2>
-          <SkillGroupView groups={skillGroups} />
-        </>
+        <SkillGroupView
+          groups={skillGroups}
+          skillsWithRequirements={skills}
+          levels={levels}
+          requirementSelectionsByEmployee={skillViewRequirementSelections}
+        />
       )}
     </div>
   )

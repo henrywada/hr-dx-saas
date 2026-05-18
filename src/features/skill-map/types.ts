@@ -61,7 +61,8 @@ export type SkillGroupRow = {
   skill: TenantSkill
   employees: Array<{
     employee_id: string
-    employee_name: string
+    employee_no: string | null
+    full_name: string | null
     division_name: string | null
     started_at: string
   }>
@@ -104,6 +105,16 @@ export type SkillMapDraft = {
   snapshot: Record<string, string>
   created_at: string
   updated_at: string
+}
+
+/** テナント職種（tenant_skills）と、紐づく要件一覧（skill_requirements + level）を保持 */
+export type TenantSkillWithRequirements = TenantSkill & {
+  requirements: SkillRequirement[]
+}
+
+/** 詳細モーダル用: 要件 + テナントのスキルレベルマスタを含む */
+export type TenantSkillDetail = TenantSkillWithRequirements & {
+  levels: SkillLevel[]
 }
 
 export type QualificationAlertStatus = 'valid' | 'expiring_soon' | 'expired'

@@ -1,18 +1,18 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
-import type { TenantSkill, EmployeeSkillRow, EmployeeSkillAssignment } from '../types'
+import { useMemo, useState } from 'react'
+import { Layers } from 'lucide-react'
+import type { TenantSkillWithRequirements, EmployeeSkillRow } from '../types'
 import { SkillBadge } from './SkillBadge'
 import { AssignSkillModal } from './AssignSkillModal'
-import { SkillHistoryPanel } from './SkillHistoryPanel'
-import { getEmployeeSkillHistory } from '../actions'
+import { EmployeeSkillMatrixModal } from './EmployeeSkillMatrixModal'
 
 /** フィルター用（階層フルパス表示） */
 type DivisionOption = { id: string; name: string; pathLabel: string }
 
 type Props = {
   rows: EmployeeSkillRow[]
-  skills: TenantSkill[]
+  skills: TenantSkillWithRequirements[]
   divisions: DivisionOption[]
 }
 
@@ -26,10 +26,8 @@ function employeeModalLabel(row: EmployeeSkillRow): string {
 
 export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
   const [divisionId, setDivisionId] = useState('')
-  const [assignTarget, setAssignTarget] = useState<EmployeeSkillRow | null>(null)
-  const [historyTarget, setHistoryTarget] = useState<EmployeeSkillRow | null>(null)
-  const [historyData, setHistoryData] = useState<EmployeeSkillAssignment[]>([])
-  const [isPending, startTransition] = useTransition()
+  const [assignModalRow, setAssignModalRow] = useState<EmployeeSkillRow | null>(null)
+  const [matrixModalRow, setMatrixModalRow] = useState<EmployeeSkillRow | null>(null)
 
   const pathById = useMemo(() => new Map(divisions.map(d => [d.id, d.pathLabel])), [divisions])
 
@@ -42,14 +40,6 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
     divisionId === '' || divisionId === 'all'
       ? 'すべて'
       : (divisions.find(d => d.id === divisionId)?.pathLabel ?? '—')
-
-  function handleOpenHistory(row: EmployeeSkillRow) {
-    startTransition(async () => {
-      const history = await getEmployeeSkillHistory(row.employee_id)
-      setHistoryData(history)
-      setHistoryTarget(row)
-    })
-  }
 
   /** 一覧の部署列：階層フルパス（不明時は DB の部署名のみ） */
   function divisionCellLabel(row: EmployeeSkillRow) {
@@ -105,7 +95,7 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
                   氏名
                 </th>
                 <th className="border-b border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-800">
-                  現在の技能
+                  現在の職種
                 </th>
                 <th className="border-b border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-800">
                   操作
@@ -127,9 +117,7 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
                   const assignments = Object.values(row.currentAssignments)
                   const assignedSkills = assignments
                     .map(a => skills.find(s => s.id === a.skill_id))
-                    .filter(Boolean) as TenantSkill[]
-                  const isLoadingHistory =
-                    isPending && historyTarget?.employee_id === row.employee_id
+                    .filter(Boolean) as TenantSkillWithRequirements[]
                   return (
                     <tr
                       key={row.employee_id}
@@ -158,24 +146,34 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
                           <button
                             type="button"
-                            onClick={() => setAssignTarget(row)}
+                            onClick={() => setAssignModalRow(row)}
                             className="text-xs text-primary hover:underline"
                           >
                             {assignments.length === 0 ? '＋ 割り当て' : '✏️ 編集'}
                           </button>
-                          {assignments.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenHistory(row)}
-                              disabled={isPending}
-                              className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                            >
-                              {isLoadingHistory ? '読込中...' : '📋 履歴'}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            disabled={assignments.length === 0}
+                            title={
+                              assignments.length === 0
+                                ? '職種を割り当ててから利用できます'
+                                : undefined
+                            }
+                            onClick={() => setMatrixModalRow(row)}
+                            className={`inline-flex items-center gap-1 text-xs ${
+                              assignments.length === 0
+                                ? 'cursor-not-allowed text-gray-400'
+                                : 'text-primary hover:underline'
+                            }`}
+                            aria-label="スキル編集"
+                            aria-disabled={assignments.length === 0}
+                          >
+                            <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            スキル編集
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -187,26 +185,21 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
         </div>
       </div>
 
-      {assignTarget && (
+      {assignModalRow && (
         <AssignSkillModal
-          employeeId={assignTarget.employee_id}
-          employeeName={employeeModalLabel(assignTarget)}
+          employeeId={assignModalRow.employee_id}
+          employeeName={employeeModalLabel(assignModalRow)}
           skills={skills}
-          currentAssignments={Object.values(assignTarget.currentAssignments)}
-          onClose={() => setAssignTarget(null)}
+          currentAssignments={Object.values(assignModalRow.currentAssignments)}
+          onClose={() => setAssignModalRow(null)}
         />
       )}
-      {historyTarget && (
-        <SkillHistoryPanel
-          employeeId={historyTarget.employee_id}
-          employeeName={employeeModalLabel(historyTarget)}
-          skills={skills}
-          currentAssignments={historyTarget.currentAssignments}
-          history={historyData}
-          onClose={() => {
-            setHistoryTarget(null)
-            setHistoryData([])
-          }}
+      {matrixModalRow && (
+        <EmployeeSkillMatrixModal
+          row={matrixModalRow}
+          employeeLabel={employeeModalLabel(matrixModalRow)}
+          skillsWithRequirements={skills}
+          onClose={() => setMatrixModalRow(null)}
         />
       )}
     </div>

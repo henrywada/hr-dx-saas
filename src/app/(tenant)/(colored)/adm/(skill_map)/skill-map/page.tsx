@@ -1,20 +1,16 @@
-import Link from 'next/link'
-
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import {
-  getTenantSkills,
+  getTenantSkillsWithRequirements,
+  getSkillLevels,
   getEmployeeSkillRows,
   getSkillGroupRows,
   getTenantDivisionHierarchy,
+  getEmployeeSkillRequirementSelectionsBatch,
 } from '@/features/skill-map/queries'
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
-import {
-  getGlobalJobCategories,
-  getGlobalJobRoles,
-} from '@/features/global-skill-templates/queries'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
 
 export default async function SkillMapPage() {
@@ -23,15 +19,23 @@ export default async function SkillMapPage() {
 
   const supabase = await createClient()
 
-  let skills: Awaited<ReturnType<typeof getTenantSkills>> = []
+  let skills: Awaited<ReturnType<typeof getTenantSkillsWithRequirements>> = []
+  let levels: Awaited<ReturnType<typeof getSkillLevels>> = []
   let employeeRows: Awaited<ReturnType<typeof getEmployeeSkillRows>> = []
   let skillGroups: Awaited<ReturnType<typeof getSkillGroupRows>> = []
   let divisionNodes: Awaited<ReturnType<typeof getTenantDivisionHierarchy>> = []
+  /** 職種ビュー：従業員ごとの有効要件ID（スキル編集モーダルと同一） */
+  let skillViewRequirementSelections: Record<string, string[]> = {}
 
   try {
-    skills = await getTenantSkills(supabase)
+    skills = await getTenantSkillsWithRequirements(supabase)
   } catch (e: any) {
-    throw new Error('getTenantSkills: ' + (e?.message ?? JSON.stringify(e)))
+    throw new Error('getTenantSkillsWithRequirements: ' + (e?.message ?? JSON.stringify(e)))
+  }
+  try {
+    levels = await getSkillLevels(supabase)
+  } catch (e: any) {
+    throw new Error('getSkillLevels: ' + (e?.message ?? JSON.stringify(e)))
   }
   try {
     employeeRows = await getEmployeeSkillRows(supabase)
@@ -44,15 +48,22 @@ export default async function SkillMapPage() {
     throw new Error('getSkillGroupRows: ' + (e?.message ?? JSON.stringify(e)))
   }
   try {
+    const skillViewIds = new Set<string>()
+    for (const g of skillGroups) {
+      for (const e of g.employees) skillViewIds.add(e.employee_id)
+    }
+    const batch = await getEmployeeSkillRequirementSelectionsBatch(supabase, [...skillViewIds])
+    for (const [eid, set] of batch) {
+      skillViewRequirementSelections[eid] = Array.from(set)
+    }
+  } catch {
+    skillViewRequirementSelections = {}
+  }
+  try {
     divisionNodes = await getTenantDivisionHierarchy(supabase)
   } catch (e: any) {
     throw new Error('getTenantDivisionHierarchy: ' + (e?.message ?? JSON.stringify(e)))
   }
-
-  const [templateCategories, templateRoles] = await Promise.all([
-    getGlobalJobCategories(supabase),
-    getGlobalJobRoles(supabase),
-  ])
 
   const divisionById = new Map(divisionNodes.map(d => [d.id, d]))
 
@@ -108,7 +119,7 @@ export default async function SkillMapPage() {
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-[1.35rem] font-bold leading-snug tracking-tight text-transparent sm:text-[1.65rem]">
-                  スキルマップ
+                  職種割り当て
                 </h1>
                 <div
                   className="mt-1.5 h-1 w-12 rounded-full bg-linear-to-r from-primary to-primary/60 sm:w-14"
@@ -116,21 +127,15 @@ export default async function SkillMapPage() {
                 />
               </div>
             </div>
-            <Link
-              href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP_REQUIREMENTS}
-              className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              技能別要件へ
-            </Link>
           </div>
           <div className="p-6">
             <SkillMapTabs
               employeeRows={employeeRows}
               skillGroups={skillGroups}
               skills={skills}
+              levels={levels}
               divisions={divisions}
-              templateCategories={templateCategories}
-              templateRoles={templateRoles}
+              skillViewRequirementSelections={skillViewRequirementSelections}
             />
           </div>
         </div>

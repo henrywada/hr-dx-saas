@@ -5,16 +5,34 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
-import type { EmployeeSkillAssignment } from './types'
+import { getTenantSkillsWithRequirements, getSkillLevels, getEmployeeSkillRequirementSelections } from './queries'
+import type { TenantSkillDetail } from './types'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
 const SKILL_MAP_PATH = APP_ROUTES.TENANT.ADMIN_SKILL_MAP
-const REQUIREMENTS_PATH = APP_ROUTES.TENANT.ADMIN_SKILL_MAP_REQUIREMENTS
+const SKILL_TEMP_COPY_PATH = APP_ROUTES.TENANT.ADMIN_SKILL_TEMP_COPY
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 function isValidHex(hex: string | undefined): boolean {
   return !hex || HEX_RE.test(hex)
+}
+
+/** skill-tempCopy 詳細モーダル用: 1職種の要件＋レベルマスタを返す */
+export async function loadTenantSkillDetailAction(
+  skillId: string
+): Promise<TenantSkillDetail | null> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return null
+  const supabase = await createClient()
+
+  const [allSkills, levels] = await Promise.all([
+    getTenantSkillsWithRequirements(supabase),
+    getSkillLevels(supabase),
+  ])
+  const skill = allSkills.find(s => s.id === skillId)
+  if (!skill) return null
+  return { ...skill, levels }
 }
 
 // ---- 技能マスタ (tenant_skills) ----
@@ -34,6 +52,7 @@ export async function createTenantSkill(input: {
   })
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -56,6 +75,7 @@ export async function updateTenantSkill(input: {
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -70,6 +90,7 @@ export async function deleteTenantSkill(id: string): Promise<ActionResult> {
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -89,7 +110,8 @@ export async function createSkillLevel(input: {
     color_hex: input.colorHex ?? '#6b7280',
   })
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -111,7 +133,8 @@ export async function updateSkillLevel(input: {
     .eq('id', input.id)
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -125,7 +148,8 @@ export async function deleteSkillLevel(id: string): Promise<ActionResult> {
     .eq('id', id)
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -167,20 +191,70 @@ export async function removeSkillAssignment(id: string): Promise<ActionResult> {
   return { success: true }
 }
 
-export async function getEmployeeSkillHistory(
+// ---- 従業員×技能要件の On/Off（employee_skill_requirement_selections） ----
+
+/** モーダル初期表示用：選択済み requirement_id 一覧 */
+export async function loadEmployeeSkillRequirementSelectionsAction(
   employeeId: string
-): Promise<EmployeeSkillAssignment[]> {
+): Promise<string[]> {
   const user = await getServerUser()
   if (!user?.tenant_id) return []
   const supabase = await createClient()
-  const { data, error } = await (supabase as any)
+  try {
+    const set = await getEmployeeSkillRequirementSelections(supabase, employeeId)
+    return Array.from(set)
+  } catch {
+    return []
+  }
+}
+
+export async function setEmployeeSkillRequirementSelection(input: {
+  employeeId: string
+  requirementId: string
+  selected: boolean
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+
+  const { data: req, error: reqErr } = await (supabase as any)
+    .from('skill_requirements')
+    .select('id, skill_id, tenant_id')
+    .eq('id', input.requirementId)
+    .maybeSingle()
+  if (reqErr || !req) return { success: false, error: '要件が見つかりません' }
+  if (req.tenant_id !== user.tenant_id) return { success: false, error: '要件が見つかりません' }
+
+  const { data: assign } = await (supabase as any)
     .from('employee_skill_assignments')
-    .select('*, skill:tenant_skills(*)')
-    .eq('employee_id', employeeId)
-    .eq('tenant_id', user.tenant_id)
-    .order('started_at', { ascending: false })
-  if (error) return []
-  return data ?? []
+    .select('id')
+    .eq('employee_id', input.employeeId)
+    .eq('skill_id', req.skill_id)
+    .limit(1)
+    .maybeSingle()
+  if (!assign) return { success: false, error: 'この職種は未割り当てです' }
+
+  if (input.selected) {
+    const { error } = await (supabase as any).from('employee_skill_requirement_selections').insert({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      requirement_id: input.requirementId,
+    })
+    if (error) {
+      if (String(error.code) === '23505') return { success: true }
+      return { success: false, error: error.message }
+    }
+  } else {
+    const { error } = await (supabase as any)
+      .from('employee_skill_requirement_selections')
+      .delete()
+      .eq('tenant_id', user.tenant_id)
+      .eq('employee_id', input.employeeId)
+      .eq('requirement_id', input.requirementId)
+    if (error) return { success: false, error: error.message }
+  }
+  revalidatePath(SKILL_MAP_PATH)
+  return { success: true }
 }
 
 // ---- 技能別要件 (skill_requirements) ----
@@ -204,7 +278,8 @@ export async function createSkillRequirement(input: {
     criteria: input.criteria ?? null,
   })
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -229,7 +304,8 @@ export async function updateSkillRequirement(input: {
     .eq('id', input.id)
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -243,7 +319,8 @@ export async function deleteSkillRequirement(id: string): Promise<ActionResult> 
     .eq('id', id)
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
-  revalidatePath(REQUIREMENTS_PATH)
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 
@@ -365,6 +442,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
     if (!tenantLevelIdByName.has(row.name)) tenantLevelIdByName.set(row.name, row.id)
   }
 
+  /** setId → sort_order 昇順のレベル名配列 */
   const levelsBySetId = new Map<string, Array<{ name: string; sort_order: number }>>()
   for (const lv of levelsRes.data ?? []) {
     const row = lv as {
@@ -377,30 +455,56 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
     levelsBySetId.set(row.skill_level_set_id, list)
   }
 
-  function firstLevelNameInSet(setId: string): string | undefined {
-    const list = levelsBySetId.get(setId)
-    if (!list?.length) return undefined
-    return [...list].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'))[0]
-      ?.name
+  /** セット内の全レベルを sort_order 昇順で返す */
+  function levelsInSet(setId: string): Array<{ name: string; sort_order: number }> {
+    const list = levelsBySetId.get(setId) ?? []
+    return [...list].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'))
   }
 
   if (itemsRes.data && itemsRes.data.length > 0) {
-    const requirementsRows = itemsRes.data.map((item: any) => {
-      const levelName = item.skill_level_set_id
-        ? firstLevelNameInSet(item.skill_level_set_id as string)
-        : undefined
-      const level_id =
-        levelName && tenantLevelIdByName.has(levelName)
-          ? tenantLevelIdByName.get(levelName)!
-          : null
-      return {
-        tenant_id: user.tenant_id,
-        skill_id: tenantSkillId,
-        name: item.name,
-        category: item.category ?? null,
-        level_id,
+    /**
+     * skill_item × セット内レベル数 の直積で skill_requirements を作成する。
+     * レベルセットが空／未設定の場合は level_id = null で 1 行だけ作成する。
+     */
+    const requirementsRows: Array<{
+      tenant_id: string
+      skill_id: string
+      name: string
+      category: string | null
+      level_id: string | null
+      sort_order: number
+    }> = []
+
+    let sortOrder = 0
+    for (const item of itemsRes.data as any[]) {
+      const levels = item.skill_level_set_id
+        ? levelsInSet(item.skill_level_set_id as string)
+        : []
+
+      if (levels.length === 0) {
+        requirementsRows.push({
+          tenant_id: user.tenant_id,
+          skill_id: tenantSkillId,
+          name: item.name,
+          category: item.category ?? null,
+          level_id: null,
+          sort_order: sortOrder++,
+        })
+      } else {
+        for (const lv of levels) {
+          const level_id = tenantLevelIdByName.get(lv.name) ?? null
+          requirementsRows.push({
+            tenant_id: user.tenant_id,
+            skill_id: tenantSkillId,
+            name: item.name,
+            category: item.category ?? null,
+            level_id,
+            sort_order: sortOrder++,
+          })
+        }
       }
-    })
+    }
+
     const { error: reqError } = await (supabase as any)
       .from('skill_requirements')
       .insert(requirementsRows)
@@ -408,6 +512,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   }
 
   revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }
 

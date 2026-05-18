@@ -12,13 +12,22 @@ import type {
 /** API 行を GlobalSkillItem に整形 */
 function normalizeSkillItemRow(
   row: any,
-  setById?: Map<string, Pick<GlobalSkillLevelSet, 'id' | 'name'>>
+  setById?: Map<string, Pick<GlobalSkillLevelSet, 'id' | 'name'>>,
+  levelsBySet?: Map<string, GlobalSkillLevel[]>
 ): GlobalSkillItem {
   const sid = row.skill_level_set_id ?? null
+  const meta = sid && setById ? setById.get(sid) ?? null : null
+  let skill_level_set: GlobalSkillItem['skill_level_set'] = null
+  if (meta && sid) {
+    skill_level_set = {
+      ...meta,
+      ...(levelsBySet ? { levels: levelsBySet.get(sid) ?? [] } : {}),
+    }
+  }
   return {
     ...row,
     skill_level_set_id: sid ?? '',
-    skill_level_set: sid && setById ? setById.get(sid) ?? null : null,
+    skill_level_set,
   }
 }
 
@@ -87,10 +96,31 @@ export async function getGlobalJobRoles(
     }
   }
 
+  const levelsBySet = new Map<string, GlobalSkillLevel[]>()
+  if (setIds.length > 0) {
+    const { data: lvRows, error: lvErr } = await (supabase as any)
+      .from('global_skill_levels')
+      .select('*')
+      .in('skill_level_set_id', setIds)
+      .order('sort_order')
+      .order('created_at')
+    if (lvErr) {
+      console.warn('[getGlobalJobRoles] global_skill_levels fetch failed:', lvErr.message)
+    } else {
+      for (const lv of (lvRows ?? []) as GlobalSkillLevel[]) {
+        const list = levelsBySet.get(lv.skill_level_set_id) ?? []
+        list.push(lv)
+        levelsBySet.set(lv.skill_level_set_id, list)
+      }
+    }
+  }
+
   return rows.map((r: any) => {
     const { category, global_skill_items, ...rest } = r
     const skill_items = sortSkillItems(
-      (global_skill_items ?? []).map((row: any) => normalizeSkillItemRow(row, setById))
+      (global_skill_items ?? []).map((row: any) =>
+        normalizeSkillItemRow(row, setById, levelsBySet)
+      )
     )
     return {
       ...rest,
@@ -165,10 +195,14 @@ export async function getGlobalJobRoleDetail(
   }
 
   const setMetaById = new Map<string, Pick<GlobalSkillLevelSet, 'id' | 'name'>>()
-  for (const s of skillLevelSets) setMetaById.set(s.id, { id: s.id, name: s.name })
+  const levelsBySet = new Map<string, GlobalSkillLevel[]>()
+  for (const s of skillLevelSets) {
+    setMetaById.set(s.id, { id: s.id, name: s.name })
+    levelsBySet.set(s.id, s.levels)
+  }
 
   const skillItems = (itemsRes.data ?? []).map((row: any) =>
-    normalizeSkillItemRow(row, setMetaById)
+    normalizeSkillItemRow(row, setMetaById, levelsBySet)
   )
 
   return {

@@ -45,7 +45,10 @@ export type GlobalSkillItem = {
   skill_level_set_id: string
   sort_order: number
   created_at: string
-  skill_level_set?: Pick<GlobalSkillLevelSet, 'id' | 'name'> | null
+  /** 一覧表示用に levels を同梱する場合あり */
+  skill_level_set?:
+    | (Pick<GlobalSkillLevelSet, 'id' | 'name'> & { levels?: GlobalSkillLevel[] })
+    | null
 }
 
 export type GlobalJobRole = {

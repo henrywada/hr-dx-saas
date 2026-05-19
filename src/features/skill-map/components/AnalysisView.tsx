@@ -70,22 +70,30 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
       skillName: string
       reqId: string
       reqName: string
-      /** 列ヘッダーに表示するラベル（レベル名があればレベル名、なければ要件名） */
+      /** 列ヘッダーのメインラベル（要件名） */
       colLabel: string
+      /** 列ヘッダーのサブラベル（レベル名） */
+      levelLabel: string | null
     }> = []
     for (const skill of visibleSkills) {
       for (const req of skill.requirements) {
-        const levelName = req.level?.name?.trim()
-        const colLabel = levelName ? `${req.name}（${levelName}）` : req.name
-        cols.push({ skillId: skill.id, skillName: skill.name, reqId: req.id, reqName: req.name, colLabel })
+        const levelLabel = req.level?.name?.trim() || null
+        cols.push({
+          skillId: skill.id,
+          skillName: skill.name,
+          reqId: req.id,
+          reqName: req.name,
+          colLabel: req.name,
+          levelLabel,
+        })
       }
     }
     return cols
   }, [visibleSkills])
 
-  // ヒートマップに表示する従業員行
+  // ヒートマップに表示する従業員行（選択職種に割り当て済みの従業員のみ）
   const heatmapRows = useMemo(() => {
-    if (!filterSkillId) return filtered
+    if (!filterSkillId) return []
     return filtered.filter(r => r.assignedSkillIds.includes(filterSkillId))
   }, [filtered, filterSkillId])
 
@@ -192,20 +200,24 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
       </div>
 
       {/* ヒートマップ */}
-      {heatmapColumns.length === 0 ? (
+      {!filterSkillId ? (
         <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-500">
-          要件が登録されていません
+          職種を選択するとヒートマップが表示されます
+        </p>
+      ) : heatmapColumns.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-500">
+          この職種には要件が登録されていません
         </p>
       ) : heatmapRows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-500">
-          該当する従業員がいません
+          この職種に割り当てられた従業員がいません
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                {/* 職種グループ行 */}
+                {/* 固定列 + 職種グループ行 */}
                 <tr className="bg-gray-100">
                   <th
                     className="border-b border-r border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700"
@@ -246,20 +258,25 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
                     充足率
                   </th>
                 </tr>
-                {/* 要件名行 */}
+                {/* 要件名 + レベル名行 */}
                 <tr className="bg-gray-50">
                   {heatmapColumns.map(col => (
                     <th
                       key={col.reqId}
-                      className="border-b border-r border-gray-200 px-1 py-1.5"
-                      style={{ minWidth: '2.5rem', maxWidth: '6rem' }}
+                      className="border-b border-r border-gray-200 px-2 py-1.5"
+                      style={{ minWidth: '5rem', maxWidth: '9rem' }}
                     >
                       <div
-                        className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-normal text-gray-500"
-                        title={col.colLabel}
+                        className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-700"
+                        title={col.levelLabel ? `${col.colLabel}（${col.levelLabel}）` : col.colLabel}
                       >
                         {col.colLabel}
                       </div>
+                      {col.levelLabel && (
+                        <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-normal text-gray-400">
+                          {col.levelLabel}
+                        </div>
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -299,7 +316,7 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
                           className={`border-r border-gray-100 px-1 py-2 text-center text-xs font-medium ${
                             done ? 'bg-primary/10 text-primary' : 'bg-red-50 text-red-400'
                           }`}
-                          title={`${col.colLabel}: ${done ? '達成' : '未達成'}`}
+                          title={`${col.levelLabel ? `${col.colLabel}（${col.levelLabel}）` : col.colLabel}: ${done ? '達成' : '未達成'}`}
                         >
                           {done ? '✓' : '✗'}
                         </td>

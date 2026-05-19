@@ -49,10 +49,14 @@ export function HrApplicationsView({ roleApplications, requirementApplications }
                 {(app as SkillRoleApplication).skill?.name ?? '—'}
               </p>
               {(app as SkillRoleApplication).note && (
-                <p className="mt-0.5 text-xs text-gray-500">申請理由: {(app as SkillRoleApplication).note}</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  申請理由: {(app as SkillRoleApplication).note}
+                </p>
               )}
               {(app as SkillRoleApplication).manager_comment && (
-                <p className="mt-0.5 text-xs text-blue-600">上長コメント: {(app as SkillRoleApplication).manager_comment}</p>
+                <p className="mt-0.5 text-xs text-blue-600">
+                  上長コメント: {(app as SkillRoleApplication).manager_comment}
+                </p>
               )}
             </div>
           )}
@@ -74,10 +78,14 @@ export function HrApplicationsView({ roleApplications, requirementApplications }
                   )}
                 </p>
                 {(app as SkillRequirementApplication).evidence && (
-                  <p className="mt-0.5 text-xs text-gray-500">証明: {(app as SkillRequirementApplication).evidence}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    証明: {(app as SkillRequirementApplication).evidence}
+                  </p>
                 )}
                 {(app as SkillRequirementApplication).manager_comment && (
-                  <p className="mt-0.5 text-xs text-blue-600">上長コメント: {(app as SkillRequirementApplication).manager_comment}</p>
+                  <p className="mt-0.5 text-xs text-blue-600">
+                    上長コメント: {(app as SkillRequirementApplication).manager_comment}
+                  </p>
                 )}
               </div>
             )
@@ -113,7 +121,13 @@ function HrList({
   return (
     <div className="space-y-3">
       {applications.map(app => (
-        <HrCard key={app.id} app={app} renderContent={renderContent} onApprove={onApprove} onReject={onReject} />
+        <HrCard
+          key={app.id}
+          app={app}
+          renderContent={renderContent}
+          onApprove={onApprove}
+          onReject={onReject}
+        />
       ))}
     </div>
   )

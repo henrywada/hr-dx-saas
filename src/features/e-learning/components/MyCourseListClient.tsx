@@ -14,6 +14,7 @@ type AssignmentWithDetail = ElAssignment & {
 interface Props {
   assignments: AssignmentWithDetail[]
   totalSlidesMap: Record<string, number>
+  requirementCountMap: Record<string, number>
 }
 
 type Tab = 'all' | 'not_started' | 'in_progress' | 'completed'
@@ -47,7 +48,7 @@ const BUTTON_LABEL: Record<string, string> = {
   completed: '復習する',
 }
 
-export function MyCourseListClient({ assignments, totalSlidesMap }: Props) {
+export function MyCourseListClient({ assignments, totalSlidesMap, requirementCountMap }: Props) {
   const [tab, setTab] = useState<Tab>('all')
 
   const filtered = tab === 'all' ? assignments : assignments.filter(a => getStatus(a) === tab)
@@ -155,6 +156,17 @@ export function MyCourseListClient({ assignments, totalSlidesMap }: Props) {
                     <p className="text-xs text-gray-400 text-right">
                       {completedCount} / {total} スライド完了
                     </p>
+                  </div>
+                )}
+
+                {status === 'completed' && (requirementCountMap[a.course_id] ?? 0) > 0 && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      eL
+                    </span>
+                    <span className="text-xs text-emerald-700">
+                      スキル要件 {requirementCountMap[a.course_id]} 件に自動反映
+                    </span>
                   </div>
                 )}
 

@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import type { SkillRoleApplication, SkillRequirementApplication } from '../types'
-import type { TenantSkillWithRequirements, EmployeeSkillAssignment } from '@/features/skill-map/types'
+import type {
+  TenantSkillWithRequirements,
+  EmployeeSkillAssignment,
+} from '@/features/skill-map/types'
 import { APPLICATION_STATUS_LABEL } from '../types'
 import { ApplyRoleModal } from './ApplyRoleModal'
 import { ApplyRequirementModal } from './ApplyRequirementModal'
@@ -13,6 +16,7 @@ type Props = {
   roleApplications: SkillRoleApplication[]
   requirementApplications: SkillRequirementApplication[]
   hasApprover: boolean
+  elAchievedRequirementIds: Set<string>
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -28,6 +32,7 @@ export function MySkillsView({
   roleApplications,
   requirementApplications,
   hasApprover,
+  elAchievedRequirementIds,
 }: Props) {
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [applyReqId, setApplyReqId] = useState<string | null>(null)
@@ -82,7 +87,9 @@ export function MySkillsView({
                       {skill.name}
                     </span>
                     {pending && (
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[pending.status] ?? ''}`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[pending.status] ?? ''}`}
+                      >
                         {APPLICATION_STATUS_LABEL[pending.status]}
                       </span>
                     )}
@@ -97,12 +104,21 @@ export function MySkillsView({
                             <div className="min-w-0">
                               <span className="text-sm text-gray-800">{req.name}</span>
                               {req.level?.name && (
-                                <span className="ml-1.5 text-xs text-gray-400">{req.level.name}</span>
+                                <span className="ml-1.5 text-xs text-gray-400">
+                                  {req.level.name}
+                                </span>
                               )}
                             </div>
-                            <div className="ml-3 shrink-0">
+                            <div className="ml-3 flex shrink-0 items-center gap-2">
+                              {elAchievedRequirementIds.has(req.id) && (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                                  eL
+                                </span>
+                              )}
                               {app ? (
-                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}
+                                >
                                   {APPLICATION_STATUS_LABEL[app.status]}
                                 </span>
                               ) : (
@@ -135,10 +151,18 @@ export function MySkillsView({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">種別</th>
-                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">内容</th>
-                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">ステータス</th>
-                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">申請日</th>
+                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                    種別
+                  </th>
+                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                    内容
+                  </th>
+                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                    ステータス
+                  </th>
+                  <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                    申請日
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -147,11 +171,15 @@ export function MySkillsView({
                     <td className="px-4 py-2.5 text-xs text-gray-500">職種</td>
                     <td className="px-4 py-2.5 text-sm text-gray-800">{app.skill?.name ?? '—'}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}
+                      >
                         {APPLICATION_STATUS_LABEL[app.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">{app.created_at.slice(0, 10)}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500">
+                      {app.created_at.slice(0, 10)}
+                    </td>
                   </tr>
                 ))}
                 {requirementApplications.map(app => (
@@ -159,16 +187,22 @@ export function MySkillsView({
                     <td className="px-4 py-2.5 text-xs text-gray-500">要件</td>
                     <td className="px-4 py-2.5 text-sm text-gray-800">
                       {app.requirement?.skill?.name && (
-                        <span className="mr-1 text-xs text-gray-400">{app.requirement.skill.name} /</span>
+                        <span className="mr-1 text-xs text-gray-400">
+                          {app.requirement.skill.name} /
+                        </span>
                       )}
                       {app.requirement?.name ?? '—'}
                     </td>
                     <td className="px-4 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status] ?? ''}`}
+                      >
                         {APPLICATION_STATUS_LABEL[app.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">{app.created_at.slice(0, 10)}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500">
+                      {app.created_at.slice(0, 10)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -181,7 +215,9 @@ export function MySkillsView({
         <ApplyRoleModal
           skills={skills}
           assignedSkillIds={assignedSkillIds}
-          pendingSkillIds={new Set(roleApplications.filter(a => a.status !== 'rejected').map(a => a.skill_id))}
+          pendingSkillIds={
+            new Set(roleApplications.filter(a => a.status !== 'rejected').map(a => a.skill_id))
+          }
           onClose={() => setShowRoleModal(false)}
         />
       )}

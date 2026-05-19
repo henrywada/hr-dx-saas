@@ -17,8 +17,14 @@ export function ApplyRequirementModal({ requirementId, onClose }: Props) {
   function handleSubmit() {
     setError(null)
     startTransition(async () => {
-      const result = await applyForRequirement({ requirementId, evidence: evidence.trim() || undefined })
-      if (!result.success) { setError((result as { success: false; error: string }).error); return }
+      const result = await applyForRequirement({
+        requirementId,
+        evidence: evidence.trim() || undefined,
+      })
+      if (!result.success) {
+        setError((result as { success: false; error: string }).error)
+        return
+      }
       onClose()
     })
   }

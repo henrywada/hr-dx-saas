@@ -687,6 +687,52 @@ export type Database = {
           },
         ]
       }
+      el_course_requirement_mappings: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          requirement_id: string
+          tenant_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          requirement_id: string
+          tenant_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          requirement_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_course_requirement_mappings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_course_requirement_mappings_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "skill_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_course_requirement_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       el_courses: {
         Row: {
           bloom_level: string | null
@@ -1051,58 +1097,107 @@ export type Database = {
           },
         ]
       }
-      employee_skills: {
+      employee_skill_assignments: {
         Row: {
+          assigned_by: string | null
+          created_at: string
           employee_id: string
-          evaluated_at: string
-          evaluated_by: string | null
           id: string
-          proficiency_level: number
+          reason: string | null
           skill_id: string
+          started_at: string
           tenant_id: string
         }
         Insert: {
+          assigned_by?: string | null
+          created_at?: string
           employee_id: string
-          evaluated_at?: string
-          evaluated_by?: string | null
           id?: string
-          proficiency_level: number
+          reason?: string | null
           skill_id: string
+          started_at: string
           tenant_id: string
         }
         Update: {
+          assigned_by?: string | null
+          created_at?: string
           employee_id?: string
-          evaluated_at?: string
-          evaluated_by?: string | null
           id?: string
-          proficiency_level?: number
+          reason?: string | null
           skill_id?: string
+          started_at?: string
           tenant_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "employee_skills_employee_id_fkey"
+            foreignKeyName: "employee_skill_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_assignments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_skills_evaluated_by_fkey"
-            columns: ["evaluated_by"]
+            foreignKeyName: "employee_skill_assignments_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skill_requirement_selections: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          requirement_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          requirement_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          requirement_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skill_requirement_selections_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_skills_skill_id_fkey"
-            columns: ["skill_id"]
+            foreignKeyName: "employee_skill_requirement_selections_requirement_id_fkey"
+            columns: ["requirement_id"]
             isOneToOne: false
-            referencedRelation: "skills"
+            referencedRelation: "skill_requirements"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_skills_tenant_id_fkey"
+            foreignKeyName: "employee_skill_requirement_selections_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1190,132 +1285,165 @@ export type Database = {
           },
         ]
       }
-      global_proficiency_defs: {
+      global_job_categories: {
         Row: {
-          color_hex: string
-          id: string
-          label: string
-          level: number
-          template_id: string
-        }
-        Insert: {
-          color_hex: string
-          id?: string
-          label: string
-          level: number
-          template_id: string
-        }
-        Update: {
-          color_hex?: string
-          id?: string
-          label?: string
-          level?: number
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "global_proficiency_defs_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "global_skill_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      global_skill_categories: {
-        Row: {
+          created_at: string
           id: string
           name: string
           sort_order: number
-          template_id: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          sort_order?: number
-          template_id: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          sort_order?: number
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "global_skill_categories_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "global_skill_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      global_skill_templates: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          industry_type: string
-          is_active: boolean
-          name: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
           id?: string
-          industry_type: string
-          is_active?: boolean
           name: string
+          sort_order?: number
         }
         Update: {
           created_at?: string
-          description?: string | null
           id?: string
-          industry_type?: string
-          is_active?: boolean
           name?: string
+          sort_order?: number
         }
         Relationships: []
       }
-      global_skills: {
+      global_job_roles: {
         Row: {
           category_id: string
+          color_hex: string
+          created_at: string
           description: string | null
           id: string
           name: string
           sort_order: number
-          template_id: string
         }
         Insert: {
           category_id: string
+          color_hex?: string
+          created_at?: string
           description?: string | null
           id?: string
           name: string
           sort_order?: number
-          template_id: string
         }
         Update: {
           category_id?: string
+          color_hex?: string
+          created_at?: string
           description?: string | null
           id?: string
           name?: string
           sort_order?: number
-          template_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "global_skills_category_id_fkey"
+            foreignKeyName: "global_job_roles_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "global_skill_categories"
+            referencedRelation: "global_job_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_skill_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          job_role_id: string
+          name: string
+          skill_level_set_id: string
+          sort_order: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          job_role_id: string
+          name: string
+          skill_level_set_id: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          job_role_id?: string
+          name?: string
+          skill_level_set_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_skill_items_job_role_id_fkey"
+            columns: ["job_role_id"]
+            isOneToOne: false
+            referencedRelation: "global_job_roles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "global_skills_template_id_fkey"
-            columns: ["template_id"]
+            foreignKeyName: "global_skill_items_skill_level_set_id_fkey"
+            columns: ["skill_level_set_id"]
             isOneToOne: false
-            referencedRelation: "global_skill_templates"
+            referencedRelation: "global_skill_level_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_skill_level_sets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      global_skill_levels: {
+        Row: {
+          color_hex: string
+          created_at: string
+          criteria: string | null
+          id: string
+          name: string
+          skill_level_set_id: string
+          sort_order: number
+        }
+        Insert: {
+          color_hex?: string
+          created_at?: string
+          criteria?: string | null
+          id?: string
+          name: string
+          skill_level_set_id: string
+          sort_order?: number
+        }
+        Update: {
+          color_hex?: string
+          created_at?: string
+          criteria?: string | null
+          id?: string
+          name?: string
+          skill_level_set_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_skill_levels_skill_level_set_id_fkey"
+            columns: ["skill_level_set_id"]
+            isOneToOne: false
+            referencedRelation: "global_skill_level_sets"
             referencedColumns: ["id"]
           },
         ]
@@ -3109,41 +3237,80 @@ export type Database = {
         }
         Relationships: []
       }
-      skill_categories: {
+      skill_approvers: {
         Row: {
+          approver_id: string
           created_at: string
+          employee_id: string
           id: string
-          name: string
-          sort_order: number
-          source_template_id: string | null
           tenant_id: string
         }
         Insert: {
+          approver_id: string
           created_at?: string
+          employee_id: string
           id?: string
-          name: string
-          sort_order?: number
-          source_template_id?: string | null
           tenant_id: string
         }
         Update: {
+          approver_id?: string
           created_at?: string
+          employee_id?: string
           id?: string
-          name?: string
-          sort_order?: number
-          source_template_id?: string | null
           tenant_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "skill_categories_source_template_id_fkey"
-            columns: ["source_template_id"]
+            foreignKeyName: "skill_approvers_approver_id_fkey"
+            columns: ["approver_id"]
             isOneToOne: false
-            referencedRelation: "global_skill_templates"
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "skill_categories_tenant_id_fkey"
+            foreignKeyName: "skill_approvers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_approvers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_levels: {
+        Row: {
+          color_hex: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          color_hex?: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          color_hex?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_levels_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3199,31 +3366,86 @@ export type Database = {
           },
         ]
       }
-      skill_proficiency_defs: {
+      skill_requirement_applications: {
         Row: {
-          color_hex: string
+          created_at: string
+          employee_id: string
+          evidence: string | null
+          hr_approved_at: string | null
+          hr_approved_by: string | null
+          hr_comment: string | null
           id: string
-          label: string
-          level: number
+          manager_approved_at: string | null
+          manager_approved_by: string | null
+          manager_comment: string | null
+          requirement_id: string
+          status: string
           tenant_id: string
+          updated_at: string
         }
         Insert: {
-          color_hex: string
+          created_at?: string
+          employee_id: string
+          evidence?: string | null
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          hr_comment?: string | null
           id?: string
-          label: string
-          level: number
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_comment?: string | null
+          requirement_id: string
+          status?: string
           tenant_id: string
+          updated_at?: string
         }
         Update: {
-          color_hex?: string
+          created_at?: string
+          employee_id?: string
+          evidence?: string | null
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          hr_comment?: string | null
           id?: string
-          label?: string
-          level?: number
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_comment?: string | null
+          requirement_id?: string
+          status?: string
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "skill_proficiency_defs_tenant_id_fkey"
+            foreignKeyName: "skill_requirement_applications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_requirement_applications_hr_approved_by_fkey"
+            columns: ["hr_approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_requirement_applications_manager_approved_by_fkey"
+            columns: ["manager_approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_requirement_applications_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "skill_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_requirement_applications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3231,44 +3453,144 @@ export type Database = {
           },
         ]
       }
-      skills: {
+      skill_requirements: {
         Row: {
-          category_id: string
+          category: string | null
           created_at: string
-          description: string | null
+          criteria: string | null
           id: string
+          level_id: string | null
           name: string
+          skill_id: string
           sort_order: number
           tenant_id: string
         }
         Insert: {
-          category_id: string
+          category?: string | null
           created_at?: string
-          description?: string | null
+          criteria?: string | null
           id?: string
+          level_id?: string | null
           name: string
+          skill_id: string
           sort_order?: number
           tenant_id: string
         }
         Update: {
-          category_id?: string
+          category?: string | null
           created_at?: string
-          description?: string | null
+          criteria?: string | null
           id?: string
+          level_id?: string | null
           name?: string
+          skill_id?: string
           sort_order?: number
           tenant_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "skills_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: "skill_requirements_level_id_fkey"
+            columns: ["level_id"]
             isOneToOne: false
-            referencedRelation: "skill_categories"
+            referencedRelation: "skill_levels"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "skills_tenant_id_fkey"
+            foreignKeyName: "skill_requirements_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_role_applications: {
+        Row: {
+          created_at: string
+          employee_id: string
+          hr_approved_at: string | null
+          hr_approved_by: string | null
+          hr_comment: string | null
+          id: string
+          manager_approved_at: string | null
+          manager_approved_by: string | null
+          manager_comment: string | null
+          note: string | null
+          skill_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          hr_comment?: string | null
+          id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_comment?: string | null
+          note?: string | null
+          skill_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          hr_comment?: string | null
+          id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_comment?: string | null
+          note?: string | null
+          skill_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_role_applications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_role_applications_hr_approved_by_fkey"
+            columns: ["hr_approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_role_applications_manager_approved_by_fkey"
+            columns: ["manager_approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_role_applications_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_role_applications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4688,6 +5010,41 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_service_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_skills: {
+        Row: {
+          color_hex: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          color_hex?: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          color_hex?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_skills_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

@@ -16,15 +16,23 @@ export default async function MyCoursesPage() {
   const courseIds = [...new Set(published.map(a => a.course_id))]
   const totalSlidesMap: Record<string, number> = {}
 
+  const requirementCountMap: Record<string, number> = {}
+
   if (courseIds.length > 0) {
     const supabase = await createClient()
-    const { data: slides } = await supabase
-      .from('el_slides')
-      .select('course_id')
-      .in('course_id', courseIds)
+    const [slidesRes, mappingsRes] = await Promise.all([
+      supabase.from('el_slides').select('course_id').in('course_id', courseIds),
+      (supabase as any)
+        .from('el_course_requirement_mappings')
+        .select('course_id')
+        .in('course_id', courseIds),
+    ])
 
     for (const id of courseIds) {
-      totalSlidesMap[id] = (slides ?? []).filter(s => s.course_id === id).length
+      totalSlidesMap[id] = (slidesRes.data ?? []).filter((s: any) => s.course_id === id).length
+      requirementCountMap[id] = (mappingsRes.data ?? []).filter(
+        (m: any) => m.course_id === id
+      ).length
     }
   }
 
@@ -35,7 +43,11 @@ export default async function MyCoursesPage() {
         <h1 className="text-xl font-bold text-gray-800">マイコース</h1>
       </div>
 
-      <MyCourseListClient assignments={published as any} totalSlidesMap={totalSlidesMap} />
+      <MyCourseListClient
+        assignments={published as any}
+        totalSlidesMap={totalSlidesMap}
+        requirementCountMap={requirementCountMap}
+      />
     </div>
   )
 }

@@ -243,3 +243,37 @@ export async function getChecklistCompletions(
   if (error) throw supabaseQueryError('チェックリスト完了の取得に失敗しました', error)
   return (data ?? []) as ElChecklistCompletion[]
 }
+
+// ============================================================
+// スキル要件連携クエリ
+// ============================================================
+
+export async function getCourseRequirementMappings(courseId: string): Promise<
+  Array<{ id: string; requirement_id: string; requirement: { id: string; name: string; skill: { id: string; name: string } } }>
+> {
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('el_course_requirement_mappings')
+    .select('id, requirement_id, requirement:skill_requirements(id, name, skill:tenant_skills(id, name))')
+    .eq('course_id', courseId)
+    .order('created_at', { ascending: true })
+  if (error) throw supabaseQueryError('スキル要件連携の取得に失敗しました', error)
+  return data ?? []
+}
+
+export async function getAllSkillRequirements(): Promise<
+  Array<{ id: string; name: string; skill_id: string; skill_name: string }>
+> {
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('skill_requirements')
+    .select('id, name, skill:tenant_skills(id, name)')
+    .order('name', { ascending: true })
+  if (error) throw supabaseQueryError('スキル要件の取得に失敗しました', error)
+  return ((data ?? []) as any[]).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    skill_id: r.skill?.id ?? '',
+    skill_name: r.skill?.name ?? '',
+  }))
+}

@@ -1,11 +1,7 @@
 // src/features/skill-portal/queries.ts
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import type {
-  SkillRoleApplication,
-  SkillRequirementApplication,
-  SkillApprover,
-} from './types'
+import type { SkillRoleApplication, SkillRequirementApplication, SkillApprover } from './types'
 
 type DB = SupabaseClient<Database>
 
@@ -90,9 +86,7 @@ export async function getPendingRequirementApplicationsForApprover(
 }
 
 /** 人事向け: 上長承認済み職種申請（pending_hr） */
-export async function getHrPendingRoleApplications(
-  supabase: DB
-): Promise<SkillRoleApplication[]> {
+export async function getHrPendingRoleApplications(supabase: DB): Promise<SkillRoleApplication[]> {
   const { data, error } = await (supabase as any)
     .from('skill_role_applications')
     .select(

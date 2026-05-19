@@ -35,9 +35,7 @@ function supabaseToError(
 // ============================================================
 
 function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
-  ) as Partial<T>
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>
 }
 
 export async function createCourse(input: {
@@ -94,10 +92,7 @@ export async function updateCourse(
   if (!user) throw new Error('Unauthorized')
 
   const supabase = await createClient()
-  const { error } = await supabase
-    .from('el_courses')
-    .update(omitUndefined(input))
-    .eq('id', id)
+  const { error } = await supabase.from('el_courses').update(omitUndefined(input)).eq('id', id)
   if (error) throw error
 
   revalidatePath('/adm/el-courses')
@@ -570,7 +565,7 @@ export async function toggleChecklistItem(
 
 export async function completeCourse(assignmentId: string) {
   const user = await getServerUser()
-  if (!user?.employee_id) throw new Error('Unauthorized')
+  if (!user?.employee_id || !user.tenant_id) throw new Error('Unauthorized')
 
   const supabase = await createClient()
 
@@ -581,8 +576,35 @@ export async function completeCourse(assignmentId: string) {
     .eq('employee_id', user.employee_id)
 
   if (error) throw error
+
+  // コースに紐付くスキル要件を自動達成（承認フロー省略）
+  const { data: assignment } = await supabase
+    .from('el_assignments')
+    .select('course_id')
+    .eq('id', assignmentId)
+    .single()
+
+  if (assignment?.course_id) {
+    const { data: mappings } = await supabase
+      .from('el_course_requirement_mappings')
+      .select('requirement_id')
+      .eq('course_id', assignment.course_id)
+
+    if (mappings && mappings.length > 0) {
+      await supabase.from('employee_skill_requirement_selections').upsert(
+        mappings.map(m => ({
+          tenant_id: user.tenant_id,
+          employee_id: user.employee_id,
+          requirement_id: m.requirement_id,
+        })),
+        { onConflict: 'employee_id,requirement_id', ignoreDuplicates: true }
+      )
+    }
+  }
+
   revalidatePath('/el-courses')
   revalidatePath(`/el-courses/${assignmentId}`)
+  revalidatePath('/my-skills')
 }
 
 // ============================================================
@@ -603,12 +625,7 @@ export async function upsertScenarioBranch(input: {
   const supabase = await createClient()
 
   const { data, error } = input.id
-    ? await supabase
-        .from('el_scenario_branches')
-        .update(input)
-        .eq('id', input.id)
-        .select()
-        .single()
+    ? await supabase.from('el_scenario_branches').update(input).eq('id', input.id).select().single()
     : await supabase.from('el_scenario_branches').insert(input).select().single()
 
   if (error) throw error
@@ -905,9 +922,7 @@ export async function saveAiGeneratedCourse(
         is_recommended: b.is_recommended,
       }))
       if (branches.length > 0) {
-        const { error: branchError } = await supabase
-          .from('el_scenario_branches')
-          .insert(branches)
+        const { error: branchError } = await supabase.from('el_scenario_branches').insert(branches)
         if (branchError) throw branchError
       }
     }
@@ -929,4 +944,39 @@ export async function saveAiGeneratedCourse(
   revalidatePath('/adm/el-courses')
   revalidatePath('/saas_adm/el-templates')
   return course
+}
+
+// ============================================================
+// スキル要件連携 CRUD（管理者向け）
+// ============================================================
+
+export async function addCourseRequirementMapping(courseId: string, requirementId: string) {
+  const user = await getServerUser()
+  if (!user?.tenant_id) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('el_course_requirement_mappings' as any).insert({
+    tenant_id: user.tenant_id,
+    course_id: courseId,
+    requirement_id: requirementId,
+  })
+  if (error) {
+    if (error.code === '23505') return { success: false as const, error: 'すでに登録済みです' }
+    throw error
+  }
+  revalidatePath(`/adm/el-courses/${courseId}`)
+  return { success: true as const }
+}
+
+export async function removeCourseRequirementMapping(mappingId: string, courseId: string) {
+  const user = await getServerUser()
+  if (!user?.tenant_id) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('el_course_requirement_mappings' as any)
+    .delete()
+    .eq('id', mappingId)
+  if (error) throw error
+  revalidatePath(`/adm/el-courses/${courseId}`)
 }

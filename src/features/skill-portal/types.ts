@@ -26,7 +26,12 @@ export type SkillRoleApplication = {
   created_at: string
   updated_at: string
   skill?: { id: string; name: string; color_hex: string }
-  employee?: { id: string; name: string | null; employee_no: string | null; divisions?: { name: string | null } | null }
+  employee?: {
+    id: string
+    name: string | null
+    employee_no: string | null
+    divisions?: { name: string | null } | null
+  }
 }
 
 /** 要件達成申請 */
@@ -52,7 +57,12 @@ export type SkillRequirementApplication = {
     level?: { name: string } | null
     skill?: { id: string; name: string; color_hex: string } | null
   }
-  employee?: { id: string; name: string | null; employee_no: string | null; divisions?: { name: string | null } | null }
+  employee?: {
+    id: string
+    name: string | null
+    employee_no: string | null
+    divisions?: { name: string | null } | null
+  }
 }
 
 /** 承認者マスタ */

@@ -5,8 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
-import { getTenantSkillsWithRequirements, getSkillLevels, getEmployeeSkillRequirementSelections } from './queries'
-import type { TenantSkillDetail } from './types'
+import {
+  getTenantSkillsWithRequirements,
+  getSkillLevels,
+  getEmployeeSkillRequirementSelections,
+} from './queries'
+import type { TenantSkillDetail, SkillLevel } from './types'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
@@ -33,6 +37,13 @@ export async function loadTenantSkillDetailAction(
   const skill = allSkills.find(s => s.id === skillId)
   if (!skill) return null
   return { ...skill, levels }
+}
+
+export async function loadSkillLevelsAction(): Promise<SkillLevel[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+  const supabase = await createClient()
+  return getSkillLevels(supabase)
 }
 
 // ---- 技能マスタ (tenant_skills) ----
@@ -423,7 +434,9 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   /** セット内の全レベルを sort_order 昇順で返す */
   function levelsInSet(setId: string): Array<{ name: string; sort_order: number }> {
     const list = levelsBySetId.get(setId) ?? []
-    return [...list].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'))
+    return [...list].sort(
+      (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja')
+    )
   }
 
   if (itemsRes.data && itemsRes.data.length > 0) {
@@ -442,9 +455,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
 
     let sortOrder = 0
     for (const item of itemsRes.data as any[]) {
-      const levels = item.skill_level_set_id
-        ? levelsInSet(item.skill_level_set_id as string)
-        : []
+      const levels = item.skill_level_set_id ? levelsInSet(item.skill_level_set_id as string) : []
 
       if (levels.length === 0) {
         requirementsRows.push({

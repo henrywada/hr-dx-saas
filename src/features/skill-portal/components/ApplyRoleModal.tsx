@@ -23,11 +23,20 @@ export function ApplyRoleModal({ skills, assignedSkillIds, pendingSkillIds, onCl
   )
 
   function handleSubmit() {
-    if (!selectedSkillId) { setError('職種を選択してください'); return }
+    if (!selectedSkillId) {
+      setError('職種を選択してください')
+      return
+    }
     setError(null)
     startTransition(async () => {
-      const result = await applyForSkillRole({ skillId: selectedSkillId, note: note.trim() || undefined })
-      if (!result.success) { setError((result as { success: false; error: string }).error); return }
+      const result = await applyForSkillRole({
+        skillId: selectedSkillId,
+        note: note.trim() || undefined,
+      })
+      if (!result.success) {
+        setError((result as { success: false; error: string }).error)
+        return
+      }
       onClose()
     })
   }
@@ -56,12 +65,16 @@ export function ApplyRoleModal({ skills, assignedSkillIds, pendingSkillIds, onCl
                 >
                   <option value=""></option>
                   {availableSkills.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">申請理由（任意）</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  申請理由（任意）
+                </label>
                 <textarea
                   value={note}
                   onChange={e => setNote(e.target.value)}

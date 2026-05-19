@@ -70,15 +70,10 @@ function joinedLevelsForSkill(
   employeeId: string | null,
   byEmployee: Map<string, Set<string>>
 ): string {
-  const sorted = [...reqs].sort(
-    (a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)
-  )
+  const sorted = [...reqs].sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
   return sorted
     .map(r => {
-      const raw =
-        (r.level?.name && r.level.name.trim()) ||
-        (r.criteria && r.criteria.trim()) ||
-        '—'
+      const raw = (r.level?.name && r.level.name.trim()) || (r.criteria && r.criteria.trim()) || '—'
       return levelLabelWithOnOff(raw, r.id, employeeId, byEmployee)
     })
     .join(' / ')
@@ -259,7 +254,10 @@ export function SkillGroupView({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-          <label htmlFor="skill-map-filter-job" className="shrink-0 text-sm font-medium text-gray-800">
+          <label
+            htmlFor="skill-map-filter-job"
+            className="shrink-0 text-sm font-medium text-gray-800"
+          >
             職種：
           </label>
           <select
@@ -283,7 +281,10 @@ export function SkillGroupView({
         </div>
 
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-          <label htmlFor="skill-map-filter-req" className="shrink-0 text-sm font-medium text-gray-800">
+          <label
+            htmlFor="skill-map-filter-req"
+            className="shrink-0 text-sm font-medium text-gray-800"
+          >
             スキル：
           </label>
           <select
@@ -307,7 +308,10 @@ export function SkillGroupView({
         </div>
 
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-          <label htmlFor="skill-map-filter-level" className="shrink-0 text-sm font-medium text-gray-800">
+          <label
+            htmlFor="skill-map-filter-level"
+            className="shrink-0 text-sm font-medium text-gray-800"
+          >
             レベル：
           </label>
           <select
@@ -375,7 +379,9 @@ export function SkillGroupView({
                     <td className="max-w-xs px-4 py-3 text-gray-700 wrap-break-word whitespace-normal md:max-w-md">
                       {row.divisionLabel}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-900">{row.employeeNo}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-900">
+                      {row.employeeNo}
+                    </td>
                     <td className="max-w-48 px-4 py-3 text-gray-900">{row.fullName}</td>
                     <td className="px-4 py-3 text-gray-900">{row.jobTitle}</td>
                     <td className="px-4 py-3 text-gray-900">{row.skillName}</td>

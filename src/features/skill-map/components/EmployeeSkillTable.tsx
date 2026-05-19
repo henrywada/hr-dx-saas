@@ -95,7 +95,11 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
             ))}
           </select>
         </div>
-        <CSVDownloadButton data={csvData} filename="skill-map-employees.csv" label="CSVダウンロード" />
+        <CSVDownloadButton
+          data={csvData}
+          filename="skill-map-employees.csv"
+          label="CSVダウンロード"
+        />
       </div>
 
       <h2 className="text-sm font-semibold text-gray-800">

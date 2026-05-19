@@ -61,6 +61,14 @@ export const APP_ROUTES = {
     ADMIN_SKILL_MAP: '/adm/skill-map',
     /** 技能マスタ管理（テンプレートからのコピー専用画面） */
     ADMIN_SKILL_TEMP_COPY: '/adm/skill-tempCopy',
+    /** スキル申請 人事最終承認 */
+    ADMIN_SKILL_APPLICATIONS: '/adm/skill-map/applications',
+    /** 承認者マスタ管理 */
+    ADMIN_SKILL_APPROVERS: '/adm/skill-map/approvers',
+    /** 従業員マイスキルポータル */
+    MY_SKILLS: '/my-skills',
+    /** 上長スキル承認 */
+    SKILL_APPROVALS: '/skill-approvals',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

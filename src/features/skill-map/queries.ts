@@ -178,9 +178,7 @@ export async function getEmployeeSkillRows(
 }
 
 /** テナント配下の全 divisions（親子情報つき）。RLS でテナント分離。 */
-export async function getTenantDivisionHierarchy(
-  supabase: DB
-): Promise<DivisionHierarchyNode[]> {
+export async function getTenantDivisionHierarchy(supabase: DB): Promise<DivisionHierarchyNode[]> {
   const { data, error } = await (supabase as any)
     .from('divisions')
     .select('id, name, parent_id')

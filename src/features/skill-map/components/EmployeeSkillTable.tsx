@@ -6,6 +6,7 @@ import type { TenantSkillWithRequirements, EmployeeSkillRow } from '../types'
 import { SkillBadge } from './SkillBadge'
 import { AssignSkillModal } from './AssignSkillModal'
 import { EmployeeSkillMatrixModal } from './EmployeeSkillMatrixModal'
+import { CSVDownloadButton } from '@/components/ui/CSVDownloadButton'
 
 /** フィルター用（階層フルパス表示） */
 type DivisionOption = { id: string; name: string; pathLabel: string }
@@ -36,6 +37,25 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
       ? rows
       : rows.filter(r => r.division_id === divisionId)
 
+  // CSV データ生成
+  const csvData = useMemo((): string[][] => {
+    const header = ['部署', '従業員番号', '氏名', '職種']
+    const dataRows = filtered.map(row => {
+      const assignments = Object.values(row.currentAssignments)
+      const skillNames = assignments
+        .map(a => skills.find(s => s.id === a.skill_id)?.name)
+        .filter(Boolean)
+        .join(';')
+      return [
+        row.division_name ?? '—',
+        row.employee_no ?? '—',
+        row.full_name ?? '—',
+        skillNames || '未設定',
+      ]
+    })
+    return [header, ...dataRows]
+  }, [filtered, skills])
+
   const divisionLabel =
     divisionId === '' || divisionId === 'all'
       ? 'すべて'
@@ -52,27 +72,30 @@ export function EmployeeSkillTable({ rows, skills, divisions }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <label
-          htmlFor="skill-map-division-filter"
-          className="shrink-0 text-sm font-medium text-gray-800"
-        >
-          組織
-        </label>
-        <select
-          id="skill-map-division-filter"
-          value={divisionId}
-          onChange={e => setDivisionId(e.target.value)}
-          className="max-w-xl rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 sm:min-w-72 md:min-w-96"
-        >
-          <option value=""></option>
-          <option value="all">すべて</option>
-          {divisions.map(d => (
-            <option key={d.id} value={d.id}>
-              {d.pathLabel}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label
+            htmlFor="skill-map-division-filter"
+            className="shrink-0 text-sm font-medium text-gray-800"
+          >
+            組織
+          </label>
+          <select
+            id="skill-map-division-filter"
+            value={divisionId}
+            onChange={e => setDivisionId(e.target.value)}
+            className="max-w-xl rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 sm:min-w-72 md:min-w-96"
+          >
+            <option value=""></option>
+            <option value="all">すべて</option>
+            {divisions.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.pathLabel}
+              </option>
+            ))}
+          </select>
+        </div>
+        <CSVDownloadButton data={csvData} filename="skill-map-employees.csv" label="CSVダウンロード" />
       </div>
 
       <h2 className="text-sm font-semibold text-gray-800">

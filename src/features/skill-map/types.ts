@@ -77,3 +77,22 @@ export type TenantSkillWithRequirements = TenantSkill & {
 export type TenantSkillDetail = TenantSkillWithRequirements & {
   levels: SkillLevel[]
 }
+
+/** 分析ビュー用: 従業員ごとの職種要件充足状況 */
+export type EmployeeCompletionRow = {
+  employee_id: string
+  employee_no: string | null
+  full_name: string | null
+  division_name: string | null
+  division_id: string | null
+  /** 割り当て済み職種IDの配列 */
+  assignedSkillIds: string[]
+  /** requirement_id → 達成(true) / 未達成(false) */
+  requirementCompletions: Record<string, boolean>
+  /** 割り当て職種の全要件数（未割り当て従業員は 0） */
+  totalRequirements: number
+  /** ON になっている要件数 */
+  completedRequirements: number
+  /** 0〜100（totalRequirements === 0 のとき null） */
+  completionRate: number | null
+}

@@ -9,6 +9,7 @@ import type {
   EmployeeSkillAssignment,
   EmployeeSkillRow,
   SkillGroupRow,
+  EmployeeCompletionRow,
 } from './types'
 import type { DivisionHierarchyNode } from './division-paths'
 
@@ -231,4 +232,120 @@ export async function getSkillGroupRows(supabase: DB): Promise<SkillGroupRow[]> 
   }
 
   return skills.map(skill => ({ skill, employees: grouped[skill.id] ?? [] }))
+}
+
+/** 分析ビュー用: 従業員ごとの職種要件充足状況を集計する */
+export async function getSkillCompletionData(
+  supabase: DB,
+  divisionId?: string
+): Promise<EmployeeCompletionRow[]> {
+  let empQuery = (supabase as any)
+    .from('employees')
+    .select('id, employee_no, name, division_id, divisions:divisions(id, name, code)')
+    .eq('active_status', 'active')
+
+  if (divisionId) empQuery = empQuery.eq('division_id', divisionId)
+
+  const { data: employees, error: empError } = await empQuery
+  if (empError) throw empError
+  if (!employees?.length) return []
+
+  const employeeIds = (employees as any[]).map((e: any) => e.id)
+
+  // 割り当て職種を取得
+  const { data: assignments, error: assignError } = await (supabase as any)
+    .from('employee_skill_assignments')
+    .select('employee_id, skill_id')
+    .in('employee_id', employeeIds)
+  if (assignError) throw assignError
+
+  // employee_id → Set<skill_id>（重複除去）
+  const skillsByEmployee = new Map<string, Set<string>>()
+  for (const a of assignments ?? []) {
+    if (!skillsByEmployee.has(a.employee_id)) skillsByEmployee.set(a.employee_id, new Set())
+    skillsByEmployee.get(a.employee_id)!.add(a.skill_id)
+  }
+
+  // 割り当てられた全職種の要件を取得
+  const allSkillIds = [...new Set((assignments ?? []).map((a: any) => a.skill_id as string))]
+  let requirementsBySkill = new Map<string, Array<{ id: string; name: string }>>()
+  if (allSkillIds.length > 0) {
+    const { data: reqs, error: reqError } = await (supabase as any)
+      .from('skill_requirements')
+      .select('id, skill_id, name')
+      .in('skill_id', allSkillIds)
+    if (reqError) throw reqError
+    for (const r of reqs ?? []) {
+      const list = requirementsBySkill.get(r.skill_id) ?? []
+      list.push({ id: r.id, name: r.name })
+      requirementsBySkill.set(r.skill_id, list)
+    }
+  }
+
+  // ON になっている要件 ID を取得
+  const { data: selections, error: selError } = await (supabase as any)
+    .from('employee_skill_requirement_selections')
+    .select('employee_id, requirement_id')
+    .in('employee_id', employeeIds)
+  if (selError) throw selError
+
+  // employee_id → Set<requirement_id>
+  const selectionsByEmployee = new Map<string, Set<string>>()
+  for (const s of selections ?? []) {
+    if (!selectionsByEmployee.has(s.employee_id)) selectionsByEmployee.set(s.employee_id, new Set())
+    selectionsByEmployee.get(s.employee_id)!.add(s.requirement_id)
+  }
+
+  // 各従業員の充足状況を組み立て
+  const rows: EmployeeCompletionRow[] = (employees as any[]).map((emp: any) => {
+    const assignedSkillIds = [...(skillsByEmployee.get(emp.id) ?? [])]
+    const selectedReqIds = selectionsByEmployee.get(emp.id) ?? new Set<string>()
+
+    const requirementCompletions: Record<string, boolean> = {}
+    let totalRequirements = 0
+
+    for (const skillId of assignedSkillIds) {
+      const reqs = requirementsBySkill.get(skillId) ?? []
+      for (const req of reqs) {
+        requirementCompletions[req.id] = selectedReqIds.has(req.id)
+        totalRequirements++
+      }
+    }
+
+    const completedRequirements = Object.values(requirementCompletions).filter(Boolean).length
+    const completionRate =
+      totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : null
+
+    return {
+      employee_id: emp.id,
+      employee_no: emp.employee_no ?? null,
+      full_name: emp.name ?? null,
+      division_name: (emp.divisions as any)?.name ?? null,
+      division_id: emp.division_id ?? null,
+      assignedSkillIds,
+      requirementCompletions,
+      totalRequirements,
+      completedRequirements,
+      completionRate,
+    }
+  })
+
+  // divisions.code → employee_no 順でソート（未配属・コードなしは後方）
+  const sortKeyCode = (c: string | null) => (c?.trim() ? c.trim() : '￿')
+  const sortKeyNo = (n: string | null) => (n?.trim() ? n.trim() : '￿')
+  rows.sort((a, b) => {
+    const dc = sortKeyCode(
+      (employees as any[]).find((e: any) => e.id === a.employee_id)?.divisions?.code ?? null
+    ).localeCompare(
+      sortKeyCode(
+        (employees as any[]).find((e: any) => e.id === b.employee_id)?.divisions?.code ?? null
+      ),
+      'ja',
+      { numeric: true }
+    )
+    if (dc !== 0) return dc
+    return sortKeyNo(a.employee_no).localeCompare(sortKeyNo(b.employee_no), 'ja', { numeric: true })
+  })
+
+  return rows
 }

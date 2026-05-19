@@ -9,6 +9,7 @@ import {
   getSkillGroupRows,
   getTenantDivisionHierarchy,
   getEmployeeSkillRequirementSelectionsBatch,
+  getSkillCompletionData,
 } from '@/features/skill-map/queries'
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
@@ -26,6 +27,8 @@ export default async function SkillMapPage() {
   let divisionNodes: Awaited<ReturnType<typeof getTenantDivisionHierarchy>> = []
   /** 職種ビュー：従業員ごとの有効要件ID（スキル編集モーダルと同一） */
   let skillViewRequirementSelections: Record<string, string[]> = {}
+  /** 分析ビュー：従業員ごとの充足状況 */
+  let completionRows: Awaited<ReturnType<typeof getSkillCompletionData>> = []
 
   try {
     skills = await getTenantSkillsWithRequirements(supabase)
@@ -63,6 +66,11 @@ export default async function SkillMapPage() {
     divisionNodes = await getTenantDivisionHierarchy(supabase)
   } catch (e: any) {
     throw new Error('getTenantDivisionHierarchy: ' + (e?.message ?? JSON.stringify(e)))
+  }
+  try {
+    completionRows = await getSkillCompletionData(supabase)
+  } catch (e: any) {
+    throw new Error('getSkillCompletionData: ' + (e?.message ?? JSON.stringify(e)))
   }
 
   const divisionById = new Map(divisionNodes.map(d => [d.id, d]))
@@ -136,6 +144,7 @@ export default async function SkillMapPage() {
               levels={levels}
               divisions={divisions}
               skillViewRequirementSelections={skillViewRequirementSelections}
+              completionRows={completionRows}
             />
           </div>
         </div>

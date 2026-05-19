@@ -7,6 +7,7 @@ import type {
   SkillRequirement,
   TenantSkillWithRequirements,
 } from '../types'
+import { CSVDownloadButton } from '@/components/ui/CSVDownloadButton'
 
 type Props = {
   groups: SkillGroupRow[]
@@ -236,13 +237,27 @@ export function SkillGroupView({
     return out
   }, [filteredGroups, metaBySkillId, filterReqName, filterLevelId, selectionsMap])
 
+  // CSV データ生成（フィルター後の tableRows をそのまま利用）
+  const csvData = useMemo((): string[][] => {
+    const header = ['部署', '従業員番号', '氏名', '職種', 'スキル', 'レベル']
+    const dataRows = tableRows.map(row => [
+      row.divisionLabel,
+      row.employeeNo,
+      row.fullName,
+      row.jobTitle,
+      row.skillName,
+      row.levelDisplay,
+    ])
+    return [header, ...dataRows]
+  }, [tableRows])
+
   if (groups.length === 0) {
     return <p className="py-12 text-center text-gray-400">技能が登録されていません</p>
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           <label htmlFor="skill-map-filter-job" className="shrink-0 text-sm font-medium text-gray-800">
             職種：
@@ -311,6 +326,8 @@ export function SkillGroupView({
             ))}
           </select>
         </div>
+
+        <CSVDownloadButton data={csvData} filename="skill-map-roles.csv" label="CSVダウンロード" />
       </div>
 
       {filteredGroups.length === 0 ? (

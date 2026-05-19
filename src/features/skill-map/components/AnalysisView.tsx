@@ -182,7 +182,7 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
               onChange={e => setFilterSkillId(e.target.value)}
               className="min-w-48 max-w-xl rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             >
-              <option value="">すべて</option>
+              <option value=""></option>
               {skills.map(s => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -268,7 +268,9 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
                     >
                       <div
                         className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-700"
-                        title={col.levelLabel ? `${col.colLabel}（${col.levelLabel}）` : col.colLabel}
+                        title={
+                          col.levelLabel ? `${col.colLabel}（${col.levelLabel}）` : col.colLabel
+                        }
                       >
                         {col.colLabel}
                       </div>

@@ -34,7 +34,9 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
     const withSkills = filtered.filter(r => r.totalRequirements > 0)
     const avgRate =
       withSkills.length > 0
-        ? Math.round(withSkills.reduce((s, r) => s + (r.completionRate ?? 0), 0) / withSkills.length)
+        ? Math.round(
+            withSkills.reduce((s, r) => s + (r.completionRate ?? 0), 0) / withSkills.length
+          )
         : null
     const fullCount = filtered.filter(r => r.completionRate === 100).length
 
@@ -43,7 +45,9 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
     for (const row of filtered) {
       for (const skill of skills) {
         if (!row.assignedSkillIds.includes(skill.id)) continue
-        const gaps = skill.requirements.filter(r => row.requirementCompletions[r.id] === false).length
+        const gaps = skill.requirements.filter(
+          r => row.requirementCompletions[r.id] === false
+        ).length
         gapBySkill.set(skill.id, (gapBySkill.get(skill.id) ?? 0) + gaps)
       }
     }
@@ -61,10 +65,19 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
 
   // ヒートマップ列（requirement）を構築
   const heatmapColumns = useMemo(() => {
-    const cols: Array<{ skillId: string; skillName: string; reqId: string; reqName: string }> = []
+    const cols: Array<{
+      skillId: string
+      skillName: string
+      reqId: string
+      reqName: string
+      /** 列ヘッダーに表示するラベル（レベル名があればレベル名、なければ要件名） */
+      colLabel: string
+    }> = []
     for (const skill of visibleSkills) {
       for (const req of skill.requirements) {
-        cols.push({ skillId: skill.id, skillName: skill.name, reqId: req.id, reqName: req.name })
+        const levelName = req.level?.name?.trim()
+        const colLabel = levelName ? `${req.name}（${levelName}）` : req.name
+        cols.push({ skillId: skill.id, skillName: skill.name, reqId: req.id, reqName: req.name, colLabel })
       }
     }
     return cols
@@ -171,7 +184,11 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
           </div>
         </div>
 
-        <CSVDownloadButton data={csvData} filename="skill-map-analysis.csv" label="CSVダウンロード" />
+        <CSVDownloadButton
+          data={csvData}
+          filename="skill-map-analysis.csv"
+          label="CSVダウンロード"
+        />
       </div>
 
       {/* ヒートマップ */}
@@ -235,13 +252,13 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
                     <th
                       key={col.reqId}
                       className="border-b border-r border-gray-200 px-1 py-1.5"
-                      style={{ minWidth: '2.5rem', maxWidth: '5rem' }}
+                      style={{ minWidth: '2.5rem', maxWidth: '6rem' }}
                     >
                       <div
                         className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-normal text-gray-500"
-                        title={col.reqName}
+                        title={col.colLabel}
                       >
-                        {col.reqName}
+                        {col.colLabel}
                       </div>
                     </th>
                   ))}
@@ -282,7 +299,7 @@ export function AnalysisView({ rows, skills, divisions }: Props) {
                           className={`border-r border-gray-100 px-1 py-2 text-center text-xs font-medium ${
                             done ? 'bg-primary/10 text-primary' : 'bg-red-50 text-red-400'
                           }`}
-                          title={`${col.reqName}: ${done ? '達成' : '未達成'}`}
+                          title={`${col.colLabel}: ${done ? '達成' : '未達成'}`}
                         >
                           {done ? '✓' : '✗'}
                         </td>

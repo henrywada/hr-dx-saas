@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Fragment, useMemo, useState, useTransition } from 'react'
-import type { SkillLevel, TenantSkillLevelSetWithLevels } from '../types'
+import type { SkillLevelWithMappings, TenantSkillLevelSetWithMappings } from '../types'
 import {
   createTenantSkillLevelSet,
   updateTenantSkillLevelSet,
@@ -10,17 +10,20 @@ import {
   createTenantSkillLevelInSet,
   updateTenantSkillLevelInSet,
   deleteTenantSkillLevelFromSet,
+  addCourseSkillLevelMapping,
+  removeCourseSkillLevelMapping,
 } from '../actions'
 
 const LEVEL_COLORS = ['#6b7280', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] as const
 
 type Props = {
-  skillLevelSets: TenantSkillLevelSetWithLevels[]
-  standaloneSkillLevels?: SkillLevel[]
+  skillLevelSets: TenantSkillLevelSetWithMappings[]
+  standaloneSkillLevels?: SkillLevelWithMappings[]
+  availableCourses: Array<{ id: string; title: string; status: string }>
   onMutationSuccess?: () => void
 }
 
-function sortLevels(levels: SkillLevel[]): SkillLevel[] {
+function sortLevels(levels: SkillLevelWithMappings[]): SkillLevelWithMappings[] {
   return [...levels].sort(
     (a, b) =>
       a.sort_order - b.sort_order ||
@@ -28,10 +31,11 @@ function sortLevels(levels: SkillLevel[]): SkillLevel[] {
   )
 }
 
-/** テナント固有スキルレベルセットをテーブルで登録し、セット単位でレベル（コメント付き）を CRUD */
+/** テナント固有スキルレベルセットをテーブルで登録し、セット単位でレベルを CRUD。eラーニング連動付き */
 export function TenantSkillLevelSetWorkspace({
   skillLevelSets,
   standaloneSkillLevels = [],
+  availableCourses,
   onMutationSuccess,
 }: Props) {
   const router = useRouter()
@@ -54,25 +58,25 @@ export function TenantSkillLevelSetWorkspace({
 
   const [addingForSetId, setAddingForSetId] = useState<string | null>(null)
   const [newLvName, setNewLvName] = useState('')
-  const [newLvCriteria, setNewLvCriteria] = useState('')
   const [newLvColor, setNewLvColor] = useState<string>(LEVEL_COLORS[0])
 
   const [editLvId, setEditLvId] = useState<string | null>(null)
   const [editLvName, setEditLvName] = useState('')
-  const [editLvCriteria, setEditLvCriteria] = useState('')
   const [editLvColor, setEditLvColor] = useState('')
 
   // スタンドアロンレベルの [+レベル] フォーム（クリック時にセット自動作成 → サブ追加）
   const [addingForSaId, setAddingForSaId] = useState<string | null>(null)
   const [saLvName, setSaLvName] = useState('')
-  const [saLvCriteria, setSaLvCriteria] = useState('')
   const [saLvColor, setSaLvColor] = useState<string>(LEVEL_COLORS[0])
 
   // スタンドアロンレベル編集用（セット未所属レベル）
   const [editSaId, setEditSaId] = useState<string | null>(null)
   const [editSaName, setEditSaName] = useState('')
-  const [editSaCriteria, setEditSaCriteria] = useState('')
   const [editSaColor, setEditSaColor] = useState('')
+
+  // eラーニング連動用
+  const [linkingLevelId, setLinkingLevelId] = useState<string | null>(null)
+  const [selectedCourseId, setSelectedCourseId] = useState('')
 
   const sortedStandalone = useMemo(
     () =>
@@ -84,7 +88,7 @@ export function TenantSkillLevelSetWorkspace({
     [standaloneSkillLevels]
   )
 
-  function handleAddLevelForStandalone(standaloneLevel: SkillLevel) {
+  function handleAddLevelForStandalone(standaloneLevel: SkillLevelWithMappings) {
     if (!saLvName.trim()) return
     startTransition(async () => {
       const setRes = await createTenantSkillLevelSet({ name: standaloneLevel.name })
@@ -95,7 +99,6 @@ export function TenantSkillLevelSetWorkspace({
       const res = await createTenantSkillLevelInSet({
         skillLevelSetId: setRes.id!,
         name: saLvName.trim(),
-        criteria: saLvCriteria.trim() || undefined,
         colorHex: saLvColor,
       })
       if (!res.success) {
@@ -103,7 +106,6 @@ export function TenantSkillLevelSetWorkspace({
         return
       }
       setSaLvName('')
-      setSaLvCriteria('')
       setSaLvColor(LEVEL_COLORS[0])
       setAddingForSaId(null)
       setError(null)
@@ -118,7 +120,6 @@ export function TenantSkillLevelSetWorkspace({
       const res = await updateTenantSkillLevelInSet({
         id: editSaId,
         name: editSaName.trim(),
-        criteria: editSaCriteria.trim() || null,
         colorHex: editSaColor,
       })
       if (!res.success) {
@@ -200,7 +201,6 @@ export function TenantSkillLevelSetWorkspace({
       const res = await createTenantSkillLevelInSet({
         skillLevelSetId: setId,
         name: newLvName.trim(),
-        criteria: newLvCriteria.trim() || undefined,
         colorHex: newLvColor,
       })
       if (!res.success) {
@@ -208,7 +208,6 @@ export function TenantSkillLevelSetWorkspace({
         return
       }
       setNewLvName('')
-      setNewLvCriteria('')
       setNewLvColor(LEVEL_COLORS[0])
       setAddingForSetId(null)
       setError(null)
@@ -223,7 +222,6 @@ export function TenantSkillLevelSetWorkspace({
       const res = await updateTenantSkillLevelInSet({
         id: editLvId,
         name: editLvName.trim(),
-        criteria: editLvCriteria.trim() || null,
         colorHex: editLvColor,
       })
       if (!res.success) {
@@ -250,6 +248,111 @@ export function TenantSkillLevelSetWorkspace({
       onMutationSuccess?.()
       router.refresh()
     })
+  }
+
+  function handleAddCourseLink(levelId: string) {
+    if (!selectedCourseId) return
+    startTransition(async () => {
+      const res = await addCourseSkillLevelMapping({
+        courseId: selectedCourseId,
+        skillLevelId: levelId,
+      })
+      if (!res.success) {
+        setError('error' in res ? res.error : 'エラーが発生しました')
+        return
+      }
+      setLinkingLevelId(null)
+      setSelectedCourseId('')
+      setError(null)
+      router.refresh()
+    })
+  }
+
+  function handleRemoveCourseLink(mappingId: string) {
+    startTransition(async () => {
+      const res = await removeCourseSkillLevelMapping({ mappingId })
+      if (!res.success) {
+        setError('error' in res ? res.error : 'エラーが発生しました')
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  function renderELearningCell(lv: SkillLevelWithMappings) {
+    return (
+      <td className="px-3 py-2 align-top">
+        <div className="flex flex-wrap items-center gap-1">
+          {lv.courseMappings.map(mapping => (
+            <span
+              key={mapping.id}
+              className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700"
+            >
+              {mapping.course.title}
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleRemoveCourseLink(mapping.id)}
+                aria-label="コースリンクを削除"
+                className="ml-0.5 text-blue-400 hover:text-blue-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {linkingLevelId === lv.id ? (
+            <div className="flex items-center gap-1">
+              <select
+                value={selectedCourseId}
+                onChange={e => setSelectedCourseId(e.target.value)}
+                className="rounded border border-gray-300 px-1 py-0.5 text-xs"
+              >
+                <option value="">コースを選択</option>
+                {availableCourses.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                    {c.status !== 'published'
+                      ? `（${c.status === 'draft' ? '下書き' : c.status}）`
+                      : ''}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={isPending || !selectedCourseId}
+                onClick={() => handleAddCourseLink(lv.id)}
+                className="rounded bg-primary px-1.5 py-0.5 text-xs text-white disabled:opacity-50"
+              >
+                追加
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLinkingLevelId(null)
+                  setSelectedCourseId('')
+                }}
+                className="text-xs text-gray-500"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setLinkingLevelId(lv.id)
+                setSelectedCourseId('')
+                setError(null)
+              }}
+              className="text-xs text-primary hover:underline"
+              aria-label="eラーニングコースを追加"
+            >
+              ＋
+            </button>
+          )}
+        </div>
+      </td>
+    )
   }
 
   return (
@@ -301,7 +404,7 @@ export function TenantSkillLevelSetWorkspace({
                     レベル
                   </th>
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
-                    コメント
+                    eラーニング連動
                   </th>
                   <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800">
                     変更
@@ -404,17 +507,10 @@ export function TenantSkillLevelSetWorkspace({
                                   value={newLvName}
                                   onChange={e => setNewLvName(e.target.value)}
                                   placeholder="レベル名"
-                                  className="w-full min-w-[100px] rounded border border-gray-300 px-2 py-1 text-sm"
+                                  className="w-full min-w-25 rounded border border-gray-300 px-2 py-1 text-sm"
                                 />
                               </td>
-                              <td className="px-3 py-2 align-top">
-                                <input
-                                  value={newLvCriteria}
-                                  onChange={e => setNewLvCriteria(e.target.value)}
-                                  placeholder="コメント（例：経験年数）"
-                                  className="w-full min-w-[120px] rounded border border-gray-300 px-2 py-1 text-sm"
-                                />
-                              </td>
+                              <td className="px-3 py-2 align-top text-xs text-gray-400">—</td>
                               <td className="px-3 py-2 align-top" colSpan={2}>
                                 <div className="flex flex-wrap items-center gap-2">
                                   <div className="flex gap-1">
@@ -445,7 +541,6 @@ export function TenantSkillLevelSetWorkspace({
                                     onClick={() => {
                                       setAddingForSetId(null)
                                       setNewLvName('')
-                                      setNewLvCriteria('')
                                     }}
                                     className="text-xs text-gray-500 hover:text-gray-800"
                                   >
@@ -478,17 +573,7 @@ export function TenantSkillLevelSetWorkspace({
                                   </span>
                                 )}
                               </td>
-                              <td className="px-3 py-2 align-top text-gray-700">
-                                {editLvId === lv.id ? (
-                                  <input
-                                    value={editLvCriteria}
-                                    onChange={e => setEditLvCriteria(e.target.value)}
-                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                  />
-                                ) : (
-                                  <span className="text-xs">{lv.criteria ?? '—'}</span>
-                                )}
-                              </td>
+                              {renderELearningCell(lv)}
                               <td className="px-3 py-2 text-center align-top">
                                 {editLvId === lv.id ? (
                                   <div className="flex flex-col items-center gap-1">
@@ -530,7 +615,6 @@ export function TenantSkillLevelSetWorkspace({
                                     onClick={() => {
                                       setEditLvId(lv.id)
                                       setEditLvName(lv.name)
-                                      setEditLvCriteria(lv.criteria ?? '')
                                       setEditLvColor(lv.color_hex)
                                       setError(null)
                                     }}
@@ -590,17 +674,7 @@ export function TenantSkillLevelSetWorkspace({
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 align-top text-gray-700">
-                            {editSaId === lv.id ? (
-                              <input
-                                value={editSaCriteria}
-                                onChange={e => setEditSaCriteria(e.target.value)}
-                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                              />
-                            ) : (
-                              <span className="text-xs">{lv.criteria ?? '—'}</span>
-                            )}
-                          </td>
+                          {renderELearningCell(lv)}
                           <td className="px-3 py-2 text-center align-top">
                             {editSaId === lv.id ? (
                               <div className="flex flex-col items-center gap-1">
@@ -626,7 +700,6 @@ export function TenantSkillLevelSetWorkspace({
                                 onClick={() => {
                                   setEditSaId(lv.id)
                                   setEditSaName(lv.name)
-                                  setEditSaCriteria(lv.criteria ?? '')
                                   setEditSaColor(lv.color_hex)
                                   setError(null)
                                 }}
@@ -649,6 +722,57 @@ export function TenantSkillLevelSetWorkspace({
                             )}
                           </td>
                         </tr>
+                        {addingForSaId === lv.id && (
+                          <tr className="border-b border-gray-100 bg-blue-50/40">
+                            <td className="px-3 py-2" />
+                            <td className="px-3 py-2 align-top">
+                              <input
+                                value={saLvName}
+                                onChange={e => setSaLvName(e.target.value)}
+                                placeholder="レベル名"
+                                className="w-full min-w-25 rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                            </td>
+                            <td className="px-3 py-2 align-top text-xs text-gray-400">—</td>
+                            <td className="px-3 py-2 align-top" colSpan={2}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex gap-1">
+                                  {LEVEL_COLORS.map(c => (
+                                    <button
+                                      key={c}
+                                      type="button"
+                                      aria-label={`色 ${c}`}
+                                      onClick={() => setSaLvColor(c)}
+                                      className="h-5 w-5 rounded-full border-2 transition-all"
+                                      style={{
+                                        backgroundColor: c,
+                                        borderColor: saLvColor === c ? '#374151' : 'transparent',
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isPending || !saLvName.trim()}
+                                  onClick={() => handleAddLevelForStandalone(lv)}
+                                  className="rounded bg-primary px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                                >
+                                  追加
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddingForSaId(null)
+                                    setSaLvName('')
+                                  }}
+                                  className="text-xs text-gray-500 hover:text-gray-800"
+                                >
+                                  キャンセル
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </Fragment>
                     ))}
                   </>

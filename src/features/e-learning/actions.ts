@@ -600,6 +600,24 @@ export async function completeCourse(assignmentId: string) {
         { onConflict: 'employee_id,requirement_id', ignoreDuplicates: true }
       )
     }
+
+    // コースに紐付くスキルレベルを自動達成
+    const { data: levelMappings } = await (supabase as any)
+      .from('el_course_skill_level_mappings')
+      .select('skill_level_id')
+      .eq('course_id', assignment.course_id)
+
+    if (levelMappings && levelMappings.length > 0) {
+      await (supabase as any).from('employee_skill_level_achievements').upsert(
+        levelMappings.map((m: { skill_level_id: string }) => ({
+          tenant_id: user.tenant_id,
+          employee_id: user.employee_id,
+          skill_level_id: m.skill_level_id,
+          course_id: assignment.course_id,
+        })),
+        { onConflict: 'employee_id,skill_level_id,course_id', ignoreDuplicates: true }
+      )
+    }
   }
 
   revalidatePath('/el-courses')

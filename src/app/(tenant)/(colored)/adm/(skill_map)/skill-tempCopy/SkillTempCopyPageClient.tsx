@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import type {
   TenantSkillWithRequirements,
-  TenantSkillLevelSetWithLevels,
-  SkillLevel,
+  TenantSkillLevelSetWithMappings,
+  SkillLevelWithMappings,
 } from '@/features/skill-map/types'
 import { TenantJobRoleList } from '@/features/skill-map/components/TenantJobRoleList'
 import { TenantJobRoleDetailModal } from '@/features/skill-map/components/TenantJobRoleDetailModal'
@@ -14,11 +14,17 @@ type Tab = 'roles' | 'levels'
 
 type Props = {
   skills: TenantSkillWithRequirements[]
-  skillLevelSets: TenantSkillLevelSetWithLevels[]
-  standaloneSkillLevels: SkillLevel[]
+  skillLevelSets: TenantSkillLevelSetWithMappings[]
+  standaloneSkillLevels: SkillLevelWithMappings[]
+  availableCourses: Array<{ id: string; title: string; status: string }>
 }
 
-export function SkillTempCopyPageClient({ skills, skillLevelSets, standaloneSkillLevels }: Props) {
+export function SkillTempCopyPageClient({
+  skills,
+  skillLevelSets,
+  standaloneSkillLevels,
+  availableCourses,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('roles')
   const [detailSkillId, setDetailSkillId] = useState<string | null>(null)
 
@@ -64,6 +70,7 @@ export function SkillTempCopyPageClient({ skills, skillLevelSets, standaloneSkil
         <TenantSkillLevelSetWorkspace
           skillLevelSets={skillLevelSets}
           standaloneSkillLevels={standaloneSkillLevels}
+          availableCourses={availableCourses}
         />
       )}
     </div>

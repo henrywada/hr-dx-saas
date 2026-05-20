@@ -12,6 +12,7 @@ import type {
   EmployeeCompletionRow,
   TenantSkillLevelSet,
   TenantSkillLevelSetWithLevels,
+  CourseSkillLevelMapping,
 } from './types'
 import type { DivisionHierarchyNode } from './division-paths'
 
@@ -405,4 +406,44 @@ export async function getTenantSkillLevelSetsWithLevels(
     ...s,
     levels: levelsBySet.get(s.id) ?? [],
   }))
+}
+
+/** スキルレベルIDのリストに対応するeラーニングコースマッピングを一括取得（N+1防止） */
+export async function getAllCourseMappingsForLevelSet(
+  supabase: DB,
+  levelIds: string[]
+): Promise<Map<string, CourseSkillLevelMapping[]>> {
+  if (levelIds.length === 0) return new Map()
+  const { data, error } = await (supabase as any)
+    .from('el_course_skill_level_mappings')
+    .select('id, course_id, skill_level_id, created_at, course:el_courses(id, title)')
+    .in('skill_level_id', levelIds)
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.warn('[getAllCourseMappingsForLevelSet] failed:', error.message)
+    return new Map()
+  }
+  const map = new Map<string, CourseSkillLevelMapping[]>()
+  for (const row of (data ?? []) as CourseSkillLevelMapping[]) {
+    const list = map.get(row.skill_level_id) ?? []
+    list.push(row)
+    map.set(row.skill_level_id, list)
+  }
+  return map
+}
+
+/** eラーニング連動ドロップダウン用：テナントのコース一覧（ドラフト含む） */
+export async function getAvailableCoursesForLevelMapping(
+  supabase: DB
+): Promise<Array<{ id: string; title: string; status: string }>> {
+  const { data, error } = await (supabase as any)
+    .from('el_courses')
+    .select('id, title, status')
+    .eq('course_type', 'tenant')
+    .order('title', { ascending: true })
+  if (error) {
+    console.warn('[getAvailableCoursesForLevelMapping] failed:', error.message)
+    return []
+  }
+  return (data ?? []) as Array<{ id: string; title: string; status: string }>
 }

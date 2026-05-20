@@ -10,6 +10,7 @@ import {
   getSkillLevels,
   getEmployeeSkillRequirementSelections,
   getTenantSkillLevelSetsWithLevels,
+  getAvailableCoursesForLevelMapping,
 } from './queries'
 import type { TenantSkillDetail, SkillLevel, TenantSkillLevelSetWithLevels } from './types'
 
@@ -336,6 +337,26 @@ export async function deleteSkillRequirement(id: string): Promise<ActionResult> 
   return { success: true }
 }
 
+/** 同名スキル（および属するレベル要件）をまとめて削除 */
+export async function deleteSkillRequirementsByName(input: {
+  skillId: string
+  name: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('skill_requirements')
+    .delete()
+    .eq('tenant_id', user.tenant_id)
+    .eq('skill_id', input.skillId)
+    .eq('name', input.name)
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
 // ---- グローバルテンプレートから取り込み ----
 
 export async function importFromGlobalTemplate(jobRoleId: string): Promise<ActionResult> {
@@ -576,7 +597,6 @@ export async function deleteTenantSkillLevelSet(input: { id: string }): Promise<
 export async function createTenantSkillLevelInSet(input: {
   skillLevelSetId: string
   name: string
-  criteria?: string
   colorHex?: string
 }): Promise<ActionResult> {
   const user = await getServerUser()
@@ -588,7 +608,6 @@ export async function createTenantSkillLevelInSet(input: {
     tenant_id: user.tenant_id,
     skill_level_set_id: input.skillLevelSetId,
     name: input.name,
-    criteria: input.criteria ?? null,
     color_hex: input.colorHex ?? '#6b7280',
     sort_order: 0,
   })
@@ -600,7 +619,6 @@ export async function createTenantSkillLevelInSet(input: {
 export async function updateTenantSkillLevelInSet(input: {
   id: string
   name?: string
-  criteria?: string | null
   colorHex?: string
 }): Promise<ActionResult> {
   const user = await getServerUser()
@@ -610,7 +628,6 @@ export async function updateTenantSkillLevelInSet(input: {
   const supabase = await createClient()
   const updates: Record<string, any> = {}
   if (input.name !== undefined) updates.name = input.name
-  if ('criteria' in input) updates.criteria = input.criteria
   if (input.colorHex !== undefined) updates.color_hex = input.colorHex
   if (Object.keys(updates).length === 0) return { success: true }
   const { error } = await (supabase as any).from('skill_levels').update(updates).eq('id', input.id)
@@ -627,4 +644,50 @@ export async function deleteTenantSkillLevelFromSet(input: { id: string }): Prom
   if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
+}
+
+// ---- eラーニングコース × スキルレベルマッピング ----
+
+export async function addCourseSkillLevelMapping(input: {
+  courseId: string
+  skillLevelId: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any).from('el_course_skill_level_mappings').insert({
+    tenant_id: user.tenant_id,
+    course_id: input.courseId,
+    skill_level_id: input.skillLevelId,
+  })
+  if (error) {
+    if (String(error.code) === '23505') return { success: false, error: 'すでに登録済みです' }
+    return { success: false, error: error.message }
+  }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function removeCourseSkillLevelMapping(input: {
+  mappingId: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('el_course_skill_level_mappings')
+    .delete()
+    .eq('id', input.mappingId)
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function loadAvailableCoursesForMappingAction(): Promise<
+  Array<{ id: string; title: string }>
+> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+  const supabase = await createClient()
+  return getAvailableCoursesForLevelMapping(supabase)
 }

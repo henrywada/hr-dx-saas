@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Fragment, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Layers, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import type { TenantSkillWithRequirements, SkillRequirement } from '../types'
-import { createTenantSkill, deleteTenantSkill } from '../actions'
-import { SkillRequirementsEditModal } from './SkillRequirementsEditModal'
-import { SkillLevelsEditModal } from './SkillLevelsEditModal'
+import { createTenantSkill, deleteTenantSkill, deleteSkillRequirementsByName } from '../actions'
+import { AddSkillRequirementModal } from './AddSkillRequirementModal'
 
 const COLORS = [
   '#3b82f6',
@@ -19,52 +18,17 @@ const COLORS = [
   '#84cc16',
 ]
 
-/** 同一職種内で複数レベルがあると skill_requirement が同名で複数行になるため、スキル名は 1 行に代表して表示 */
-function uniqueRequirementDisplayNames(
-  requirements: SkillRequirement[]
-): Array<{ name: string; category: string | null }> {
-  const seen = new Set<string>()
-  const out: Array<{ name: string; category: string | null }> = []
+type SkillGroup = { name: string; requirements: SkillRequirement[] }
+
+/** スキル名でグループ化して、名前順に並べる */
+function groupBySkillName(requirements: SkillRequirement[]): SkillGroup[] {
+  const map = new Map<string, SkillRequirement[]>()
   for (const req of requirements) {
-    if (seen.has(req.name)) continue
-    seen.add(req.name)
-    out.push({ name: req.name, category: req.category ?? null })
+    const list = map.get(req.name) ?? []
+    list.push(req)
+    map.set(req.name, list)
   }
-  return out
-}
-
-function ReqNameList({ requirements }: { requirements: SkillRequirement[] }) {
-  if (requirements.length === 0) return <span className="text-xs text-gray-400">—</span>
-  const items = uniqueRequirementDisplayNames(requirements)
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {items.map(item => (
-        <span
-          key={item.name}
-          className="inline-flex max-w-full items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 ring-1 ring-gray-200/80"
-          title={item.category ? `カテゴリ: ${item.category}` : undefined}
-        >
-          {item.name}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function ReqLevelList({ requirements }: { requirements: SkillRequirement[] }) {
-  if (requirements.length === 0) return <span className="text-xs text-gray-400">—</span>
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {requirements.map(req => (
-        <span
-          key={req.id}
-          className="inline-flex max-w-full items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 ring-1 ring-slate-200/90"
-        >
-          {req.level?.name ?? <span className="font-normal text-amber-700">未設定</span>}
-        </span>
-      ))}
-    </div>
-  )
+  return Array.from(map.entries()).map(([name, reqs]) => ({ name, requirements: reqs }))
 }
 
 type Props = {
@@ -80,8 +44,7 @@ export function TenantJobRoleList({ skills, onOpenDetail }: Props) {
   const [newColor, setNewColor] = useState('#3b82f6')
   const [error, setError] = useState<string | null>(null)
 
-  const [skillEditTarget, setSkillEditTarget] = useState<{ id: string; name: string } | null>(null)
-  const [levelEditOpen, setLevelEditOpen] = useState(false)
+  const [addReqTarget, setAddReqTarget] = useState<{ id: string; name: string } | null>(null)
 
   function handleAdd() {
     if (!newName.trim()) return
@@ -94,6 +57,19 @@ export function TenantJobRoleList({ skills, onOpenDetail }: Props) {
       setNewName('')
       setNewColor('#3b82f6')
       setShowAddForm(false)
+      setError(null)
+      router.refresh()
+    })
+  }
+
+  function handleDeleteSkillGroup(skillId: string, skillName: string, groupName: string) {
+    if (!confirm(`「${groupName}」とそのレベルをすべて削除しますか？`)) return
+    startTransition(async () => {
+      const res = await deleteSkillRequirementsByName({ skillId, name: groupName })
+      if ('error' in res) {
+        setError(res.error)
+        return
+      }
       setError(null)
       router.refresh()
     })
@@ -141,7 +117,7 @@ export function TenantJobRoleList({ skills, onOpenDetail }: Props) {
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
                 placeholder="職種名（例：プログラマー）"
                 autoFocus
-                className="min-w-[180px] flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                className="min-w-45 flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
               />
               <div className="flex gap-1">
                 {COLORS.map(c => (
@@ -208,93 +184,99 @@ export function TenantJobRoleList({ skills, onOpenDetail }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {skills.map((skill, idx) => (
-                      <tr
-                        key={skill.id}
-                        role="button"
-                        aria-label={`${skill.name} の詳細を開く`}
-                        tabIndex={0}
-                        onClick={() => onOpenDetail(skill.id)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            onOpenDetail(skill.id)
-                          }
-                        }}
-                        className={`cursor-pointer border-b border-gray-100 transition-[background-color,box-shadow] duration-300 ease-out hover:bg-gray-100 hover:shadow-[0_6px_22px_-4px_rgba(15,23,42,0.22)] ${
-                          idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        }`}
-                      >
-                        <td className="px-4 py-3 align-top">
-                          <span
-                            className="inline-flex max-w-full items-center truncate rounded-full px-2.5 py-0.5 text-sm font-medium"
-                            style={{
-                              backgroundColor: skill.color_hex + '33',
-                              color: skill.color_hex,
-                              border: `1px solid ${skill.color_hex}88`,
-                            }}
-                          >
-                            {skill.name}
-                          </span>
-                        </td>
-                        <td
-                          className="max-w-xl min-w-[160px] px-4 py-3 align-top"
-                          onClick={e => e.stopPropagation()}
-                          onKeyDown={e => e.stopPropagation()}
-                        >
-                          <ReqNameList requirements={skill.requirements} />
-                        </td>
-                        <td
-                          className="max-w-xl min-w-[160px] px-4 py-3 align-top"
-                          onClick={e => e.stopPropagation()}
-                          onKeyDown={e => e.stopPropagation()}
-                        >
-                          <ReqLevelList requirements={skill.requirements} />
-                        </td>
-                        <td
-                          className="px-4 py-3 text-center align-top"
-                          onClick={e => e.stopPropagation()}
-                          onKeyDown={e => e.stopPropagation()}
-                        >
-                          <div className="flex flex-wrap items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation()
-                                setSkillEditTarget({ id: skill.id, name: skill.name })
-                              }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary shadow-sm transition hover:bg-primary/20"
+                    {skills.map((skill, idx) => {
+                      const groups = groupBySkillName(skill.requirements)
+                      // 職種ヘッダー行 1 + スキル行数 でセルをスパン
+                      const totalRows = 1 + groups.length
+                      const baseBg = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+
+                      return (
+                        <Fragment key={skill.id}>
+                          {/* 職種ヘッダー行：スキル名・レベルは表示しない */}
+                          <tr className={`border-b border-gray-100 ${baseBg}`}>
+                            <td className="px-4 py-2.5 align-middle" rowSpan={totalRows}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className="inline-flex max-w-full items-center truncate rounded-full px-2.5 py-0.5 text-sm font-medium"
+                                  style={{
+                                    backgroundColor: skill.color_hex + '33',
+                                    color: skill.color_hex,
+                                    border: `1px solid ${skill.color_hex}88`,
+                                  }}
+                                >
+                                  {skill.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAddReqTarget({ id: skill.id, name: skill.name })
+                                  }
+                                  className="text-xs font-medium text-primary hover:underline"
+                                >
+                                  ＋追加
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-xs text-gray-300">—</td>
+                            <td className="px-4 py-2 text-xs text-gray-300">—</td>
+                            <td
+                              className="px-4 py-2.5 text-center align-middle"
+                              rowSpan={totalRows}
                             >
-                              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                              スキル編集
-                            </button>
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation()
-                                setLevelEditOpen(true)
-                              }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 shadow-sm transition hover:bg-indigo-100"
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(skill.id, skill.name)}
+                                disabled={isPending}
+                                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-500 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                                削除
+                              </button>
+                            </td>
+                          </tr>
+                          {/* スキル行：スキル名ごとに1行 */}
+                          {groups.map(group => (
+                            <tr
+                              key={`${skill.id}-${group.name}`}
+                              className={`border-b border-gray-100 ${baseBg}`}
                             >
-                              <Layers className="h-3.5 w-3.5" strokeWidth={2} />
-                              レベル編集
-                            </button>
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation()
-                                handleDelete(skill.id, skill.name)
-                              }}
-                              disabled={isPending}
-                              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-500 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                              削除
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              <td className="max-w-xl min-w-40 px-4 py-2.5 align-top">
+                                <span className="inline-flex max-w-full items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 ring-1 ring-gray-200/80">
+                                  {group.name}
+                                </span>
+                              </td>
+                              <td className="max-w-xl min-w-40 px-4 py-2.5 align-top">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {group.requirements.map(req => (
+                                      <span
+                                        key={req.id}
+                                        className="inline-flex max-w-full items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800 ring-1 ring-slate-200/90"
+                                      >
+                                        {req.level?.name ?? (
+                                          <span className="font-normal text-amber-700">未設定</span>
+                                        )}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeleteSkillGroup(skill.id, skill.name, group.name)
+                                    }
+                                    disabled={isPending}
+                                    className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-500 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-3 w-3" strokeWidth={2} />
+                                    削除
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </Fragment>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -302,22 +284,12 @@ export function TenantJobRoleList({ skills, onOpenDetail }: Props) {
           )}
         </div>
       </div>
-
-      {skillEditTarget && (
-        <SkillRequirementsEditModal
-          skillId={skillEditTarget.id}
-          skillName={skillEditTarget.name}
+      {addReqTarget && (
+        <AddSkillRequirementModal
+          skillId={addReqTarget.id}
+          skillName={addReqTarget.name}
           onClose={() => {
-            setSkillEditTarget(null)
-            router.refresh()
-          }}
-        />
-      )}
-
-      {levelEditOpen && (
-        <SkillLevelsEditModal
-          onClose={() => {
-            setLevelEditOpen(false)
+            setAddReqTarget(null)
             router.refresh()
           }}
         />

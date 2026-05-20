@@ -92,6 +92,25 @@ export type TenantSkillDetail = TenantSkillWithRequirements & {
   levels: SkillLevel[]
 }
 
+/** eラーニングコース × スキルレベルマッピング（コース情報付き） */
+export type CourseSkillLevelMapping = {
+  id: string
+  course_id: string
+  skill_level_id: string
+  created_at: string
+  course: { id: string; title: string }
+}
+
+/** スキルレベル（eラーニング紐付き） */
+export type SkillLevelWithMappings = SkillLevel & {
+  courseMappings: CourseSkillLevelMapping[]
+}
+
+/** スキルレベルセット（eラーニング紐付き） */
+export type TenantSkillLevelSetWithMappings = TenantSkillLevelSet & {
+  levels: SkillLevelWithMappings[]
+}
+
 /** 分析ビュー用: 従業員ごとの職種要件充足状況 */
 export type EmployeeCompletionRow = {
   employee_id: string

@@ -6,6 +6,8 @@ import {
   getTenantSkillsWithRequirements,
   getTenantSkillLevelSetsWithLevels,
   getStandaloneSkillLevels,
+  getAllCourseMappingsForLevelSet,
+  getAvailableCoursesForLevelMapping,
 } from '@/features/skill-map/queries'
 import {
   getGlobalJobCategories,
@@ -28,6 +30,29 @@ export default async function SkillTempCopyPage() {
       getTenantSkillLevelSetsWithLevels(supabase),
       getStandaloneSkillLevels(supabase),
     ])
+
+  const allLevelIds = [
+    ...skillLevelSets.flatMap(s => s.levels.map(l => l.id)),
+    ...standaloneSkillLevels.map(l => l.id),
+  ]
+
+  const [courseMappingsMap, availableCourses] = await Promise.all([
+    getAllCourseMappingsForLevelSet(supabase, allLevelIds),
+    getAvailableCoursesForLevelMapping(supabase),
+  ])
+
+  const skillLevelSetsWithMappings = skillLevelSets.map(set => ({
+    ...set,
+    levels: set.levels.map(lv => ({
+      ...lv,
+      courseMappings: courseMappingsMap.get(lv.id) ?? [],
+    })),
+  }))
+
+  const standaloneWithMappings = standaloneSkillLevels.map(lv => ({
+    ...lv,
+    courseMappings: courseMappingsMap.get(lv.id) ?? [],
+  }))
 
   return (
     <div className="min-h-full">
@@ -75,8 +100,9 @@ export default async function SkillTempCopyPage() {
           <div className="p-6">
             <SkillTempCopyPageClient
               skills={skills}
-              skillLevelSets={skillLevelSets}
-              standaloneSkillLevels={standaloneSkillLevels}
+              skillLevelSets={skillLevelSetsWithMappings}
+              standaloneSkillLevels={standaloneWithMappings}
+              availableCourses={availableCourses}
             />
           </div>
         </div>

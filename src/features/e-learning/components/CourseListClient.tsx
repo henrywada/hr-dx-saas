@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Copy, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Copy, Pencil, Trash2, BookOpen, Calendar } from 'lucide-react'
 import { deleteCourse, copyTemplateToTenant, updateCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { formatPublicationRangeJa } from '../publication-window'
@@ -185,7 +185,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                 <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
               )}
 
-              <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
                 {tab === 'template' ? (
                   <button
                     onClick={() => handleCopy(course.id)}
@@ -203,8 +203,9 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                         setEditCourse(course)
                         setShowForm(true)
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-lg"
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
                     >
+                      <Calendar className="w-3.5 h-3.5" />
                       タイトル・公開期間
                     </button>
                     <a
@@ -212,12 +213,12 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                       className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      編集
+                      学習内容の編集
                     </a>
                     <button
                       onClick={() => handleDelete(course.id)}
                       disabled={isPending}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 ml-auto"
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       削除

@@ -28,6 +28,20 @@ export type SkillLevel = {
   color_hex: string
   sort_order: number
   created_at: string
+  skill_level_set_id?: string | null
+  criteria?: string | null
+}
+
+export type TenantSkillLevelSet = {
+  id: string
+  tenant_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export type TenantSkillLevelSetWithLevels = TenantSkillLevelSet & {
+  levels: SkillLevel[]
 }
 
 export type SkillRequirement = {

@@ -2,7 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getTenantSkillsWithRequirements } from '@/features/skill-map/queries'
+import {
+  getTenantSkillsWithRequirements,
+  getTenantSkillLevelSetsWithLevels,
+  getStandaloneSkillLevels,
+} from '@/features/skill-map/queries'
 import {
   getGlobalJobCategories,
   getGlobalJobRoles,
@@ -16,11 +20,14 @@ export default async function SkillTempCopyPage() {
 
   const supabase = await createClient()
 
-  const [skills, templateCategories, templateRoles] = await Promise.all([
-    getTenantSkillsWithRequirements(supabase),
-    getGlobalJobCategories(supabase),
-    getGlobalJobRoles(supabase),
-  ])
+  const [skills, templateCategories, templateRoles, skillLevelSets, standaloneSkillLevels] =
+    await Promise.all([
+      getTenantSkillsWithRequirements(supabase),
+      getGlobalJobCategories(supabase),
+      getGlobalJobRoles(supabase),
+      getTenantSkillLevelSetsWithLevels(supabase),
+      getStandaloneSkillLevels(supabase),
+    ])
 
   return (
     <div className="min-h-full">
@@ -61,15 +68,16 @@ export default async function SkillTempCopyPage() {
               </div>
             </div>
             <div className="shrink-0 pt-0.5">
-              <SkillTempCopyTemplateButton
-                categories={templateCategories}
-                roles={templateRoles}
-              />
+              <SkillTempCopyTemplateButton categories={templateCategories} roles={templateRoles} />
             </div>
           </div>
 
           <div className="p-6">
-            <SkillTempCopyPageClient skills={skills} />
+            <SkillTempCopyPageClient
+              skills={skills}
+              skillLevelSets={skillLevelSets}
+              standaloneSkillLevels={standaloneSkillLevels}
+            />
           </div>
         </div>
       </div>

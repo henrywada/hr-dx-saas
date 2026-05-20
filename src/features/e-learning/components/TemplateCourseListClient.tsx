@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen, Calendar } from 'lucide-react'
 import { deleteCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { formatPublicationRangeJa } from '../publication-window'
@@ -117,15 +117,16 @@ export function TemplateCourseListClient({ courses }: Props) {
                 <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
               )}
 
-              <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
                     setEditCourse(course)
                     setShowForm(true)
                   }}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-lg"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
                 >
+                  <Calendar className="w-3.5 h-3.5" />
                   タイトル・公開期間
                 </button>
                 <a
@@ -133,12 +134,12 @@ export function TemplateCourseListClient({ courses }: Props) {
                   className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
                 >
                   <Pencil className="w-3.5 h-3.5" />
-                  編集
+                  学習内容の編集
                 </a>
                 <button
                   onClick={() => handleDelete(course.id)}
                   disabled={isPending}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 ml-auto"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   削除

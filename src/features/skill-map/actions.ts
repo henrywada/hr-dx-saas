@@ -9,8 +9,9 @@ import {
   getTenantSkillsWithRequirements,
   getSkillLevels,
   getEmployeeSkillRequirementSelections,
+  getTenantSkillLevelSetsWithLevels,
 } from './queries'
-import type { TenantSkillDetail, SkillLevel } from './types'
+import type { TenantSkillDetail, SkillLevel, TenantSkillLevelSetWithLevels } from './types'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
@@ -367,14 +368,43 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
     ),
   ] as string[]
 
+  // グローバルセット名 + レベルを取得
+  let globalSetsData: Array<{ id: string; name: string }> = []
   let levelsRes: { data: any[] | null; error?: any } = { data: [] }
   if (setIds.length > 0) {
-    levelsRes = await (supabase as any)
-      .from('global_skill_levels')
-      .select('id, name, color_hex, skill_level_set_id, sort_order')
-      .in('skill_level_set_id', setIds)
-      .order('sort_order')
-    if (levelsRes.error) return { success: false, error: levelsRes.error.message }
+    const [setsResult, lvResult] = await Promise.all([
+      (supabase as any).from('global_skill_level_sets').select('id, name').in('id', setIds),
+      (supabase as any)
+        .from('global_skill_levels')
+        .select('id, name, color_hex, skill_level_set_id, sort_order')
+        .in('skill_level_set_id', setIds)
+        .order('sort_order'),
+    ])
+    if (lvResult.error) return { success: false, error: lvResult.error.message }
+    globalSetsData = setsResult.data ?? []
+    levelsRes = lvResult
+  }
+
+  // グローバルセット → テナントセットのマッピングを作成（同名セットは再利用）
+  const tenantSetIdByGlobalSetId = new Map<string, string>()
+  for (const gs of globalSetsData) {
+    const { data: existing } = await (supabase as any)
+      .from('tenant_skill_level_sets')
+      .select('id')
+      .eq('tenant_id', user.tenant_id)
+      .eq('name', gs.name)
+      .maybeSingle()
+    if (existing) {
+      tenantSetIdByGlobalSetId.set(gs.id, existing.id)
+    } else {
+      const { data: created, error: setErr } = await (supabase as any)
+        .from('tenant_skill_level_sets')
+        .insert({ tenant_id: user.tenant_id, name: gs.name, sort_order: 0 })
+        .select('id')
+        .single()
+      if (setErr) return { success: false, error: setErr.message }
+      tenantSetIdByGlobalSetId.set(gs.id, created.id)
+    }
   }
 
   const { data: skillData, error: skillError } = await (supabase as any)
@@ -390,49 +420,47 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
 
   const tenantSkillId = skillData.id
 
-  if (levelsRes.data && levelsRes.data.length > 0) {
-    const { data: existingLevels } = await (supabase as any)
+  // グローバルレベルID → テナントレベルIDのマッピングを作成（セット単位で重複チェック）
+  const tenantLevelIdByGlobalLevelId = new Map<string, string>()
+  for (const gl of levelsRes.data ?? []) {
+    const tenantSetId = tenantSetIdByGlobalSetId.get(gl.skill_level_set_id)
+    if (!tenantSetId) continue
+    const { data: existing } = await (supabase as any)
       .from('skill_levels')
-      .select('name')
+      .select('id')
       .eq('tenant_id', user.tenant_id)
-    const existingNames = new Set((existingLevels ?? []).map((l: any) => l.name))
-    const newLevels = levelsRes.data.filter((l: any) => !existingNames.has(l.name))
-    if (newLevels.length > 0) {
-      const levelsRows = newLevels.map((level: any) => ({
-        tenant_id: user.tenant_id,
-        name: level.name,
-        color_hex: level.color_hex,
-      }))
-      const { error: levelError } = await (supabase as any).from('skill_levels').insert(levelsRows)
-      if (levelError) return { success: false, error: levelError.message }
+      .eq('skill_level_set_id', tenantSetId)
+      .eq('name', gl.name)
+      .maybeSingle()
+    if (existing) {
+      tenantLevelIdByGlobalLevelId.set(gl.id, existing.id)
+    } else {
+      const { data: created, error: lvErr } = await (supabase as any)
+        .from('skill_levels')
+        .insert({
+          tenant_id: user.tenant_id,
+          name: gl.name,
+          color_hex: gl.color_hex,
+          skill_level_set_id: tenantSetId,
+          sort_order: gl.sort_order,
+        })
+        .select('id')
+        .single()
+      if (lvErr) return { success: false, error: lvErr.message }
+      tenantLevelIdByGlobalLevelId.set(gl.id, created.id)
     }
   }
 
-  const { data: tenantLevelsForMap } = await (supabase as any)
-    .from('skill_levels')
-    .select('id, name')
-    .eq('tenant_id', user.tenant_id)
-
-  const tenantLevelIdByName = new Map<string, string>()
-  for (const row of tenantLevelsForMap ?? []) {
-    if (!tenantLevelIdByName.has(row.name)) tenantLevelIdByName.set(row.name, row.id)
-  }
-
-  /** setId → sort_order 昇順のレベル名配列 */
-  const levelsBySetId = new Map<string, Array<{ name: string; sort_order: number }>>()
+  /** setId → sort_order 昇順のレベル情報配列 */
+  const levelsBySetId = new Map<string, Array<{ id: string; name: string; sort_order: number }>>()
   for (const lv of levelsRes.data ?? []) {
-    const row = lv as {
-      skill_level_set_id: string
-      name: string
-      sort_order: number
-    }
-    const list = levelsBySetId.get(row.skill_level_set_id) ?? []
-    list.push({ name: row.name, sort_order: row.sort_order })
-    levelsBySetId.set(row.skill_level_set_id, list)
+    const list = levelsBySetId.get(lv.skill_level_set_id) ?? []
+    list.push({ id: lv.id, name: lv.name, sort_order: lv.sort_order })
+    levelsBySetId.set(lv.skill_level_set_id, list)
   }
 
   /** セット内の全レベルを sort_order 昇順で返す */
-  function levelsInSet(setId: string): Array<{ name: string; sort_order: number }> {
+  function levelsInSet(setId: string): Array<{ id: string; name: string; sort_order: number }> {
     const list = levelsBySetId.get(setId) ?? []
     return [...list].sort(
       (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja')
@@ -440,10 +468,6 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   }
 
   if (itemsRes.data && itemsRes.data.length > 0) {
-    /**
-     * skill_item × セット内レベル数 の直積で skill_requirements を作成する。
-     * レベルセットが空／未設定の場合は level_id = null で 1 行だけ作成する。
-     */
     const requirementsRows: Array<{
       tenant_id: string
       skill_id: string
@@ -468,7 +492,7 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
         })
       } else {
         for (const lv of levels) {
-          const level_id = tenantLevelIdByName.get(lv.name) ?? null
+          const level_id = tenantLevelIdByGlobalLevelId.get(lv.id) ?? null
           requirementsRows.push({
             tenant_id: user.tenant_id,
             skill_id: tenantSkillId,
@@ -488,6 +512,119 @@ export async function importFromGlobalTemplate(jobRoleId: string): Promise<Actio
   }
 
   revalidatePath(SKILL_MAP_PATH)
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+// ---- テナント固有スキルレベルセット ----
+
+/** スキルレベルセット一覧（タブ用） */
+export async function loadTenantSkillLevelSetsAction(): Promise<
+  TenantSkillLevelSetWithLevels[] | null
+> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return null
+  const supabase = await createClient()
+  return getTenantSkillLevelSetsWithLevels(supabase)
+}
+
+export async function createTenantSkillLevelSet(input: {
+  name: string
+}): Promise<ActionResult & { id?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('tenant_skill_level_sets')
+    .insert({ tenant_id: user.tenant_id, name: input.name.trim(), sort_order: 0 })
+    .select('id')
+    .single()
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true, id: data.id }
+}
+
+export async function updateTenantSkillLevelSet(input: {
+  id: string
+  name: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('tenant_skill_level_sets')
+    .update({ name: input.name.trim() })
+    .eq('id', input.id)
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function deleteTenantSkillLevelSet(input: { id: string }): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('tenant_skill_level_sets')
+    .delete()
+    .eq('id', input.id)
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function createTenantSkillLevelInSet(input: {
+  skillLevelSetId: string
+  name: string
+  criteria?: string
+  colorHex?: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  if (input.colorHex && !/^#[0-9a-fA-F]{6}$/.test(input.colorHex))
+    return { success: false, error: '無効なカラーコードです' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any).from('skill_levels').insert({
+    tenant_id: user.tenant_id,
+    skill_level_set_id: input.skillLevelSetId,
+    name: input.name,
+    criteria: input.criteria ?? null,
+    color_hex: input.colorHex ?? '#6b7280',
+    sort_order: 0,
+  })
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function updateTenantSkillLevelInSet(input: {
+  id: string
+  name?: string
+  criteria?: string | null
+  colorHex?: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  if (input.colorHex && !/^#[0-9a-fA-F]{6}$/.test(input.colorHex))
+    return { success: false, error: '無効なカラーコードです' }
+  const supabase = await createClient()
+  const updates: Record<string, any> = {}
+  if (input.name !== undefined) updates.name = input.name
+  if ('criteria' in input) updates.criteria = input.criteria
+  if (input.colorHex !== undefined) updates.color_hex = input.colorHex
+  if (Object.keys(updates).length === 0) return { success: true }
+  const { error } = await (supabase as any).from('skill_levels').update(updates).eq('id', input.id)
+  if (error) return { success: false, error: error.message }
+  revalidatePath(SKILL_TEMP_COPY_PATH)
+  return { success: true }
+}
+
+export async function deleteTenantSkillLevelFromSet(input: { id: string }): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+  const { error } = await (supabase as any).from('skill_levels').delete().eq('id', input.id)
+  if (error) return { success: false, error: error.message }
   revalidatePath(SKILL_TEMP_COPY_PATH)
   return { success: true }
 }

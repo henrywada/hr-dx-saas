@@ -5,12 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { GlobalSkillLevelSetWithLevels } from '../types'
 import { loadGlobalSkillLevelSetsAction } from '../actions'
 import { GlobalSkillLevelSetWorkspace } from './GlobalSkillLevelSetWorkspace'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type Props = {
   open: boolean
@@ -48,7 +43,7 @@ export function GlobalSkillLevelSetModal({ open, onOpenChange }: Props) {
       >
         <DialogHeader className="shrink-0 rounded-t-xl border-0 bg-primary px-6 pb-4 pt-5 pr-14 text-white sm:px-8 sm:pb-5 sm:pt-6 sm:pr-16">
           <DialogTitle className="text-lg font-semibold text-white sm:text-xl">
-            スキルレベルセット登録
+            スキル・レベル登録
           </DialogTitle>
           <DialogPrimitive.Description className="mt-1 text-sm leading-snug text-white/90">
             スキルレベルセット名をキーに、セット内のレベルとコメントを登録・編集します。変更は保存後すぐにテナント側の取り込みに反映されます。職種との紐付けは行いません。

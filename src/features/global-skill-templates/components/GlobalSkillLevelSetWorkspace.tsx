@@ -180,7 +180,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
         <div className="min-w-0 flex-1">
           <label htmlFor="new-level-set-name" className="text-xs font-semibold text-gray-700">
-            レベルセット名
+            スキル名
           </label>
           <input
             id="new-level-set-name"
@@ -210,7 +210,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
             <thead>
               <tr className="bg-gray-50">
                 <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
-                  レベルセット名
+                  スキル名
                 </th>
                 <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                   レベル

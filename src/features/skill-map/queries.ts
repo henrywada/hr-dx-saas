@@ -10,6 +10,8 @@ import type {
   EmployeeSkillRow,
   SkillGroupRow,
   EmployeeCompletionRow,
+  TenantSkillLevelSet,
+  TenantSkillLevelSetWithLevels,
 } from './types'
 import type { DivisionHierarchyNode } from './division-paths'
 
@@ -346,4 +348,61 @@ export async function getSkillCompletionData(
   })
 
   return rows
+}
+
+/** セット未設定のスキルレベル一覧（テンプレートコピー由来など） */
+export async function getStandaloneSkillLevels(supabase: DB): Promise<SkillLevel[]> {
+  const { data, error } = await (supabase as any)
+    .from('skill_levels')
+    .select('*')
+    .is('skill_level_set_id', null)
+    .order('sort_order')
+    .order('created_at')
+  if (error) {
+    console.warn('[getStandaloneSkillLevels] select failed:', error.message)
+    return []
+  }
+  return (data ?? []) as SkillLevel[]
+}
+
+/** テナント固有スキルレベルセット一覧（レベルネスト） */
+export async function getTenantSkillLevelSetsWithLevels(
+  supabase: DB
+): Promise<TenantSkillLevelSetWithLevels[]> {
+  const { data: sets, error } = await (supabase as any)
+    .from('tenant_skill_level_sets')
+    .select('*')
+    .order('sort_order')
+    .order('created_at')
+  if (error) {
+    console.warn('[getTenantSkillLevelSetsWithLevels] sets select failed:', error.message)
+    return []
+  }
+  const rows = (sets ?? []) as TenantSkillLevelSet[]
+  if (rows.length === 0) return []
+
+  const setIds = rows.map(s => s.id)
+  const { data: lvRows, error: lvErr } = await (supabase as any)
+    .from('skill_levels')
+    .select('*')
+    .in('skill_level_set_id', setIds)
+    .order('sort_order')
+    .order('created_at')
+  if (lvErr) {
+    console.warn('[getTenantSkillLevelSetsWithLevels] levels select failed:', lvErr.message)
+  }
+  const levels = (lvRows ?? []) as SkillLevel[]
+
+  const levelsBySet = new Map<string, SkillLevel[]>()
+  for (const lv of levels) {
+    if (!lv.skill_level_set_id) continue
+    const list = levelsBySet.get(lv.skill_level_set_id) ?? []
+    list.push(lv)
+    levelsBySet.set(lv.skill_level_set_id, list)
+  }
+
+  return rows.map(s => ({
+    ...s,
+    levels: levelsBySet.get(s.id) ?? [],
+  }))
 }

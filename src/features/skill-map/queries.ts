@@ -13,6 +13,11 @@ import type {
   TenantSkillLevelSet,
   TenantSkillLevelSetWithLevels,
   CourseSkillLevelMapping,
+  ProjectSimulation,
+  SimulationPosition,
+  SimulationPositionRequirement,
+  EmployeeCareerGoal,
+  EmployeeSkillRequirementHistory,
 } from './types'
 import type { DivisionHierarchyNode } from './division-paths'
 
@@ -447,3 +452,384 @@ export async function getAvailableCoursesForLevelMapping(
   }
   return (data ?? []) as Array<{ id: string; title: string; status: string }>
 }
+
+/**
+ * シミュレーション一覧を取得する
+ */
+export async function getProjectSimulations(supabase: DB): Promise<ProjectSimulation[]> {
+  const { data, error } = await (supabase as any)
+    .from('project_simulations')
+    .select('*')
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+/**
+ * シミュレーション詳細を取得する
+ */
+export async function getProjectSimulationDetail(
+  supabase: DB,
+  simulationId: string
+): Promise<any | null> {
+  // 親
+  const { data: sim, error: simErr } = await (supabase as any)
+    .from('project_simulations')
+    .select('*')
+    .eq('id', simulationId)
+    .single()
+  if (simErr) {
+    console.warn('[getProjectSimulationDetail] parent select failed:', simErr.message)
+    return null
+  }
+
+  // ポジション
+  const { data: positions, error: posErr } = await (supabase as any)
+    .from('simulation_positions')
+    .select('*')
+    .eq('simulation_id', simulationId)
+    .order('sort_order', { ascending: true })
+  if (posErr) throw posErr
+
+  if (!positions || positions.length === 0) {
+    return { ...sim, positions: [] }
+  }
+
+  const posIds = positions.map((p: any) => p.id)
+
+  // ポジション要件
+  const { data: requirements, error: reqErr } = await (supabase as any)
+    .from('simulation_position_requirements')
+    .select('*, requirement:skill_requirements(name)')
+    .in('position_id', posIds)
+  if (reqErr) throw reqErr
+
+  // 仮アサインメンバー
+  const { data: assignedMembers, error: memberErr } = await (supabase as any)
+    .from('simulation_assigned_members')
+    .select('*, employee:employees(id, name, employee_no, divisions(name))')
+    .eq('simulation_id', simulationId)
+  if (memberErr) throw memberErr
+
+  const reqsByPos = new Map<string, any[]>()
+  for (const req of requirements ?? []) {
+    const list = reqsByPos.get(req.position_id) ?? []
+    list.push({
+      ...req,
+      requirement_name: (req.requirement as any)?.name ?? '不明な要件'
+    })
+    reqsByPos.set(req.position_id, list)
+  }
+
+  const memberByPos = new Map<string, any>()
+  for (const m of assignedMembers ?? []) {
+    const emp = m.employee as any
+    memberByPos.set(m.position_id, {
+      employee_id: m.employee_id,
+      full_name: emp?.name ?? null,
+      employee_no: emp?.employee_no ?? null,
+      division_name: emp?.divisions?.name ?? null
+    })
+  }
+
+  const positionsWithDetails = positions.map((pos: any) => ({
+    ...pos,
+    requirements: reqsByPos.get(pos.id) ?? [],
+    assignedMember: memberByPos.get(pos.id) ?? null
+  }))
+
+  return {
+    ...sim,
+    positions: positionsWithDetails
+  }
+}
+
+export type MatchingEmployeeCandidate = {
+  employee_id: string
+  employee_no: string | null
+  full_name: string | null
+  division_name: string | null
+  matching_score: number        // 適合率スコア (0-100)
+  has_all_essential: boolean    // 必須条件をすべて満たしているか
+  met_essential_count: number   // クリアした必須要件数
+  total_essential_count: number // 必要な総必須要件数
+  met_preferred_count: number   // クリアした歓迎要件数
+  total_preferred_count: number // 必要な総歓迎要件数
+  details: Array<{
+    requirement_id: string
+    requirement_name: string
+    is_essential: boolean
+    is_met: boolean
+    weight: number
+  }>
+}
+
+/**
+ * 特定ポジションの求める「技能要件リスト」に合致する従業員を、適合スコア順に検索する
+ */
+export async function searchMatchingEmployees(
+  supabase: DB,
+  input: {
+    requirements: Array<{ requirement_id: string; is_essential: boolean; weight: number }>
+    targetDivisionId?: string // 特定部門内に絞る場合
+  }
+): Promise<MatchingEmployeeCandidate[]> {
+  if (input.requirements.length === 0) return []
+
+  // 1. 全てのアクティブな従業員情報を取得
+  let empQuery = supabase
+    .from('employees')
+    .select('id, employee_no, name, division_id, divisions:divisions(name)')
+    .eq('active_status', 'active')
+
+  if (input.targetDivisionId && input.targetDivisionId !== 'all') {
+    empQuery = empQuery.eq('division_id', input.targetDivisionId)
+  }
+
+  const { data: employees, error: empError } = await empQuery
+  if (empError) throw empError
+  if (!employees || employees.length === 0) return []
+
+  const employeeIds = employees.map(e => e.id)
+  const reqIds = input.requirements.map(r => r.requirement_id)
+
+  // 2. 従業員がクリアしている技能要件（selections）を取得
+  const { data: selections, error: selError } = await supabase
+    .from('employee_skill_requirement_selections')
+    .select('employee_id, requirement_id')
+    .in('employee_id', employeeIds)
+    .in('requirement_id', reqIds)
+
+  if (selError) throw selError
+
+  // 従業員ID → 保持している要件IDのSet マップ
+  const selectionMap = new Map<string, Set<string>>()
+  for (const sel of selections ?? []) {
+    if (!selectionMap.has(sel.employee_id)) {
+      selectionMap.set(sel.employee_id, new Set())
+    }
+    selectionMap.get(sel.employee_id)!.add(sel.requirement_id)
+  }
+
+  // 3. 要件マスタの詳細（要件名等）を取得
+  const { data: reqMaster, error: reqMasterErr } = await supabase
+    .from('skill_requirements')
+    .select('id, name')
+    .in('id', reqIds)
+
+  if (reqMasterErr) throw reqMasterErr
+  const reqNameMap = new Map(reqMaster?.map(r => [r.id, r.name]) ?? [])
+
+  // 4. マッチングスコア算出
+  const candidates: MatchingEmployeeCandidate[] = employees.map(emp => {
+    const ownedReqs = selectionMap.get(emp.id) ?? new Set<string>()
+
+    let totalWeight = 0
+    let earnedWeight = 0
+    let totalEssential = 0
+    let metEssential = 0
+    let totalPreferred = 0
+    let metPreferred = 0
+
+    const details = input.requirements.map(req => {
+      const isMet = ownedReqs.has(req.requirement_id)
+      const requirement_name = reqNameMap.get(req.requirement_id) ?? '不明な要件'
+      
+      const factor = req.is_essential ? 2 : 1
+      const weightedVal = req.weight * factor
+      totalWeight += weightedVal
+      
+      if (isMet) {
+        earnedWeight += weightedVal
+      }
+
+      if (req.is_essential) {
+        totalEssential++
+        if (isMet) metEssential++
+      } else {
+        totalPreferred++
+        if (isMet) metPreferred++
+      }
+
+      return {
+        requirement_id: req.requirement_id,
+        requirement_name,
+        is_essential: req.is_essential,
+        is_met: isMet,
+        weight: req.weight
+      }
+    })
+
+    const matching_score = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0
+    const has_all_essential = metEssential === totalEssential
+
+    return {
+      employee_id: emp.id,
+      employee_no: emp.employee_no,
+      full_name: emp.name,
+      division_name: (emp.divisions as any)?.name ?? null,
+      matching_score,
+      has_all_essential,
+      met_essential_count: metEssential,
+      total_essential_count: totalEssential,
+      met_preferred_count: metPreferred,
+      total_preferred_count: totalPreferred,
+      details
+    }
+  })
+
+  return candidates.sort((a, b) => {
+    if (a.has_all_essential !== b.has_all_essential) {
+      return a.has_all_essential ? -1 : 1
+    }
+    return b.matching_score - a.matching_score
+  })
+}
+
+/**
+ * 従業員のキャリア目標リストを取得する
+ */
+export async function getEmployeeCareerGoals(
+  supabase: DB,
+  employeeId: string
+): Promise<EmployeeCareerGoal[]> {
+  const { data, error } = await (supabase as any)
+    .from('employee_career_goals')
+    .select('*, skill:tenant_skills(name)')
+    .eq('employee_id', employeeId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    skill_name: row.skill?.name ?? '不明な職種'
+  }))
+}
+
+/**
+ * 従業員のスキル達成履歴を取得する
+ */
+export async function getEmployeeSkillHistory(
+  supabase: DB,
+  employeeId: string
+): Promise<EmployeeSkillRequirementHistory[]> {
+  const { data, error } = await (supabase as any)
+    .from('employee_skill_requirement_history')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .order('recorded_at', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+export type SkillBottleneckRow = {
+  requirement_id: string
+  requirement_name: string
+  category: string | null
+  level_name: string | null
+  assigned_employee_count: number
+  completed_employee_count: number
+  uncompleted_employee_count: number
+  completion_rate: number
+}
+
+/**
+ * 部署内・職種内における、要件ごとの不足率を算出してボトルネック（未達成率の高いもの）をランキング
+ */
+export async function getSkillBottleneckAnalysis(
+  supabase: DB,
+  input: { divisionId?: string; skillId: string }
+): Promise<SkillBottleneckRow[]> {
+  let empQuery = supabase
+    .from('employees')
+    .select('id, division_id')
+    .eq('active_status', 'active')
+  
+  if (input.divisionId && input.divisionId !== 'all') {
+    empQuery = empQuery.eq('division_id', input.divisionId)
+  }
+  
+  const { data: employees, error: empError } = await empQuery
+  if (empError) throw empError
+  if (!employees || employees.length === 0) return []
+  
+  const employeeIds = employees.map(e => e.id)
+
+  const { data: assignments, error: assignError } = await supabase
+    .from('employee_skill_assignments')
+    .select('employee_id')
+    .eq('skill_id', input.skillId)
+    .in('employee_id', employeeIds)
+    
+  if (assignError) throw assignError
+  if (!assignments || assignments.length === 0) return []
+  
+  const assignedEmployeeIds = assignments.map(a => a.employee_id)
+  const totalAssignedCount = assignedEmployeeIds.length
+
+  const { data: requirements, error: reqError } = await supabase
+    .from('skill_requirements')
+    .select('id, name, category, level:skill_levels(name)')
+    .eq('skill_id', input.skillId)
+    .order('sort_order', { ascending: true })
+    
+  if (reqError) throw reqError
+  if (!requirements || requirements.length === 0) return []
+
+  const { data: selections, error: selError } = await supabase
+    .from('employee_skill_requirement_selections')
+    .select('employee_id, requirement_id')
+    .in('employee_id', assignedEmployeeIds)
+    .in('requirement_id', requirements.map(r => r.id))
+    
+  if (selError) throw selError
+
+  const completedCounts = new Map<string, number>()
+  for (const sel of selections ?? []) {
+    completedCounts.set(sel.requirement_id, (completedCounts.get(sel.requirement_id) ?? 0) + 1)
+  }
+
+  const rows: SkillBottleneckRow[] = requirements.map(req => {
+    const completedCount = completedCounts.get(req.id) ?? 0
+    const uncompletedCount = totalAssignedCount - completedCount
+    const completionRate = totalAssignedCount > 0 
+      ? Math.round((completedCount / totalAssignedCount) * 100) 
+      : 0
+
+    return {
+      requirement_id: req.id,
+      requirement_name: req.name,
+      category: req.category,
+      level_name: (req.level as any)?.name ?? null,
+      assigned_employee_count: totalAssignedCount,
+      completed_employee_count: completedCount,
+      uncompleted_employee_count: uncompletedCount,
+      completion_rate: completionRate
+    }
+  })
+
+  return rows.sort((a, b) => a.completion_rate - b.completion_rate)
+}
+
+/**
+ * 技能要件にマッピングされているeラーニングコースの一覧を取得
+ */
+export async function getMappedCoursesForRequirements(
+  supabase: DB
+): Promise<Array<{ course_id: string; course_title: string; requirement_id: string }>> {
+  const { data, error } = await (supabase as any)
+    .from('el_course_requirement_mappings')
+    .select('requirement_id, course:el_courses(id, title)')
+  if (error) {
+    console.warn('[getMappedCoursesForRequirements] failed:', error.message)
+    return []
+  }
+  return (data ?? [])
+    .map((row: any) => ({
+      requirement_id: row.requirement_id,
+      course_id: row.course?.id || '',
+      course_title: row.course?.title || '不明なコース'
+    }))
+    .filter(r => r.course_id !== '')
+}
+
+

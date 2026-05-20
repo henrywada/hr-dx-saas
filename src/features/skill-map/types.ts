@@ -129,3 +129,80 @@ export type EmployeeCompletionRow = {
   /** 0〜100（totalRequirements === 0 のとき null） */
   completionRate: number | null
 }
+
+export type ProjectSimulation = {
+  id: string
+  tenant_id: string
+  name: string
+  description: string | null
+  status: 'draft' | 'approved' | 'archived'
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type SimulationPosition = {
+  id: string
+  tenant_id: string
+  simulation_id: string
+  name: string
+  sort_order: number
+  created_at: string
+  requirements?: SimulationPositionRequirement[]
+  assignedMember?: {
+    employee_id: string
+    full_name: string | null
+    employee_no: string | null
+    division_name: string | null
+  } | null
+}
+
+export type SimulationPositionRequirement = {
+  id: string
+  tenant_id: string
+  position_id: string
+  requirement_id: string
+  is_essential: boolean
+  weight: number
+  created_at: string
+  requirement_name?: string
+}
+
+export type SimulationAssignedMember = {
+  id: string
+  tenant_id: string
+  simulation_id: string
+  position_id: string
+  employee_id: string
+  created_at: string
+}
+
+export type EmployeeCareerGoal = {
+  id: string
+  tenant_id: string
+  employee_id: string
+  target_skill_id: string
+  target_date: string | null
+  created_at: string
+  updated_at: string
+  skill_name?: string
+}
+
+export type EmployeeSkillRequirementHistory = {
+  id: string
+  tenant_id: string
+  employee_id: string
+  recorded_at: string
+  skill_id: string
+  total_requirements: number
+  completed_requirements: number
+  completion_rate: number
+  created_at: string
+}
+
+export type ProjectSimulationWithDetails = ProjectSimulation & {
+  positions: Array<SimulationPosition & {
+    requirements: SimulationPositionRequirement[]
+  }>
+}
+

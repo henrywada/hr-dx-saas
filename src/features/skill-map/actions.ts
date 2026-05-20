@@ -11,6 +11,8 @@ import {
   getEmployeeSkillRequirementSelections,
   getTenantSkillLevelSetsWithLevels,
   getAvailableCoursesForLevelMapping,
+  searchMatchingEmployees,
+  getSkillBottleneckAnalysis,
 } from './queries'
 import type { TenantSkillDetail, SkillLevel, TenantSkillLevelSetWithLevels } from './types'
 
@@ -691,3 +693,291 @@ export async function loadAvailableCoursesForMappingAction(): Promise<
   const supabase = await createClient()
   return getAvailableCoursesForLevelMapping(supabase)
 }
+
+// ============================================================
+// ---- 要員アサイン・シミュレータ Server Actions ----
+// ============================================================
+
+export async function createProjectSimulation(input: {
+  name: string
+  description?: string
+}): Promise<ActionResult & { id?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { data, error } = await (supabase as any)
+    .from('project_simulations')
+    .insert({
+      tenant_id: user.tenant_id,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      status: 'draft',
+      created_by: user.employee_id || null
+    })
+    .select('id')
+    .single()
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath('/skill-map')
+  return { success: true, id: data.id }
+}
+
+export async function updateProjectSimulation(input: {
+  id: string
+  name?: string
+  description?: string
+  status?: 'draft' | 'approved' | 'archived'
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const updates: Record<string, any> = { updated_at: new Date().toISOString() }
+  if (input.name !== undefined) updates.name = input.name.trim()
+  if (input.description !== undefined) updates.description = input.description.trim() || null
+  if (input.status !== undefined) updates.status = input.status
+
+  const { error } = await (supabase as any)
+    .from('project_simulations')
+    .update(updates)
+    .eq('id', input.id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath('/skill-map')
+  return { success: true }
+}
+
+export async function deleteProjectSimulation(id: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('project_simulations')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath('/skill-map')
+  return { success: true }
+}
+
+export async function createSimulationPosition(input: {
+  simulationId: string
+  name: string
+}): Promise<ActionResult & { id?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { data, error } = await (supabase as any)
+    .from('simulation_positions')
+    .insert({
+      tenant_id: user.tenant_id,
+      simulation_id: input.simulationId,
+      name: input.name.trim(),
+      sort_order: 0
+    })
+    .select('id')
+    .single()
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true, id: data.id }
+}
+
+export async function deleteSimulationPosition(id: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('simulation_positions')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+export async function addPositionRequirement(input: {
+  positionId: string
+  requirementId: string
+  isEssential: boolean
+  weight: number
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('simulation_position_requirements')
+    .insert({
+      tenant_id: user.tenant_id,
+      position_id: input.positionId,
+      requirement_id: input.requirementId,
+      is_essential: input.isEssential,
+      weight: input.weight
+    })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+export async function deletePositionRequirement(id: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('simulation_position_requirements')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+export async function assignMemberToPosition(input: {
+  simulationId: string
+  positionId: string
+  employeeId: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  // UNIQUE制約のため既存の割り当てがあれば削除、または upsert
+  const { error } = await (supabase as any)
+    .from('simulation_assigned_members')
+    .upsert({
+      tenant_id: user.tenant_id,
+      simulation_id: input.simulationId,
+      position_id: input.positionId,
+      employee_id: input.employeeId
+    }, { onConflict: 'simulation_id,position_id' })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+export async function removeMemberFromPosition(input: {
+  simulationId: string
+  positionId: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('simulation_assigned_members')
+    .delete()
+    .eq('simulation_id', input.simulationId)
+    .eq('position_id', input.positionId)
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+export async function saveEmployeeCareerGoal(input: {
+  employeeId: string
+  targetSkillId: string
+  targetDate: string | null
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('employee_career_goals')
+    .upsert({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      target_skill_id: input.targetSkillId,
+      target_date: input.targetDate,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'employee_id,target_skill_id' })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(`/skill-map`)
+  return { success: true }
+}
+
+/**
+ * 従業員の現在のスキル充足率を履歴スナップショットとして記録する
+ */
+export async function recordEmployeeSkillHistorySnapshot(input: {
+  employeeId: string
+  skillId: string
+  totalRequirements: number
+  completedRequirements: number
+  completionRate: number
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('employee_skill_requirement_history')
+    .insert({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      recorded_at: new Date().toISOString().split('T')[0],
+      skill_id: input.skillId,
+      total_requirements: input.totalRequirements,
+      completed_requirements: input.completedRequirements,
+      completion_rate: input.completionRate
+    })
+
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+/**
+ * 要件適合候補者検索Server Action (非同期リクエスト用)
+ */
+export async function searchMatchingEmployeesAction(input: {
+  requirements: Array<{ requirement_id: string; is_essential: boolean; weight: number }>
+  targetDivisionId?: string
+}): Promise<{ success: true; candidates: any[] } | { success: false; error: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  try {
+    const candidates = await searchMatchingEmployees(supabase, input)
+    return { success: true, candidates }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+}
+
+/**
+ * スキルボトルネック分析データを取得するServer Action
+ */
+export async function getSkillBottleneckAnalysisAction(input: {
+  divisionId?: string
+  skillId: string
+}): Promise<{ success: true; bottleneckData: any[] } | { success: false; error: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '権限がありません' }
+  const supabase = await createClient()
+
+  try {
+    const bottleneckData = await getSkillBottleneckAnalysis(supabase, input)
+    return { success: true, bottleneckData }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+}
+

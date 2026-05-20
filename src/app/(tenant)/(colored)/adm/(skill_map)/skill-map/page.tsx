@@ -10,6 +10,8 @@ import {
   getTenantDivisionHierarchy,
   getEmployeeSkillRequirementSelectionsBatch,
   getSkillCompletionData,
+  getProjectSimulations,
+  getProjectSimulationDetail,
 } from '@/features/skill-map/queries'
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
@@ -29,6 +31,8 @@ export default async function SkillMapPage() {
   let skillViewRequirementSelections: Record<string, string[]> = {}
   /** 分析ビュー：従業員ごとの充足状況 */
   let completionRows: Awaited<ReturnType<typeof getSkillCompletionData>> = []
+  /** シミュレーションデータ */
+  let initialSimulations: any[] = []
 
   try {
     skills = await getTenantSkillsWithRequirements(supabase)
@@ -71,6 +75,15 @@ export default async function SkillMapPage() {
     completionRows = await getSkillCompletionData(supabase)
   } catch (e: any) {
     throw new Error('getSkillCompletionData: ' + (e?.message ?? JSON.stringify(e)))
+  }
+  try {
+    const rawSims = await getProjectSimulations(supabase)
+    initialSimulations = await Promise.all(
+      rawSims.map(sim => getProjectSimulationDetail(supabase, sim.id))
+    ).then(details => details.filter(Boolean))
+  } catch (e: any) {
+    console.warn('getProjectSimulations failed:', e.message)
+    initialSimulations = []
   }
 
   const divisionById = new Map(divisionNodes.map(d => [d.id, d]))
@@ -145,6 +158,7 @@ export default async function SkillMapPage() {
               divisions={divisions}
               skillViewRequirementSelections={skillViewRequirementSelections}
               completionRows={completionRows}
+              initialSimulations={initialSimulations}
             />
           </div>
         </div>

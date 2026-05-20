@@ -11,6 +11,8 @@ import type {
 import { EmployeeSkillTable } from './EmployeeSkillTable'
 import { SkillGroupView } from './SkillGroupView'
 import { AnalysisView } from './AnalysisView'
+import { BottleneckView } from './BottleneckView'
+import { SimulationWorkspace } from './SimulationWorkspace'
 
 type Props = {
   employeeRows: EmployeeSkillRow[]
@@ -22,12 +24,16 @@ type Props = {
   skillViewRequirementSelections: Record<string, string[]>
   /** 分析ビュー用：従業員ごとの充足状況 */
   completionRows: EmployeeCompletionRow[]
+  /** シミュレーション一覧 */
+  initialSimulations: any[]
 }
 
 const TABS = [
   { key: 'employee', label: '従業員ビュー' },
   { key: 'skill', label: '職種ビュー' },
   { key: 'analysis', label: '分析ビュー' },
+  { key: 'bottleneck', label: 'ボトルネック分析' },
+  { key: 'simulation', label: 'アサインシミュレータ' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -40,6 +46,7 @@ export function SkillMapTabs({
   divisions,
   skillViewRequirementSelections,
   completionRows,
+  initialSimulations,
 }: Props) {
   const [tab, setTab] = useState<TabKey>('employee')
 
@@ -77,6 +84,16 @@ export function SkillMapTabs({
       )}
       {tab === 'analysis' && (
         <AnalysisView rows={completionRows} skills={skills} divisions={divisions} />
+      )}
+      {tab === 'bottleneck' && (
+        <BottleneckView skills={skills} divisions={divisions} />
+      )}
+      {tab === 'simulation' && (
+        <SimulationWorkspace
+          skills={skills}
+          divisions={divisions}
+          initialSimulations={initialSimulations}
+        />
       )}
     </div>
   )

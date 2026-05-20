@@ -5,6 +5,8 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   getTenantSkillsWithRequirements,
   getEmployeeSkillAssignments,
+  getEmployeeCareerGoals,
+  getMappedCoursesForRequirements,
 } from '@/features/skill-map/queries'
 import {
   getMyRoleApplications,
@@ -47,6 +49,8 @@ export default async function MySkillsPage() {
     requirementApplications,
     approvers,
     elAchievedIds,
+    careerGoals,
+    mappedCourses,
   ] = await Promise.all([
     getTenantSkillsWithRequirements(supabase),
     getEmployeeSkillAssignments(supabase, user.employee_id),
@@ -54,6 +58,8 @@ export default async function MySkillsPage() {
     getMyRequirementApplications(supabase, user.employee_id),
     getMyApprovers(supabase, user.employee_id),
     getElAchievedRequirementIds(supabase, user.employee_id),
+    getEmployeeCareerGoals(supabase, user.employee_id),
+    getMappedCoursesForRequirements(supabase),
   ])
 
   return (
@@ -70,6 +76,9 @@ export default async function MySkillsPage() {
           requirementApplications={requirementApplications}
           hasApprover={approvers.length > 0}
           elAchievedRequirementIds={elAchievedIds}
+          employeeId={user.employee_id}
+          initialCareerGoals={careerGoals}
+          mappedCourses={mappedCourses}
         />
       </div>
     </div>

@@ -130,7 +130,7 @@ function ChartCard({ title, subtitle, icon: Icon, gradient, data, strokeColor, f
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* ヘッダー */}
-      <div className={`bg-gradient-to-r ${gradient} px-6 py-4`}>
+      <div className={`bg-linear-to-r ${gradient} px-6 py-4`}>
         <div className="flex items-center gap-3">
           <Icon className="h-6 w-6 text-white/90" />
           <div>

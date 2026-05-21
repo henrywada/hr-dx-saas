@@ -1,7 +1,7 @@
 'use client'
 
 import Link, { useLinkStatus } from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ArrowRight } from 'lucide-react'
 
 export type SubMenuCardVariant = {
   bar: string
@@ -23,9 +23,9 @@ type Props = {
 
 function titleRowClass(layout: SubMenuServiceCardLayout, accent: string): string {
   if (layout === 'admin') {
-    return `text-base font-bold tracking-wider mb-2 ${accent}`
+    return `text-xs font-bold tracking-wider uppercase mb-1.5 ${accent}`
   }
-  return `text-xs font-bold uppercase tracking-wider mb-2 ${accent}`
+  return `text-[10px] font-bold uppercase tracking-wider mb-1.5 ${accent}`
 }
 
 function descriptionClass(layout: SubMenuServiceCardLayout): string {
@@ -33,9 +33,9 @@ function descriptionClass(layout: SubMenuServiceCardLayout): string {
     return 'text-sm text-slate-500 leading-relaxed whitespace-pre-wrap mt-2'
   }
   if (layout === 'portal') {
-    return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1 whitespace-pre-line'
+    return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1.5 whitespace-pre-line'
   }
-  return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1'
+  return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1.5'
 }
 
 /** Link 直下で useLinkStatus を使う（next/link のナビ待ちを検知） */
@@ -50,7 +50,8 @@ function SubMenuServiceCardInner({
 
   return (
     <>
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${variant.bar}`} />
+      {/* AIスロップ（サイドストライプ）を排除し、スマートな上部アクセントバーを採用。グループホバー時に太さが自然に変化するマイクロインタラクション */}
+      <div className={`absolute left-0 right-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5 ${variant.bar}`} />
 
       {pending ? (
         <div
@@ -58,21 +59,22 @@ function SubMenuServiceCardInner({
           aria-live="polite"
           aria-busy="true"
         >
-          <span className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+          <span className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm animate-fade-in">
             <Loader2 className="h-5 w-5 shrink-0 animate-spin text-slate-600" aria-hidden />
             処理中…
           </span>
         </div>
       ) : null}
 
-      <div className="p-5 pl-7 w-full flex flex-col h-full">
+      {/* 左右均等かつデバイスサイズに応じたレスポンシブパディング */}
+      <div className="p-5 sm:p-6 w-full flex flex-col h-full pt-7">
         {title ? (
           <div className={titleRowClass(layout, variant.text)}>{title}</div>
         ) : (
-          <div className="h-4 mb-2" />
+          <div className="h-4 mb-1.5" />
         )}
 
-        <h3 className={`text-lg font-bold text-slate-900 mb-2 transition-colors ${variant.hover}`}>
+        <h3 className={`text-base sm:text-lg font-bold text-slate-900 mb-1.5 transition-colors ${variant.hover}`}>
           {name}
         </h3>
 
@@ -80,8 +82,9 @@ function SubMenuServiceCardInner({
           <p className={descriptionClass(layout)}>{description}</p>
         ) : null}
 
-        <div className="mt-auto pt-4 flex justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-          <span className={`${variant.text}`}>→</span>
+        {/* ホバー時に美しくスライドして現れる右向きアロー */}
+        <div className="mt-auto pt-4 flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+          <ArrowRight className={`w-4 h-4 ${variant.text}`} />
         </div>
       </div>
     </>
@@ -94,8 +97,8 @@ export function SubMenuServiceCard({ href, variant, title, name, description, la
       href={href}
       className={`
         flex flex-col text-left group
-        bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300
-        border border-slate-100 hover:border-slate-200 hover:-translate-y-1
+        bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300
+        border border-slate-200/60 hover:border-slate-300 hover:-translate-y-0.5
         overflow-hidden relative h-full
       `}
     >

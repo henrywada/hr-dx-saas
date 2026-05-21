@@ -135,7 +135,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
           <span className="text-indigo-600 font-bold">{progressPercent}%</span>
         </div>
         <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700 ease-out" style={{ width: `${progressPercent}%` }} />
+          <div className="h-full bg-linear-to-r from-blue-500 to-indigo-500 transition-all duration-700 ease-out" style={{ width: `${progressPercent}%` }} />
         </div>
 
         {/* ステップインジケーター */}
@@ -148,7 +148,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
             return (
               <button key={cg.category} onClick={() => setCurrentStep(idx)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  isActive ? `bg-gradient-to-r ${config.gradient} text-white shadow-md`
+                  isActive ? `bg-linear-to-r ${config.gradient} text-white shadow-md`
                   : isDone ? `${config.bgLight} ${config.accent}` : 'bg-gray-100 text-gray-400'
                 }`}>
                 <Icon className="h-3.5 w-3.5" />
@@ -159,7 +159,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
           })}
           <button onClick={() => setCurrentStep(domainGroups.length)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-              currentStep === domainGroups.length ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-md'
+              currentStep === domainGroups.length ? 'bg-linear-to-r from-purple-500 to-violet-600 text-white shadow-md'
               : isAllAnswered ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-400'
             }`}>
             <CheckCircle2 className="h-3.5 w-3.5" />確認・送信
@@ -183,7 +183,7 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
         </button>
         {currentStep < totalSteps - 1 && (
           <button onClick={goNext} disabled={!isCurrentStepComplete}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md disabled:opacity-30 disabled:cursor-not-allowed">
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md disabled:opacity-30 disabled:cursor-not-allowed">
             次へ<ChevronRight className="h-4 w-4" />
           </button>
         )}
@@ -202,7 +202,7 @@ function CategoryQuestionsView({ categoryGroup, answers, onSelect }: {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-500">
-      <div className={`bg-gradient-to-r ${config.gradient} px-6 py-4`}>
+      <div className={`bg-linear-to-r ${config.gradient} px-6 py-4`}>
         <div className="flex items-center gap-3">
           <Icon className="h-6 w-6 text-white/90" />
           <div>
@@ -218,7 +218,7 @@ function CategoryQuestionsView({ categoryGroup, answers, onSelect }: {
             <div key={question.id} className={`px-6 py-5 transition-colors ${selectedScore !== undefined ? 'bg-gray-50/50' : ''}`}>
               <div className="flex items-start gap-3 mb-4">
                 <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  selectedScore !== undefined ? `bg-gradient-to-r ${config.gradient} text-white` : 'bg-gray-200 text-gray-500'
+                  selectedScore !== undefined ? `bg-linear-to-r ${config.gradient} text-white` : 'bg-gray-200 text-gray-500'
                 }`}>{question.question_no}</span>
                 <p className="text-sm font-medium text-gray-800 pt-0.5">{question.question_text}</p>
               </div>
@@ -259,7 +259,7 @@ function ConfirmationView({ domainGroups, answers, isAllAnswered, submitError, i
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl">
+        <div className="p-2.5 bg-linear-to-br from-purple-500 to-violet-600 rounded-xl">
           <CheckCircle2 className="h-6 w-6 text-white" />
         </div>
         <div>
@@ -300,7 +300,7 @@ function ConfirmationView({ domainGroups, answers, isAllAnswered, submitError, i
       )}
       <div className="flex justify-center pt-2">
         <button onClick={onSubmit} disabled={!isAllAnswered || isPending}
-          className="flex items-center gap-2 px-8 py-3 rounded-xl text-base font-bold bg-gradient-to-r from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700 shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          className="flex items-center gap-2 px-8 py-3 rounded-xl text-base font-bold bg-linear-to-r from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700 shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           {isPending ? (<><Loader2 className="h-5 w-5 animate-spin" />送信中...</>) : (<><CheckCircle2 className="h-5 w-5" />回答を送信する</>)}
         </button>
       </div>

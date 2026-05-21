@@ -2,15 +2,13 @@
 
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import { X, Pencil, Trash2, Check, X as XIcon } from 'lucide-react'
-import type { SkillRequirement, SkillLevel } from '../types'
+import { SKILL_ITEM_CATEGORIES, type SkillRequirement, type SkillLevel } from '../types'
 import {
   loadTenantSkillDetailAction,
   createSkillRequirement,
   updateSkillRequirement,
   deleteSkillRequirement,
 } from '../actions'
-
-const CATEGORIES = ['技術', '知識', '資格', '経験']
 
 type Props = {
   skillId: string
@@ -159,7 +157,7 @@ export function SkillRequirementsEditModal({ skillId, skillName, onClose }: Prop
                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-primary/40"
               >
                 <option value="">カテゴリ</option>
-                {CATEGORIES.map(c => (
+                {SKILL_ITEM_CATEGORIES.map(c => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -247,7 +245,7 @@ export function SkillRequirementsEditModal({ skillId, skillName, onClose }: Prop
                               className="w-full rounded border border-gray-300 px-1 py-1 text-xs outline-none"
                             >
                               <option value=""></option>
-                              {CATEGORIES.map(c => (
+                              {SKILL_ITEM_CATEGORIES.map(c => (
                                 <option key={c} value={c}>
                                   {c}
                                 </option>

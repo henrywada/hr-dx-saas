@@ -37,7 +37,11 @@ export function AddSkillRequirementModal({ skillId, skillName, onClose }: Props)
     startTransition(async () => {
       if (selectedSet.levels.length === 0) {
         // レベルなし：スキル名のみで1件登録
-        const res = await createSkillRequirement({ skillId, name: selectedSet.name })
+        const res = await createSkillRequirement({
+          skillId,
+          name: selectedSet.name,
+          category: selectedSet.category ?? undefined,
+        })
         if (!res.success) {
           setError('error' in res ? res.error : 'エラーが発生しました')
           return
@@ -48,6 +52,7 @@ export function AddSkillRequirementModal({ skillId, skillName, onClose }: Props)
           const res = await createSkillRequirement({
             skillId,
             name: selectedSet.name,
+            category: selectedSet.category ?? undefined,
             levelId: lv.id,
           })
           if (!res.success) {

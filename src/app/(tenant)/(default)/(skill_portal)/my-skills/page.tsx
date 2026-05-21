@@ -7,11 +7,15 @@ import {
   getEmployeeSkillAssignments,
   getEmployeeCareerGoals,
   getMappedCoursesForRequirements,
+  getSkillLevels,
 } from '@/features/skill-map/queries'
 import {
   getMyRoleApplications,
   getMyRequirementApplications,
   getMyApprovers,
+  getEmployeeSelfEvaluations,
+  getRecommendedCourses,
+  getSkillFeedbackComments,
 } from '@/features/skill-portal/queries'
 import { MySkillsView } from '@/features/skill-portal/components/MySkillsView'
 
@@ -51,6 +55,10 @@ export default async function MySkillsPage() {
     elAchievedIds,
     careerGoals,
     mappedCourses,
+    selfEvaluations,
+    recommendedCourses,
+    feedbackComments,
+    levels,
   ] = await Promise.all([
     getTenantSkillsWithRequirements(supabase),
     getEmployeeSkillAssignments(supabase, user.employee_id),
@@ -60,6 +68,10 @@ export default async function MySkillsPage() {
     getElAchievedRequirementIds(supabase, user.employee_id),
     getEmployeeCareerGoals(supabase, user.employee_id),
     getMappedCoursesForRequirements(supabase),
+    getEmployeeSelfEvaluations(supabase, user.employee_id),
+    getRecommendedCourses(supabase, user.employee_id),
+    getSkillFeedbackComments(supabase, user.employee_id),
+    getSkillLevels(supabase),
   ])
 
   return (
@@ -79,6 +91,10 @@ export default async function MySkillsPage() {
           employeeId={user.employee_id}
           initialCareerGoals={careerGoals}
           mappedCourses={mappedCourses}
+          selfEvaluations={selfEvaluations}
+          recommendedCourses={recommendedCourses}
+          feedbackComments={feedbackComments}
+          levels={levels}
         />
       </div>
     </div>

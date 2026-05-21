@@ -161,12 +161,28 @@ async function globalSkillLevelExists(supabase: any, levelId: string): Promise<b
 
 // ---- スキルレベルセット ----
 
-export async function createGlobalSkillLevelSet(input: { name: string }): Promise<ActionResult> {
+/** レベルセットの区分を global_skill_items に同期 */
+async function syncGlobalSkillItemsCategory(
+  supabase: any,
+  setId: string,
+  category: string | null
+) {
+  await (supabase as any)
+    .from('global_skill_items')
+    .update({ category })
+    .eq('skill_level_set_id', setId)
+}
+
+export async function createGlobalSkillLevelSet(input: {
+  name: string
+  category?: string
+}): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
   const supabase = await createClient()
   const { error } = await (supabase as any).from('global_skill_level_sets').insert({
     name: input.name.trim(),
+    category: input.category?.trim() || null,
     sort_order: 0,
   })
   if (error) return { success: false, error: error.message }
@@ -177,17 +193,23 @@ export async function createGlobalSkillLevelSet(input: { name: string }): Promis
 export async function updateGlobalSkillLevelSet(input: {
   id: string
   name: string
+  category?: string | null
 }): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
   const supabase = await createClient()
   const ok = await globalSkillLevelSetExists(supabase, input.id)
   if (!ok) return { success: false, error: 'スキルレベルセットが無効です' }
+  const updates: Record<string, unknown> = { name: input.name.trim() }
+  if ('category' in input) updates.category = input.category?.trim() || null
   const { error } = await (supabase as any)
     .from('global_skill_level_sets')
-    .update({ name: input.name.trim() })
+    .update(updates)
     .eq('id', input.id)
   if (error) return { success: false, error: error.message }
+  if ('category' in input) {
+    await syncGlobalSkillItemsCategory(supabase, input.id, input.category?.trim() || null)
+  }
   revalidatePath(TEMPLATES_PATH)
   return { success: true }
 }
@@ -198,24 +220,37 @@ export async function deleteGlobalSkillLevelSet(input: { id: string }): Promise<
   const supabase = await createClient()
   const ok = await globalSkillLevelSetExists(supabase, input.id)
   if (!ok) return { success: false, error: 'スキルレベルセットが無効です' }
-  const { count, error: cntErr } = await (supabase as any)
+
+  // 職種テンプレートから参照されている項目を先に削除（FK RESTRICT 回避）
+  const { data: linkedItems, error: itemsErr } = await (supabase as any)
     .from('global_skill_items')
-    .select('id', { count: 'exact', head: true })
+    .select('id, job_role_id')
     .eq('skill_level_set_id', input.id)
-  if (cntErr) return { success: false, error: cntErr.message }
-  if ((count ?? 0) > 0) {
-    return {
-      success: false,
-      error:
-        'このセットを参照しているスキル項目があるため削除できません。先に項目の割り当てを変更してください。',
-    }
+  if (itemsErr) return { success: false, error: itemsErr.message }
+
+  if (linkedItems?.length) {
+    const { error: delItemsErr } = await (supabase as any)
+      .from('global_skill_items')
+      .delete()
+      .eq('skill_level_set_id', input.id)
+    if (delItemsErr) return { success: false, error: delItemsErr.message }
   }
+
   const { error } = await (supabase as any)
     .from('global_skill_level_sets')
     .delete()
     .eq('id', input.id)
   if (error) return { success: false, error: error.message }
+
   revalidatePath(TEMPLATES_PATH)
+  const linkedJobRoleIds = [
+    ...new Set(
+      ((linkedItems ?? []) as Array<{ job_role_id: string }>).map(row => row.job_role_id)
+    ),
+  ]
+  for (const jobRoleId of linkedJobRoleIds) {
+    revalidatePath(APP_ROUTES.SAAS.SKILL_TEMPLATE_DETAIL(jobRoleId))
+  }
   return { success: true }
 }
 
@@ -236,10 +271,19 @@ export async function createGlobalSkillItem(input: {
       success: false,
       error: 'スキルレベルセットが無効です',
     }
+  let category = input.category?.trim() || null
+  if (!category) {
+    const { data: setRow } = await (supabase as any)
+      .from('global_skill_level_sets')
+      .select('category')
+      .eq('id', input.skillLevelSetId)
+      .maybeSingle()
+    category = setRow?.category ?? null
+  }
   const { error } = await (supabase as any).from('global_skill_items').insert({
     job_role_id: input.jobRoleId,
     name: input.name,
-    category: input.category ?? null,
+    category,
     skill_level_set_id: input.skillLevelSetId,
   })
   if (error) return { success: false, error: error.message }

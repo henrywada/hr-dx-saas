@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import type { SkillLevel, SkillRequirement } from '../types'
 import { createSkillRequirement, updateSkillRequirement } from '../actions'
+import { SKILL_ITEM_CATEGORIES } from '../types'
 
 type Props = {
   skillId: string
@@ -11,8 +12,6 @@ type Props = {
   editing?: SkillRequirement
   onClose: () => void
 }
-
-const CATEGORIES = ['技術', '知識', '資格', '経験']
 
 export function SkillRequirementModal({ skillId, skillName, levels, editing, onClose }: Props) {
   const [isPending, startTransition] = useTransition()
@@ -76,14 +75,14 @@ export function SkillRequirementModal({ skillId, skillName, levels, editing, onC
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1">カテゴリ</label>
+              <label className="text-xs font-medium text-gray-700 block mb-1">区分</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               >
                 <option value="">未選択</option>
-                {CATEGORIES.map(c => (
+                {SKILL_ITEM_CATEGORIES.map(c => (
                   <option key={c} value={c}>
                     {c}
                   </option>

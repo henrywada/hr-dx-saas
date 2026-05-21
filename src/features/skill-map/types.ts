@@ -1,5 +1,8 @@
 // src/features/skill-map/types.ts
 
+/** スキル項目・技能要件の区分 */
+export const SKILL_ITEM_CATEGORIES = ['スキル', '能力', '資格', '研修', 'その他'] as const
+
 export type TenantSkill = {
   id: string
   tenant_id: string
@@ -36,6 +39,7 @@ export type TenantSkillLevelSet = {
   id: string
   tenant_id: string
   name: string
+  category: string | null
   sort_order: number
   created_at: string
 }
@@ -49,7 +53,7 @@ export type SkillRequirement = {
   tenant_id: string
   skill_id: string
   name: string
-  category: string | null // '技術' | '知識' | '資格' | '経験'
+  category: string | null // スキル | 能力 | 資格 | 研修 | その他
   level_id: string | null
   criteria: string | null
   sort_order: number

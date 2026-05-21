@@ -733,6 +733,52 @@ export type Database = {
           },
         ]
       }
+      el_course_skill_level_mappings: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          skill_level_id: string
+          tenant_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          skill_level_id: string
+          tenant_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          skill_level_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_course_skill_level_mappings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_course_skill_level_mappings_skill_level_id_fkey"
+            columns: ["skill_level_id"]
+            isOneToOne: false
+            referencedRelation: "skill_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_course_skill_level_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       el_courses: {
         Row: {
           bloom_level: string | null
@@ -1042,6 +1088,58 @@ export type Database = {
           },
         ]
       }
+      employee_career_goals: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          target_date: string | null
+          target_skill_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          target_date?: string | null
+          target_skill_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          target_date?: string | null
+          target_skill_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_career_goals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_career_goals_target_skill_id_fkey"
+            columns: ["target_skill_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_career_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_qualifications: {
         Row: {
           acquired_date: string | null
@@ -1090,6 +1188,75 @@ export type Database = {
           },
           {
             foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_recommended_courses: {
+        Row: {
+          course_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          reason: string | null
+          recommender_id: string
+          requirement_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          reason?: string | null
+          recommender_id: string
+          requirement_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          reason?: string | null
+          recommender_id?: string
+          requirement_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_recommended_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_recommended_courses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_recommended_courses_recommender_id_fkey"
+            columns: ["recommender_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_recommended_courses_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "skill_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_recommended_courses_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1159,6 +1326,120 @@ export type Database = {
           },
         ]
       }
+      employee_skill_level_achievements: {
+        Row: {
+          achieved_at: string
+          course_id: string
+          employee_id: string
+          id: string
+          skill_level_id: string
+          tenant_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          course_id: string
+          employee_id: string
+          id?: string
+          skill_level_id: string
+          tenant_id: string
+        }
+        Update: {
+          achieved_at?: string
+          course_id?: string
+          employee_id?: string
+          id?: string
+          skill_level_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skill_level_achievements_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_level_achievements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_level_achievements_skill_level_id_fkey"
+            columns: ["skill_level_id"]
+            isOneToOne: false
+            referencedRelation: "skill_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_level_achievements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skill_requirement_history: {
+        Row: {
+          completed_requirements: number
+          completion_rate: number
+          created_at: string
+          employee_id: string
+          id: string
+          recorded_at: string
+          skill_id: string
+          tenant_id: string
+          total_requirements: number
+        }
+        Insert: {
+          completed_requirements?: number
+          completion_rate?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          recorded_at?: string
+          skill_id: string
+          tenant_id: string
+          total_requirements?: number
+        }
+        Update: {
+          completed_requirements?: number
+          completion_rate?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          recorded_at?: string
+          skill_id?: string
+          tenant_id?: string
+          total_requirements?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skill_requirement_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_requirement_history_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_requirement_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_skill_requirement_selections: {
         Row: {
           created_at: string
@@ -1198,6 +1479,68 @@ export type Database = {
           },
           {
             foreignKeyName: "employee_skill_requirement_selections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skill_self_evaluations: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          note: string | null
+          requirement_id: string
+          self_level_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          note?: string | null
+          requirement_id: string
+          self_level_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          note?: string | null
+          requirement_id?: string
+          self_level_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skill_self_evaluations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_self_evaluations_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "skill_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_self_evaluations_self_level_id_fkey"
+            columns: ["self_level_id"]
+            isOneToOne: false
+            referencedRelation: "skill_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skill_self_evaluations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1391,18 +1734,21 @@ export type Database = {
       }
       global_skill_level_sets: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           name: string
           sort_order: number
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -2200,6 +2546,54 @@ export type Database = {
           },
           {
             foreignKeyName: "program_targets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_simulations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_simulations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_simulations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3237,6 +3631,156 @@ export type Database = {
         }
         Relationships: []
       }
+      simulation_assigned_members: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          position_id: string
+          simulation_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          position_id: string
+          simulation_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          position_id?: string
+          simulation_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_assigned_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_assigned_members_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_assigned_members_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "project_simulations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_assigned_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_position_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          is_essential: boolean
+          position_id: string
+          requirement_id: string
+          tenant_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_essential?: boolean
+          position_id: string
+          requirement_id: string
+          tenant_id: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_essential?: boolean
+          position_id?: string
+          requirement_id?: string
+          tenant_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_position_requirements_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_position_requirements_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "skill_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_position_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_positions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          simulation_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          simulation_id: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          simulation_id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_positions_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "project_simulations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_approvers: {
         Row: {
           approver_id: string
@@ -3283,32 +3827,100 @@ export type Database = {
           },
         ]
       }
+      skill_feedback_comments: {
+        Row: {
+          category: string
+          comment: string
+          created_at: string
+          id: string
+          receiver_employee_id: string
+          related_id: string | null
+          sender_employee_id: string
+          tenant_id: string
+        }
+        Insert: {
+          category: string
+          comment: string
+          created_at?: string
+          id?: string
+          receiver_employee_id: string
+          related_id?: string | null
+          sender_employee_id: string
+          tenant_id: string
+        }
+        Update: {
+          category?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          receiver_employee_id?: string
+          related_id?: string | null
+          sender_employee_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_feedback_comments_receiver_employee_id_fkey"
+            columns: ["receiver_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_feedback_comments_sender_employee_id_fkey"
+            columns: ["sender_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_feedback_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_levels: {
         Row: {
           color_hex: string
           created_at: string
+          criteria: string | null
           id: string
           name: string
+          skill_level_set_id: string | null
           sort_order: number
           tenant_id: string
         }
         Insert: {
           color_hex?: string
           created_at?: string
+          criteria?: string | null
           id?: string
           name: string
+          skill_level_set_id?: string | null
           sort_order?: number
           tenant_id: string
         }
         Update: {
           color_hex?: string
           created_at?: string
+          criteria?: string | null
           id?: string
           name?: string
+          skill_level_set_id?: string | null
           sort_order?: number
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "skill_levels_skill_level_set_id_fkey"
+            columns: ["skill_level_set_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_skill_level_sets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "skill_levels_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -5010,6 +5622,41 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_service_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_skill_level_sets: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_skill_level_sets_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

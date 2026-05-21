@@ -46,7 +46,7 @@ export function GlobalSkillLevelSetModal({ open, onOpenChange }: Props) {
             スキル・レベル登録
           </DialogTitle>
           <DialogPrimitive.Description className="mt-1 text-sm leading-snug text-white/90">
-            スキルレベルセット名をキーに、セット内のレベルとコメントを登録・編集します。変更は保存後すぐにテナント側の取り込みに反映されます。職種との紐付けは行いません。
+            スキルレベルセット名をキーに、セット内のレベルとコメントを登録・編集します。
           </DialogPrimitive.Description>
         </DialogHeader>
 

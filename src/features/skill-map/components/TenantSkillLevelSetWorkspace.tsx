@@ -2,7 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { Fragment, useMemo, useState, useTransition } from 'react'
-import type { SkillLevelWithMappings, TenantSkillLevelSetWithMappings } from '../types'
+import {
+  SKILL_ITEM_CATEGORIES,
+  type SkillLevelWithMappings,
+  type TenantSkillLevelSetWithMappings,
+} from '../types'
 import {
   createTenantSkillLevelSet,
   updateTenantSkillLevelSet,
@@ -51,10 +55,12 @@ export function TenantSkillLevelSetWorkspace({
   )
 
   const [newSetName, setNewSetName] = useState('')
+  const [newSetCategory, setNewSetCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const [editSetId, setEditSetId] = useState<string | null>(null)
   const [editSetName, setEditSetName] = useState('')
+  const [editSetCategory, setEditSetCategory] = useState('')
 
   const [addingForSetId, setAddingForSetId] = useState<string | null>(null)
   const [newLvName, setNewLvName] = useState('')
@@ -151,12 +157,16 @@ export function TenantSkillLevelSetWorkspace({
   function handleRegisterSet() {
     if (!newSetName.trim()) return
     startTransition(async () => {
-      const res = await createTenantSkillLevelSet({ name: newSetName.trim() })
+      const res = await createTenantSkillLevelSet({
+        name: newSetName.trim(),
+        category: newSetCategory || undefined,
+      })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
         return
       }
       setNewSetName('')
+      setNewSetCategory('')
       setError(null)
       onMutationSuccess?.()
       router.refresh()
@@ -166,7 +176,11 @@ export function TenantSkillLevelSetWorkspace({
   function handleSaveSetName() {
     if (!editSetId || !editSetName.trim()) return
     startTransition(async () => {
-      const res = await updateTenantSkillLevelSet({ id: editSetId, name: editSetName.trim() })
+      const res = await updateTenantSkillLevelSet({
+        id: editSetId,
+        name: editSetName.trim(),
+        category: editSetCategory || null,
+      })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
         return
@@ -382,6 +396,27 @@ export function TenantSkillLevelSetWorkspace({
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
             />
           </div>
+          <div className="w-full sm:w-36 shrink-0">
+            <label
+              htmlFor="new-tenant-level-set-category"
+              className="text-xs font-semibold text-gray-700"
+            >
+              区分
+            </label>
+            <select
+              id="new-tenant-level-set-category"
+              value={newSetCategory}
+              onChange={e => setNewSetCategory(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+            >
+              <option value="">—</option>
+              {SKILL_ITEM_CATEGORIES.map(c => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             disabled={isPending || !newSetName.trim()}
@@ -400,6 +435,9 @@ export function TenantSkillLevelSetWorkspace({
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                     スキル名
                   </th>
+                  <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800 whitespace-nowrap">
+                    区分
+                  </th>
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                     レベル
                   </th>
@@ -417,7 +455,7 @@ export function TenantSkillLevelSetWorkspace({
               <tbody>
                 {sortedSets.length === 0 && sortedStandalone.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+                    <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                       データがありません。テンプレートよりコピーするか、スキル名を登録してください。
                     </td>
                   </tr>
@@ -470,6 +508,24 @@ export function TenantSkillLevelSetWorkspace({
                                 </div>
                               )}
                             </td>
+                            <td className="px-3 py-2 align-top">
+                              {editSetId === set.id ? (
+                                <select
+                                  value={editSetCategory}
+                                  onChange={e => setEditSetCategory(e.target.value)}
+                                  className="w-full min-w-[88px] rounded border border-gray-300 px-2 py-1 text-sm"
+                                >
+                                  <option value="">—</option>
+                                  {SKILL_ITEM_CATEGORIES.map(c => (
+                                    <option key={c} value={c}>
+                                      {c}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-gray-700">{set.category ?? '—'}</span>
+                              )}
+                            </td>
                             <td className="px-3 py-2 align-top text-gray-400">—</td>
                             <td className="px-3 py-2 align-top text-gray-400">—</td>
                             <td className="px-3 py-2 text-center align-top">
@@ -479,6 +535,7 @@ export function TenantSkillLevelSetWorkspace({
                                   onClick={() => {
                                     setEditSetId(set.id)
                                     setEditSetName(set.name)
+                                    setEditSetCategory(set.category ?? '')
                                     setError(null)
                                   }}
                                   className="text-xs font-medium text-primary hover:underline"
@@ -501,6 +558,7 @@ export function TenantSkillLevelSetWorkspace({
 
                           {addingForSetId === set.id && (
                             <tr className="border-b border-gray-100 bg-blue-50/40">
+                              <td className="px-3 py-2" />
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2 align-top">
                                 <input
@@ -553,6 +611,7 @@ export function TenantSkillLevelSetWorkspace({
 
                           {levels.map(lv => (
                             <tr key={lv.id} className="border-b border-gray-100">
+                              <td className="px-3 py-2" />
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2 align-top">
                                 {editLvId === lv.id ? (

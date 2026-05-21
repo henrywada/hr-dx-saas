@@ -104,6 +104,24 @@ export async function managerApproveRoleApplication(
   if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
+  const { data: app } = await (supabase as any)
+    .from('skill_role_applications')
+    .select('employee_id, skill_id, tenant_id')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (!app) return { success: false, error: '対象の申請が見つかりません' }
+  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+
+  // 承認関係の検証
+  const { data: approverCheck } = await (supabase as any)
+    .from('skill_approvers')
+    .select('id')
+    .eq('approver_id', user.employee_id)
+    .eq('employee_id', app.employee_id)
+    .maybeSingle()
+  if (!approverCheck) return { success: false, error: 'この従業員の承認権限がありません' }
+
   const { error } = await (supabase as any)
     .from('skill_role_applications')
     .update({
@@ -117,6 +135,21 @@ export async function managerApproveRoleApplication(
     .eq('status', 'pending_manager')
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
+
+  if (comment) {
+    const { error: fbErr } = await (supabase as any).from('skill_feedback_comments').insert({
+      tenant_id: user.tenant_id,
+      sender_employee_id: user.employee_id,
+      receiver_employee_id: app.employee_id,
+      category: 'skill_approval',
+      related_id: app.skill_id,
+      comment: comment,
+    })
+    if (fbErr) {
+      console.error('フィードバックコメントの保存に失敗:', fbErr.message)
+    }
+  }
+
   revalidatePath(SKILL_APPROVALS_PATH)
   revalidatePath(ADMIN_APPLICATIONS_PATH)
   return { success: true }
@@ -132,6 +165,24 @@ export async function managerRejectRoleApplication(
   if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
+  const { data: app } = await (supabase as any)
+    .from('skill_role_applications')
+    .select('employee_id, skill_id, tenant_id')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (!app) return { success: false, error: '対象の申請が見つかりません' }
+  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+
+  // 承認関係の検証
+  const { data: approverCheck } = await (supabase as any)
+    .from('skill_approvers')
+    .select('id')
+    .eq('approver_id', user.employee_id)
+    .eq('employee_id', app.employee_id)
+    .maybeSingle()
+  if (!approverCheck) return { success: false, error: 'この従業員の承認権限がありません' }
+
   const { error } = await (supabase as any)
     .from('skill_role_applications')
     .update({
@@ -145,6 +196,21 @@ export async function managerRejectRoleApplication(
     .eq('status', 'pending_manager')
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
+
+  if (comment) {
+    const { error: fbErr } = await (supabase as any).from('skill_feedback_comments').insert({
+      tenant_id: user.tenant_id,
+      sender_employee_id: user.employee_id,
+      receiver_employee_id: app.employee_id,
+      category: 'skill_approval',
+      related_id: app.skill_id,
+      comment: comment,
+    })
+    if (fbErr) {
+      console.error('フィードバックコメントの保存に失敗:', fbErr.message)
+    }
+  }
+
   revalidatePath(SKILL_APPROVALS_PATH)
   revalidatePath(MY_SKILLS_PATH)
   return { success: true }
@@ -160,6 +226,24 @@ export async function managerApproveRequirementApplication(
   if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
+  const { data: app } = await (supabase as any)
+    .from('skill_requirement_applications')
+    .select('employee_id, requirement_id, tenant_id')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (!app) return { success: false, error: '対象の申請が見つかりません' }
+  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+
+  // 承認関係の検証
+  const { data: approverCheck } = await (supabase as any)
+    .from('skill_approvers')
+    .select('id')
+    .eq('approver_id', user.employee_id)
+    .eq('employee_id', app.employee_id)
+    .maybeSingle()
+  if (!approverCheck) return { success: false, error: 'この従業員の承認権限がありません' }
+
   const { error } = await (supabase as any)
     .from('skill_requirement_applications')
     .update({
@@ -173,6 +257,21 @@ export async function managerApproveRequirementApplication(
     .eq('status', 'pending_manager')
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
+
+  if (comment) {
+    const { error: fbErr } = await (supabase as any).from('skill_feedback_comments').insert({
+      tenant_id: user.tenant_id,
+      sender_employee_id: user.employee_id,
+      receiver_employee_id: app.employee_id,
+      category: 'skill_approval',
+      related_id: app.requirement_id,
+      comment: comment,
+    })
+    if (fbErr) {
+      console.error('フィードバックコメントの保存に失敗:', fbErr.message)
+    }
+  }
+
   revalidatePath(SKILL_APPROVALS_PATH)
   revalidatePath(ADMIN_APPLICATIONS_PATH)
   return { success: true }
@@ -188,6 +287,24 @@ export async function managerRejectRequirementApplication(
   if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
+  const { data: app } = await (supabase as any)
+    .from('skill_requirement_applications')
+    .select('employee_id, requirement_id, tenant_id')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (!app) return { success: false, error: '対象の申請が見つかりません' }
+  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+
+  // 承認関係の検証
+  const { data: approverCheck } = await (supabase as any)
+    .from('skill_approvers')
+    .select('id')
+    .eq('approver_id', user.employee_id)
+    .eq('employee_id', app.employee_id)
+    .maybeSingle()
+  if (!approverCheck) return { success: false, error: 'この従業員の承認権限がありません' }
+
   const { error } = await (supabase as any)
     .from('skill_requirement_applications')
     .update({
@@ -201,6 +318,21 @@ export async function managerRejectRequirementApplication(
     .eq('status', 'pending_manager')
     .eq('tenant_id', user.tenant_id)
   if (error) return { success: false, error: error.message }
+
+  if (comment) {
+    const { error: fbErr } = await (supabase as any).from('skill_feedback_comments').insert({
+      tenant_id: user.tenant_id,
+      sender_employee_id: user.employee_id,
+      receiver_employee_id: app.employee_id,
+      category: 'skill_approval',
+      related_id: app.requirement_id,
+      comment: comment,
+    })
+    if (fbErr) {
+      console.error('フィードバックコメントの保存に失敗:', fbErr.message)
+    }
+  }
+
   revalidatePath(SKILL_APPROVALS_PATH)
   revalidatePath(MY_SKILLS_PATH)
   return { success: true }
@@ -398,3 +530,109 @@ export async function removeSkillApprover(id: string): Promise<ActionResult> {
   revalidatePath(ADMIN_APPROVERS_PATH)
   return { success: true }
 }
+
+// ---- 従業員: 自己評価保存 ----
+
+export async function saveEmployeeSelfEvaluation(input: {
+  requirementId: string
+  selfLevelId: string | null
+  note?: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from('employee_skill_self_evaluations')
+    .upsert({
+      tenant_id: user.tenant_id,
+      employee_id: user.employee_id,
+      requirement_id: input.requirementId,
+      self_level_id: input.selfLevelId || null,
+      note: input.note ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'employee_id,requirement_id' })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(MY_SKILLS_PATH)
+  return { success: true }
+}
+
+// ---- 上長: コース推奨 ----
+
+export async function recommendCourse(input: {
+  employeeId: string
+  courseId: string
+  requirementId?: string
+  reason?: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+
+  // 承認関係の検証
+  const { data: approverCheck } = await (supabase as any)
+    .from('skill_approvers')
+    .select('id')
+    .eq('approver_id', user.employee_id)
+    .eq('employee_id', input.employeeId)
+    .maybeSingle()
+  if (!approverCheck) return { success: false, error: 'この従業員への推奨権限がありません' }
+
+  const { error } = await (supabase as any)
+    .from('employee_recommended_courses')
+    .upsert({
+      tenant_id: user.tenant_id,
+      recommender_id: user.employee_id,
+      employee_id: input.employeeId,
+      course_id: input.courseId,
+      requirement_id: input.requirementId || null,
+      reason: input.reason ?? null,
+    }, { onConflict: 'employee_id,course_id' })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(MY_SKILLS_PATH)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_SKILL_MAP)
+  return { success: true }
+}
+
+// ---- 一般・上長: 応援・フィードバックコメント追加 ----
+
+export async function addSkillFeedbackComment(input: {
+  receiverEmployeeId: string
+  category: 'skill_approval' | '1on1' | 'career_goal'
+  relatedId?: string
+  comment: string
+}): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
+  const supabase = await createClient()
+
+  // 承認関係の検証 (career_goal以外のフィードバックの場合は承認者であることを確認)
+  if (input.category !== 'career_goal') {
+    const { data: approverCheck } = await (supabase as any)
+      .from('skill_approvers')
+      .select('id')
+      .eq('approver_id', user.employee_id)
+      .eq('employee_id', input.receiverEmployeeId)
+      .maybeSingle()
+    if (!approverCheck) return { success: false, error: 'この従業員へのフィードバック送信権限がありません' }
+  }
+
+  const { error } = await (supabase as any)
+    .from('skill_feedback_comments')
+    .insert({
+      tenant_id: user.tenant_id,
+      sender_employee_id: user.employee_id,
+      receiver_employee_id: input.receiverEmployeeId,
+      category: input.category,
+      related_id: input.relatedId || null,
+      comment: input.comment,
+    })
+
+  if (error) return { success: false, error: error.message }
+  revalidatePath(MY_SKILLS_PATH)
+  revalidatePath(SKILL_APPROVALS_PATH)
+  return { success: true }
+}
+

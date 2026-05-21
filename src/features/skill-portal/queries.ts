@@ -137,3 +137,60 @@ export async function getMyApprovers(
   if (error) throw error
   return data ?? []
 }
+
+/** 従業員の自己評価一覧 */
+export async function getEmployeeSelfEvaluations(
+  supabase: DB,
+  employeeId: string
+): Promise<Array<{ requirement_id: string; self_level_id: string | null; note: string | null }>> {
+  const { data, error } = await (supabase as any)
+    .from('employee_skill_self_evaluations')
+    .select('requirement_id, self_level_id, note')
+    .eq('employee_id', employeeId)
+  if (error) throw error
+  return data ?? []
+}
+
+/** 従業員へのおすすめコース一覧 */
+export async function getRecommendedCourses(
+  supabase: DB,
+  employeeId: string
+): Promise<Array<{
+  id: string
+  course_id: string
+  recommender_id: string
+  recommender: { id: string; name: string | null } | null
+  course: { id: string; title: string } | null
+  requirement_id: string | null
+  reason: string | null
+}>> {
+  const { data, error } = await (supabase as any)
+    .from('employee_recommended_courses')
+    .select('id, course_id, recommender_id, reason, requirement_id, recommender:employees!employee_recommended_courses_recommender_id_fkey(id, name), course:el_courses(id, title)')
+    .eq('employee_id', employeeId)
+  if (error) throw error
+  return data ?? []
+}
+
+/** 従業員へのフィードバックコメント一覧 */
+export async function getSkillFeedbackComments(
+  supabase: DB,
+  employeeId: string
+): Promise<Array<{
+  id: string
+  sender_employee_id: string
+  sender: { id: string; name: string | null } | null
+  category: string
+  related_id: string | null
+  comment: string
+  created_at: string
+}>> {
+  const { data, error } = await (supabase as any)
+    .from('skill_feedback_comments')
+    .select('id, sender_employee_id, category, related_id, comment, created_at, sender:employees!skill_feedback_comments_sender_employee_id_fkey(id, name)')
+    .eq('receiver_employee_id', employeeId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+

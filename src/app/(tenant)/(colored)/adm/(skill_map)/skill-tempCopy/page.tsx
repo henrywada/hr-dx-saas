@@ -81,7 +81,7 @@ export default async function SkillTempCopyPage() {
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-[1.35rem] font-bold leading-snug tracking-tight text-transparent sm:text-[1.65rem]">
-                  スキルの管理
+                  スキル・能力の管理
                 </h1>
                 <p className="mt-1 text-xs text-gray-600">
                   自社のスキル（職種・スキル要件・レベル）を管理します。テンプレートからコピーして編集できます。

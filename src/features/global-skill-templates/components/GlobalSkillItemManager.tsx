@@ -4,9 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import type { GlobalSkillItem, GlobalSkillLevelSetWithLevels } from '../types'
 import { createGlobalSkillItem, updateGlobalSkillItem, deleteGlobalSkillItem } from '../actions'
-import { globalTemplateActionError } from '../types'
-
-const CATEGORIES = ['技術', '知識', '資格', '経験'] as const
+import { globalTemplateActionError, SKILL_ITEM_CATEGORIES } from '../types'
 
 type Props = {
   jobRoleId: string
@@ -127,8 +125,8 @@ export function GlobalSkillItemManager({
           onChange={e => setNewCategory(e.target.value)}
           className="border border-gray-300 rounded px-2 py-1.5 text-sm"
         >
-          <option value="">カテゴリ（任意）</option>
-          {CATEGORIES.map(c => (
+          <option value="">区分（任意）</option>
+          {SKILL_ITEM_CATEGORIES.map(c => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -196,7 +194,7 @@ export function GlobalSkillItemManager({
                           className="border border-gray-300 rounded px-2 py-1 text-sm"
                         >
                           <option value="">—</option>
-                          {CATEGORIES.map(c => (
+                          {SKILL_ITEM_CATEGORIES.map(c => (
                             <option key={c} value={c}>
                               {c}
                             </option>

@@ -28,11 +28,14 @@ import type { SkillRoleApplication, SkillRequirementApplication } from '../types
 import type {
   TenantSkillWithRequirements,
   EmployeeSkillAssignment,
+  SkillLevel,
 } from '@/features/skill-map/types'
 import { APPLICATION_STATUS_LABEL } from '../types'
 import { ApplyRoleModal } from './ApplyRoleModal'
 import { ApplyRequirementModal } from './ApplyRequirementModal'
 import { saveEmployeeCareerGoal } from '@/features/skill-map/actions'
+import { saveEmployeeSelfEvaluation } from '@/features/skill-portal/actions'
+import { APP_ROUTES } from '@/config/routes'
 
 type Props = {
   skills: TenantSkillWithRequirements[]
@@ -44,6 +47,26 @@ type Props = {
   employeeId: string
   initialCareerGoals: any[]
   mappedCourses: Array<{ course_id: string; course_title: string; requirement_id: string }>
+  selfEvaluations: Array<{ requirement_id: string; self_level_id: string | null; note: string | null }>
+  recommendedCourses: Array<{
+    id: string
+    course_id: string
+    recommender_id: string
+    recommender: { id: string; name: string | null } | null
+    course: { id: string; title: string } | null
+    requirement_id: string | null
+    reason: string | null
+  }>
+  feedbackComments: Array<{
+    id: string
+    sender_employee_id: string
+    sender: { id: string; name: string | null } | null
+    category: string
+    related_id: string | null
+    comment: string
+    created_at: string
+  }>
+  levels: SkillLevel[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -63,10 +86,22 @@ export function MySkillsView({
   employeeId,
   initialCareerGoals,
   mappedCourses,
+  selfEvaluations,
+  recommendedCourses,
+  feedbackComments,
+  levels,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'skills' | 'career'>('skills')
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [applyReqId, setApplyReqId] = useState<string | null>(null)
+
+  // 自己評価の管理
+  const [selfEvalList, setSelfEvaluations] = useState(selfEvaluations)
+  const [editingSelfEvalReqId, setEditingSelfEvalReqId] = useState<string | null>(null)
+  const [tempSelfLevelId, setTempSelfLevelId] = useState<string>('')
+  const [tempSelfNote, setTempSelfNote] = useState<string>('')
+
+  const selfEvalByReqId = useMemo(() => new Map(selfEvalList.map(e => [e.requirement_id, e])), [selfEvalList])
 
   // キャリア目標の管理
   const [careerGoals, setCareerGoals] = useState<any[]>(initialCareerGoals)
@@ -89,6 +124,34 @@ export function MySkillsView({
       elAchievedRequirementIds.has(reqId) ||
       reqAppByReqId.get(reqId)?.status === 'approved'
     )
+  }
+
+  // 自己評価の保存処理
+  const handleSaveSelfEval = async (reqId: string) => {
+    startTransition(async () => {
+      const res = await saveEmployeeSelfEvaluation({
+        requirementId: reqId,
+        selfLevelId: tempSelfLevelId || null,
+        note: tempSelfNote || null,
+      })
+
+      if (res.success) {
+        setSelfEvaluations(prev => {
+          const index = prev.findIndex(e => e.requirement_id === reqId)
+          if (index >= 0) {
+            const updated = [...prev]
+            updated[index] = { requirement_id: reqId, self_level_id: tempSelfLevelId || null, note: tempSelfNote || null }
+            return updated
+          } else {
+            return [...prev, { requirement_id: reqId, self_level_id: tempSelfLevelId || null, note: tempSelfNote || null }]
+          }
+        })
+        setEditingSelfEvalReqId(null)
+        alert('自己評価を保存しました！')
+      } else {
+        alert('自己評価の保存に失敗しました: ' + (res as any).error)
+      }
+    })
   }
 
   // 目標職種の保存処理
@@ -127,26 +190,30 @@ export function MySkillsView({
     if (!targetSkillDetail || targetSkillDetail.requirements.length === 0) return []
 
     // カテゴリごとに集計
-    const categoryStats: Record<string, { total: number; achieved: number }> = {}
+    const categoryStats: Record<string, { total: number; achieved: number; self: number }> = {}
 
     for (const req of targetSkillDetail.requirements) {
       const cat = req.category || '全般・共通'
       if (!categoryStats[cat]) {
-        categoryStats[cat] = { total: 0, achieved: 0 }
+        categoryStats[cat] = { total: 0, achieved: 0, self: 0 }
       }
       categoryStats[cat].total++
       if (isRequirementAchieved(req.id)) {
         categoryStats[cat].achieved++
+      }
+      if (selfEvalByReqId.get(req.id)?.self_level_id) {
+        categoryStats[cat].self++
       }
     }
 
     return Object.entries(categoryStats).map(([category, stats]) => ({
       subject: category,
       '現在の達成要件数': stats.achieved,
+      '自己評価要件数': stats.self,
       '目標職種に必要な総要件数': stats.total,
       fullMark: stats.total,
     }))
-  }, [targetSkillDetail, elAchievedRequirementIds, requirementApplications])
+  }, [targetSkillDetail, elAchievedRequirementIds, requirementApplications, selfEvalList])
 
   // 不足しているスキル要件 ＆ 紐づくeラーニングのレコメンド抽出
   const missingRequirementsWithRecommendations = useMemo(() => {
@@ -266,56 +333,152 @@ export function MySkillsView({
                           {skill.requirements.map(req => {
                             const app = reqAppByReqId.get(req.id)
                             const isAchieved = isRequirementAchieved(req.id)
+                            const selfEval = selfEvalByReqId.get(req.id)
+                            const isEditingSelfEval = editingSelfEvalReqId === req.id
                             return (
-                              <li key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-2">
-                                <div className="min-w-0 flex items-start gap-2.5">
-                                  {isAchieved ? (
-                                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0 mt-0.5" />
-                                  ) : (
-                                    <div className="w-4.5 h-4.5 rounded-full border-2 border-gray-200 shrink-0 mt-0.5 bg-gray-50/50" />
-                                  )}
-                                  <div className="min-w-0">
-                                    <span className={`text-sm ${isAchieved ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
-                                      {req.name}
-                                    </span>
-                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                      {req.level?.name && (
-                                        <span className="text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-medium">
-                                          レベル: {req.level.name}
-                                        </span>
-                                      )}
-                                      {req.category && (
-                                        <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded font-medium">
-                                          {req.category}
-                                        </span>
-                                      )}
+                              <li key={req.id} className="flex flex-col py-3 gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
+                                  <div className="min-w-0 flex items-start gap-2.5">
+                                    {isAchieved ? (
+                                      <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0 mt-0.5" />
+                                    ) : (
+                                      <div className="w-4.5 h-4.5 rounded-full border-2 border-gray-200 shrink-0 mt-0.5 bg-gray-50/50" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <span className={`text-sm ${isAchieved ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
+                                        {req.name}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        {req.level?.name && (
+                                          <span className="text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-medium">
+                                            レベル: {req.level.name}
+                                          </span>
+                                        )}
+                                        {req.category && (
+                                          <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded font-medium">
+                                            {req.category}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
+                                  <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-center">
+                                    {elAchievedRequirementIds.has(req.id) && (
+                                      <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 text-[9px] font-bold">
+                                        eラーニング修了
+                                      </span>
+                                    )}
+                                    {app ? (
+                                      <span
+                                        className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${STATUS_COLORS[app.status] ?? ''}`}
+                                      >
+                                        {APPLICATION_STATUS_LABEL[app.status]}
+                                      </span>
+                                    ) : (
+                                      !isAchieved && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setApplyReqId(req.id)}
+                                          className="text-xs text-primary font-bold hover:underline py-1 px-2.5 rounded-md hover:bg-primary/5 transition-colors"
+                                        >
+                                          達成申請する
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-center">
-                                  {elAchievedRequirementIds.has(req.id) && (
-                                    <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 text-[9px] font-bold">
-                                      eラーニング修了
-                                    </span>
-                                  )}
-                                  {app ? (
-                                    <span
-                                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${STATUS_COLORS[app.status] ?? ''}`}
-                                    >
-                                      {APPLICATION_STATUS_LABEL[app.status]}
-                                    </span>
-                                  ) : (
-                                    !isAchieved && (
+
+                                {/* 自己評価の表示および入力フォーム */}
+                                {isEditingSelfEval ? (
+                                  <div className="mt-2 ml-7 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-2.5">
+                                    <p className="font-bold text-slate-700">自己評価を入力</p>
+                                    <div className="space-y-1">
+                                      <label className="text-slate-500 font-medium">自己認識レベル：</label>
+                                      <select
+                                        value={tempSelfLevelId}
+                                        onChange={e => setTempSelfLevelId(e.target.value)}
+                                        className="w-full p-2 border border-slate-200 rounded bg-white text-xs"
+                                      >
+                                        <option value="">-- レベルを選択 --</option>
+                                        {levels.map(lvl => (
+                                          <option key={lvl.id} value={lvl.id}>
+                                            {lvl.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-slate-500 font-medium">自己評価コメント（実績や理由）：</label>
+                                      <textarea
+                                        value={tempSelfNote}
+                                        onChange={e => setTempSelfNote(e.target.value)}
+                                        placeholder="この技能に対する自己評価の理由を簡潔に記入してください"
+                                        rows={2}
+                                        className="w-full p-2 border border-slate-200 rounded bg-white text-xs"
+                                      />
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-1">
                                       <button
                                         type="button"
-                                        onClick={() => setApplyReqId(req.id)}
-                                        className="text-xs text-primary font-bold hover:underline py-1 px-2.5 rounded-md hover:bg-primary/5 transition-colors"
+                                        onClick={() => setEditingSelfEvalReqId(null)}
+                                        className="px-2.5 py-1.5 border border-slate-300 rounded text-slate-600 font-medium hover:bg-slate-100"
                                       >
-                                        達成申請する
+                                        キャンセル
                                       </button>
-                                    )
-                                  )}
-                                </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveSelfEval(req.id)}
+                                        disabled={isPending}
+                                        className="px-2.5 py-1.5 bg-primary text-white rounded font-medium hover:bg-primary/90 disabled:opacity-50"
+                                      >
+                                        {isPending ? '保存中...' : '保存'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="ml-7 flex flex-col gap-1">
+                                    {selfEval?.self_level_id ? (
+                                      <div className="p-2 bg-emerald-50/50 rounded border border-emerald-100 text-[11px] text-emerald-800 flex flex-col sm:flex-row sm:items-start justify-between gap-1">
+                                        <div className="min-w-0 text-left">
+                                          <span className="font-bold mr-1.5 shrink-0">[自己評価]</span>
+                                          <span className="font-bold bg-emerald-100 text-emerald-800 px-1 rounded mr-2 text-[10px] inline-block shrink-0">
+                                            {levels.find(l => l.id === selfEval.self_level_id)?.name || '評価済'}
+                                          </span>
+                                          {selfEval.note && (
+                                            <span className="text-gray-600 font-normal italic">
+                                              "{selfEval.note}"
+                                            </span>
+                                          )}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingSelfEvalReqId(req.id)
+                                            setTempSelfLevelId(selfEval.self_level_id || '')
+                                            setTempSelfNote(selfEval.note || '')
+                                          }}
+                                          className="text-[10px] text-emerald-600 hover:underline font-bold shrink-0 self-start sm:self-center"
+                                        >
+                                          編集する
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex justify-start">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingSelfEvalReqId(req.id)
+                                            setTempSelfLevelId('')
+                                            setTempSelfNote('')
+                                          }}
+                                          className="text-[10px] text-gray-500 hover:text-primary hover:underline font-medium flex items-center gap-1"
+                                        >
+                                          ✎ 自己評価を入力する
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </li>
                             )
                           })}
@@ -326,6 +489,89 @@ export function MySkillsView({
                 })}
               </div>
             )}
+          </section>
+
+          {/* 上司からの学習推薦 ＆ 応援フィードバック */}
+          <section className="space-y-4">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+              <Compass className="w-4.5 h-4.5 text-blue-600" />
+              上司からの学習支援 ＆ フィードバックボード
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 上司からの推奨コース */}
+              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold text-gray-800 flex items-center gap-1.5 border-b border-gray-100 pb-3">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  上司からの推奨eラーニング
+                </h3>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {recommendedCourses.length === 0 ? (
+                    <p className="text-center text-xs text-gray-400 py-12 italic">
+                      現在、上司からの推奨学習コンテンツはありません。
+                    </p>
+                  ) : (
+                    recommendedCourses.map(rec => (
+                      <div key={rec.id} className="p-3 bg-blue-50/40 rounded-lg border border-blue-100/60 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-blue-900 bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px]">
+                            推奨
+                          </span>
+                          <span className="text-[10px] text-gray-500">
+                            推奨者: {rec.recommender?.name || '上司'}
+                          </span>
+                        </div>
+                        <p className="font-bold text-gray-800 text-sm mt-1">{rec.course?.title || '推奨コース'}</p>
+                        {rec.reason && (
+                          <p className="text-gray-600 mt-1 pl-2 border-l-2 border-blue-200 italic">
+                            "{rec.reason}"
+                          </p>
+                        )}
+                        <div className="flex justify-end pt-1">
+                          <a
+                            href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(rec.course_id)}
+                            className="inline-flex items-center gap-1 bg-blue-600 text-white px-2.5 py-1 rounded text-[10px] font-semibold hover:bg-blue-700 transition-colors"
+                          >
+                            受講する <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* 応援フィードバックメッセージ */}
+              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold text-gray-800 flex items-center gap-1.5 border-b border-gray-100 pb-3">
+                  <Compass className="w-4 h-4 text-emerald-600" />
+                  上司からのフィードバック・アドバイス
+                </h3>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {feedbackComments.length === 0 ? (
+                    <p className="text-center text-xs text-gray-400 py-12 italic">
+                      現在、メッセージやアドバイスはありません。
+                    </p>
+                  ) : (
+                    feedbackComments.map(comment => (
+                      <div key={comment.id} className="p-3 bg-emerald-50/30 rounded-lg border border-emerald-100/50 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-emerald-900 bg-emerald-100/80 px-1.5 py-0.5 rounded text-[10px]">
+                            {comment.category === 'skill_approval' ? 'スキル承認' : comment.category === '1on1' ? '1on1' : 'キャリア面談'}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {comment.created_at.slice(0, 10)}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 mt-1 whitespace-pre-wrap">{comment.comment}</p>
+                        <p className="text-right text-[10px] text-gray-500 font-medium">
+                          — {comment.sender?.name || '上司'} より
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </section>
 
           {/* 申請履歴 */}
@@ -407,8 +653,8 @@ export function MySkillsView({
                 </h4>
                 <p className="text-xs text-blue-800 mt-1 leading-relaxed max-w-[75ch]">
                   将来目指したい職種を「目標」として設定できます。
-                  現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、**「何が強みで、どのカテゴリを伸ばせば目標に届くか」**がクリアに可視化されます。
-                  さらに、不足技能に関連付けられた **おすすめeラーニング教材** が自動レコメンドされます。
+                  現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、<strong>「何が強みで、どのカテゴリを伸ばせば目標に届くか」</strong>がクリアに可視化されます。
+                  さらに、不足技能に関連付けられた<strong>おすすめeラーニング教材</strong>が自動レコメンドされます。
                 </p>
               </div>
             </div>
@@ -493,6 +739,13 @@ export function MySkillsView({
                           fillOpacity={0.25}
                         />
                         <Radar
+                          name="自己評価している要件"
+                          dataKey="自己評価要件数"
+                          stroke="#10b981"
+                          fill="#10b981"
+                          fillOpacity={0.2}
+                        />
+                        <Radar
                           name="目標職種の必要要件"
                           dataKey="目標職種に必要な総要件数"
                           stroke="#3b82f6"
@@ -552,7 +805,7 @@ export function MySkillsView({
                             {req.recommendations.map((course: any) => (
                               <a
                                 key={course.course_id}
-                                href={`/el-courses/${course.course_id}`}
+                                href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(course.course_id)}
                                 className="flex items-center justify-between p-2 rounded-lg bg-blue-50/50 border border-blue-100/60 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-all text-[10px] font-semibold"
                               >
                                 <span className="truncate mr-2">{course.course_title}</span>

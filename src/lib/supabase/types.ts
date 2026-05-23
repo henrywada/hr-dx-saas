@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -1084,6 +1085,52 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_approvers: {
+        Row: {
+          approver_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          approver_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          approver_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_approvers_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_approvers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_approvers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3689,52 +3736,6 @@ export type Database = {
           },
           {
             foreignKeyName: "simulation_positions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      skill_approvers: {
-        Row: {
-          approver_id: string
-          created_at: string
-          employee_id: string
-          id: string
-          tenant_id: string
-        }
-        Insert: {
-          approver_id: string
-          created_at?: string
-          employee_id: string
-          id?: string
-          tenant_id: string
-        }
-        Update: {
-          approver_id?: string
-          created_at?: string
-          employee_id?: string
-          id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "skill_approvers_approver_id_fkey"
-            columns: ["approver_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_approvers_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_approvers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6427,3 +6428,5 @@ export const Constants = {
   },
 } as const
 
+A new version of Supabase CLI is available: v2.101.0 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

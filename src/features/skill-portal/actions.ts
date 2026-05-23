@@ -24,7 +24,7 @@ export async function applyForSkillRole(input: {
   const supabase = await createClient()
 
   const { data: approvers } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('employee_id', user.employee_id)
     .limit(1)
@@ -65,7 +65,7 @@ export async function applyForRequirement(input: {
   const supabase = await createClient()
 
   const { data: approvers } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('employee_id', user.employee_id)
     .limit(1)
@@ -117,7 +117,7 @@ export async function managerApproveRoleApplication(
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', app.employee_id)
@@ -179,7 +179,7 @@ export async function managerRejectRoleApplication(
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', app.employee_id)
@@ -241,7 +241,7 @@ export async function managerApproveRequirementApplication(
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', app.employee_id)
@@ -303,7 +303,7 @@ export async function managerRejectRequirementApplication(
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', app.employee_id)
@@ -506,7 +506,7 @@ export async function addSkillApprover(input: {
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
-  const { error } = await (supabase as any).from('skill_approvers').insert({
+  const { error } = await (supabase as any).from('employee_approvers').insert({
     tenant_id: user.tenant_id,
     employee_id: input.employeeId,
     approver_id: input.approverId,
@@ -527,7 +527,7 @@ export async function removeSkillApprover(id: string): Promise<ActionResult> {
   const supabase = await createClient()
 
   const { error } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .delete()
     .eq('id', id)
     .eq('tenant_id', user.tenant_id)
@@ -578,7 +578,7 @@ export async function recommendCourse(input: {
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', input.employeeId)
@@ -618,7 +618,7 @@ export async function addSkillFeedbackComment(input: {
   // 承認関係の検証 (career_goal以外のフィードバックの場合は承認者であることを確認)
   if (input.category !== 'career_goal') {
     const { data: approverCheck } = await (supabase as any)
-      .from('skill_approvers')
+      .from('employee_approvers')
       .select('id')
       .eq('approver_id', user.employee_id)
       .eq('employee_id', input.receiverEmployeeId)
@@ -656,7 +656,7 @@ export async function proposeCareerGoal(input: {
   const supabase = await createClient()
 
   const { data: approver } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', input.employeeId)
@@ -735,7 +735,7 @@ export async function proposeMilestone(input: {
   const supabase = await createClient()
 
   const { data: approver } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', input.employeeId)
@@ -770,7 +770,7 @@ export async function sendAdviceComment(input: {
   const supabase = await createClient()
 
   const { data: approver } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', user.employee_id)
     .eq('employee_id', input.employeeId)
@@ -801,7 +801,7 @@ export async function sendConsultation(input: {
   const supabase = await createClient()
 
   const { data: approverRow } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('approver_id')
     .eq('employee_id', user.employee_id)
     .limit(1)

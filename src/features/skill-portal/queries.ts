@@ -49,7 +49,7 @@ export async function getPendingRoleApplicationsForApprover(
   approverId: string
 ): Promise<SkillRoleApplication[]> {
   const { data: approverRows, error: aErr } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('employee_id')
     .eq('approver_id', approverId)
   if (aErr) throw aErr
@@ -74,7 +74,7 @@ export async function getPendingRequirementApplicationsForApprover(
   approverId: string
 ): Promise<SkillRequirementApplication[]> {
   const { data: approverRows, error: aErr } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('employee_id')
     .eq('approver_id', approverId)
   if (aErr) throw aErr
@@ -124,9 +124,9 @@ export async function getHrPendingRequirementApplications(
 /** 承認者マスタ一覧 */
 export async function getSkillApprovers(supabase: DB): Promise<SkillApprover[]> {
   const { data, error } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select(
-      '*, employee:employees!skill_approvers_employee_id_fkey(id, name, employee_no), approver:employees!skill_approvers_approver_id_fkey(id, name, employee_no)'
+      '*, employee:employees!employee_approvers_employee_id_fkey(id, name, employee_no), approver:employees!employee_approvers_approver_id_fkey(id, name, employee_no)'
     )
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -139,8 +139,8 @@ export async function getMyApprovers(
   employeeId: string
 ): Promise<Array<{ approver_id: string; approver: { name: string | null } | null }>> {
   const { data, error } = await (supabase as any)
-    .from('skill_approvers')
-    .select('approver_id, approver:employees!skill_approvers_approver_id_fkey(name)')
+    .from('employee_approvers')
+    .select('approver_id, approver:employees!employee_approvers_approver_id_fkey(name)')
     .eq('employee_id', employeeId)
   if (error) throw error
   return data ?? []
@@ -216,8 +216,8 @@ export async function getTeamGrowthCards(
   approverId: string
 ): Promise<TeamMemberGrowthCard[]> {
   const { data: approverRows, error: aErr } = await (supabase as any)
-    .from('skill_approvers')
-    .select('employee_id, employee:employees!skill_approvers_employee_id_fkey(id, name)')
+    .from('employee_approvers')
+    .select('employee_id, employee:employees!employee_approvers_employee_id_fkey(id, name)')
     .eq('approver_id', approverId)
   if (aErr) throw aErr
   if (!approverRows?.length) return []
@@ -242,15 +242,15 @@ export async function getTeamGrowthCards(
 
   const { data: snapshots, error: sErr } = await (supabase as any)
     .from('employee_skill_requirement_history')
-    .select('employee_id, achievement_rate, snapshot_month')
+    .select('employee_id, completion_rate, recorded_at')
     .in('employee_id', employeeIds)
-    .order('snapshot_month', { ascending: false })
+    .order('recorded_at', { ascending: false })
   if (sErr) throw sErr
 
   const latestRate: Record<string, number> = {}
   for (const snap of snapshots ?? []) {
     if (latestRate[snap.employee_id] === undefined) {
-      latestRate[snap.employee_id] = snap.achievement_rate ?? 0
+      latestRate[snap.employee_id] = snap.completion_rate ?? 0
     }
   }
 
@@ -284,7 +284,7 @@ export async function verifyManagerAccess(
   employeeId: string
 ): Promise<boolean> {
   const { data, error } = await (supabase as any)
-    .from('skill_approvers')
+    .from('employee_approvers')
     .select('id')
     .eq('approver_id', approverId)
     .eq('employee_id', employeeId)
@@ -332,9 +332,9 @@ export async function getGrowthJourneyData(
       .limit(10),
     (supabase as any)
       .from('employee_skill_requirement_history')
-      .select('achievement_rate, snapshot_month')
+      .select('completion_rate, recorded_at')
       .eq('employee_id', employeeId)
-      .order('snapshot_month', { ascending: false })
+      .order('recorded_at', { ascending: false })
       .limit(2),
     (supabase as any)
       .from('employee_recommended_courses')
@@ -367,8 +367,8 @@ export async function getGrowthJourneyData(
           message: latestGoal.message,
         }
       : null,
-    achievement_rate: latestSnap?.achievement_rate ?? 0,
-    prev_month_rate: prevSnap?.achievement_rate ?? 0,
+    achievement_rate: latestSnap?.completion_rate ?? 0,
+    prev_month_rate: prevSnap?.completion_rate ?? 0,
     milestones: milestones ?? [],
     feedback_comments: (comments ?? []).map((c: any) => ({
       id: c.id,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import {
   Compass,
   CheckCircle2,
@@ -47,7 +48,11 @@ type Props = {
   employeeId: string
   initialCareerGoals: any[]
   mappedCourses: Array<{ course_id: string; course_title: string; requirement_id: string }>
-  selfEvaluations: Array<{ requirement_id: string; self_level_id: string | null; note: string | null }>
+  selfEvaluations: Array<{
+    requirement_id: string
+    self_level_id: string | null
+    note: string | null
+  }>
   recommendedCourses: Array<{
     id: string
     course_id: string
@@ -101,16 +106,17 @@ export function MySkillsView({
   const [tempSelfLevelId, setTempSelfLevelId] = useState<string>('')
   const [tempSelfNote, setTempSelfNote] = useState<string>('')
 
-  const selfEvalByReqId = useMemo(() => new Map(selfEvalList.map(e => [e.requirement_id, e])), [selfEvalList])
+  const selfEvalByReqId = useMemo(
+    () => new Map(selfEvalList.map(e => [e.requirement_id, e])),
+    [selfEvalList]
+  )
 
   // キャリア目標の管理
   const [careerGoals, setCareerGoals] = useState<any[]>(initialCareerGoals)
   const [selectedTargetSkillId, setSelectedTargetSkillId] = useState<string>(
     initialCareerGoals[0]?.target_skill_id || ''
   )
-  const [targetDate, setTargetDate] = useState<string>(
-    initialCareerGoals[0]?.target_date || ''
-  )
+  const [targetDate, setTargetDate] = useState<string>(initialCareerGoals[0]?.target_date || '')
   const [isPending, startTransition] = useTransition()
 
   const assignedSkillIds = new Set(currentAssignments.map(a => a.skill_id))
@@ -120,10 +126,7 @@ export function MySkillsView({
 
   // 技能要件が達成済みかどうかを判定
   const isRequirementAchieved = (reqId: string) => {
-    return (
-      elAchievedRequirementIds.has(reqId) ||
-      reqAppByReqId.get(reqId)?.status === 'approved'
-    )
+    return elAchievedRequirementIds.has(reqId) || reqAppByReqId.get(reqId)?.status === 'approved'
   }
 
   // 自己評価の保存処理
@@ -140,10 +143,21 @@ export function MySkillsView({
           const index = prev.findIndex(e => e.requirement_id === reqId)
           if (index >= 0) {
             const updated = [...prev]
-            updated[index] = { requirement_id: reqId, self_level_id: tempSelfLevelId || null, note: tempSelfNote || null }
+            updated[index] = {
+              requirement_id: reqId,
+              self_level_id: tempSelfLevelId || null,
+              note: tempSelfNote || null,
+            }
             return updated
           } else {
-            return [...prev, { requirement_id: reqId, self_level_id: tempSelfLevelId || null, note: tempSelfNote || null }]
+            return [
+              ...prev,
+              {
+                requirement_id: reqId,
+                self_level_id: tempSelfLevelId || null,
+                note: tempSelfNote || null,
+              },
+            ]
           }
         })
         setEditingSelfEvalReqId(null)
@@ -208,9 +222,9 @@ export function MySkillsView({
 
     return Object.entries(categoryStats).map(([category, stats]) => ({
       subject: category,
-      '現在の達成要件数': stats.achieved,
-      '自己評価要件数': stats.self,
-      '目標職種に必要な総要件数': stats.total,
+      現在の達成要件数: stats.achieved,
+      自己評価要件数: stats.self,
+      目標職種に必要な総要件数: stats.total,
       fullMark: stats.total,
     }))
   }, [targetSkillDetail, elAchievedRequirementIds, requirementApplications, selfEvalList])
@@ -315,9 +329,7 @@ export function MySkillsView({
                             className="h-3 w-3 rounded-full shrink-0"
                             style={{ backgroundColor: skill.color_hex }}
                           />
-                          <span className="text-sm font-bold text-gray-800">
-                            {skill.name}
-                          </span>
+                          <span className="text-sm font-bold text-gray-800">{skill.name}</span>
                         </div>
                         {pending && (
                           <span
@@ -345,7 +357,9 @@ export function MySkillsView({
                                       <div className="w-4.5 h-4.5 rounded-full border-2 border-gray-200 shrink-0 mt-0.5 bg-gray-50/50" />
                                     )}
                                     <div className="min-w-0">
-                                      <span className={`text-sm ${isAchieved ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
+                                      <span
+                                        className={`text-sm ${isAchieved ? 'text-gray-800 font-medium' : 'text-gray-400'}`}
+                                      >
                                         {req.name}
                                       </span>
                                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -393,7 +407,9 @@ export function MySkillsView({
                                   <div className="mt-2 ml-7 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-2.5">
                                     <p className="font-bold text-slate-700">自己評価を入力</p>
                                     <div className="space-y-1">
-                                      <label className="text-slate-500 font-medium">自己認識レベル：</label>
+                                      <label className="text-slate-500 font-medium">
+                                        自己認識レベル：
+                                      </label>
                                       <select
                                         value={tempSelfLevelId}
                                         onChange={e => setTempSelfLevelId(e.target.value)}
@@ -408,7 +424,9 @@ export function MySkillsView({
                                       </select>
                                     </div>
                                     <div className="space-y-1">
-                                      <label className="text-slate-500 font-medium">自己評価コメント（実績や理由）：</label>
+                                      <label className="text-slate-500 font-medium">
+                                        自己評価コメント（実績や理由）：
+                                      </label>
                                       <textarea
                                         value={tempSelfNote}
                                         onChange={e => setTempSelfNote(e.target.value)}
@@ -440,9 +458,12 @@ export function MySkillsView({
                                     {selfEval?.self_level_id ? (
                                       <div className="p-2 bg-emerald-50/50 rounded border border-emerald-100 text-[11px] text-emerald-800 flex flex-col sm:flex-row sm:items-start justify-between gap-1">
                                         <div className="min-w-0 text-left">
-                                          <span className="font-bold mr-1.5 shrink-0">[自己評価]</span>
+                                          <span className="font-bold mr-1.5 shrink-0">
+                                            [自己評価]
+                                          </span>
                                           <span className="font-bold bg-emerald-100 text-emerald-800 px-1 rounded mr-2 text-[10px] inline-block shrink-0">
-                                            {levels.find(l => l.id === selfEval.self_level_id)?.name || '評価済'}
+                                            {levels.find(l => l.id === selfEval.self_level_id)
+                                              ?.name || '評価済'}
                                           </span>
                                           {selfEval.note && (
                                             <span className="text-gray-600 font-normal italic">
@@ -511,7 +532,10 @@ export function MySkillsView({
                     </p>
                   ) : (
                     recommendedCourses.map(rec => (
-                      <div key={rec.id} className="p-3 bg-blue-50/40 rounded-lg border border-blue-100/60 text-xs space-y-1.5">
+                      <div
+                        key={rec.id}
+                        className="p-3 bg-blue-50/40 rounded-lg border border-blue-100/60 text-xs space-y-1.5"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-blue-900 bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px]">
                             推奨
@@ -520,7 +544,9 @@ export function MySkillsView({
                             推奨者: {rec.recommender?.name || '上司'}
                           </span>
                         </div>
-                        <p className="font-bold text-gray-800 text-sm mt-1">{rec.course?.title || '推奨コース'}</p>
+                        <p className="font-bold text-gray-800 text-sm mt-1">
+                          {rec.course?.title || '推奨コース'}
+                        </p>
                         {rec.reason && (
                           <p className="text-gray-600 mt-1 pl-2 border-l-2 border-blue-200 italic">
                             "{rec.reason}"
@@ -553,10 +579,17 @@ export function MySkillsView({
                     </p>
                   ) : (
                     feedbackComments.map(comment => (
-                      <div key={comment.id} className="p-3 bg-emerald-50/30 rounded-lg border border-emerald-100/50 text-xs space-y-1.5">
+                      <div
+                        key={comment.id}
+                        className="p-3 bg-emerald-50/30 rounded-lg border border-emerald-100/50 text-xs space-y-1.5"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-emerald-900 bg-emerald-100/80 px-1.5 py-0.5 rounded text-[10px]">
-                            {comment.category === 'skill_approval' ? 'スキル承認' : comment.category === '1on1' ? '1on1' : 'キャリア面談'}
+                            {comment.category === 'skill_approval'
+                              ? 'スキル承認'
+                              : comment.category === '1on1'
+                                ? '1on1'
+                                : 'キャリア面談'}
                           </span>
                           <span className="text-[10px] text-gray-400 font-mono">
                             {comment.created_at.slice(0, 10)}
@@ -583,10 +616,18 @@ export function MySkillsView({
                   <table className="w-full border-collapse text-sm">
                     <thead>
                       <tr className="bg-gray-50/75 border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">種別</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">申請内容</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">ステータス</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">申請日</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">
+                          種別
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">
+                          申請内容
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">
+                          ステータス
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500">
+                          申請日
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -610,7 +651,9 @@ export function MySkillsView({
                       ))}
                       {requirementApplications.map(app => (
                         <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-4 py-3 text-xs text-gray-500 font-medium">技能クリア</td>
+                          <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                            技能クリア
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-800">
                             {app.requirement?.skill?.name && (
                               <span className="mr-1.5 text-xs text-gray-400">
@@ -653,9 +696,20 @@ export function MySkillsView({
                 </h4>
                 <p className="text-xs text-blue-800 mt-1 leading-relaxed max-w-[75ch]">
                   将来目指したい職種を「目標」として設定できます。
-                  現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、<strong>「何が強みで、どのカテゴリを伸ばせば目標に届くか」</strong>がクリアに可視化されます。
-                  さらに、不足技能に関連付けられた<strong>おすすめeラーニング教材</strong>が自動レコメンドされます。
+                  現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、
+                  <strong>「何が強みで、どのカテゴリを伸ばせば目標に届くか」</strong>
+                  がクリアに可視化されます。 さらに、不足技能に関連付けられた
+                  <strong>おすすめeラーニング教材</strong>が自動レコメンドされます。
                 </p>
+                <p className="text-xs text-blue-700 mt-2">
+                  キャリア目標を設定し、上司と一緒に成長の旅を歩みましょう
+                </p>
+                <Link
+                  href={APP_ROUTES.TENANT.MY_SKILLS_JOURNEY}
+                  className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline mt-1"
+                >
+                  育成ジャーニーを確認する →
+                </Link>
               </div>
             </div>
           </div>
@@ -728,9 +782,15 @@ export function MySkillsView({
                         <PolarAngleAxis
                           dataKey="subject"
                           tick={{ fontSize: 9, fill: '#4b5563' }}
-                          tickFormatter={value => (value.length > 8 ? `${value.slice(0, 7)}…` : value)}
+                          tickFormatter={value =>
+                            value.length > 8 ? `${value.slice(0, 7)}…` : value
+                          }
                         />
-                        <PolarRadiusAxis angle={30} domain={[0, 'dataMax']} tick={{ fontSize: 9 }} />
+                        <PolarRadiusAxis
+                          angle={30}
+                          domain={[0, 'dataMax']}
+                          tick={{ fontSize: 9 }}
+                        />
                         <Radar
                           name="あなたの保有要件"
                           dataKey="現在の達成要件数"
@@ -827,7 +887,9 @@ export function MySkillsView({
           ) : (
             <div className="text-center py-20 text-gray-400 text-xs border border-dashed border-gray-200 rounded-xl bg-white shadow-sm">
               <Compass className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              「目標とする職種」を選択すると、<br />スキルギャップ分析とおすすめ教材が表示されます
+              「目標とする職種」を選択すると、
+              <br />
+              スキルギャップ分析とおすすめ教材が表示されます
             </div>
           )}
         </div>
@@ -853,7 +915,9 @@ export function MySkillsView({
 
 function SaveGoalIcon({ isPending }: { isPending: boolean }) {
   if (isPending) {
-    return <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+    return (
+      <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+    )
   }
   return <CheckCircle2 className="w-3.5 h-3.5" />
 }

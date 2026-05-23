@@ -1,0 +1,114 @@
+<h2>共有進捗ボード — レイアウト案</h2>
+<p class="subtitle">上司・従業員の両者が見る「育成ジャーニー」画面の構造。2つのレイアウトを比較してください。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">レイアウト X — 縦スクロール型（1カラム）</div>
+    <div class="mockup-body" style="font-size:11px; line-height:1.5; padding:8px;">
+
+      <div style="background:#0055ff; color:white; border-radius:6px; padding:8px 10px; margin-bottom:8px;">
+        <div style="font-size:10px; opacity:0.8;">田中 花子さんの育成ジャーニー</div>
+        <div style="font-weight:bold; font-size:13px;">目標：プロジェクトマネージャー</div>
+        <div style="font-size:10px; opacity:0.8; margin-top:2px;">期限：2027年3月 ・ 進捗 42%</div>
+      </div>
+
+      <div style="background:#f0f4ff; border-radius:4px; padding:6px 8px; margin-bottom:8px;">
+        <div style="font-size:9px; color:#666; margin-bottom:3px;">要件達成率</div>
+        <div style="background:#e0e7ff; border-radius:4px; height:8px; overflow:hidden;">
+          <div style="background:#0055ff; height:100%; width:42%; border-radius:4px;"></div>
+        </div>
+        <div style="font-size:9px; color:#0055ff; text-align:right; margin-top:2px;">12/28 要件</div>
+      </div>
+
+      <div style="background:white; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; margin-bottom:6px;">
+        <div style="font-size:10px; font-weight:bold; color:#374151; margin-bottom:4px;">📍 マイルストーン</div>
+        <div style="border-left:2px solid #0055ff; padding-left:6px; margin-bottom:3px; font-size:10px;">
+          <div style="color:#0055ff; font-weight:bold;">✅ STEP1: 基礎知識習得</div>
+          <div style="color:#6b7280; font-size:9px;">完了済み · 上司コメント: 「よく頑張りました」</div>
+        </div>
+        <div style="border-left:2px solid #fbbf24; padding-left:6px; margin-bottom:3px; font-size:10px;">
+          <div style="color:#92400e; font-weight:bold;">⏳ STEP2: リーダー業務OJT</div>
+          <div style="color:#6b7280; font-size:9px;">進行中 · 期限: 9月末</div>
+        </div>
+        <div style="border-left:2px solid #d1d5db; padding-left:6px; font-size:10px;">
+          <div style="color:#9ca3af;">🔒 STEP3: PM資格取得</div>
+        </div>
+        <button style="margin-top:4px; font-size:9px; color:#0055ff; border:1px dashed #0055ff; background:none; border-radius:3px; padding:2px 6px; cursor:pointer;">＋ ステップ追加・変更</button>
+      </div>
+
+      <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:6px 8px; margin-bottom:6px; text-align:center;">
+        <div style="font-size:10px; color:#92400e; margin-bottom:4px;">💬 行き詰まっていませんか？</div>
+        <button style="background:#ff6b00; color:white; border:none; border-radius:4px; padding:4px 12px; font-size:10px; cursor:pointer;">上司に相談する</button>
+      </div>
+
+      <div style="background:white; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px;">
+        <div style="font-size:10px; font-weight:bold; color:#374151; margin-bottom:4px;">💡 上司からのアドバイス</div>
+        <div style="font-size:9px; color:#374151; background:#f9fafb; border-radius:4px; padding:4px;">
+          「STEP2は焦らず、まずチームの動かし方を体感することが大事。9月末に進捗を一緒に振り返ろう。」
+        </div>
+        <div style="font-size:9px; color:#9ca3af; margin-top:2px; text-align:right;">山田 部長 · 3日前</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">レイアウト Y — 2カラム型（概要 + 詳細）</div>
+    <div class="mockup-body" style="font-size:11px; line-height:1.5; padding:8px;">
+
+      <div style="display:flex; gap:6px;">
+        <div style="width:36%; flex-shrink:0;">
+          <div style="background:#0055ff; color:white; border-radius:6px; padding:8px; margin-bottom:6px; text-align:center;">
+            <div style="font-size:22px; font-weight:bold;">42%</div>
+            <div style="font-size:9px; opacity:0.8;">達成率</div>
+            <div style="background:rgba(255,255,255,0.2); border-radius:10px; height:6px; margin-top:4px; overflow:hidden;">
+              <div style="background:white; width:42%; height:100%; border-radius:10px;"></div>
+            </div>
+          </div>
+
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px; margin-bottom:6px;">
+            <div style="font-size:9px; font-weight:bold; color:#166534; margin-bottom:3px;">目標職種</div>
+            <div style="font-size:10px; font-weight:bold; color:#166534;">PM</div>
+            <div style="font-size:9px; color:#6b7280;">期限: 2027/3</div>
+          </div>
+
+          <button style="width:100%; background:#ff6b00; color:white; border:none; border-radius:4px; padding:5px; font-size:9px; cursor:pointer; margin-bottom:4px;">💬 相談する</button>
+          <button style="width:100%; background:white; color:#374151; border:1px solid #d1d5db; border-radius:4px; padding:5px; font-size:9px; cursor:pointer;">📝 自己評価を更新</button>
+        </div>
+
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:10px; font-weight:bold; color:#374151; margin-bottom:4px;">育成ロードマップ</div>
+
+          <div style="background:#eff6ff; border-left:3px solid #0055ff; border-radius:0 4px 4px 0; padding:5px 6px; margin-bottom:4px;">
+            <div style="font-size:10px; font-weight:bold;">✅ STEP1 完了</div>
+            <div style="font-size:9px; color:#6b7280;">基礎知識習得</div>
+          </div>
+
+          <div style="background:#fffbeb; border-left:3px solid #fbbf24; border-radius:0 4px 4px 0; padding:5px 6px; margin-bottom:4px;">
+            <div style="font-size:10px; font-weight:bold;">⏳ STEP2 進行中</div>
+            <div style="font-size:9px; color:#6b7280;">リーダー業務OJT · 9月末</div>
+            <div style="background:#fde68a; border-radius:2px; height:4px; margin-top:3px; overflow:hidden;">
+              <div style="background:#f59e0b; width:30%; height:100%;"></div>
+            </div>
+          </div>
+
+          <div style="background:#f9fafb; border-left:3px solid #d1d5db; border-radius:0 4px 4px 0; padding:5px 6px; margin-bottom:4px;">
+            <div style="font-size:10px; color:#9ca3af;">🔒 STEP3 未開始</div>
+            <div style="font-size:9px; color:#d1d5db;">PM資格取得</div>
+          </div>
+
+          <button style="font-size:9px; color:#0055ff; border:1px dashed #0055ff; background:none; border-radius:3px; padding:2px 8px; cursor:pointer; margin-bottom:6px;">＋ ステップ変更・追加</button>
+
+          <div style="background:#fff7ed; border-radius:4px; padding:5px 6px;">
+            <div style="font-size:9px; font-weight:bold; color:#92400e; margin-bottom:2px;">💡 最新アドバイス</div>
+            <div style="font-size:9px; color:#374151;">「STEP2は焦らず体感が大事。9月末に一緒に振り返ろう。」</div>
+            <div style="font-size:9px; color:#9ca3af; text-align:right;">山田部長 · 3日前</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:12px; font-size:12px; color:#6b7280; text-align:center;">上司画面ではチームメンバー一覧から各自のジャーニーに遷移。従業員画面では自分のジャーニーが同じボードで見える。</p>

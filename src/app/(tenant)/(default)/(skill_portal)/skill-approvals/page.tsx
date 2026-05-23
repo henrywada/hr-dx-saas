@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   getPendingRoleApplicationsForApprover,
   getPendingRequirementApplicationsForApprover,
+  getTeamGrowthCards,
 } from '@/features/skill-portal/queries'
 import { SkillApprovalsView } from '@/features/skill-portal/components/SkillApprovalsView'
 
@@ -14,21 +15,25 @@ export default async function SkillApprovalsPage() {
 
   const supabase = await createClient()
 
-  const [roleApplications, requirementApplications] = await Promise.all([
+  const [roleApplications, requirementApplications, teamCards] = await Promise.all([
     getPendingRoleApplicationsForApprover(supabase, user.employee_id),
     getPendingRequirementApplicationsForApprover(supabase, user.employee_id),
+    getTeamGrowthCards(supabase, user.employee_id),
   ])
 
   return (
     <div className="min-h-full">
       <div className="mx-auto max-w-3xl px-6 pb-12 pt-8">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">スキル承認</h1>
-          <p className="mt-1 text-sm text-gray-500">部下からのスキル申請を承認・却下できます</p>
+          <h1 className="text-xl font-bold text-gray-900">チームの育成状況</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            あなたが先導するメンバーの成長をここで確認・サポートします
+          </p>
         </div>
         <SkillApprovalsView
           roleApplications={roleApplications}
           requirementApplications={requirementApplications}
+          teamCards={teamCards}
         />
       </div>
     </div>

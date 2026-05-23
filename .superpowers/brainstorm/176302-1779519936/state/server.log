@@ -1,0 +1,8 @@
+{"type":"server-started","port":57152,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:57152","screen_dir":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content","state_dir":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/state"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/approaches.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/shared-board-layout.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/manager-team-view.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/full-design.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/role-diff.html"}
+{"type":"screen-added","file":"/home/hr-dx/ai-projects/hr-dx-saas/.superpowers/brainstorm/176302-1779519936/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

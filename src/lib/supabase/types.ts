@@ -1088,6 +1088,52 @@ export type Database = {
           },
         ]
       }
+      employee_approvers: {
+        Row: {
+          approver_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          approver_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          approver_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_approvers_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_approvers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_approvers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_career_goals: {
         Row: {
           confirmed_at: string | null
@@ -3689,52 +3735,6 @@ export type Database = {
           },
           {
             foreignKeyName: "simulation_positions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      skill_approvers: {
-        Row: {
-          approver_id: string
-          created_at: string
-          employee_id: string
-          id: string
-          tenant_id: string
-        }
-        Insert: {
-          approver_id: string
-          created_at?: string
-          employee_id: string
-          id?: string
-          tenant_id: string
-        }
-        Update: {
-          approver_id?: string
-          created_at?: string
-          employee_id?: string
-          id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "skill_approvers_approver_id_fkey"
-            columns: ["approver_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_approvers_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_approvers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6426,4 +6426,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import {
   Compass,
   CheckCircle2,
@@ -656,6 +657,15 @@ export function MySkillsView({
                   現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、<strong>「何が強みで、どのカテゴリを伸ばせば目標に届くか」</strong>がクリアに可視化されます。
                   さらに、不足技能に関連付けられた<strong>おすすめeラーニング教材</strong>が自動レコメンドされます。
                 </p>
+                <p className="text-xs text-blue-700 mt-2">
+                  キャリア目標を設定し、上司と一緒に成長の旅を歩みましょう
+                </p>
+                <Link
+                  href={APP_ROUTES.TENANT.MY_SKILLS_JOURNEY}
+                  className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline mt-1"
+                >
+                  育成ジャーニーを確認する →
+                </Link>
               </div>
             </div>
           </div>

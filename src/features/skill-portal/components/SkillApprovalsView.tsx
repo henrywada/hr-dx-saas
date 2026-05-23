@@ -1,26 +1,29 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { SkillRoleApplication, SkillRequirementApplication } from '../types'
+import type { SkillRoleApplication, SkillRequirementApplication, TeamMemberGrowthCard } from '../types'
 import {
   managerApproveRoleApplication,
   managerRejectRoleApplication,
   managerApproveRequirementApplication,
   managerRejectRequirementApplication,
 } from '../actions'
+import { TeamGrowthGrid } from './TeamGrowthGrid'
 
 type Props = {
   roleApplications: SkillRoleApplication[]
   requirementApplications: SkillRequirementApplication[]
+  teamCards: TeamMemberGrowthCard[]
 }
 
 type Tab = 'role' | 'requirement'
 
-export function SkillApprovalsView({ roleApplications, requirementApplications }: Props) {
+export function SkillApprovalsView({ roleApplications, requirementApplications, teamCards }: Props) {
   const [tab, setTab] = useState<Tab>('role')
 
   return (
     <div className="space-y-6">
+      <TeamGrowthGrid cards={teamCards} />
       <div className="flex gap-2">
         {(['role', 'requirement'] as Tab[]).map(t => (
           <button

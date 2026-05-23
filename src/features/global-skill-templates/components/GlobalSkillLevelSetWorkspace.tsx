@@ -28,7 +28,13 @@ function sortLevels(levels: GlobalSkillLevel[]): GlobalSkillLevel[] {
   )
 }
 
-/** スキルレベルセットをテーブルで登録し、セット単位でレベル（コメント付き）を CRUD（職種と非連動） */
+/** セット内の次の sort_order（末尾+1） */
+function nextSortOrder(levels: GlobalSkillLevel[]): number {
+  if (levels.length === 0) return 0
+  return Math.max(...levels.map(l => l.sort_order)) + 1
+}
+
+/** スキルレベルセットをテーブルで登録し、セット単位でレベル（詳細説明付き）を CRUD（職種と非連動） */
 export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -53,11 +59,13 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
   const [addingForSetId, setAddingForSetId] = useState<string | null>(null)
   const [newLvName, setNewLvName] = useState('')
   const [newLvCriteria, setNewLvCriteria] = useState('')
+  const [newLvSortOrder, setNewLvSortOrder] = useState(0)
   const [newLvColor, setNewLvColor] = useState<string>(LEVEL_COLORS[0])
 
   const [editLvId, setEditLvId] = useState<string | null>(null)
   const [editLvName, setEditLvName] = useState('')
   const [editLvCriteria, setEditLvCriteria] = useState('')
+  const [editLvSortOrder, setEditLvSortOrder] = useState(0)
   const [editLvColor, setEditLvColor] = useState('')
 
   function handleRegisterSet() {
@@ -130,6 +138,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
         name: newLvName.trim(),
         criteria: newLvCriteria.trim() || undefined,
         colorHex: newLvColor,
+        sortOrder: newLvSortOrder,
       })
       const err = globalTemplateActionError(res)
       if (err) {
@@ -138,6 +147,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
       }
       setNewLvName('')
       setNewLvCriteria('')
+      setNewLvSortOrder(0)
       setNewLvColor(LEVEL_COLORS[0])
       setAddingForSetId(null)
       setError(null)
@@ -154,6 +164,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
         name: editLvName.trim(),
         criteria: editLvCriteria.trim() || null,
         colorHex: editLvColor,
+        sortOrder: editLvSortOrder,
       })
       const err = globalTemplateActionError(res)
       if (err) {
@@ -243,11 +254,14 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                 <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800 whitespace-nowrap">
                   区分
                 </th>
+                <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800 whitespace-nowrap w-16">
+                  順
+                </th>
                 <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                   レベル
                 </th>
                 <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
-                  コメント
+                  詳細説明
                 </th>
                 <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800">
                   変更
@@ -260,7 +274,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
             <tbody>
               {sortedSets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
                     セットがありません。上のフォームからレベルセット名を登録してください。
                   </td>
                 </tr>
@@ -303,6 +317,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                                 type="button"
                                 onClick={() => {
                                   setAddingForSetId(set.id)
+                                  setNewLvSortOrder(nextSortOrder(levels))
                                   setError(null)
                                 }}
                                 className="text-xs font-medium text-primary hover:underline"
@@ -330,6 +345,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                             <span className="text-gray-700">{set.category ?? '—'}</span>
                           )}
                         </td>
+                        <td className="px-3 py-2 align-top text-center text-gray-400">—</td>
                         <td className="px-3 py-2 align-top text-gray-400">—</td>
                         <td className="px-3 py-2 align-top text-gray-400">—</td>
                         <td className="px-3 py-2 text-center align-top">
@@ -364,6 +380,18 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                         <tr className="border-b border-gray-100 bg-blue-50/40">
                           <td className="px-3 py-2" />
                           <td className="px-3 py-2" />
+                          <td className="px-3 py-2 align-top text-center">
+                            <input
+                              type="number"
+                              min={0}
+                              value={newLvSortOrder}
+                              onChange={e =>
+                                setNewLvSortOrder(Math.max(0, Number(e.target.value) || 0))
+                              }
+                              className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                              aria-label="表示順"
+                            />
+                          </td>
                           <td className="px-3 py-2 align-top">
                             <input
                               value={newLvName}
@@ -376,7 +404,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                             <input
                               value={newLvCriteria}
                               onChange={e => setNewLvCriteria(e.target.value)}
-                              placeholder="コメント（例：経験年数）"
+                              placeholder="詳細説明（例：経験年数）"
                               className="w-full min-w-[120px] rounded border border-gray-300 px-2 py-1 text-sm"
                             />
                           </td>
@@ -411,6 +439,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                                   setAddingForSetId(null)
                                   setNewLvName('')
                                   setNewLvCriteria('')
+                                  setNewLvSortOrder(0)
                                 }}
                                 className="text-xs text-gray-500 hover:text-gray-800"
                               >
@@ -425,6 +454,22 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                         <tr key={lv.id} className="border-b border-gray-100">
                           <td className="px-3 py-2" />
                           <td className="px-3 py-2" />
+                          <td className="px-3 py-2 align-top text-center text-gray-700">
+                            {editLvId === lv.id ? (
+                              <input
+                                type="number"
+                                min={0}
+                                value={editLvSortOrder}
+                                onChange={e =>
+                                  setEditLvSortOrder(Math.max(0, Number(e.target.value) || 0))
+                                }
+                                className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                                aria-label="表示順"
+                              />
+                            ) : (
+                              <span className="text-xs tabular-nums">{lv.sort_order}</span>
+                            )}
+                          </td>
                           <td className="px-3 py-2 align-top">
                             {editLvId === lv.id ? (
                               <input
@@ -496,6 +541,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                                   setEditLvId(lv.id)
                                   setEditLvName(lv.name)
                                   setEditLvCriteria(lv.criteria ?? '')
+                                  setEditLvSortOrder(lv.sort_order)
                                   setEditLvColor(lv.color_hex)
                                   setError(null)
                                 }}

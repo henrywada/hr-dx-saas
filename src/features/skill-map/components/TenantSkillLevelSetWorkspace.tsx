@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Fragment, useMemo, useState, useTransition } from 'react'
+import { Fragment, useMemo, useState, useTransition, type ReactNode } from 'react'
 import {
   SKILL_ITEM_CATEGORIES,
   type SkillLevelWithMappings,
@@ -24,6 +24,8 @@ type Props = {
   skillLevelSets: TenantSkillLevelSetWithMappings[]
   standaloneSkillLevels?: SkillLevelWithMappings[]
   availableCourses: Array<{ id: string; title: string; status: string }>
+  /** 「個別レベルマスタ」見出し行の右側（例: テンプレートよりコピー） */
+  sectionHeaderAction?: ReactNode
   onMutationSuccess?: () => void
 }
 
@@ -35,11 +37,18 @@ function sortLevels(levels: SkillLevelWithMappings[]): SkillLevelWithMappings[] 
   )
 }
 
+/** セット内の次の sort_order（末尾+1） */
+function nextSortOrder(levels: SkillLevelWithMappings[]): number {
+  if (levels.length === 0) return 0
+  return Math.max(...levels.map(l => l.sort_order)) + 1
+}
+
 /** テナント固有スキルレベルセットをテーブルで登録し、セット単位でレベルを CRUD。eラーニング連動付き */
 export function TenantSkillLevelSetWorkspace({
   skillLevelSets,
   standaloneSkillLevels = [],
   availableCourses,
+  sectionHeaderAction,
   onMutationSuccess,
 }: Props) {
   const router = useRouter()
@@ -64,20 +73,28 @@ export function TenantSkillLevelSetWorkspace({
 
   const [addingForSetId, setAddingForSetId] = useState<string | null>(null)
   const [newLvName, setNewLvName] = useState('')
+  const [newLvCriteria, setNewLvCriteria] = useState('')
+  const [newLvSortOrder, setNewLvSortOrder] = useState(0)
   const [newLvColor, setNewLvColor] = useState<string>(LEVEL_COLORS[0])
 
   const [editLvId, setEditLvId] = useState<string | null>(null)
   const [editLvName, setEditLvName] = useState('')
+  const [editLvCriteria, setEditLvCriteria] = useState('')
+  const [editLvSortOrder, setEditLvSortOrder] = useState(0)
   const [editLvColor, setEditLvColor] = useState('')
 
   // スタンドアロンレベルの [+レベル] フォーム（クリック時にセット自動作成 → サブ追加）
   const [addingForSaId, setAddingForSaId] = useState<string | null>(null)
   const [saLvName, setSaLvName] = useState('')
+  const [saLvCriteria, setSaLvCriteria] = useState('')
+  const [saLvSortOrder, setSaLvSortOrder] = useState(0)
   const [saLvColor, setSaLvColor] = useState<string>(LEVEL_COLORS[0])
 
   // スタンドアロンレベル編集用（セット未所属レベル）
   const [editSaId, setEditSaId] = useState<string | null>(null)
   const [editSaName, setEditSaName] = useState('')
+  const [editSaCriteria, setEditSaCriteria] = useState('')
+  const [editSaSortOrder, setEditSaSortOrder] = useState(0)
   const [editSaColor, setEditSaColor] = useState('')
 
   // eラーニング連動用
@@ -106,12 +123,16 @@ export function TenantSkillLevelSetWorkspace({
         skillLevelSetId: setRes.id!,
         name: saLvName.trim(),
         colorHex: saLvColor,
+        criteria: saLvCriteria.trim() || undefined,
+        sortOrder: saLvSortOrder,
       })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
         return
       }
       setSaLvName('')
+      setSaLvCriteria('')
+      setSaLvSortOrder(0)
       setSaLvColor(LEVEL_COLORS[0])
       setAddingForSaId(null)
       setError(null)
@@ -127,6 +148,8 @@ export function TenantSkillLevelSetWorkspace({
         id: editSaId,
         name: editSaName.trim(),
         colorHex: editSaColor,
+        criteria: editSaCriteria.trim() || null,
+        sortOrder: editSaSortOrder,
       })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
@@ -216,12 +239,16 @@ export function TenantSkillLevelSetWorkspace({
         skillLevelSetId: setId,
         name: newLvName.trim(),
         colorHex: newLvColor,
+        criteria: newLvCriteria.trim() || undefined,
+        sortOrder: newLvSortOrder,
       })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
         return
       }
       setNewLvName('')
+      setNewLvCriteria('')
+      setNewLvSortOrder(0)
       setNewLvColor(LEVEL_COLORS[0])
       setAddingForSetId(null)
       setError(null)
@@ -237,6 +264,8 @@ export function TenantSkillLevelSetWorkspace({
         id: editLvId,
         name: editLvName.trim(),
         colorHex: editLvColor,
+        criteria: editLvCriteria.trim() || null,
+        sortOrder: editLvSortOrder,
       })
       if (!res.success) {
         setError('error' in res ? res.error : 'エラーが発生しました')
@@ -374,9 +403,14 @@ export function TenantSkillLevelSetWorkspace({
       {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-600">{error}</p>}
 
       <div>
-        <p className="mb-3 text-xs font-semibold text-gray-600">
-          個別レベルマスタ（テンプレートよりコピー済み）
-        </p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-600">
+            新スキルの登録は、「新スキル名」、「区分」を登録の後、「＋レベル」でレベルを追加してください。
+          </p>
+          {sectionHeaderAction ? (
+            <div className="ml-auto shrink-0">{sectionHeaderAction}</div>
+          ) : null}
+        </div>
 
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
           <div className="min-w-0 flex-1">
@@ -384,7 +418,7 @@ export function TenantSkillLevelSetWorkspace({
               htmlFor="new-tenant-level-set-name"
               className="text-xs font-semibold text-gray-700"
             >
-              スキル名
+              新スキル名
             </label>
             <input
               id="new-tenant-level-set-name"
@@ -423,7 +457,7 @@ export function TenantSkillLevelSetWorkspace({
             onClick={handleRegisterSet}
             className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
-            登録
+            新スキル名の登録
           </button>
         </div>
 
@@ -438,8 +472,14 @@ export function TenantSkillLevelSetWorkspace({
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800 whitespace-nowrap">
                     区分
                   </th>
+                  <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-gray-800 whitespace-nowrap w-16">
+                    順
+                  </th>
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                     レベル
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
+                    コメント
                   </th>
                   <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-800">
                     eラーニング連動
@@ -455,7 +495,7 @@ export function TenantSkillLevelSetWorkspace({
               <tbody>
                 {sortedSets.length === 0 && sortedStandalone.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
                       データがありません。テンプレートよりコピーするか、スキル名を登録してください。
                     </td>
                   </tr>
@@ -499,6 +539,7 @@ export function TenantSkillLevelSetWorkspace({
                                     type="button"
                                     onClick={() => {
                                       setAddingForSetId(set.id)
+                                      setNewLvSortOrder(nextSortOrder(levels))
                                       setError(null)
                                     }}
                                     className="text-xs font-medium text-primary hover:underline"
@@ -526,6 +567,8 @@ export function TenantSkillLevelSetWorkspace({
                                 <span className="text-gray-700">{set.category ?? '—'}</span>
                               )}
                             </td>
+                            <td className="px-3 py-2 align-top text-center text-gray-400">—</td>
+                            <td className="px-3 py-2 align-top text-gray-400">—</td>
                             <td className="px-3 py-2 align-top text-gray-400">—</td>
                             <td className="px-3 py-2 align-top text-gray-400">—</td>
                             <td className="px-3 py-2 text-center align-top">
@@ -560,12 +603,32 @@ export function TenantSkillLevelSetWorkspace({
                             <tr className="border-b border-gray-100 bg-blue-50/40">
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2" />
+                              <td className="px-3 py-2 align-top text-center">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={newLvSortOrder}
+                                  onChange={e =>
+                                    setNewLvSortOrder(Math.max(0, Number(e.target.value) || 0))
+                                  }
+                                  className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                                  aria-label="表示順"
+                                />
+                              </td>
                               <td className="px-3 py-2 align-top">
                                 <input
                                   value={newLvName}
                                   onChange={e => setNewLvName(e.target.value)}
                                   placeholder="レベル名"
                                   className="w-full min-w-25 rounded border border-gray-300 px-2 py-1 text-sm"
+                                />
+                              </td>
+                              <td className="px-3 py-2 align-top">
+                                <input
+                                  value={newLvCriteria}
+                                  onChange={e => setNewLvCriteria(e.target.value)}
+                                  placeholder="コメント（例：経験年数）"
+                                  className="w-full min-w-[120px] rounded border border-gray-300 px-2 py-1 text-sm"
                                 />
                               </td>
                               <td className="px-3 py-2 align-top text-xs text-gray-400">—</td>
@@ -599,6 +662,8 @@ export function TenantSkillLevelSetWorkspace({
                                     onClick={() => {
                                       setAddingForSetId(null)
                                       setNewLvName('')
+                                      setNewLvCriteria('')
+                                      setNewLvSortOrder(0)
                                     }}
                                     className="text-xs text-gray-500 hover:text-gray-800"
                                   >
@@ -613,6 +678,22 @@ export function TenantSkillLevelSetWorkspace({
                             <tr key={lv.id} className="border-b border-gray-100">
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2" />
+                              <td className="px-3 py-2 align-top text-center text-gray-700">
+                                {editLvId === lv.id ? (
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={editLvSortOrder}
+                                    onChange={e =>
+                                      setEditLvSortOrder(Math.max(0, Number(e.target.value) || 0))
+                                    }
+                                    className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                                    aria-label="表示順"
+                                  />
+                                ) : (
+                                  <span className="text-xs tabular-nums">{lv.sort_order}</span>
+                                )}
+                              </td>
                               <td className="px-3 py-2 align-top">
                                 {editLvId === lv.id ? (
                                   <input
@@ -630,6 +711,18 @@ export function TenantSkillLevelSetWorkspace({
                                   >
                                     {lv.name}
                                   </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 align-top text-gray-700">
+                                {editLvId === lv.id ? (
+                                  <input
+                                    value={editLvCriteria}
+                                    onChange={e => setEditLvCriteria(e.target.value)}
+                                    placeholder="コメント"
+                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                  />
+                                ) : (
+                                  <span className="text-xs">{lv.criteria?.trim() ? lv.criteria : '—'}</span>
                                 )}
                               </td>
                               {renderELearningCell(lv)}
@@ -674,6 +767,8 @@ export function TenantSkillLevelSetWorkspace({
                                     onClick={() => {
                                       setEditLvId(lv.id)
                                       setEditLvName(lv.name)
+                                      setEditLvCriteria(lv.criteria ?? '')
+                                      setEditLvSortOrder(lv.sort_order)
                                       setEditLvColor(lv.color_hex)
                                       setError(null)
                                     }}
@@ -703,10 +798,10 @@ export function TenantSkillLevelSetWorkspace({
                     {sortedStandalone.length > 0 && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={8}
                           className="border-t-2 border-gray-300 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-500"
                         >
-                          スキル名未設定のレベル（テンプレートよりコピー済み）
+                          スキル名未設定のレベル
                         </td>
                       </tr>
                     )}
@@ -714,6 +809,23 @@ export function TenantSkillLevelSetWorkspace({
                       <Fragment key={lv.id}>
                         <tr className="border-b border-gray-100">
                           <td className="px-3 py-2 align-top text-gray-400">—</td>
+                          <td className="px-3 py-2 align-top text-gray-400">—</td>
+                          <td className="px-3 py-2 align-top text-center text-gray-700">
+                            {editSaId === lv.id ? (
+                              <input
+                                type="number"
+                                min={0}
+                                value={editSaSortOrder}
+                                onChange={e =>
+                                  setEditSaSortOrder(Math.max(0, Number(e.target.value) || 0))
+                                }
+                                className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                                aria-label="表示順"
+                              />
+                            ) : (
+                              <span className="text-xs tabular-nums">{lv.sort_order}</span>
+                            )}
+                          </td>
                           <td className="px-3 py-2 align-top">
                             {editSaId === lv.id ? (
                               <input
@@ -731,6 +843,18 @@ export function TenantSkillLevelSetWorkspace({
                               >
                                 {lv.name}
                               </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top text-gray-700">
+                            {editSaId === lv.id ? (
+                              <input
+                                value={editSaCriteria}
+                                onChange={e => setEditSaCriteria(e.target.value)}
+                                placeholder="コメント"
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                            ) : (
+                              <span className="text-xs">{lv.criteria?.trim() ? lv.criteria : '—'}</span>
                             )}
                           </td>
                           {renderELearningCell(lv)}
@@ -759,6 +883,8 @@ export function TenantSkillLevelSetWorkspace({
                                 onClick={() => {
                                   setEditSaId(lv.id)
                                   setEditSaName(lv.name)
+                                  setEditSaCriteria(lv.criteria ?? '')
+                                  setEditSaSortOrder(lv.sort_order)
                                   setEditSaColor(lv.color_hex)
                                   setError(null)
                                 }}
@@ -784,12 +910,33 @@ export function TenantSkillLevelSetWorkspace({
                         {addingForSaId === lv.id && (
                           <tr className="border-b border-gray-100 bg-blue-50/40">
                             <td className="px-3 py-2" />
+                            <td className="px-3 py-2" />
+                            <td className="px-3 py-2 align-top text-center">
+                              <input
+                                type="number"
+                                min={0}
+                                value={saLvSortOrder}
+                                onChange={e =>
+                                  setSaLvSortOrder(Math.max(0, Number(e.target.value) || 0))
+                                }
+                                className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                                aria-label="表示順"
+                              />
+                            </td>
                             <td className="px-3 py-2 align-top">
                               <input
                                 value={saLvName}
                                 onChange={e => setSaLvName(e.target.value)}
                                 placeholder="レベル名"
                                 className="w-full min-w-25 rounded border border-gray-300 px-2 py-1 text-sm"
+                              />
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              <input
+                                value={saLvCriteria}
+                                onChange={e => setSaLvCriteria(e.target.value)}
+                                placeholder="コメント（例：経験年数）"
+                                className="w-full min-w-[120px] rounded border border-gray-300 px-2 py-1 text-sm"
                               />
                             </td>
                             <td className="px-3 py-2 align-top text-xs text-gray-400">—</td>
@@ -823,6 +970,8 @@ export function TenantSkillLevelSetWorkspace({
                                   onClick={() => {
                                     setAddingForSaId(null)
                                     setSaLvName('')
+                                    setSaLvCriteria('')
+                                    setSaLvSortOrder(0)
                                   }}
                                   className="text-xs text-gray-500 hover:text-gray-800"
                                 >

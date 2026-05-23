@@ -52,6 +52,16 @@ function skillMatchesRequirementFilters(
   return true
 }
 
+/** 表示用：skill_levels.sort_order を優先（無い場合は skill_requirements.sort_order） */
+function sortRequirementsByLevelSortOrder(reqs: SkillRequirement[]): SkillRequirement[] {
+  return [...reqs].sort((a, b) => {
+    const orderA = a.level?.sort_order ?? a.sort_order ?? 0
+    const orderB = b.level?.sort_order ?? b.sort_order ?? 0
+    if (orderA !== orderB) return orderA - orderB
+    return a.id.localeCompare(b.id)
+  })
+}
+
 /** レベル列：スキル編集で On の要件は ■、それ以外は □ */
 function levelLabelWithOnOff(
   levelName: string,
@@ -70,7 +80,7 @@ function joinedLevelsForSkill(
   employeeId: string | null,
   byEmployee: Map<string, Set<string>>
 ): string {
-  const sorted = [...reqs].sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
+  const sorted = sortRequirementsByLevelSortOrder(reqs)
   return sorted
     .map(r => {
       const raw = (r.level?.name && r.level.name.trim()) || (r.criteria && r.criteria.trim()) || '—'

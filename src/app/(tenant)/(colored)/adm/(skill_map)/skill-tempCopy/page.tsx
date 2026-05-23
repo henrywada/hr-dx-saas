@@ -9,12 +9,8 @@ import {
   getAllCourseMappingsForLevelSet,
   getAvailableCoursesForLevelMapping,
 } from '@/features/skill-map/queries'
-import {
-  getGlobalJobCategories,
-  getGlobalJobRoles,
-} from '@/features/global-skill-templates/queries'
+import { getGlobalSkillLevelSetsWithLevels } from '@/features/global-skill-templates/queries'
 import { SkillTempCopyPageClient } from './SkillTempCopyPageClient'
-import { SkillTempCopyTemplateButton } from './SkillTempCopyTemplateButton'
 
 export default async function SkillTempCopyPage() {
   const user = await getServerUser()
@@ -22,11 +18,10 @@ export default async function SkillTempCopyPage() {
 
   const supabase = await createClient()
 
-  const [skills, templateCategories, templateRoles, skillLevelSets, standaloneSkillLevels] =
+  const [skills, templateSkillLevelSets, skillLevelSets, standaloneSkillLevels] =
     await Promise.all([
       getTenantSkillsWithRequirements(supabase),
-      getGlobalJobCategories(supabase),
-      getGlobalJobRoles(supabase),
+      getGlobalSkillLevelSetsWithLevels(supabase),
       getTenantSkillLevelSetsWithLevels(supabase),
       getStandaloneSkillLevels(supabase),
     ])
@@ -58,7 +53,7 @@ export default async function SkillTempCopyPage() {
     <div className="min-h-full">
       <div className="px-6 pb-6 pt-3">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="relative flex flex-wrap items-start justify-between gap-4 border-b border-gray-300 bg-gray-200 px-6 py-5">
+          <div className="relative border-b border-gray-300 bg-gray-200 px-6 py-5">
             <div className="flex min-w-0 items-start gap-3">
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/95 text-primary shadow-sm ring-1 ring-gray-300/70"
@@ -92,14 +87,12 @@ export default async function SkillTempCopyPage() {
                 />
               </div>
             </div>
-            <div className="shrink-0 pt-0.5">
-              <SkillTempCopyTemplateButton categories={templateCategories} roles={templateRoles} />
-            </div>
           </div>
 
           <div className="p-6">
             <SkillTempCopyPageClient
               skills={skills}
+              templateSkillLevelSets={templateSkillLevelSets}
               skillLevelSets={skillLevelSetsWithMappings}
               standaloneSkillLevels={standaloneWithMappings}
               availableCourses={availableCourses}

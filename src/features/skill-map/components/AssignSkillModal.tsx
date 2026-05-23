@@ -50,7 +50,7 @@ export function AssignSkillModal({
   }
 
   function handleRemove(assignmentId: string) {
-    if (!confirm('この技能の割り当てを削除しますか？')) return
+    if (!confirm('この職種の割り当てを削除しますか？')) return
     startTransition(async () => {
       const res = await removeSkillAssignment(assignmentId)
       if ('error' in res) {
@@ -67,7 +67,7 @@ export function AssignSkillModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <div>
-            <h2 className="font-semibold text-gray-900">技能を管理</h2>
+            <h2 className="font-semibold text-gray-900">職種を管理</h2>
             <p className="text-sm text-gray-500">{employeeName}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
@@ -123,10 +123,9 @@ export function AssignSkillModal({
               currentAssignments.length > 0 ? 'space-y-3 border-t border-gray-200 pt-4' : 'space-y-3'
             }
           >
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">技能を追加</p>
             <div>
               <label className="text-xs font-medium text-gray-700 block mb-1">
-                技能名 <span className="text-red-500">*</span>
+                職種 <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedSkillId}

@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import type { GlobalSkillLevelSetWithLevels } from '@/features/global-skill-templates/types'
 import type {
   TenantSkillWithRequirements,
   TenantSkillLevelSetWithMappings,
   SkillLevelWithMappings,
 } from '@/features/skill-map/types'
 import { TenantJobRoleList } from '@/features/skill-map/components/TenantJobRoleList'
+import { SkillTempCopyTemplateButton } from './SkillTempCopyTemplateButton'
 import { TenantJobRoleDetailModal } from '@/features/skill-map/components/TenantJobRoleDetailModal'
 import { TenantSkillLevelSetWorkspace } from '@/features/skill-map/components/TenantSkillLevelSetWorkspace'
 
@@ -14,6 +16,7 @@ type Tab = 'roles' | 'levels'
 
 type Props = {
   skills: TenantSkillWithRequirements[]
+  templateSkillLevelSets: GlobalSkillLevelSetWithLevels[]
   skillLevelSets: TenantSkillLevelSetWithMappings[]
   standaloneSkillLevels: SkillLevelWithMappings[]
   availableCourses: Array<{ id: string; title: string; status: string }>
@@ -21,6 +24,7 @@ type Props = {
 
 export function SkillTempCopyPageClient({
   skills,
+  templateSkillLevelSets,
   skillLevelSets,
   standaloneSkillLevels,
   availableCourses,
@@ -71,6 +75,9 @@ export function SkillTempCopyPageClient({
           skillLevelSets={skillLevelSets}
           standaloneSkillLevels={standaloneSkillLevels}
           availableCourses={availableCourses}
+          sectionHeaderAction={
+            <SkillTempCopyTemplateButton skillLevelSets={templateSkillLevelSets} />
+          }
         />
       )}
     </div>

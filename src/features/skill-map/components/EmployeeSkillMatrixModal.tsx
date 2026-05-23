@@ -40,7 +40,10 @@ function buildMatrixRenderRows(
     const reqs = [...job.requirements].sort((a, b) => {
       const byName = a.name.localeCompare(b.name, 'ja', { numeric: true })
       if (byName !== 0) return byName
-      return a.sort_order - b.sort_order
+      const orderA = a.level?.sort_order ?? a.sort_order ?? 0
+      const orderB = b.level?.sort_order ?? b.sort_order ?? 0
+      if (orderA !== orderB) return orderA - orderB
+      return a.id.localeCompare(b.id)
     })
     for (const req of reqs) {
       const levelLabel =

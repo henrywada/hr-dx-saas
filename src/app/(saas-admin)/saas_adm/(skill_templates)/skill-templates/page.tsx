@@ -1,19 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
-import {
-  getGlobalJobCategories,
-  getGlobalJobRoles,
-} from '@/features/global-skill-templates/queries'
 import { SkillTemplatesPageClient } from './SkillTemplatesPageClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SkillTemplatesPage() {
-  const supabase = await createClient()
-  const [categories, roles] = await Promise.all([
-    getGlobalJobCategories(supabase),
-    getGlobalJobRoles(supabase),
-  ])
-
   return (
     <div className="min-h-full bg-gray-50">
       <div className="px-6 pb-6 pt-3">
@@ -41,7 +30,7 @@ export default async function SkillTemplatesPage() {
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-[1.35rem] font-bold leading-snug tracking-tight text-transparent sm:text-[1.65rem]">
-                  スキルテンプレート管理
+                  スキル・レベル登録
                 </h1>
                 <div
                   className="mt-1.5 h-1 w-12 rounded-full bg-linear-to-r from-primary to-primary/60 sm:w-14"
@@ -54,7 +43,7 @@ export default async function SkillTemplatesPage() {
             </div>
           </header>
           <div className="p-6">
-            <SkillTemplatesPageClient categories={categories} roles={roles} />
+            <SkillTemplatesPageClient />
           </div>
         </div>
       </div>

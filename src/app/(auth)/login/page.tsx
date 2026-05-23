@@ -50,17 +50,19 @@ export default function LoginPage() {
           <Lock className="relative h-6 w-6 text-blue-600 stroke-[1.5]" aria-hidden />
         </div>
         
-        <div className="space-y-1.5">
+        <div className="relative isolate pt-0.5">
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-primary/30 via-blue-400/20 to-accent-teal/30 blur-2xl"
+            aria-hidden
+          />
           <h1
-            className="text-3xl font-extrabold tracking-tight text-slate-950 leading-none"
-            style={{
-              fontFamily: "'Yu Mincho', 'Noto Serif JP', serif",
-              letterSpacing: '-0.02em',
-            }}
+            className="relative flex items-baseline justify-center gap-2.5 text-[2.5rem] sm:text-[2.875rem] leading-none tracking-[-0.02em] [font-family:var(--font-playfair-display),ui-serif,Georgia,serif]"
           >
-            HR-DX <span className="text-blue-600">SaaS</span>
+            <span className="font-bold text-slate-700/90">Log</span>
+            <span className="font-extrabold bg-linear-to-br from-primary via-blue-500 to-accent-teal bg-clip-text text-transparent">
+              In
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 font-medium">ワークスペースにログインします</p>
         </div>
       </div>
 

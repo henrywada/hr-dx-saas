@@ -1,0 +1,46 @@
+<h2>スキルマップ改善：3つのアプローチ</h2>
+<p class="subtitle">「上司が先駆け・伴走者」コンセプトをUIに反映する設計方針を選んでください</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>「育成ジャーニー」型</h3>
+      <p>上司・従業員の両者が同じ「旅」を歩むUI構造。<br>
+      上司画面を「育成ダッシュボード」に刷新し、<strong>目標提案 → マイルストーン設定 → 進捗確認 → 相談</strong>という流れを一画面で完結させる。<br>
+      既存の申請承認フローを「伴走のステップ」として再定義。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>コンセプトが最も明確に伝わる</li><li>上司の役割が「先導者」として際立つ</li></ul></div>
+        <div class="cons"><h4>短所</h4><ul><li>上司画面の大幅な再設計が必要</li><li>開発コスト高め</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>「コーチングパネル」型</h3>
+      <p>既存画面の構造は維持しつつ、上司専用の「チームメンバー育成パネル」を追加。<br>
+      従業員ごとの<strong>目標・進捗・相談ボタン</strong>をカード形式で並べる。<br>
+      既存の承認画面は残したまま、コーチング視点の機能を重ねていく。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>既存機能を壊さない</li><li>段階的な改善が可能</li></ul></div>
+        <div class="cons"><h4>短所</h4><ul><li>「承認者」と「伴走者」の二重構造になりがち</li><li>コンセプトが伝わりにくい可能性</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>「共有進捗ボード」型</h3>
+      <p>上司・従業員が<strong>同じ画面（共有ビュー）</strong>を見ながら対話できる設計。<br>
+      目標・マイルストーン・メモ・相談が一つの「キャンバス」に集約される。<br>
+      1on1ミーティング時に両者が同じ画面を開いて確認・更新できる。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>「共に歩む」感が最も表現できる</li><li>1on1との親和性が高い</li></ul></div>
+        <div class="cons"><h4>短所</h4><ul><li>権限設計が複雑になる</li><li>「共有」URLの設計が必要</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

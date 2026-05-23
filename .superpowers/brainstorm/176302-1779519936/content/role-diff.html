@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同一URL・役割別表示の違い</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f8fafc; color: #1e293b; padding: 24px 20px; }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .lead { font-size: 12px; color: #64748b; margin-bottom: 20px; line-height: 1.7; }
+  code { background:#f1f5f9; padding:1px 5px; border-radius:3px; font-family:monospace; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel { border-radius: 10px; overflow: hidden; border: 2px solid #e5e7eb; }
+  .panel-header { padding: 10px 14px; font-size: 13px; font-weight: 700; }
+  .panel-header.mgr { background: #eff6ff; color: #1d4ed8; border-bottom: 2px solid #bfdbfe; }
+  .panel-header.emp { background: #f0fdf4; color: #15803d; border-bottom: 2px solid #bbf7d0; }
+  .panel-body { background: white; padding: 12px; }
+  .url-bar { background: #f1f5f9; border-radius: 5px; padding: 5px 10px; font-family: monospace; font-size: 11px; color: #475569; margin-bottom: 12px; }
+
+  .section { margin-bottom: 12px; }
+  .sec-title { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .row { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f3f4f6; }
+  .row:last-child { border-bottom: none; }
+  .row-label { font-size: 11px; color: #374151; flex: 1; }
+  .tag { font-size: 9px; border-radius: 3px; padding: 1px 6px; font-weight: 600; white-space: nowrap; }
+  .tag-show  { background: #dcfce7; color: #15803d; }
+  .tag-hide  { background: #fee2e2; color: #b91c1c; }
+  .tag-write { background: #fef9c3; color: #854d0e; }
+  .tag-none  { background: #f3f4f6; color: #9ca3af; }
+
+  .flow-box { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin-top: 16px; }
+  .flow-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+  .flow-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 11px; flex-wrap: wrap; }
+  .arrow { color: #9ca3af; }
+  .chip { border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  .chip-mgr { background: #eff6ff; color: #1d4ed8; }
+  .chip-emp { background: #f0fdf4; color: #15803d; }
+  .chip-sys { background: #fef3c7; color: #92400e; }
+  .chip-ok  { background: #dcfce7; color: #15803d; }
+  .chip-ng  { background: #fee2e2; color: #b91c1c; }
+
+  .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px; margin-top: 16px; font-size: 11px; color: #78350f; line-height: 1.7; }
+  .note strong { font-weight: 700; }
+  .note code { background: #fde68a; }
+</style>
+</head>
+<body>
+  <h1>育成ジャーニーボード — 役割別の表示・操作の違い</h1>
+  <p class="lead">
+    <strong>「共有」の意味</strong>は「同一URLを共有する」ではなく「<strong>同じデータ・同じレイアウトを見ながら対話できる</strong>」です。<br>
+    URLは上司と従業員で別々ですが、表示する情報・デザインは共通。<strong>ボタン類だけ役割で出し分け</strong>します。<br>
+    アクセス権は <code>skill_approvers</code> テーブルを使ってサーバー側で厳密にチェックします。
+  </p>
+
+  <div class="split">
+    <div class="panel">
+      <div class="panel-header mgr">🧭 上司ログイン時（approver_id = 自分）</div>
+      <div class="panel-body">
+        <div class="url-bar">/skill-approvals/journey/[employeeId]</div>
+        <div class="section">
+          <div class="sec-title">表示される情報</div>
+          <div class="row"><span class="row-label">担当メンバーの氏名・目標・進捗</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">メンバーの自己評価・メモ</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">メンバーからの相談（SOS）</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">他の従業員のデータ</span><span class="tag tag-hide">完全非表示・403</span></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">操作できる機能</div>
+          <div class="row"><span class="row-label">目標職種・期限を提案する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">マイルストーンを提案・変更する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">アドバイスコメントを送る</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">相談（SOS）に返答する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">要件達成を承認する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">自己評価を記入する</span><span class="tag tag-none">不可</span></div>
+          <div class="row"><span class="row-label">SOSボタン（相談を送る）</span><span class="tag tag-none">非表示</span></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">ナビゲーション</div>
+          <div class="row"><span class="row-label">← チーム育成一覧 に戻る</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">← マイスキルに戻る</span><span class="tag tag-hide">非表示</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header emp">👤 従業員ログイン時（employee_id = 自分）</div>
+      <div class="panel-body">
+        <div class="url-bar">/my-skills/journey  （employeeId は自動的に自分）</div>
+        <div class="section">
+          <div class="sec-title">表示される情報</div>
+          <div class="row"><span class="row-label">自分の目標・進捗</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">自分の自己評価・メモ</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">上司からのアドバイス</span><span class="tag tag-show">表示</span></div>
+          <div class="row"><span class="row-label">他の従業員のデータ</span><span class="tag tag-hide">完全非表示・URLで指定不可</span></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">操作できる機能</div>
+          <div class="row"><span class="row-label">上司からの目標提案を承認する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">マイルストーン変更提案に同意する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">自己評価・メモを記入・更新する</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">上司に相談する（SOSボタン）</span><span class="tag tag-write">可</span></div>
+          <div class="row"><span class="row-label">目標・マイルストーンを自分で提案</span><span class="tag tag-none">不可（上司のみ）</span></div>
+          <div class="row"><span class="row-label">アドバイスを送る</span><span class="tag tag-none">不可</span></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">ナビゲーション</div>
+          <div class="row"><span class="row-label">← チーム育成一覧 に戻る</span><span class="tag tag-hide">非表示</span></div>
+          <div class="row"><span class="row-label">← マイスキルに戻る</span><span class="tag tag-show">表示</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-box">
+    <div class="flow-title">skill_approvers によるアクセス制御フロー（サーバー側）</div>
+    <div class="flow-row">
+      <span class="chip chip-mgr">上司がアクセス</span>
+      <span class="arrow">→</span>
+      <span class="chip chip-sys">skill_approvers<br>WHERE approver_id = 自分</span>
+      <span class="arrow">→</span>
+      <span style="font-size:11px;">担当employee_id一覧を取得</span>
+    </div>
+    <div class="flow-row">
+      <span style="font-size:11px;color:#9ca3af;padding-left:80px;">URLの:employeeId が一覧に含まれる?</span>
+    </div>
+    <div class="flow-row">
+      <span style="padding-left:80px;"></span>
+      <span class="chip chip-ok">✅ YES → 上司ビューで表示</span>
+      <span style="color:#d1d5db;">|</span>
+      <span class="chip chip-ng">❌ NO → 403 アクセス拒否</span>
+    </div>
+    <div class="flow-row" style="margin-top:6px;">
+      <span class="chip chip-emp">従業員がアクセス</span>
+      <span class="arrow">→</span>
+      <span style="font-size:11px;">/my-skills/journey のemployeeIdは <strong>session の employee_id に固定</strong></span>
+      <span class="arrow">→</span>
+      <span class="chip chip-ok">常に自分のデータのみ</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>「目標変更」の提案フロー（臨機応変に変更できる仕組み）</strong><br>
+    上司がマイルストーン変更を提案 → <strong>ステータス: 提案中</strong> として保存 → 従業員が「同意する」ボタンで確定。<br>
+    双方が合意するまで変更は pending 状態のままで、現在の計画は継続されます。<br>
+    これにより <strong>一方的な変更を防ぎ</strong>、常に両者の合意で進む設計になります。
+  </div>
+</body>
+</html>

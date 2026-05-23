@@ -112,7 +112,8 @@ export async function managerApproveRoleApplication(
     .maybeSingle()
 
   if (!app) return { success: false, error: '対象の申請が見つかりません' }
-  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+  if (app.tenant_id !== user.tenant_id)
+    return { success: false, error: '権限がありません（テナント不一致）' }
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
@@ -173,7 +174,8 @@ export async function managerRejectRoleApplication(
     .maybeSingle()
 
   if (!app) return { success: false, error: '対象の申請が見つかりません' }
-  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+  if (app.tenant_id !== user.tenant_id)
+    return { success: false, error: '権限がありません（テナント不一致）' }
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
@@ -234,7 +236,8 @@ export async function managerApproveRequirementApplication(
     .maybeSingle()
 
   if (!app) return { success: false, error: '対象の申請が見つかりません' }
-  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+  if (app.tenant_id !== user.tenant_id)
+    return { success: false, error: '権限がありません（テナント不一致）' }
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
@@ -295,7 +298,8 @@ export async function managerRejectRequirementApplication(
     .maybeSingle()
 
   if (!app) return { success: false, error: '対象の申請が見つかりません' }
-  if (app.tenant_id !== user.tenant_id) return { success: false, error: '権限がありません（テナント不一致）' }
+  if (app.tenant_id !== user.tenant_id)
+    return { success: false, error: '権限がありません（テナント不一致）' }
 
   // 承認関係の検証
   const { data: approverCheck } = await (supabase as any)
@@ -543,16 +547,17 @@ export async function saveEmployeeSelfEvaluation(input: {
   if (!user?.tenant_id || !user?.employee_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()
 
-  const { error } = await (supabase as any)
-    .from('employee_skill_self_evaluations')
-    .upsert({
+  const { error } = await (supabase as any).from('employee_skill_self_evaluations').upsert(
+    {
       tenant_id: user.tenant_id,
       employee_id: user.employee_id,
       requirement_id: input.requirementId,
       self_level_id: input.selfLevelId || null,
       note: input.note ?? null,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'employee_id,requirement_id' })
+    },
+    { onConflict: 'employee_id,requirement_id' }
+  )
 
   if (error) return { success: false, error: error.message }
   revalidatePath(MY_SKILLS_PATH)
@@ -580,16 +585,17 @@ export async function recommendCourse(input: {
     .maybeSingle()
   if (!approverCheck) return { success: false, error: 'この従業員への推奨権限がありません' }
 
-  const { error } = await (supabase as any)
-    .from('employee_recommended_courses')
-    .upsert({
+  const { error } = await (supabase as any).from('employee_recommended_courses').upsert(
+    {
       tenant_id: user.tenant_id,
       recommender_id: user.employee_id,
       employee_id: input.employeeId,
       course_id: input.courseId,
       requirement_id: input.requirementId || null,
       reason: input.reason ?? null,
-    }, { onConflict: 'employee_id,course_id' })
+    },
+    { onConflict: 'employee_id,course_id' }
+  )
 
   if (error) return { success: false, error: error.message }
   revalidatePath(MY_SKILLS_PATH)
@@ -617,19 +623,18 @@ export async function addSkillFeedbackComment(input: {
       .eq('approver_id', user.employee_id)
       .eq('employee_id', input.receiverEmployeeId)
       .maybeSingle()
-    if (!approverCheck) return { success: false, error: 'この従業員へのフィードバック送信権限がありません' }
+    if (!approverCheck)
+      return { success: false, error: 'この従業員へのフィードバック送信権限がありません' }
   }
 
-  const { error } = await (supabase as any)
-    .from('skill_feedback_comments')
-    .insert({
-      tenant_id: user.tenant_id,
-      sender_employee_id: user.employee_id,
-      receiver_employee_id: input.receiverEmployeeId,
-      category: input.category,
-      related_id: input.relatedId || null,
-      comment: input.comment,
-    })
+  const { error } = await (supabase as any).from('skill_feedback_comments').insert({
+    tenant_id: user.tenant_id,
+    sender_employee_id: user.employee_id,
+    receiver_employee_id: input.receiverEmployeeId,
+    category: input.category,
+    related_id: input.relatedId || null,
+    comment: input.comment,
+  })
 
   if (error) return { success: false, error: error.message }
   revalidatePath(MY_SKILLS_PATH)
@@ -658,24 +663,22 @@ export async function proposeCareerGoal(input: {
     .single()
   if (!approver) return { success: false, error: 'この従業員への提案権限がありません' }
 
-  const { error: goalErr } = await (supabase as any)
-    .from('employee_career_goals')
-    .upsert(
-      {
-        tenant_id: user.tenant_id,
-        employee_id: input.employeeId,
-        target_skill_id: input.skillId,
-        target_date: input.targetDate,
-        status: 'proposed',
-        proposed_by: user.employee_id,
-        message: input.message ?? null,
-      },
-      { onConflict: 'employee_id' }
-    )
+  const { error: goalErr } = await (supabase as any).from('employee_career_goals').upsert(
+    {
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      target_skill_id: input.skillId,
+      target_date: input.targetDate,
+      status: 'proposed',
+      proposed_by: user.employee_id,
+      message: input.message ?? null,
+    },
+    { onConflict: 'employee_id' }
+  )
   if (goalErr) return { success: false, error: goalErr.message }
 
   if (input.milestones.length > 0) {
-    const rows = input.milestones.map((m) => ({
+    const rows = input.milestones.map(m => ({
       tenant_id: user.tenant_id,
       employee_id: input.employeeId,
       title: m.title,
@@ -684,9 +687,7 @@ export async function proposeCareerGoal(input: {
       status: 'proposed',
       proposed_by: user.employee_id,
     }))
-    const { error: mErr } = await (supabase as any)
-      .from('skill_growth_milestones')
-      .insert(rows)
+    const { error: mErr } = await (supabase as any).from('skill_growth_milestones').insert(rows)
     if (mErr) return { success: false, error: mErr.message }
   }
 
@@ -697,9 +698,7 @@ export async function proposeCareerGoal(input: {
 
 // ---- 従業員: キャリア目標提案を承認 ----
 
-export async function confirmCareerGoal(input: {
-  employeeId: string
-}): Promise<ActionResult> {
+export async function confirmCareerGoal(input: { employeeId: string }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.employee_id || user.employee_id !== input.employeeId)
     return { success: false, error: '認証エラー' }

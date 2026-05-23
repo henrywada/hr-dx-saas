@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スキルマップ改善 — 全体設計</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f8fafc; color: #1e293b; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .lead { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+  .screen-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid #e2e8f0; background: white; color: #475569; transition: all 0.15s; }
+  .tab.active { background: #0055ff; color: white; border-color: #0055ff; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .mgr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .mgr-title { font-size: 18px; font-weight: 700; }
+  .mgr-subtitle { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .btn-primary { background: #0055ff; color: white; border: none; border-radius: 6px; padding: 7px 16px; font-size: 12px; cursor: pointer; }
+  .btn-ghost { background: white; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 16px; font-size: 12px; cursor: pointer; }
+
+  .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .member-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; cursor: pointer; transition: box-shadow 0.15s; }
+  .member-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .member-card.alert { border-color: #fca5a5; background: #fff5f5; }
+  .member-card.done  { border-color: #86efac; background: #f0fdf4; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .card-name { font-weight: 700; font-size: 14px; }
+  .badge { font-size: 10px; border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+  .badge-alert { background: #fee2e2; color: #b91c1c; }
+  .badge-ok    { background: #dcfce7; color: #15803d; }
+  .badge-mid   { background: #fef9c3; color: #854d0e; }
+  .card-goal { font-size: 11px; color: #6b7280; margin-bottom: 8px; }
+  .progress-wrap { background: #e0e7ff; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 4px; }
+  .progress-bar  { height: 100%; background: #0055ff; border-radius: 4px; }
+  .progress-label { font-size: 11px; color: #0055ff; text-align: right; }
+  .card-action { margin-top: 10px; }
+  .card-action button { font-size: 10px; background: #ff6b00; color: white; border: none; border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+  .add-card { border: 2px dashed #d1d5db; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #9ca3af; font-size: 12px; cursor: pointer; min-height: 110px; }
+  .add-card:hover { border-color: #0055ff; color: #0055ff; }
+
+  .journey-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 12px; color: #64748b; }
+  .journey-nav a { color: #0055ff; text-decoration: none; cursor: pointer; }
+  .journey-nav span { color: #9ca3af; }
+  .journey-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
+  .sidebar { display: flex; flex-direction: column; gap: 10px; }
+  .goal-card { background: #0055ff; color: white; border-radius: 10px; padding: 14px; }
+  .goal-card .label { font-size: 10px; opacity: 0.75; margin-bottom: 4px; }
+  .goal-card .role  { font-size: 16px; font-weight: 700; }
+  .goal-card .meta  { font-size: 10px; opacity: 0.75; margin-top: 4px; }
+  .pct-ring { text-align: center; margin-top: 8px; }
+  .pct-num  { font-size: 28px; font-weight: 800; }
+  .pct-sub  { font-size: 10px; opacity: 0.75; }
+  .pct-bar  { background: rgba(255,255,255,0.25); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .pct-fill { height: 100%; background: white; border-radius: 8px; }
+  .info-box { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; }
+  .info-box .box-title { font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .consult-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px; text-align: center; }
+  .consult-box .cq { font-size: 11px; color: #92400e; margin-bottom: 8px; }
+  .consult-btn { background: #ff6b00; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; }
+  .main-area { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+  .section-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .add-btn { font-size: 10px; color: #0055ff; border: 1px dashed #0055ff; background: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+  .milestones { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .milestone { display: flex; gap: 10px; align-items: flex-start; }
+  .ms-line { display: flex; flex-direction: column; align-items: center; }
+  .ms-dot  { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+  .ms-trail { width: 2px; flex: 1; min-height: 20px; }
+  .ms-dot.done  { background: #0055ff; }
+  .ms-dot.now   { background: #f59e0b; }
+  .ms-dot.later { background: #e5e7eb; }
+  .ms-trail.done  { background: #0055ff; }
+  .ms-trail.other { background: #e5e7eb; }
+  .ms-body { flex: 1; }
+  .ms-title { font-size: 13px; font-weight: 600; }
+  .ms-title.done  { color: #0055ff; }
+  .ms-title.now   { color: #92400e; }
+  .ms-title.later { color: #9ca3af; }
+  .ms-meta  { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .ms-comment { font-size: 11px; color: #374151; background: #f0f4ff; border-radius: 4px; padding: 5px 8px; margin-top: 5px; border-left: 3px solid #0055ff; }
+  .ms-sub-progress { background: #fde68a; border-radius: 3px; height: 4px; margin-top: 4px; overflow: hidden; }
+  .ms-sub-fill { height: 100%; background: #f59e0b; }
+  .advice-list { display: flex; flex-direction: column; gap: 8px; }
+  .advice-item { background: #f9fafb; border-radius: 6px; padding: 10px 12px; }
+  .advice-text { font-size: 12px; color: #374151; line-height: 1.5; }
+  .advice-meta { font-size: 10px; color: #9ca3af; margin-top: 4px; text-align: right; }
+
+  .sos-header { background: linear-gradient(135deg, #ff6b00, #ff8c38); color: white; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .sos-title  { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .sos-sub    { font-size: 11px; opacity: 0.85; }
+  .sos-form { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .sos-form label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+  .sos-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 12px; resize: vertical; min-height: 80px; color: #374151; }
+  .sos-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sos-tag  { font-size: 10px; border: 1px solid #d1d5db; border-radius: 12px; padding: 3px 10px; cursor: pointer; color: #6b7280; }
+  .sos-tag.sel { background: #fff7ed; border-color: #ff6b00; color: #ff6b00; }
+  .sos-submit { background: #ff6b00; color: white; border: none; border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; }
+  .past-consults { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; }
+  .past-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+  .consult-thread { border-left: 3px solid #ff6b00; padding-left: 10px; margin-bottom: 12px; }
+  .thread-q { font-size: 12px; color: #374151; }
+  .thread-a { font-size: 12px; color: #0055ff; background: #eff6ff; border-radius: 4px; padding: 6px 8px; margin-top: 5px; }
+  .thread-meta { font-size: 10px; color: #9ca3af; margin-top:3px; }
+
+  .propose-header { margin-bottom: 16px; }
+  .propose-title { font-size: 16px; font-weight: 700; }
+  .propose-sub   { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .propose-form { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
+  .field select, .field input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #374151; }
+  .field textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px; font-size: 12px; resize: vertical; min-height: 60px; }
+  .milestone-editor { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .ms-edit-row { display: flex; gap: 6px; align-items: center; }
+  .ms-edit-row input { flex: 1; border: 1px solid #d1d5db; border-radius: 5px; padding: 5px 8px; font-size: 11px; }
+  .ms-edit-row input.date { width: 110px; flex: none; }
+  .ms-edit-del { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 14px; }
+  .add-ms-btn { font-size: 11px; color: #0055ff; border: 1px dashed #0055ff; background: none; border-radius: 4px; padding: 3px 10px; cursor: pointer; align-self: flex-start; }
+  .propose-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .propose-actions .btn-primary { flex: 1; padding: 9px; font-size: 13px; }
+  .propose-actions .btn-ghost   { padding: 9px 16px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>スキルマップ 改善設計 — 全体プレビュー</h1>
+  <p class="lead">各タブで画面を切り替えてプレビューできます。上司・従業員の両者が同じ「育成ジャーニー」ボードを共有します。</p>
+
+  <div class="screen-tabs">
+    <div class="tab active" onclick="showScreen('s1', this)">① 上司：チーム育成一覧</div>
+    <div class="tab" onclick="showScreen('s4', this)">② 上司：目標を提案する</div>
+    <div class="tab" onclick="showScreen('s2', this)">③ 共有：育成ジャーニーボード</div>
+    <div class="tab" onclick="showScreen('s3', this)">④ 従業員：相談する（SOS）</div>
+  </div>
+
+  <!-- S1: Manager Team -->
+  <div id="s1" class="screen active">
+    <div class="mgr-header">
+      <div>
+        <div class="mgr-title">チームの育成状況</div>
+        <div class="mgr-subtitle">あなたが先導するメンバーの成長をここで確認・サポートします</div>
+      </div>
+      <button class="btn-primary" onclick="showScreen('s4', document.querySelectorAll('.tab')[1])">＋ 目標を提案する</button>
+    </div>
+    <div class="team-grid">
+      <div class="member-card alert" onclick="showScreen('s2', document.querySelectorAll('.tab')[2])">
+        <div class="card-top">
+          <div class="card-name">鈴木 一郎</div>
+          <span class="badge badge-alert">🚨 相談あり</span>
+        </div>
+        <div class="card-goal">目標：チームリーダー ・ 期限 2026/9</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:28%"></div></div>
+        <div class="progress-label">28% 達成 · 8/28 要件</div>
+        <div class="card-action"><button>今すぐ返答する →</button></div>
+      </div>
+      <div class="member-card" onclick="showScreen('s2', document.querySelectorAll('.tab')[2])">
+        <div class="card-top">
+          <div class="card-name">田中 花子</div>
+          <span class="badge badge-mid">⏳ 進行中</span>
+        </div>
+        <div class="card-goal">目標：プロジェクトマネージャー ・ 期限 2027/3</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:42%"></div></div>
+        <div class="progress-label">42% 達成 · 12/28 要件</div>
+      </div>
+      <div class="member-card done" onclick="showScreen('s2', document.querySelectorAll('.tab')[2])">
+        <div class="card-top">
+          <div class="card-name">佐藤 美咲</div>
+          <span class="badge badge-ok">✅ 順調</span>
+        </div>
+        <div class="card-goal">目標：シニアエンジニア ・ 期限 2026/12</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:71%"></div></div>
+        <div class="progress-label">71% 達成 · 20/28 要件</div>
+      </div>
+      <div class="add-card" onclick="showScreen('s4', document.querySelectorAll('.tab')[1])">
+        <div style="font-size:22px;">＋</div>
+        <div>メンバーに目標を提案する</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4: Propose Goal -->
+  <div id="s4" class="screen">
+    <div class="journey-nav">
+      <a onclick="showScreen('s1', document.querySelectorAll('.tab')[0])">チーム育成一覧</a>
+      <span>›</span><span>目標を提案する</span>
+    </div>
+    <div class="propose-header">
+      <div class="propose-title">目標を提案する</div>
+      <div class="propose-sub">上司としてメンバーの成長方向を提案します。メンバーが確認・承認することで育成ジャーニーが始まります。</div>
+    </div>
+    <div class="propose-form">
+      <div class="field"><label>対象メンバー</label>
+        <select><option>田中 花子</option><option>鈴木 一郎</option></select></div>
+      <div class="field"><label>目標職種</label>
+        <select><option>プロジェクトマネージャー</option><option>チームリーダー</option><option>シニアエンジニア</option></select></div>
+      <div class="field"><label>達成期限</label>
+        <input type="date" value="2027-03-31"></div>
+      <div class="field">
+        <label>マイルストーン（ステップ）</label>
+        <div class="milestone-editor">
+          <div class="ms-edit-row">
+            <input type="text" value="基礎知識・スキルの習得">
+            <input type="date" class="date" value="2026-06-30">
+            <button class="ms-edit-del">✕</button>
+          </div>
+          <div class="ms-edit-row">
+            <input type="text" value="リーダー業務のOJT">
+            <input type="date" class="date" value="2026-09-30">
+            <button class="ms-edit-del">✕</button>
+          </div>
+          <div class="ms-edit-row">
+            <input type="text" value="PM資格の取得">
+            <input type="date" class="date" value="2027-02-28">
+            <button class="ms-edit-del">✕</button>
+          </div>
+          <button class="add-ms-btn">＋ ステップを追加</button>
+        </div>
+        <p style="font-size:10px;color:#9ca3af;margin-top:4px;">※ ステップは後から臨機応変に追加・変更できます</p>
+      </div>
+      <div class="field"><label>メンバーへのメッセージ（任意）</label>
+        <textarea placeholder="例：あなたのリーダーシップを伸ばす絶好のチャンスです。一緒に歩んでいきましょう。"></textarea></div>
+      <div class="propose-actions">
+        <button class="btn-ghost" onclick="showScreen('s1', document.querySelectorAll('.tab')[0])">キャンセル</button>
+        <button class="btn-primary" onclick="showScreen('s2', document.querySelectorAll('.tab')[2])">メンバーに提案する →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- S2: Journey Board -->
+  <div id="s2" class="screen">
+    <div class="journey-nav">
+      <a onclick="showScreen('s1', document.querySelectorAll('.tab')[0])">チーム育成一覧</a>
+      <span>›</span><span>田中 花子さんの育成ジャーニー</span>
+    </div>
+    <div class="journey-layout">
+      <div class="sidebar">
+        <div class="goal-card">
+          <div class="label">目標職種</div>
+          <div class="role">プロジェクト<br>マネージャー</div>
+          <div class="meta">期限：2027年3月31日</div>
+          <div class="pct-ring">
+            <div class="pct-num">42%</div>
+            <div class="pct-sub">要件達成率 12/28</div>
+            <div class="pct-bar"><div class="pct-fill" style="width:42%"></div></div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="box-title">📊 今月の変化</div>
+          <div style="font-size:11px;color:#374151;">先月比 <span style="color:#16a34a;font-weight:700;">+5%</span> 向上</div>
+          <div style="font-size:10px;color:#6b7280;margin-top:3px;">先月: 37% → 今月: 42%</div>
+        </div>
+        <div class="consult-box">
+          <div class="cq">行き詰まっていませんか？<br>気軽に相談してください</div>
+          <button class="consult-btn" onclick="showScreen('s3', document.querySelectorAll('.tab')[3])">💬 上司に相談する</button>
+        </div>
+        <div class="info-box">
+          <div class="box-title">📚 推奨コース</div>
+          <div style="font-size:10px;color:#374151;margin-bottom:3px;">山田部長より推奨</div>
+          <div style="font-size:11px;color:#0055ff;text-decoration:underline;cursor:pointer;">PMの基礎：チーム管理入門</div>
+        </div>
+      </div>
+      <div class="main-area">
+        <div class="section-title">
+          育成ロードマップ
+          <button class="add-btn">＋ ステップ変更・追加</button>
+        </div>
+        <div class="milestones">
+          <div class="milestone">
+            <div class="ms-line">
+              <div class="ms-dot done"></div>
+              <div class="ms-trail done"></div>
+            </div>
+            <div class="ms-body">
+              <div class="ms-title done">✅ STEP1：基礎知識・スキルの習得</div>
+              <div class="ms-meta">完了 2026/5 ・ 上司が承認</div>
+              <div class="ms-comment">「スキルの土台がしっかりできました。この調子で次のステップへ進みましょう！」— 山田部長</div>
+            </div>
+          </div>
+          <div class="milestone">
+            <div class="ms-line">
+              <div class="ms-dot now"></div>
+              <div class="ms-trail other"></div>
+            </div>
+            <div class="ms-body">
+              <div class="ms-title now">⏳ STEP2：リーダー業務のOJT</div>
+              <div class="ms-meta">進行中 ・ 期限 2026年9月末</div>
+              <div class="ms-sub-progress"><div class="ms-sub-fill" style="width:30%"></div></div>
+              <div style="font-size:10px;color:#6b7280;margin-top:2px;">このステップの進捗 30%</div>
+              <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                <button style="font-size:10px;background:#fff7ed;color:#ff6b00;border:1px solid #fed7aa;border-radius:4px;padding:2px 8px;cursor:pointer;">📝 自己評価を更新</button>
+                <button style="font-size:10px;background:#eff6ff;color:#0055ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;cursor:pointer;">📋 要件を確認</button>
+              </div>
+            </div>
+          </div>
+          <div class="milestone">
+            <div class="ms-line">
+              <div class="ms-dot later"></div>
+            </div>
+            <div class="ms-body">
+              <div class="ms-title later">🔒 STEP3：PM資格の取得</div>
+              <div class="ms-meta" style="color:#d1d5db;">STEP2完了後に開放</div>
+            </div>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0;">
+        <div class="section-title">💡 上司からのアドバイス</div>
+        <div class="advice-list">
+          <div class="advice-item">
+            <div class="advice-text">「STEP2は焦らず、まずチームメンバーを動かす感覚を体で覚えることが大事です。失敗を恐れずに挑戦してください。9月末に一緒に振り返りましょう。」</div>
+            <div class="advice-meta">山田 部長 · 2026/5/20（STEP2開始時）</div>
+          </div>
+          <div class="advice-item">
+            <div class="advice-text">「先週の定例でのファシリテーション、とても良かったです。あの調子で続けてください！」</div>
+            <div class="advice-meta">山田 部長 · 2026/5/15</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: Consultation -->
+  <div id="s3" class="screen">
+    <div class="journey-nav">
+      <a onclick="showScreen('s2', document.querySelectorAll('.tab')[2])">育成ジャーニーに戻る</a>
+    </div>
+    <div class="sos-header">
+      <div class="sos-title">💬 上司に相談する</div>
+      <div class="sos-sub">いつでも気軽に相談できます。上司が確認したらすぐに返答します。</div>
+    </div>
+    <div class="sos-form">
+      <label>どんなことで悩んでいますか？</label>
+      <div class="sos-tags">
+        <span class="sos-tag sel">要件の達成方法がわからない</span>
+        <span class="sos-tag">スケジュールを変えたい</span>
+        <span class="sos-tag">目標自体を変えたい</span>
+        <span class="sos-tag">モチベーションが下がっている</span>
+        <span class="sos-tag">その他</span>
+      </div>
+      <label>詳しく教えてください（任意）</label>
+      <textarea placeholder="例：STEP2の「チームリード」について、具体的に何をすればよいかイメージがつかめていません。"></textarea>
+      <div style="margin-top:12px;"><button class="sos-submit">相談を送る →</button></div>
+    </div>
+    <div class="past-consults">
+      <div class="past-title">過去の相談履歴</div>
+      <div class="consult-thread">
+        <div class="thread-q">「要件の "リスク管理計画の策定" の具体的な進め方を教えてほしいです」</div>
+        <div class="thread-a">「まず小さなプロジェクトでリスク洗い出しを試してみてください。来週の1on1で一緒に確認しましょう。」— 山田部長</div>
+        <div class="thread-meta">2026/5/10 · 解決済み ✅</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function showScreen(id, clickedTab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (clickedTab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    clickedTab.classList.add('active');
+  }
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<h2>上司画面：チーム育成一覧</h2>
+<p class="subtitle">上司が最初に見る「チームメンバーの育成状況一覧」のレイアウトを選んでください</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>カードグリッド型</h3>
+      <div class="mockup" style="margin-top:8px;">
+        <div class="mockup-header">チームメンバーの育成状況</div>
+        <div class="mockup-body" style="padding:8px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:10px;">
+          <div style="border:1px solid #e5e7eb; border-radius:6px; padding:7px; background:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="font-weight:bold; font-size:11px;">田中 花子</div>
+              <div style="background:#fef3c7; color:#92400e; font-size:9px; border-radius:3px; padding:1px 5px;">⏳ 進行中</div>
+            </div>
+            <div style="color:#6b7280; font-size:9px; margin-bottom:4px;">目標：PM ・ 期限 2027/3</div>
+            <div style="background:#e0e7ff; border-radius:3px; height:5px; overflow:hidden; margin-bottom:3px;">
+              <div style="background:#0055ff; width:42%; height:100%;"></div>
+            </div>
+            <div style="font-size:9px; color:#0055ff;">42% 達成</div>
+          </div>
+          <div style="border:1px solid #e5e7eb; border-radius:6px; padding:7px; background:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="font-weight:bold; font-size:11px;">鈴木 一郎</div>
+              <div style="background:#fee2e2; color:#991b1b; font-size:9px; border-radius:3px; padding:1px 5px;">🚨 相談あり</div>
+            </div>
+            <div style="color:#6b7280; font-size:9px; margin-bottom:4px;">目標：TL ・ 期限 2026/9</div>
+            <div style="background:#e0e7ff; border-radius:3px; height:5px; overflow:hidden; margin-bottom:3px;">
+              <div style="background:#0055ff; width:28%; height:100%;"></div>
+            </div>
+            <div style="font-size:9px; color:#0055ff;">28% 達成</div>
+          </div>
+          <div style="border:1px solid #e5e7eb; border-radius:6px; padding:7px; background:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="font-weight:bold; font-size:11px;">佐藤 美咲</div>
+              <div style="background:#dcfce7; color:#166534; font-size:9px; border-radius:3px; padding:1px 5px;">✅ 順調</div>
+            </div>
+            <div style="color:#6b7280; font-size:9px; margin-bottom:4px;">目標：SE ・ 期限 2026/12</div>
+            <div style="background:#e0e7ff; border-radius:3px; height:5px; overflow:hidden; margin-bottom:3px;">
+              <div style="background:#0055ff; width:71%; height:100%;"></div>
+            </div>
+            <div style="font-size:9px; color:#0055ff;">71% 達成</div>
+          </div>
+          <div style="border:1px dashed #d1d5db; border-radius:6px; padding:7px; background:#fafafa; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:10px; cursor:pointer;">
+            ＋ 目標を提案
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:6px; font-size:11px;">カードをクリックして個人の育成ジャーニーへ遷移。「相談あり」が赤く目立つ。</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>リスト＋サマリー型</h3>
+      <div class="mockup" style="margin-top:8px;">
+        <div class="mockup-header">チームの育成ダッシュボード</div>
+        <div class="mockup-body" style="padding:8px; font-size:10px;">
+          <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <div style="flex:1; background:#eff6ff; border-radius:4px; padding:5px; text-align:center;">
+              <div style="font-size:16px; font-weight:bold; color:#0055ff;">3</div>
+              <div style="font-size:9px; color:#6b7280;">育成中</div>
+            </div>
+            <div style="flex:1; background:#fff7ed; border-radius:4px; padding:5px; text-align:center;">
+              <div style="font-size:16px; font-weight:bold; color:#ff6b00;">1</div>
+              <div style="font-size:9px; color:#6b7280;">要フォロー</div>
+            </div>
+            <div style="flex:1; background:#f0fdf4; border-radius:4px; padding:5px; text-align:center;">
+              <div style="font-size:16px; font-weight:bold; color:#16a34a;">1</div>
+              <div style="font-size:9px; color:#6b7280;">目標達成</div>
+            </div>
+          </div>
+          <div style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
+            <div style="display:flex; align-items:center; padding:6px 8px; border-bottom:1px solid #f3f4f6; gap:6px;">
+              <div style="width:3px; height:28px; background:#ef4444; border-radius:2px; flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:bold; font-size:10px;">鈴木 一郎 <span style="font-size:9px; color:#ef4444;">🚨 相談あり</span></div>
+                <div style="font-size:9px; color:#6b7280;">TL目標 · 28% · 期限まで3ヶ月</div>
+              </div>
+              <button style="font-size:9px; background:#ff6b00; color:white; border:none; border-radius:3px; padding:2px 7px; cursor:pointer;">返答する</button>
+            </div>
+            <div style="display:flex; align-items:center; padding:6px 8px; border-bottom:1px solid #f3f4f6; gap:6px;">
+              <div style="width:3px; height:28px; background:#f59e0b; border-radius:2px; flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:bold; font-size:10px;">田中 花子</div>
+                <div style="font-size:9px; color:#6b7280;">PM目標 · 42% · 期限まで10ヶ月</div>
+              </div>
+              <button style="font-size:9px; background:white; color:#374151; border:1px solid #d1d5db; border-radius:3px; padding:2px 7px; cursor:pointer;">確認</button>
+            </div>
+            <div style="display:flex; align-items:center; padding:6px 8px; gap:6px;">
+              <div style="width:3px; height:28px; background:#22c55e; border-radius:2px; flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:bold; font-size:10px;">佐藤 美咲</div>
+                <div style="font-size:9px; color:#6b7280;">SE目標 · 71% · 順調</div>
+              </div>
+              <button style="font-size:9px; background:white; color:#374151; border:1px solid #d1d5db; border-radius:3px; padding:2px 7px; cursor:pointer;">確認</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:6px; font-size:11px;">要フォローが最上位。3つのサマリー数値でチーム全体を俯瞰できる。</p>
+    </div>
+  </div>
+</div>

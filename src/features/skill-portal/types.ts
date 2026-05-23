@@ -75,3 +75,79 @@ export type SkillApprover = {
   employee?: { id: string; name: string | null; employee_no: string | null }
   approver?: { id: string; name: string | null; employee_no: string | null }
 }
+
+/** マイルストーンステータス */
+export type MilestoneStatus = 'proposed' | 'confirmed' | 'in_progress' | 'completed' | 'changed'
+
+/** 育成マイルストーン */
+export type SkillGrowthMilestone = {
+  id: string
+  tenant_id: string
+  employee_id: string
+  title: string
+  description: string | null
+  target_date: string | null
+  sort_order: number
+  status: MilestoneStatus
+  proposed_by: string
+  confirmed_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** 相談（SOS）ステータス */
+export type ConsultationStatus = 'open' | 'replied' | 'resolved'
+
+/** 上司への相談 */
+export type SkillConsultation = {
+  id: string
+  tenant_id: string
+  employee_id: string
+  manager_id: string
+  category_tags: string[]
+  message: string | null
+  manager_reply: string | null
+  status: ConsultationStatus
+  replied_at: string | null
+  created_at: string
+}
+
+/** キャリア目標ステータス */
+export type CareerGoalStatus = 'proposed' | 'confirmed' | 'active' | 'achieved'
+
+/** チームメンバー育成カード用サマリー */
+export type TeamMemberGrowthCard = {
+  employee_id: string
+  employee_name: string | null
+  goal_skill_name: string | null
+  goal_deadline: string | null
+  achievement_rate: number
+  status: 'consultation' | 'in_progress' | 'on_track' | 'no_goal'
+  has_open_consultation: boolean
+}
+
+/** 育成ジャーニーボード用データ */
+export type GrowthJourneyData = {
+  employee_id: string
+  employee_name: string | null
+  goal: {
+    skill_id: string | null
+    skill_name: string | null
+    target_date: string | null
+    status: CareerGoalStatus | null
+    message: string | null
+  } | null
+  achievement_rate: number
+  prev_month_rate: number
+  milestones: SkillGrowthMilestone[]
+  feedback_comments: Array<{
+    id: string
+    sender_name: string | null
+    category: string
+    comment: string
+    created_at: string
+  }>
+  recommended_course: { id: string; title: string } | null
+  open_consultations: SkillConsultation[]
+}

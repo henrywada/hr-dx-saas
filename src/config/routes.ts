@@ -69,6 +69,14 @@ export const APP_ROUTES = {
     MY_SKILLS: '/my-skills',
     /** 上長スキル承認 */
     SKILL_APPROVALS: '/skill-approvals',
+    /** 従業員マイ育成ジャーニー */
+    MY_SKILLS_JOURNEY: '/my-skills/journey',
+    /** 従業員 SOS 相談画面 */
+    MY_SKILLS_JOURNEY_CONSULT: '/my-skills/journey/consult',
+    /** 上司 育成ジャーニーボード（:employeeId） */
+    SKILL_JOURNEY: (employeeId: string) => `/skill-approvals/journey/${employeeId}`,
+    /** 上司 目標提案フォーム（:employeeId） */
+    SKILL_JOURNEY_PROPOSE: (employeeId: string) => `/skill-approvals/journey/${employeeId}/propose`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

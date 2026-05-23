@@ -1090,27 +1090,39 @@ export type Database = {
       }
       employee_career_goals: {
         Row: {
+          confirmed_at: string | null
           created_at: string
           employee_id: string
           id: string
+          message: string | null
+          proposed_by: string | null
+          status: string
           target_date: string | null
           target_skill_id: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          confirmed_at?: string | null
           created_at?: string
           employee_id: string
           id?: string
+          message?: string | null
+          proposed_by?: string | null
+          status?: string
           target_date?: string | null
           target_skill_id: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          confirmed_at?: string | null
           created_at?: string
           employee_id?: string
           id?: string
+          message?: string | null
+          proposed_by?: string | null
+          status?: string
           target_date?: string | null
           target_skill_id?: string
           tenant_id?: string
@@ -1120,6 +1132,13 @@ export type Database = {
           {
             foreignKeyName: "employee_career_goals_employee_id_fkey"
             columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_career_goals_proposed_by_fkey"
+            columns: ["proposed_by"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
@@ -3723,6 +3742,67 @@ export type Database = {
           },
         ]
       }
+      skill_consultations: {
+        Row: {
+          category_tags: string[]
+          created_at: string
+          employee_id: string
+          id: string
+          manager_id: string
+          manager_reply: string | null
+          message: string | null
+          replied_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          category_tags?: string[]
+          created_at?: string
+          employee_id: string
+          id?: string
+          manager_id: string
+          manager_reply?: string | null
+          message?: string | null
+          replied_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          category_tags?: string[]
+          created_at?: string
+          employee_id?: string
+          id?: string
+          manager_id?: string
+          manager_reply?: string | null
+          message?: string | null
+          replied_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_consultations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_consultations_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_consultations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_feedback_comments: {
         Row: {
           category: string
@@ -3771,6 +3851,76 @@ export type Database = {
           },
           {
             foreignKeyName: "skill_feedback_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_growth_milestones: {
+        Row: {
+          completed_at: string | null
+          confirmed_at: string | null
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          proposed_by: string
+          sort_order: number
+          status: string
+          target_date: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          proposed_by: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          proposed_by?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_growth_milestones_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_growth_milestones_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_growth_milestones_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

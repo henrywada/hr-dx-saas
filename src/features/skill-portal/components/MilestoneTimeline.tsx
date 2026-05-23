@@ -26,7 +26,11 @@ function statusLabel(status: SkillGrowthMilestone['status']) {
   return map[status] ?? status
 }
 
-export function MilestoneTimeline({ milestones, isManager, onProposeMilestone }: MilestoneTimelineProps) {
+export function MilestoneTimeline({
+  milestones,
+  isManager,
+  onProposeMilestone,
+}: MilestoneTimelineProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-4">
@@ -62,23 +66,31 @@ export function MilestoneTimeline({ milestones, isManager, onProposeMilestone }:
             <div className="flex-1 pb-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-semibold text-gray-800">{m.title}</span>
-                <span className={`text-xs rounded px-2 py-0.5 font-medium ${
-                  m.status === 'completed' ? 'bg-green-100 text-green-700' :
-                  m.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                  m.status === 'proposed' ? 'bg-purple-100 text-purple-700' :
-                  'bg-gray-100 text-gray-500'
-                }`}>
+                <span
+                  className={`text-xs rounded px-2 py-0.5 font-medium ${
+                    m.status === 'completed'
+                      ? 'bg-green-100 text-green-700'
+                      : m.status === 'in_progress'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : m.status === 'proposed'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
                   {statusLabel(m.status)}
                 </span>
               </div>
               {m.target_date && (
                 <p className="text-xs text-gray-400 mt-0.5">
-                  目標: {new Date(m.target_date).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  目標:{' '}
+                  {new Date(m.target_date).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </p>
               )}
-              {m.description && (
-                <p className="text-xs text-gray-500 mt-1">{m.description}</p>
-              )}
+              {m.description && <p className="text-xs text-gray-500 mt-1">{m.description}</p>}
             </div>
           </div>
         ))}

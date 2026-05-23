@@ -45,7 +45,7 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
     setSubmitting(true)
     const result = await replyConsultation({ consultationId, reply: reply.trim() })
     setSubmitting(false)
-    if (result.success) setReplyText((prev) => ({ ...prev, [consultationId]: '' }))
+    if (result.success) setReplyText(prev => ({ ...prev, [consultationId]: '' }))
     else alert((result as { success: false; error: string }).error)
   }
 
@@ -53,11 +53,17 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
         {isManager ? (
-          <Link href={APP_ROUTES.TENANT.SKILL_APPROVALS} className="text-sm text-gray-500 hover:text-primary">
+          <Link
+            href={APP_ROUTES.TENANT.SKILL_APPROVALS}
+            className="text-sm text-gray-500 hover:text-primary"
+          >
             ← チーム育成一覧
           </Link>
         ) : (
-          <Link href={APP_ROUTES.TENANT.MY_SKILLS} className="text-sm text-gray-500 hover:text-primary">
+          <Link
+            href={APP_ROUTES.TENANT.MY_SKILLS}
+            className="text-sm text-gray-500 hover:text-primary"
+          >
             ← マイスキルに戻る
           </Link>
         )}
@@ -92,7 +98,11 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
             <p className="text-base font-bold text-primary">{data.goal?.skill_name ?? '未設定'}</p>
             {data.goal?.target_date && (
               <p className="text-xs text-gray-500 mt-0.5">
-                期限: {new Date(data.goal.target_date).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' })}
+                期限:{' '}
+                {new Date(data.goal.target_date).toLocaleDateString('ja-JP', {
+                  year: 'numeric',
+                  month: 'short',
+                })}
               </p>
             )}
             <div className="mt-3">
@@ -101,7 +111,10 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
                 <span className="font-bold text-primary">{data.achievement_rate}%</span>
               </div>
               <div className="bg-blue-100 rounded-full h-2 overflow-hidden">
-                <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${data.achievement_rate}%` }} />
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{ width: `${data.achievement_rate}%` }}
+                />
               </div>
             </div>
           </div>
@@ -109,7 +122,8 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
           <div className="bg-white rounded-xl border p-4">
             <p className="text-xs text-gray-400 mb-1">先月比</p>
             <p className={`text-lg font-bold ${diffRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {diffRate >= 0 ? '+' : ''}{diffRate}%
+              {diffRate >= 0 ? '+' : ''}
+              {diffRate}%
             </p>
           </div>
 
@@ -126,7 +140,9 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
           {data.recommended_course && (
             <div className="bg-white rounded-xl border p-4">
               <p className="text-xs text-gray-400 mb-1">おすすめコース</p>
-              <p className="text-xs font-semibold text-gray-700 line-clamp-2">{data.recommended_course.title}</p>
+              <p className="text-xs font-semibold text-gray-700 line-clamp-2">
+                {data.recommended_course.title}
+              </p>
             </div>
           )}
         </aside>
@@ -138,7 +154,11 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
               isManager={isManager}
               onProposeMilestone={
                 isManager
-                  ? () => { window.location.href = APP_ROUTES.TENANT.SKILL_JOURNEY_PROPOSE(data.employee_id) }
+                  ? () => {
+                      window.location.href = APP_ROUTES.TENANT.SKILL_JOURNEY_PROPOSE(
+                        data.employee_id
+                      )
+                    }
                   : undefined
               }
             />
@@ -149,18 +169,23 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
               <h3 className="text-sm font-bold text-red-700 mb-3">
                 🚨 未返答の相談（{data.open_consultations.length}件）
               </h3>
-              {data.open_consultations.map((c) => (
+              {data.open_consultations.map(c => (
                 <div key={c.id} className="mb-4 last:mb-0">
                   <div className="flex flex-wrap gap-1 mb-1">
-                    {c.category_tags.map((tag) => (
-                      <span key={tag} className="text-xs bg-red-100 text-red-600 rounded px-2 py-0.5">{tag}</span>
+                    {c.category_tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-red-100 text-red-600 rounded px-2 py-0.5"
+                      >
+                        {tag}
+                      </span>
                     ))}
                   </div>
                   {c.message && <p className="text-sm text-gray-700 mb-2">{c.message}</p>}
                   <div className="flex gap-2">
                     <input
                       value={replyText[c.id] ?? ''}
-                      onChange={(e) => setReplyText((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                      onChange={e => setReplyText(prev => ({ ...prev, [c.id]: e.target.value }))}
                       placeholder="返答を入力..."
                       className="flex-1 text-sm border rounded px-3 py-1.5"
                     />
@@ -183,7 +208,7 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
               <div className="flex gap-2">
                 <textarea
                   value={adviceText}
-                  onChange={(e) => setAdviceText(e.target.value)}
+                  onChange={e => setAdviceText(e.target.value)}
                   placeholder="メンバーへのアドバイスやメッセージを入力..."
                   rows={3}
                   className="flex-1 text-sm border rounded px-3 py-2 resize-none"
@@ -203,11 +228,15 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
             <div className="bg-white rounded-xl border p-5">
               <h3 className="text-sm font-bold text-gray-700 mb-3">上司からのアドバイス</h3>
               <div className="space-y-3">
-                {data.feedback_comments.map((c) => (
+                {data.feedback_comments.map(c => (
                   <div key={c.id} className="border-l-2 border-primary pl-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-600">{c.sender_name ?? '上司'}</span>
-                      <span className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString('ja-JP')}</span>
+                      <span className="text-xs font-semibold text-gray-600">
+                        {c.sender_name ?? '上司'}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(c.created_at).toLocaleDateString('ja-JP')}
+                      </span>
                     </div>
                     <p className="text-sm text-gray-700">{c.comment}</p>
                   </div>

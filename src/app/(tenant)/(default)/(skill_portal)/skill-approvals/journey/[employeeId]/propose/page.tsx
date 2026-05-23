@@ -17,7 +17,11 @@ export default async function ProposePage({ params }: Props) {
   const hasAccess = await verifyManagerAccess(supabase, user.employee_id, employeeId)
   if (!hasAccess) return notFound()
 
-  const { data: emp } = await (supabase as any).from('employees').select('name').eq('id', employeeId).single()
+  const { data: emp } = await (supabase as any)
+    .from('employees')
+    .select('name')
+    .eq('id', employeeId)
+    .single()
   const { data: skills } = await (supabase as any)
     .from('tenant_skills')
     .select('id, name')
@@ -26,7 +30,11 @@ export default async function ProposePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <ProposeGoalForm employeeId={employeeId} employeeName={emp?.name ?? null} tenantSkills={skills ?? []} />
+      <ProposeGoalForm
+        employeeId={employeeId}
+        employeeName={emp?.name ?? null}
+        tenantSkills={skills ?? []}
+      />
     </div>
   )
 }

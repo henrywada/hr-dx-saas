@@ -31,7 +31,7 @@ export function TeamGrowthGrid({ cards }: TeamGrowthGridProps) {
     <div className="mb-6">
       <h2 className="text-sm font-bold text-gray-600 mb-3">担当メンバーの育成状況</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {cards.map((card) => {
+        {cards.map(card => {
           const badge = statusBadge(card.status)
           return (
             <Link
@@ -51,7 +51,10 @@ export function TeamGrowthGrid({ cards }: TeamGrowthGridProps) {
                   : '目標未設定'}
               </p>
               <div className="bg-blue-100 rounded-full h-1.5 overflow-hidden mb-1">
-                <div className="bg-primary h-1.5 rounded-full" style={{ width: `${card.achievement_rate}%` }} />
+                <div
+                  className="bg-primary h-1.5 rounded-full"
+                  style={{ width: `${card.achievement_rate}%` }}
+                />
               </div>
               <p className="text-xs text-primary font-semibold">{card.achievement_rate}% 達成</p>
             </Link>

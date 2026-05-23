@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { SkillRoleApplication, SkillRequirementApplication, TeamMemberGrowthCard } from '../types'
+import type {
+  SkillRoleApplication,
+  SkillRequirementApplication,
+  TeamMemberGrowthCard,
+} from '../types'
 import {
   managerApproveRoleApplication,
   managerRejectRoleApplication,
@@ -18,7 +22,11 @@ type Props = {
 
 type Tab = 'role' | 'requirement'
 
-export function SkillApprovalsView({ roleApplications, requirementApplications, teamCards }: Props) {
+export function SkillApprovalsView({
+  roleApplications,
+  requirementApplications,
+  teamCards,
+}: Props) {
   const [tab, setTab] = useState<Tab>('role')
 
   return (

@@ -26,7 +26,9 @@ export default async function SkillApprovalsPage() {
       <div className="mx-auto max-w-3xl px-6 pb-12 pt-8">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-gray-900">チームの育成状況</h1>
-          <p className="mt-1 text-sm text-gray-500">あなたが先導するメンバーの成長をここで確認・サポートします</p>
+          <p className="mt-1 text-sm text-gray-500">
+            あなたが先導するメンバーの成長をここで確認・サポートします
+          </p>
         </div>
         <SkillApprovalsView
           roleApplications={roleApplications}

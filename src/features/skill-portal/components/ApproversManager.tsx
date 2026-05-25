@@ -37,7 +37,7 @@ export function ApproversManager({ approvers, allEmployees, evalRows, activeTab 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          スキル承認者
+          上司承認
         </button>
         <button
           type="button"
@@ -48,7 +48,7 @@ export function ApproversManager({ approvers, allEmployees, evalRows, activeTab 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          評価者設定
+          段階承認・評価
         </button>
       </div>
 
@@ -112,13 +112,18 @@ function SkillApproversTab({
             <label className="mb-1 block text-xs font-medium text-gray-600">上長（承認者）</label>
             <select
               value={approverId}
-              onChange={e => { setApproverId(e.target.value); setError(null) }}
+              onChange={e => {
+                setApproverId(e.target.value)
+                setError(null)
+              }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             >
               <option value=""></option>
               <option value="__all__">すべて</option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -131,7 +136,9 @@ function SkillApproversTab({
             >
               <option value=""></option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -173,10 +180,18 @@ function SkillApproversTab({
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="w-12 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">No</th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">上長（承認者）</th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">対象従業員</th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">操作</th>
+                    <th className="w-12 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">
+                      No
+                    </th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                      上長（承認者）
+                    </th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                      対象従業員
+                    </th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">
+                      操作
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -185,17 +200,23 @@ function SkillApproversTab({
                       key={a.id}
                       className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                     >
-                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">{i + 1}</td>
+                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
+                        {i + 1}
+                      </td>
                       <td className="px-4 py-2.5 text-gray-800">
                         {a.approver?.name ?? '—'}
                         {a.approver?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">（{a.approver.employee_no}）</span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">
+                            （{a.approver.employee_no}）
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-gray-800">
                         {a.employee?.name ?? '—'}
                         {a.employee?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">（{a.employee.employee_no}）</span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">
+                            （{a.employee.employee_no}）
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-center">

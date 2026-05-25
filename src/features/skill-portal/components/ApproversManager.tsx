@@ -132,7 +132,8 @@ function SkillApproversTab({
             <select
               value={employeeId}
               onChange={e => setEmployeeId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+              disabled={approverId === '__all__'}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value=""></option>
               {allEmployees.map(e => (
@@ -145,7 +146,7 @@ function SkillApproversTab({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={isPending}
+            disabled={isPending || approverId === '__all__'}
             className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
             追加
@@ -169,11 +170,15 @@ function SkillApproversTab({
               .slice()
               .sort((a, b) => {
                 const approverCmp = (a.approver?.employee_no ?? '').localeCompare(
-                  b.approver?.employee_no ?? '', 'ja', { numeric: true }
+                  b.approver?.employee_no ?? '',
+                  'ja',
+                  { numeric: true }
                 )
                 if (approverCmp !== 0) return approverCmp
                 return (a.employee?.employee_no ?? '').localeCompare(
-                  b.employee?.employee_no ?? '', 'ja', { numeric: true }
+                  b.employee?.employee_no ?? '',
+                  'ja',
+                  { numeric: true }
                 )
               })
             const isAll = approverId === '__all__'
@@ -201,45 +206,51 @@ function SkillApproversTab({
                 </thead>
                 <tbody>
                   {filtered.map((a, i) => {
-                    const isGroupHead = isAll && (i === 0 || filtered[i - 1].approver_id !== a.approver_id)
-                    const rowBg = isGroupHead ? 'bg-green-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    const isGroupHead =
+                      isAll && (i === 0 || filtered[i - 1].approver_id !== a.approver_id)
+                    const rowBg = isGroupHead
+                      ? 'bg-green-50'
+                      : i % 2 === 0
+                        ? 'bg-white'
+                        : 'bg-gray-50'
                     return (
-                    <tr
-                      key={a.id}
-                      className={`border-b border-gray-100 hover:bg-blue-50 ${rowBg}`}
-                    >
-                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-800">
-                        {a.approver?.name ?? '—'}
-                        {a.approver?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.approver.employee_no}）
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-800">
-                        {a.employee?.name ?? '—'}
-                        {a.employee?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.employee.employee_no}）
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(a.id)}
-                          disabled={isPending}
-                          className="inline-flex items-center gap-1 text-xs text-red-500 hover:underline disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          削除
-                        </button>
-                      </td>
-                    </tr>
-                  )})}
+                      <tr
+                        key={a.id}
+                        className={`border-b border-gray-100 hover:bg-blue-50 ${rowBg}`}
+                      >
+                        <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
+                          {i + 1}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-800">
+                          {a.approver?.name ?? '—'}
+                          {a.approver?.employee_no && (
+                            <span className="ml-1 font-mono text-xs text-gray-400">
+                              （{a.approver.employee_no}）
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-800">
+                          {a.employee?.name ?? '—'}
+                          {a.employee?.employee_no && (
+                            <span className="ml-1 font-mono text-xs text-gray-400">
+                              （{a.employee.employee_no}）
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(a.id)}
+                            disabled={isPending}
+                            className="inline-flex items-center gap-1 text-xs text-red-500 hover:underline disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )

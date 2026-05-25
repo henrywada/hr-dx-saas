@@ -868,15 +868,35 @@ export async function upsertEvalApprovers(input: {
     .in('approver_role', ['eval_primary', 'eval_secondary', 'eval_confirmer'])
   if (delErr) return { success: false, error: delErr.message }
 
-  const inserts: Array<{ tenant_id: string; employee_id: string; approver_id: string; approver_role: string }> = []
+  const inserts: Array<{
+    tenant_id: string
+    employee_id: string
+    approver_id: string
+    approver_role: string
+  }> = []
   if (input.primaryApproverId) {
-    inserts.push({ tenant_id: user.tenant_id, employee_id: input.employeeId, approver_id: input.primaryApproverId, approver_role: 'eval_primary' })
+    inserts.push({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      approver_id: input.primaryApproverId,
+      approver_role: 'eval_primary',
+    })
   }
   if (input.secondaryApproverId) {
-    inserts.push({ tenant_id: user.tenant_id, employee_id: input.employeeId, approver_id: input.secondaryApproverId, approver_role: 'eval_secondary' })
+    inserts.push({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      approver_id: input.secondaryApproverId,
+      approver_role: 'eval_secondary',
+    })
   }
   if (input.confirmerApproverId) {
-    inserts.push({ tenant_id: user.tenant_id, employee_id: input.employeeId, approver_id: input.confirmerApproverId, approver_role: 'eval_confirmer' })
+    inserts.push({
+      tenant_id: user.tenant_id,
+      employee_id: input.employeeId,
+      approver_id: input.confirmerApproverId,
+      approver_role: 'eval_confirmer',
+    })
   }
 
   if (inserts.length > 0) {
@@ -890,9 +910,7 @@ export async function upsertEvalApprovers(input: {
 
 // ---- 人事: 評価者設定 一括削除 ----
 
-export async function removeEvalApprovers(input: {
-  employeeId: string
-}): Promise<ActionResult> {
+export async function removeEvalApprovers(input: { employeeId: string }): Promise<ActionResult> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
   const supabase = await createClient()

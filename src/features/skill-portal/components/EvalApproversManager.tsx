@@ -63,12 +63,17 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
             <label className="mb-1 block text-xs font-medium text-gray-600">対象従業員</label>
             <select
               value={employeeId}
-              onChange={e => { setEmployeeId(e.target.value); setError(null) }}
+              onChange={e => {
+                setEmployeeId(e.target.value)
+                setError(null)
+              }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             >
               <option value=""></option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -81,7 +86,9 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
             >
               <option value="">（なし）</option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -94,7 +101,9 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
             >
               <option value="">（なし）</option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -107,7 +116,9 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
             >
               <option value="">（なし）</option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>{empLabel(e)}</option>
+                <option key={e.id} value={e.id}>
+                  {empLabel(e)}
+                </option>
               ))}
             </select>
           </div>
@@ -132,12 +143,24 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-gray-100">
-                <th className="w-10 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">No</th>
-                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">従業員</th>
-                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">一次評価者</th>
-                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">二次評価者</th>
-                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">確定者</th>
-                <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">操作</th>
+                <th className="w-10 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">
+                  No
+                </th>
+                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                  従業員
+                </th>
+                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                  一次評価者
+                </th>
+                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                  二次評価者
+                </th>
+                <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
+                  確定者
+                </th>
+                <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">
+                  操作
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -146,11 +169,15 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
                   key={row.employee_id}
                   className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                 >
-                  <td className="w-10 px-2 py-2.5 text-center font-mono text-xs text-gray-500">{i + 1}</td>
+                  <td className="w-10 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
+                    {i + 1}
+                  </td>
                   <td className="px-4 py-2.5 text-gray-800">
                     {row.employee.name ?? '—'}
                     {row.employee.employee_no && (
-                      <span className="ml-1 font-mono text-xs text-gray-400">（{row.employee.employee_no}）</span>
+                      <span className="ml-1 font-mono text-xs text-gray-400">
+                        （{row.employee.employee_no}）
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-gray-800">
@@ -158,30 +185,42 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
                       <>
                         {row.primary.approver.name ?? '—'}
                         {row.primary.approver.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">（{row.primary.approver.employee_no}）</span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">
+                            （{row.primary.approver.employee_no}）
+                          </span>
                         )}
                       </>
-                    ) : <span className="text-gray-400">—</span>}
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-gray-800">
                     {row.secondary ? (
                       <>
                         {row.secondary.approver.name ?? '—'}
                         {row.secondary.approver.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">（{row.secondary.approver.employee_no}）</span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">
+                            （{row.secondary.approver.employee_no}）
+                          </span>
                         )}
                       </>
-                    ) : <span className="text-gray-400">—</span>}
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-gray-800">
                     {row.confirmer ? (
                       <>
                         {row.confirmer.approver.name ?? '—'}
                         {row.confirmer.approver.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">（{row.confirmer.approver.employee_no}）</span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">
+                            （{row.confirmer.approver.employee_no}）
+                          </span>
                         )}
                       </>
-                    ) : <span className="text-gray-400">—</span>}
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <button

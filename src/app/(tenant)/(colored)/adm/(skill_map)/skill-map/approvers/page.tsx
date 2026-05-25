@@ -2,17 +2,23 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getSkillApprovers } from '@/features/skill-portal/queries'
+import { getSkillApprovers, getEvalApprovers } from '@/features/skill-portal/queries'
 import { ApproversManager } from '@/features/skill-portal/components/ApproversManager'
 
-export default async function SkillApproversPage() {
+export default async function SkillApproversPage(props: {
+  searchParams?: Promise<Record<string, string | string[]>>
+}) {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
   const supabase = await createClient()
+  const searchParams = await props.searchParams
+  const tab = (searchParams?.tab as string) ?? 'skill'
+  const activeTab = tab === 'eval' ? 'eval' : 'skill'
 
-  const [approvers, employeesRes] = await Promise.all([
+  const [approvers, evalRows, employeesRes] = await Promise.all([
     getSkillApprovers(supabase),
+    getEvalApprovers(supabase),
     (supabase as any)
       .from('employees')
       .select('id, name, employee_no')
@@ -39,7 +45,12 @@ export default async function SkillApproversPage() {
             </p>
           </div>
           <div className="p-6">
-            <ApproversManager approvers={approvers} allEmployees={allEmployees} />
+            <ApproversManager
+              approvers={approvers}
+              allEmployees={allEmployees}
+              evalRows={evalRows}
+              activeTab={activeTab}
+            />
           </div>
         </div>
       </div>

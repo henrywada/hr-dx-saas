@@ -1,18 +1,73 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
-import type { SkillApprover } from '../types'
+import type { SkillApprover, EvalApproverRow } from '../types'
 import { addSkillApprover, removeSkillApprover } from '../actions'
+import { EvalApproversManager } from './EvalApproversManager'
 
 type Employee = { id: string; name: string | null; employee_no: string | null }
 
 type Props = {
   approvers: SkillApprover[]
   allEmployees: Employee[]
+  evalRows: EvalApproverRow[]
+  activeTab: 'skill' | 'eval'
 }
 
-export function ApproversManager({ approvers, allEmployees }: Props) {
+export function ApproversManager({ approvers, allEmployees, evalRows, activeTab }: Props) {
+  const router = useRouter()
+
+  function switchTab(tab: 'skill' | 'eval') {
+    const params = new URLSearchParams()
+    if (tab === 'eval') params.set('tab', 'eval')
+    router.push(`?${params.toString()}`)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => switchTab('skill')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'skill'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          スキル承認者
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('eval')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'eval'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          評価者設定
+        </button>
+      </div>
+
+      {activeTab === 'skill' ? (
+        <SkillApproversTab approvers={approvers} allEmployees={allEmployees} />
+      ) : (
+        <EvalApproversManager rows={evalRows} allEmployees={allEmployees} />
+      )}
+    </div>
+  )
+}
+
+function SkillApproversTab({
+  approvers,
+  allEmployees,
+}: {
+  approvers: SkillApprover[]
+  allEmployees: Employee[]
+}) {
   const [employeeId, setEmployeeId] = useState('')
   const [approverId, setApproverId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +95,6 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
         return
       }
       setEmployeeId('')
-      // approverId はクリアしない（同じ上長に続けて追加できるよう）
     })
   }
 
@@ -58,18 +112,13 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
             <label className="mb-1 block text-xs font-medium text-gray-600">上長（承認者）</label>
             <select
               value={approverId}
-              onChange={e => {
-                setApproverId(e.target.value)
-                setError(null)
-              }}
+              onChange={e => { setApproverId(e.target.value); setError(null) }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             >
               <option value=""></option>
               <option value="__all__">すべて</option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>
-                  {empLabel(e)}
-                </option>
+                <option key={e.id} value={e.id}>{empLabel(e)}</option>
               ))}
             </select>
           </div>
@@ -82,9 +131,7 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
             >
               <option value=""></option>
               {allEmployees.map(e => (
-                <option key={e.id} value={e.id}>
-                  {empLabel(e)}
-                </option>
+                <option key={e.id} value={e.id}>{empLabel(e)}</option>
               ))}
             </select>
           </div>
@@ -126,18 +173,10 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="w-12 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">
-                      No
-                    </th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
-                      上長（承認者）
-                    </th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">
-                      対象従業員
-                    </th>
-                    <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">
-                      操作
-                    </th>
+                    <th className="w-12 border-b border-gray-200 px-2 py-2.5 text-center text-xs font-semibold text-gray-700">No</th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">上長（承認者）</th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-left text-xs font-semibold text-gray-700">対象従業員</th>
+                    <th className="border-b border-gray-200 px-4 py-2.5 text-center text-xs font-semibold text-gray-700">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -146,23 +185,17 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
                       key={a.id}
                       className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                     >
-                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
-                        {i + 1}
-                      </td>
+                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">{i + 1}</td>
                       <td className="px-4 py-2.5 text-gray-800">
                         {a.approver?.name ?? '—'}
                         {a.approver?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.approver.employee_no}）
-                          </span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">（{a.approver.employee_no}）</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-gray-800">
                         {a.employee?.name ?? '—'}
                         {a.employee?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.employee.employee_no}）
-                          </span>
+                          <span className="ml-1 font-mono text-xs text-gray-400">（{a.employee.employee_no}）</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-center">

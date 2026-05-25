@@ -168,10 +168,15 @@ function SkillApproversTab({
             )
               .slice()
               .sort((a, b) => {
-                const na = a.employee?.employee_no ?? ''
-                const nb = b.employee?.employee_no ?? ''
-                return na.localeCompare(nb, 'ja', { numeric: true })
+                const approverCmp = (a.approver?.employee_no ?? '').localeCompare(
+                  b.approver?.employee_no ?? '', 'ja', { numeric: true }
+                )
+                if (approverCmp !== 0) return approverCmp
+                return (a.employee?.employee_no ?? '').localeCompare(
+                  b.employee?.employee_no ?? '', 'ja', { numeric: true }
+                )
               })
+            const isAll = approverId === '__all__'
             return filtered.length === 0 ? (
               <p className="py-10 text-center text-sm text-gray-400">
                 この承認者に対象従業員が設定されていません
@@ -195,10 +200,13 @@ function SkillApproversTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((a, i) => (
+                  {filtered.map((a, i) => {
+                    const isGroupHead = isAll && (i === 0 || filtered[i - 1].approver_id !== a.approver_id)
+                    const rowBg = isGroupHead ? 'bg-green-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    return (
                     <tr
                       key={a.id}
-                      className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                      className={`border-b border-gray-100 hover:bg-blue-50 ${rowBg}`}
                     >
                       <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
                         {i + 1}
@@ -231,7 +239,7 @@ function SkillApproversTab({
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             )

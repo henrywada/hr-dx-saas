@@ -1,26 +1,28 @@
-import React from 'react';
-import { 
-  Sparkles, 
-  FileText, 
-  Briefcase, 
-  Activity, 
-  AlertTriangle, 
-  Lightbulb, 
+import React from 'react'
+import {
+  Sparkles,
+  FileText,
+  Briefcase,
+  Activity,
+  AlertTriangle,
+  Lightbulb,
   ArrowRight,
   TrendingUp,
   LineChart,
   BookOpen,
-  ChevronRight
-} from 'lucide-react';
-import Link from 'next/link';
-import { APP_ROUTES } from '@/config/routes';
+  ChevronRight,
+} from 'lucide-react'
+import Link from 'next/link'
+import { APP_ROUTES } from '@/config/routes'
 
 export default function HrDashboardPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* 1. Header Area */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">💡ダッシュボード</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          💡ダッシュボード
+        </h1>
         <p className="text-sm text-slate-500 mt-2">
           本日のタスクと採用状況のサマリーを確認できます。
         </p>
@@ -37,7 +39,9 @@ export default function HrDashboardPage() {
             <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
               <Sparkles className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">利用中</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">
+              利用中
+            </span>
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500 mb-1">AI生成チケット</p>
@@ -60,7 +64,10 @@ export default function HrDashboardPage() {
             <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
               <FileText className="w-5 h-5" />
             </div>
-            <Link href="#" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center transition-colors">
+            <Link
+              href="#"
+              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center transition-colors"
+            >
               アーカイブを見る <ArrowRight className="w-3 h-3 ml-1" />
             </Link>
           </div>
@@ -85,7 +92,9 @@ export default function HrDashboardPage() {
             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
               <Briefcase className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">公開中</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+              公開中
+            </span>
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500 mb-1">公開中の求人数</p>
@@ -124,7 +133,6 @@ export default function HrDashboardPage() {
 
       {/* 3. Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-        
         {/* Left Column: AI Insights & Alerts */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           <div className="flex items-center gap-2 mb-2">
@@ -143,15 +151,26 @@ export default function HrDashboardPage() {
                 </div>
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full">タスク</span>
+                    <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full">
+                      タスク
+                    </span>
                     <span className="text-xs text-rose-400 font-medium">1時間前</span>
                   </div>
                   <p className="text-slate-800 font-medium leading-relaxed">
-                    今月の組織度アンケート（Echo）、未回答の従業員が <span className="text-rose-600 font-bold px-1 bg-white rounded border border-rose-100">12名</span> います。
+                    今月の組織度アンケート（Echo）、未回答の従業員が{' '}
+                    <span className="text-rose-600 font-bold px-1 bg-white rounded border border-rose-100">
+                      12名
+                    </span>{' '}
+                    います。
                   </p>
-                  <p className="text-sm text-slate-500">回答期限は明日までです。対象者へリマインドを送信しますか？</p>
+                  <p className="text-sm text-slate-500">
+                    回答期限は明日までです。対象者へリマインドを送信しますか？
+                  </p>
                   <div className="pt-2">
-                    <button type="button" className="text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <button
+                      type="button"
+                      className="text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 px-4 py-2 rounded-lg transition-colors shadow-sm"
+                    >
                       リマインドメールを作成
                     </button>
                   </div>
@@ -167,7 +186,9 @@ export default function HrDashboardPage() {
                 </div>
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full">市場動向</span>
+                    <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full">
+                      市場動向
+                    </span>
                     <span className="text-xs text-indigo-400 font-medium">本日</span>
                   </div>
                   <p className="text-slate-800 font-medium leading-relaxed">
@@ -177,7 +198,10 @@ export default function HrDashboardPage() {
                     他社の提示給与水準が上昇傾向にあります。AI求人メーカーを使用して、自社の魅力をより強く打ち出すスカウト文に見直してみませんか？
                   </p>
                   <div className="pt-2">
-                    <button type="button" className="text-sm font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center">
+                    <button
+                      type="button"
+                      className="text-sm font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center"
+                    >
                       <Sparkles className="w-4 h-4 mr-1.5" />
                       改善案をAIに生成させる
                     </button>
@@ -196,7 +220,10 @@ export default function HrDashboardPage() {
 
           <div className="flex flex-col gap-3">
             {/* Action 1 */}
-            <button type="button" className="w-full relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-left p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button
+              type="button"
+              className="w-full relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-left p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
               <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:scale-150 transition-transform duration-700"></div>
               <div className="relative z-10 flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -204,20 +231,27 @@ export default function HrDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg mb-0.5">AI求人・募集文メーカー</h3>
-                  <p className="text-indigo-100 text-sm font-medium">新規で求人票やスカウト文を作成する</p>
+                  <p className="text-indigo-100 text-sm font-medium">
+                    新規で求人票やスカウト文を作成する
+                  </p>
                 </div>
               </div>
               <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all z-10 relative" />
             </button>
 
             {/* Action 2 */}
-            <button type="button" className="w-full bg-white border border-slate-200 hover:border-blue-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button
+              type="button"
+              className="w-full bg-white border border-slate-200 hover:border-blue-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
               <div className="flex items-center gap-4">
                 <div className="bg-blue-50 text-blue-600 p-2.5 rounded-lg group-hover:bg-blue-100 group-hover:scale-110 transition-transform duration-300">
                   <LineChart className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-blue-700 transition-colors">採用市場・競合を分析する</h3>
+                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-blue-700 transition-colors">
+                    採用市場・競合を分析する
+                  </h3>
                   <p className="text-slate-500 text-xs">最新の市況データを確認できます</p>
                 </div>
               </div>
@@ -253,17 +287,17 @@ export default function HrDashboardPage() {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-amber-800 transition-colors">マニュアル集</h3>
+                  <h3 className="text-slate-800 font-bold mb-0.5 group-hover:text-amber-800 transition-colors">
+                    マニュアル集
+                  </h3>
                   <p className="text-slate-500 text-xs">システムの説明・利用方法等を説明</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
             </Link>
-            
           </div>
         </div>
-
       </div>
     </div>
-  );
+  )
 }

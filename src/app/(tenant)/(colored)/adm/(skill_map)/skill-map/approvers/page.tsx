@@ -5,9 +5,11 @@ import { APP_ROUTES } from '@/config/routes'
 import { getSkillApprovers, getEvalApprovers } from '@/features/skill-portal/queries'
 import { ApproversManager } from '@/features/skill-portal/components/ApproversManager'
 
-export default async function SkillApproversPage(props: {
-  searchParams?: Promise<Record<string, string | string[]>>
-}) {
+type Props = {
+  searchParams: Promise<{ tab?: string }>
+}
+
+export default async function SkillApproversPage(props: Props) {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
@@ -41,7 +43,7 @@ export default async function SkillApproversPage(props: {
               承認者マスタ管理
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              スキル申請の上長承認者を従業員ごとに設定します
+              スキル申請の上長承認者および人事評価の評価者を従業員ごとに設定します
             </p>
           </div>
           <div className="p-6">

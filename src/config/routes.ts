@@ -90,5 +90,25 @@ export const APP_ROUTES = {
     EL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/el-templates/${id}`,
     /** グローバルスキル・レベル登録 */
     SKILL_TEMPLATES: '/saas_adm/skill-templates',
+    /** グローバル評価テンプレート管理（SaaS管理者専用） */
+    EVAL_GLOBAL_TEMPLATES: '/saas_adm/evaluation-global-templates',
+    /** グローバル評価テンプレート詳細 */
+    EVAL_GLOBAL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/evaluation-global-templates/${id}`,
+  },
+  EVALUATION: {
+    /** 評価シート一覧（テナント管理者） */
+    ADMIN_LIST: '/adm/evaluation',
+    /** 評価シート詳細（テナント管理者視点） */
+    ADMIN_SHEET: (sheetId: string) => `/adm/evaluation/${sheetId}`,
+    /** テナント評価テンプレート管理 */
+    ADMIN_TEMPLATES: '/adm/evaluation-templates',
+    /** テナント評価テンプレート詳細・編集 */
+    ADMIN_TEMPLATE_DETAIL: (templateId: string) => `/adm/evaluation-templates/${templateId}`,
+    /** 評価期間管理 */
+    ADMIN_PERIODS: '/adm/evaluation-periods',
+    /** 従業員：自己評価トップ */
+    MY_EVALUATION: '/my-evaluation',
+    /** 従業員：評価シート詳細入力 */
+    MY_EVALUATION_SHEET: (sheetId: string) => `/my-evaluation/${sheetId}`,
   },
 } as const

@@ -5,6 +5,7 @@ import type {
   SkillRoleApplication,
   SkillRequirementApplication,
   SkillApprover,
+  EvalApproverRow,
   TeamMemberGrowthCard,
   GrowthJourneyData,
   SkillGrowthMilestone,
@@ -394,4 +395,49 @@ export async function getConsultationHistory(
     .order('created_at', { ascending: false })
   if (error) throw error
   return data ?? []
+}
+
+/** 評価者設定一覧（従業員ごとに3役を集約） */
+export async function getEvalApprovers(supabase: DB): Promise<EvalApproverRow[]> {
+  const { data, error } = await (supabase as any)
+    .from('employee_approvers')
+    .select(
+      'id, employee_id, approver_id, approver_role, employee:employees!employee_approvers_employee_id_fkey(id, name, employee_no), approver:employees!employee_approvers_approver_id_fkey(id, name, employee_no)'
+    )
+    .in('approver_role', ['eval_primary', 'eval_secondary', 'eval_confirmer'])
+    .order('created_at', { ascending: false })
+  if (error) throw error
+
+  const rows = (data ?? []) as Array<{
+    id: string
+    employee_id: string
+    approver_id: string
+    approver_role: string
+    employee: { id: string; name: string | null; employee_no: string | null }
+    approver: { id: string; name: string | null; employee_no: string | null }
+  }>
+
+  const map = new Map<string, EvalApproverRow>()
+  for (const row of rows) {
+    if (!map.has(row.employee_id)) {
+      map.set(row.employee_id, {
+        employee_id: row.employee_id,
+        employee: row.employee,
+        primary: null,
+        secondary: null,
+        confirmer: null,
+      })
+    }
+    const entry = map.get(row.employee_id)!
+    const person = { id: row.id, approver_id: row.approver_id, approver: row.approver }
+    if (row.approver_role === 'eval_primary') entry.primary = person
+    if (row.approver_role === 'eval_secondary') entry.secondary = person
+    if (row.approver_role === 'eval_confirmer') entry.confirmer = person
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const na = a.employee?.employee_no ?? ''
+    const nb = b.employee?.employee_no ?? ''
+    return na.localeCompare(nb, 'ja', { numeric: true })
+  })
 }

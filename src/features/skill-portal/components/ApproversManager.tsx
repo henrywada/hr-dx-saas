@@ -1,18 +1,73 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
-import type { SkillApprover } from '../types'
+import type { SkillApprover, EvalApproverRow } from '../types'
 import { addSkillApprover, removeSkillApprover } from '../actions'
+import { EvalApproversManager } from './EvalApproversManager'
 
 type Employee = { id: string; name: string | null; employee_no: string | null }
 
 type Props = {
   approvers: SkillApprover[]
   allEmployees: Employee[]
+  evalRows: EvalApproverRow[]
+  activeTab: 'skill' | 'eval'
 }
 
-export function ApproversManager({ approvers, allEmployees }: Props) {
+export function ApproversManager({ approvers, allEmployees, evalRows, activeTab }: Props) {
+  const router = useRouter()
+
+  function switchTab(tab: 'skill' | 'eval') {
+    const params = new URLSearchParams()
+    if (tab === 'eval') params.set('tab', 'eval')
+    router.push(`?${params.toString()}`)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => switchTab('skill')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'skill'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          上司承認
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('eval')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'eval'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          段階承認・評価
+        </button>
+      </div>
+
+      {activeTab === 'skill' ? (
+        <SkillApproversTab approvers={approvers} allEmployees={allEmployees} />
+      ) : (
+        <EvalApproversManager rows={evalRows} allEmployees={allEmployees} />
+      )}
+    </div>
+  )
+}
+
+function SkillApproversTab({
+  approvers,
+  allEmployees,
+}: {
+  approvers: SkillApprover[]
+  allEmployees: Employee[]
+}) {
   const [employeeId, setEmployeeId] = useState('')
   const [approverId, setApproverId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +95,6 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
         return
       }
       setEmployeeId('')
-      // approverId はクリアしない（同じ上長に続けて追加できるよう）
     })
   }
 
@@ -78,7 +132,8 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
             <select
               value={employeeId}
               onChange={e => setEmployeeId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+              disabled={approverId === '__all__'}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value=""></option>
               {allEmployees.map(e => (
@@ -91,7 +146,7 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
           <button
             type="button"
             onClick={handleAdd}
-            disabled={isPending}
+            disabled={isPending || approverId === '__all__'}
             className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
           >
             追加
@@ -114,10 +169,19 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
             )
               .slice()
               .sort((a, b) => {
-                const na = a.employee?.employee_no ?? ''
-                const nb = b.employee?.employee_no ?? ''
-                return na.localeCompare(nb, 'ja', { numeric: true })
+                const approverCmp = (a.approver?.employee_no ?? '').localeCompare(
+                  b.approver?.employee_no ?? '',
+                  'ja',
+                  { numeric: true }
+                )
+                if (approverCmp !== 0) return approverCmp
+                return (a.employee?.employee_no ?? '').localeCompare(
+                  b.employee?.employee_no ?? '',
+                  'ja',
+                  { numeric: true }
+                )
               })
+            const isAll = approverId === '__all__'
             return filtered.length === 0 ? (
               <p className="py-10 text-center text-sm text-gray-400">
                 この承認者に対象従業員が設定されていません
@@ -141,43 +205,52 @@ export function ApproversManager({ approvers, allEmployees }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((a, i) => (
-                    <tr
-                      key={a.id}
-                      className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                    >
-                      <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-800">
-                        {a.approver?.name ?? '—'}
-                        {a.approver?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.approver.employee_no}）
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-800">
-                        {a.employee?.name ?? '—'}
-                        {a.employee?.employee_no && (
-                          <span className="ml-1 font-mono text-xs text-gray-400">
-                            （{a.employee.employee_no}）
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(a.id)}
-                          disabled={isPending}
-                          className="inline-flex items-center gap-1 text-xs text-red-500 hover:underline disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          削除
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filtered.map((a, i) => {
+                    const isGroupHead =
+                      isAll && (i === 0 || filtered[i - 1].approver_id !== a.approver_id)
+                    const rowBg = isGroupHead
+                      ? 'bg-green-50'
+                      : i % 2 === 0
+                        ? 'bg-white'
+                        : 'bg-gray-50'
+                    return (
+                      <tr
+                        key={a.id}
+                        className={`border-b border-gray-100 hover:bg-blue-50 ${rowBg}`}
+                      >
+                        <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
+                          {i + 1}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-800">
+                          {a.approver?.name ?? '—'}
+                          {a.approver?.employee_no && (
+                            <span className="ml-1 font-mono text-xs text-gray-400">
+                              （{a.approver.employee_no}）
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-800">
+                          {a.employee?.name ?? '—'}
+                          {a.employee?.employee_no && (
+                            <span className="ml-1 font-mono text-xs text-gray-400">
+                              （{a.employee.employee_no}）
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(a.id)}
+                            disabled={isPending}
+                            className="inline-flex items-center gap-1 text-xs text-red-500 hover:underline disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )

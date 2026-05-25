@@ -71,9 +71,24 @@ export type SkillApprover = {
   tenant_id: string
   employee_id: string
   approver_id: string
+  approver_role: string
   created_at: string
   employee?: { id: string; name: string | null; employee_no: string | null }
   approver?: { id: string; name: string | null; employee_no: string | null }
+}
+
+type EvalApproverPerson = {
+  id: string
+  approver_id: string
+  approver: { id: string; name: string | null; employee_no: string | null }
+}
+
+export type EvalApproverRow = {
+  employee_id: string
+  employee: { id: string; name: string | null; employee_no: string | null }
+  primary: EvalApproverPerson | null
+  secondary: EvalApproverPerson | null
+  confirmer: EvalApproverPerson | null
 }
 
 /** マイルストーンステータス */

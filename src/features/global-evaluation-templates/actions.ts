@@ -1,7 +1,6 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
@@ -28,7 +27,7 @@ export async function loadGlobalEvaluationTemplatesAction(): Promise<
 > {
   const user = await getSaasAdminUser()
   if (!user) return null
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const templates = await getGlobalEvaluationTemplates(supabase)
   const results = await Promise.all(
     templates.map(t => getGlobalEvaluationTemplateWithItems(supabase, t.id))

@@ -5,6 +5,7 @@ export type ServiceAssignmentRow = {
   service_type: string
   created_at: string
   updated_at: string
+  user_count: number
 }
 
 /** サービス割当ユーザー（従業員紐付け） */

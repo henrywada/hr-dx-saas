@@ -1,10 +1,17 @@
-import React from 'react';
+import { SignupWizard } from '@/features/signup/components/SignupWizard'
+import type { PlanType } from '@/features/signup/types'
 
-export default function SignupPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">新規登録</h1>
-      <p className="text-gray-600">このページは現在開発中です。</p>
-    </div>
-  );
+interface SignupPageProps {
+  searchParams: Promise<{ plan?: string }>
+}
+
+function isValidPlan(value: unknown): value is PlanType {
+  return value === 'free' || value === 'pro' || value === 'enterprise'
+}
+
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const params = await searchParams
+  const plan: PlanType = isValidPlan(params.plan) ? params.plan : 'free'
+
+  return <SignupWizard initialPlan={plan} />
 }

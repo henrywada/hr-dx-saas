@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -21,7 +21,7 @@ export default async function EvaluationGlobalTemplateDetailPage({ params }: Pro
     redirect(APP_ROUTES.SAAS.DASHBOARD)
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const template = await getGlobalEvaluationTemplateWithItems(supabase, templateId)
   if (!template) notFound()
 

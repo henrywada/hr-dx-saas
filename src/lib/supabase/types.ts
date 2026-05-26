@@ -1085,6 +1085,7 @@ export type Database = {
       employee_approvers: {
         Row: {
           approver_id: string
+          approver_role: string
           created_at: string
           employee_id: string
           id: string
@@ -1092,6 +1093,7 @@ export type Database = {
         }
         Insert: {
           approver_id: string
+          approver_role?: string
           created_at?: string
           employee_id: string
           id?: string
@@ -1099,6 +1101,7 @@ export type Database = {
         }
         Update: {
           approver_id?: string
+          approver_role?: string
           created_at?: string
           employee_id?: string
           id?: string
@@ -1687,6 +1690,609 @@ export type Database = {
           },
         ]
       }
+      evaluation_flow_logs: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          comment: string | null
+          from_status: string | null
+          id: string
+          sheet_id: string
+          tenant_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          comment?: string | null
+          from_status?: string | null
+          id?: string
+          sheet_id: string
+          tenant_id: string
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          comment?: string | null
+          from_status?: string | null
+          id?: string
+          sheet_id?: string
+          tenant_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_flow_logs_changed_by_fkey'
+            columns: ['changed_by']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_flow_logs_sheet_id_fkey'
+            columns: ['sheet_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_sheets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_flow_logs_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_goals: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          deadline: string | null
+          goal_detail: string | null
+          goal_title: string
+          id: string
+          item_id: string | null
+          kpi_achieve_criteria: string | null
+          kpi_target: string | null
+          kpi_type: string
+          kpi_unit: string | null
+          sheet_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          deadline?: string | null
+          goal_detail?: string | null
+          goal_title: string
+          id?: string
+          item_id?: string | null
+          kpi_achieve_criteria?: string | null
+          kpi_target?: string | null
+          kpi_type?: string
+          kpi_unit?: string | null
+          sheet_id: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          deadline?: string | null
+          goal_detail?: string | null
+          goal_title?: string
+          id?: string
+          item_id?: string | null
+          kpi_achieve_criteria?: string | null
+          kpi_target?: string | null
+          kpi_type?: string
+          kpi_unit?: string | null
+          sheet_id?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_goals_approved_by_fkey'
+            columns: ['approved_by']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_goals_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_template_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_goals_sheet_id_fkey'
+            columns: ['sheet_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_sheets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_goals_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_periods: {
+        Row: {
+          created_at: string
+          end_date: string
+          fiscal_year: number
+          goal_deadline: string | null
+          id: string
+          name: string
+          period_type: string
+          primary_eval_end: string | null
+          secondary_eval_end: string | null
+          self_eval_end: string | null
+          self_eval_start: string | null
+          start_date: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          fiscal_year: number
+          goal_deadline?: string | null
+          id?: string
+          name: string
+          period_type: string
+          primary_eval_end?: string | null
+          secondary_eval_end?: string | null
+          self_eval_end?: string | null
+          self_eval_start?: string | null
+          start_date: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          fiscal_year?: number
+          goal_deadline?: string | null
+          id?: string
+          name?: string
+          period_type?: string
+          primary_eval_end?: string | null
+          secondary_eval_end?: string | null
+          self_eval_end?: string | null
+          self_eval_start?: string | null
+          start_date?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_periods_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_scores: {
+        Row: {
+          achievement_rate: number | null
+          comment: string | null
+          evaluated_at: string
+          evaluator_id: string
+          evaluator_type: string
+          goal_id: string | null
+          id: string
+          item_id: string | null
+          score: number | null
+          sheet_id: string
+          tenant_id: string
+        }
+        Insert: {
+          achievement_rate?: number | null
+          comment?: string | null
+          evaluated_at?: string
+          evaluator_id: string
+          evaluator_type: string
+          goal_id?: string | null
+          id?: string
+          item_id?: string | null
+          score?: number | null
+          sheet_id: string
+          tenant_id: string
+        }
+        Update: {
+          achievement_rate?: number | null
+          comment?: string | null
+          evaluated_at?: string
+          evaluator_id?: string
+          evaluator_type?: string
+          goal_id?: string | null
+          id?: string
+          item_id?: string | null
+          score?: number | null
+          sheet_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_scores_evaluator_id_fkey'
+            columns: ['evaluator_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_scores_goal_id_fkey'
+            columns: ['goal_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_goals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_scores_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_template_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_scores_sheet_id_fkey'
+            columns: ['sheet_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_sheets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_scores_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_sheets: {
+        Row: {
+          confirmer_id: string | null
+          created_at: string
+          employee_id: string
+          final_grade: string | null
+          final_score: number | null
+          flow_status: string
+          id: string
+          is_locked: boolean
+          period_id: string
+          primary_evaluator_id: string | null
+          secondary_evaluator_id: string | null
+          template_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          confirmer_id?: string | null
+          created_at?: string
+          employee_id: string
+          final_grade?: string | null
+          final_score?: number | null
+          flow_status?: string
+          id?: string
+          is_locked?: boolean
+          period_id: string
+          primary_evaluator_id?: string | null
+          secondary_evaluator_id?: string | null
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          confirmer_id?: string | null
+          created_at?: string
+          employee_id?: string
+          final_grade?: string | null
+          final_score?: number | null
+          flow_status?: string
+          id?: string
+          is_locked?: boolean
+          period_id?: string
+          primary_evaluator_id?: string | null
+          secondary_evaluator_id?: string | null
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_sheets_confirmer_id_fkey'
+            columns: ['confirmer_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_employee_id_fkey'
+            columns: ['employee_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_period_id_fkey'
+            columns: ['period_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_periods'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_primary_evaluator_id_fkey'
+            columns: ['primary_evaluator_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_secondary_evaluator_id_fkey'
+            columns: ['secondary_evaluator_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_sheets_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_template_items: {
+        Row: {
+          axis: string
+          created_at: string
+          description: string | null
+          evaluation_focus: string | null
+          id: string
+          is_custom: boolean
+          mbo_category: string | null
+          measurement_method: string | null
+          name: string
+          sort_order: number
+          target_grade_note: string | null
+          target_grades: string[] | null
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          axis: string
+          created_at?: string
+          description?: string | null
+          evaluation_focus?: string | null
+          id?: string
+          is_custom?: boolean
+          mbo_category?: string | null
+          measurement_method?: string | null
+          name: string
+          sort_order?: number
+          target_grade_note?: string | null
+          target_grades?: string[] | null
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          axis?: string
+          created_at?: string
+          description?: string | null
+          evaluation_focus?: string | null
+          id?: string
+          is_custom?: boolean
+          mbo_category?: string | null
+          measurement_method?: string | null
+          name?: string
+          sort_order?: number
+          target_grade_note?: string | null
+          target_grades?: string[] | null
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_template_items_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_template_items_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      evaluation_templates: {
+        Row: {
+          copied_from_global_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          global_template_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          template_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          copied_from_global_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          global_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          template_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          copied_from_global_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          global_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          template_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_templates_global_template_id_fkey'
+            columns: ['global_template_id']
+            isOneToOne: false
+            referencedRelation: 'global_evaluation_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evaluation_templates_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      global_evaluation_template_items: {
+        Row: {
+          axis: string
+          created_at: string
+          description: string | null
+          evaluation_focus: string | null
+          id: string
+          mbo_category: string | null
+          measurement_method: string | null
+          name: string
+          sort_order: number
+          target_grade_note: string | null
+          template_id: string
+          weight: number
+        }
+        Insert: {
+          axis: string
+          created_at?: string
+          description?: string | null
+          evaluation_focus?: string | null
+          id?: string
+          mbo_category?: string | null
+          measurement_method?: string | null
+          name: string
+          sort_order?: number
+          target_grade_note?: string | null
+          template_id: string
+          weight?: number
+        }
+        Update: {
+          axis?: string
+          created_at?: string
+          description?: string | null
+          evaluation_focus?: string | null
+          id?: string
+          mbo_category?: string | null
+          measurement_method?: string | null
+          name?: string
+          sort_order?: number
+          target_grade_note?: string | null
+          template_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'global_evaluation_template_items_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'global_evaluation_templates'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      global_evaluation_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       global_skill_level_sets: {
         Row: {
           category: string | null
@@ -1745,6 +2351,60 @@ export type Database = {
             columns: ['skill_level_set_id']
             isOneToOne: false
             referencedRelation: 'global_skill_level_sets'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      grade_evaluation_criteria: {
+        Row: {
+          created_at: string
+          grade_code: string
+          id: string
+          item_id: string
+          score_1_desc: string | null
+          score_2_desc: string | null
+          score_3_desc: string | null
+          score_4_desc: string | null
+          score_5_desc: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          grade_code: string
+          id?: string
+          item_id: string
+          score_1_desc?: string | null
+          score_2_desc?: string | null
+          score_3_desc?: string | null
+          score_4_desc?: string | null
+          score_5_desc?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          grade_code?: string
+          id?: string
+          item_id?: string
+          score_1_desc?: string | null
+          score_2_desc?: string | null
+          score_3_desc?: string | null
+          score_4_desc?: string | null
+          score_5_desc?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'grade_evaluation_criteria_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'evaluation_template_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'grade_evaluation_criteria_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
             referencedColumns: ['id']
           },
         ]
@@ -5367,6 +6027,77 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_contracts: {
+        Row: {
+          applicant_email: string
+          applicant_name: string
+          application_date: string
+          bank_transfer_amount_received: number
+          bank_transfer_due_date: string | null
+          company_name: string
+          contract_end_at: string | null
+          contract_start_at: string | null
+          created_at: string
+          id: string
+          max_employees: number
+          paid_amount: number
+          payment_method: string
+          payment_status: string
+          plan_type: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          applicant_email: string
+          applicant_name: string
+          application_date?: string
+          bank_transfer_amount_received?: number
+          bank_transfer_due_date?: string | null
+          company_name: string
+          contract_end_at?: string | null
+          contract_start_at?: string | null
+          created_at?: string
+          id?: string
+          max_employees: number
+          paid_amount?: number
+          payment_method?: string
+          payment_status?: string
+          plan_type: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          applicant_email?: string
+          applicant_name?: string
+          application_date?: string
+          bank_transfer_amount_received?: number
+          bank_transfer_due_date?: string | null
+          company_name?: string
+          contract_end_at?: string | null
+          contract_start_at?: string | null
+          created_at?: string
+          id?: string
+          max_employees?: number
+          paid_amount?: number
+          payment_method?: string
+          payment_status?: string
+          plan_type?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_contracts_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       tenant_inquiry_chat_messages: {
         Row: {
           cited_chunk_ids: string[] | null
@@ -5783,6 +6514,8 @@ export type Database = {
           paid_date: string | null
           plan_type: string
           pulse_survey_cadence: string
+          status: string
+          stripe_customer_id: string | null
         }
         Insert: {
           business_description?: string | null
@@ -5801,6 +6534,8 @@ export type Database = {
           paid_date?: string | null
           plan_type?: string
           pulse_survey_cadence?: string
+          status?: string
+          stripe_customer_id?: string | null
         }
         Update: {
           business_description?: string | null
@@ -5819,6 +6554,8 @@ export type Database = {
           paid_date?: string | null
           plan_type?: string
           pulse_survey_cadence?: string
+          status?: string
+          stripe_customer_id?: string | null
         }
         Relationships: []
       }

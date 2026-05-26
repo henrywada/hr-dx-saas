@@ -20,9 +20,7 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            サービス対象者管理
-          </h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">サービス対象者管理</h1>
           <p className="text-sm text-slate-500 mt-1">
             サービスの対象ユーザーを一覧・編集・同期できます
           </p>
@@ -68,7 +66,12 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
                     key={a.id}
                     className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-800">{a.service_type}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      {a.service_type}
+                      <span className="ml-1 text-slate-400 font-normal text-xs">
+                        （{a.user_count}名）
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         <Link

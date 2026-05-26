@@ -1,15 +1,15 @@
-import React, { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
-import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading';
-import { SubMenuServiceCard } from '@/components/submenu/SubMenuServiceCard';
+import React, { Suspense } from 'react'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading'
+import { SubMenuServiceCard } from '@/components/submenu/SubMenuServiceCard'
 
 export default async function SubMenuPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const resolvedSearchParams = await searchParams;
-  const categoryId = resolvedSearchParams.service_category_id as string | undefined;
+  const resolvedSearchParams = await searchParams
+  const categoryId = resolvedSearchParams.service_category_id as string | undefined
 
   if (!categoryId) {
     return (
@@ -17,31 +17,31 @@ export default async function SubMenuPage({
         <p>カテゴリーが選択されていません。</p>
         <p className="text-sm mt-2">サイドメニューから項目を選択してください。</p>
       </div>
-    );
+    )
   }
 
   return (
     <Suspense fallback={<RouteSegmentLoading embedded />}>
       <SaasSubMenuCategoryContent categoryId={categoryId} />
     </Suspense>
-  );
+  )
 }
 
 async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }) {
-  const supabase = await createClient();
+  const supabase = createAdminClient()
 
   const { data: category } = await supabase
     .from('service_category')
     .select('name')
     .eq('id', categoryId)
-    .single();
+    .single()
 
   const { data: services } = await supabase
     .from('service')
     .select('*')
     .eq('service_category_id', categoryId)
     .eq('release_status', '公開')
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true })
 
   const CARD_VARIANTS = [
     { bar: 'bg-blue-500', text: 'text-blue-600', hover: 'group-hover:text-blue-700' },
@@ -50,7 +50,7 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
     { bar: 'bg-indigo-500', text: 'text-indigo-600', hover: 'group-hover:text-indigo-700' },
     { bar: 'bg-pink-500', text: 'text-pink-600', hover: 'group-hover:text-pink-700' },
     { bar: 'bg-green-500', text: 'text-green-600', hover: 'group-hover:text-green-700' },
-  ];
+  ]
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-4 max-w-7xl mx-auto">
@@ -59,7 +59,9 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
           {category?.name || '未設定のカテゴリ'}
         </h1>
-        <p className="text-sm text-slate-500 mt-1 font-medium pl-0.5">関連する業務アプリケーション一覧</p>
+        <p className="text-sm text-slate-500 mt-1 font-medium pl-0.5">
+          関連する業務アプリケーション一覧
+        </p>
       </div>
 
       {!services || services.length === 0 ? (
@@ -69,7 +71,7 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {services.map((service, index) => {
-            const variant = CARD_VARIANTS[index % CARD_VARIANTS.length];
+            const variant = CARD_VARIANTS[index % CARD_VARIANTS.length]
 
             return (
               <SubMenuServiceCard
@@ -81,10 +83,10 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
                 name={service.name}
                 description={service.description}
               />
-            );
+            )
           })}
         </div>
       )}
     </div>
-  );
+  )
 }

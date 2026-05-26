@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
@@ -23,10 +23,12 @@ async function getSaasAdminUser() {
 }
 
 /** スキルレベルセット一覧（モーダル用） */
-export async function loadGlobalSkillLevelSetsAction(): Promise<GlobalSkillLevelSetWithLevels[] | null> {
+export async function loadGlobalSkillLevelSetsAction(): Promise<
+  GlobalSkillLevelSetWithLevels[] | null
+> {
   const user = await getSaasAdminUser()
   if (!user) return null
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   return getGlobalSkillLevelSetsWithLevels(supabase)
 }
 
@@ -56,7 +58,7 @@ export async function createGlobalSkillLevelSet(input: {
 }): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await (supabase as any).from('global_skill_level_sets').insert({
     name: input.name.trim(),
     category: input.category?.trim() || null,
@@ -74,7 +76,7 @@ export async function updateGlobalSkillLevelSet(input: {
 }): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const ok = await globalSkillLevelSetExists(supabase, input.id)
   if (!ok) return { success: false, error: 'スキルレベルセットが無効です' }
   const updates: Record<string, unknown> = { name: input.name.trim() }
@@ -91,7 +93,7 @@ export async function updateGlobalSkillLevelSet(input: {
 export async function deleteGlobalSkillLevelSet(input: { id: string }): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const ok = await globalSkillLevelSetExists(supabase, input.id)
   if (!ok) return { success: false, error: 'スキルレベルセットが無効です' }
 
@@ -117,7 +119,7 @@ export async function createGlobalSkillLevel(input: {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
   if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const ok = await globalSkillLevelSetExists(supabase, input.skillLevelSetId)
   if (!ok) return { success: false, error: 'スキルレベルセットが無効です' }
   const { error } = await (supabase as any).from('global_skill_levels').insert({
@@ -142,7 +144,7 @@ export async function updateGlobalSkillLevel(input: {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
   if (!isValidHex(input.colorHex)) return { success: false, error: '無効なカラーコードです' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const belongs = await globalSkillLevelExists(supabase, input.id)
   if (!belongs) return { success: false, error: 'スキルレベルが無効です' }
   const updates: Record<string, any> = {}
@@ -160,12 +162,10 @@ export async function updateGlobalSkillLevel(input: {
   return { success: true }
 }
 
-export async function deleteGlobalSkillLevel(input: {
-  id: string
-}): Promise<ActionResult> {
+export async function deleteGlobalSkillLevel(input: { id: string }): Promise<ActionResult> {
   const user = await getSaasAdminUser()
   if (!user) return { success: false, error: '権限がありません' }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const belongs = await globalSkillLevelExists(supabase, input.id)
   if (!belongs) return { success: false, error: 'スキルレベルが無効です' }
   const { error } = await (supabase as any).from('global_skill_levels').delete().eq('id', input.id)

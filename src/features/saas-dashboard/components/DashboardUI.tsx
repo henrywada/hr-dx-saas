@@ -1,40 +1,48 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { DASHBOARD_CARDS } from '@/config/dashboard-config';
+import React from 'react'
+import { DASHBOARD_CARDS } from '@/config/dashboard-config'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts'
 
 export interface DashboardUIProps {
   stats: {
-    tenantCount: number;
-    userCount: number;
-    publishedServiceCount: number;
-    unpublishedServiceCount: number;
-  };
+    tenantCount: number
+    userCount: number
+    publishedServiceCount: number
+    unpublishedServiceCount: number
+  }
   tenants: Array<{
-    id: string;
-    name: string;
-    accessCount: number;
-    actual_count: number;
-    contract_limit: number;
-  }>;
+    id: string
+    name: string
+    accessCount: number
+    actual_count: number
+    contract_limit: number
+  }>
   activityData: Array<{
-    date: string;
-    value: number;
-  }>;
+    date: string
+    value: number
+  }>
 }
 
 export default function DashboardUI({ stats, tenants, activityData }: DashboardUIProps) {
   // Update the cards based on server-fetched stats
-  const cards = DASHBOARD_CARDS.map((card) => {
-    if (card.title === 'テナント数') return { ...card, value: `${stats.tenantCount}社` };
-    if (card.title === '登録ユーザ数') return { ...card, value: `${stats.userCount}名` };
-    if (card.title === '公開・サービス数') return { ...card, value: `${stats.publishedServiceCount}件` };
-    if (card.title === '未公開・サービス数') return { ...card, value: `${stats.unpublishedServiceCount}件` };
-    return { ...card };
-  });
+  const cards = DASHBOARD_CARDS.map(card => {
+    if (card.title === 'テナント数') return { ...card, value: `${stats.tenantCount}社` }
+    if (card.title === '登録ユーザ数') return { ...card, value: `${stats.userCount}名` }
+    if (card.title === '公開・サービス数')
+      return { ...card, value: `${stats.publishedServiceCount}件` }
+    if (card.title === '未公開・サービス数')
+      return { ...card, value: `${stats.unpublishedServiceCount}件` }
+    return { ...card }
+  })
 
   return (
     <div className="space-y-8">
@@ -45,21 +53,26 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
       {/* 統計カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, index) => {
-          const Icon = card.icon as React.ElementType;
+          const Icon = card.icon as React.ElementType
           return (
-            <div key={index} className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group">
+            <div
+              key={index}
+              className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group"
+            >
               {/* 左側：タイトルと数値 */}
               <div>
                 <p className="text-sm font-medium text-slate-500 mb-2">{card.title}</p>
                 <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{card.value}</h3>
               </div>
-              
+
               {/* 右側：アイコン */}
-              <div className={`p-4 rounded-full ${card.color} bg-opacity-10 group-hover:bg-opacity-20 transition-colors duration-300`}>
+              <div
+                className={`p-4 rounded-full ${card.color} bg-opacity-10 group-hover:bg-opacity-20 transition-colors duration-300`}
+              >
                 <Icon className={`w-8 h-8 ${card.color.replace('bg-', 'text-')}`} />
               </div>
             </div>
-          );
+          )
         })}
       </div>
 
@@ -94,12 +107,19 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
                 </tr>
               </thead>
               <tbody>
-                {tenants.map((t) => (
-                  <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                {tenants.map(t => (
+                  <tr
+                    key={t.id}
+                    className="border-b last:border-0 hover:bg-slate-50 transition-colors"
+                  >
                     <td className="py-3 font-medium text-slate-700">{t.name}</td>
-                    <td className="py-3 text-center text-emerald-600 font-bold">{t.accessCount.toLocaleString()}</td>
+                    <td className="py-3 text-center text-emerald-600 font-bold">
+                      {t.accessCount.toLocaleString()}
+                    </td>
                     <td className="py-3 text-center text-blue-600 font-bold">{t.actual_count}名</td>
-                    <td className="py-3 text-right text-slate-500">{t.contract_limit}名</td>
+                    <td className="py-3 text-right text-slate-500">
+                      {t.contract_limit != null ? `${t.contract_limit}名` : '無制限'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -108,5 +128,5 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
         </div>
       </div>
     </div>
-  );
+  )
 }

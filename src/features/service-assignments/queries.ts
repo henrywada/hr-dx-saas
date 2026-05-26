@@ -5,22 +5,29 @@ async function getSupabase() {
   return (await createClient()) as any
 }
 
-/** テナント内の全サービス割当を取得 */
+/** テナント内の全サービス割当を取得（対象人数付き） */
 export async function getServiceAssignmentsForAdmin(): Promise<ServiceAssignmentRow[]> {
   const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('service_assignments')
-    .select('*')
+    .select('*, service_assignments_users(id)')
     .order('service_type', { ascending: true })
 
   if (error || !data) return []
-  return data as ServiceAssignmentRow[]
+  return data.map((row: Record<string, unknown>) => ({
+    id: row.id,
+    tenant_id: row.tenant_id,
+    service_type: row.service_type,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    user_count: Array.isArray(row.service_assignments_users)
+      ? row.service_assignments_users.length
+      : 0,
+  })) as ServiceAssignmentRow[]
 }
 
 /** サービス割当1件を取得 */
-export async function getServiceAssignmentById(
-  id: string
-): Promise<ServiceAssignmentRow | null> {
+export async function getServiceAssignmentById(id: string): Promise<ServiceAssignmentRow | null> {
   const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('service_assignments')
@@ -56,14 +63,16 @@ export async function getServiceAssignmentUsersWithEmployees(
 
   if (error || !data) return []
 
-  return data.map((row: { employees?: { name: string | null } | null } & Record<string, unknown>) => ({
-    id: row.id,
-    tenant_id: row.tenant_id,
-    service_assignment_id: row.service_assignment_id,
-    employee_id: row.employee_id,
-    is_available: row.is_available,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    employee_name: row.employees?.name ?? null,
-  })) as ServiceAssignmentUserWithEmployee[]
+  return data.map(
+    (row: { employees?: { name: string | null } | null } & Record<string, unknown>) => ({
+      id: row.id,
+      tenant_id: row.tenant_id,
+      service_assignment_id: row.service_assignment_id,
+      employee_id: row.employee_id,
+      is_available: row.is_available,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      employee_name: row.employees?.name ?? null,
+    })
+  ) as ServiceAssignmentUserWithEmployee[]
 }

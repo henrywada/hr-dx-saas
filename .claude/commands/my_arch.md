@@ -1,0 +1,1 @@
+`.cursor/skills/my_arch/SKILL.md` を読み込み、アーキテクチャを確認してから開発を始める。

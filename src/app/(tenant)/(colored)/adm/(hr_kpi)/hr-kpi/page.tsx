@@ -28,7 +28,7 @@ export default async function HrKpiPage({
 
   const result = await getHrKpiBundle(yearMonth)
 
-  if (!result.ok) {
+  if (result.ok === false) {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4">
         <Alert variant="destructive">

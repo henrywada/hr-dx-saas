@@ -1,7 +1,7 @@
 'use client'
 
 import { Download } from 'lucide-react'
-import { bundleToCsvRows } from '../queries'
+import { bundleToCsvRows } from '../csv-utils'
 import type { HrKpiBundle } from '../types'
 
 interface Props {

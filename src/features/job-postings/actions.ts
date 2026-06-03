@@ -3,7 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
-import { InsertJobPosting, JobPosting } from './types'
+import {
+  InsertJobPosting,
+  JobPosting,
+  Candidate,
+  CandidateStage,
+  CreateCandidateInput,
+  UpdateCandidateInput,
+} from './types'
 import { generateHelloWorkCSV } from '@/lib/csv-export'
 import OpenAI from 'openai'
 
@@ -41,7 +48,7 @@ export async function createJobPostingDraft(
 
   // 求人一覧等のキャッシュをリフレッシュ (パスは仕様に合わせて調整してください)
   revalidatePath('/adm/job-postings')
-  
+
   return { success: true, id: result.id as string }
 }
 
@@ -76,9 +83,14 @@ export async function generateJobPostingFromMemo(jobId: string, memo: string) {
     .eq('id', serverUser.tenant_id)
     .single()
 
-  let systemPrompt = 'あなたは優秀な採用広報コピーライターです。現場のメモから、求職者を惹きつけSEOに強いHTML形式の求人票（description）と、必須項目を抽出・生成してください。'
-  
-  const t = tenant as { business_description?: string | null; mission_vision?: string | null; culture_and_benefits?: string | null } | null;
+  let systemPrompt =
+    'あなたは優秀な採用広報コピーライターです。現場のメモから、求職者を惹きつけSEOに強いHTML形式の求人票（description）と、必須項目を抽出・生成してください。'
+
+  const t = tenant as {
+    business_description?: string | null
+    mission_vision?: string | null
+    culture_and_benefits?: string | null
+  } | null
   if (t && (t.business_description || t.mission_vision || t.culture_and_benefits)) {
     systemPrompt += `\nあなたは以下の企業情報を持つ企業の採用広報です。この情報を自然に織り交ぜて、求職者を惹きつける求人票を作成してください。
 【事業内容】: ${t.business_description || ''}
@@ -93,50 +105,50 @@ export async function generateJobPostingFromMemo(jobId: string, memo: string) {
     messages: [
       {
         role: 'system',
-        content: systemPrompt
+        content: systemPrompt,
       },
       {
         role: 'user',
-        content: memo
-      }
+        content: memo,
+      },
     ],
     response_format: {
-      type: "json_schema",
+      type: 'json_schema',
       json_schema: {
-        name: "job_posting_schema",
+        name: 'job_posting_schema',
         strict: true,
         schema: {
-          type: "object",
+          type: 'object',
           properties: {
-            title: { type: "string" },
-            description: { type: "string", description: "HTML形式の求人詳細文" },
-            employment_type: { 
-              type: "string", 
-              enum: ["FULL_TIME", "PART_TIME", "CONTRACTOR"] 
+            title: { type: 'string' },
+            description: { type: 'string', description: 'HTML形式の求人詳細文' },
+            employment_type: {
+              type: 'string',
+              enum: ['FULL_TIME', 'PART_TIME', 'CONTRACTOR'],
             },
-            salary_min: { type: ["number", "null"] },
-            salary_max: { type: ["number", "null"] },
-            salary_unit: { 
-              type: "string", 
-              enum: ["YEAR", "MONTH", "HOUR"] 
+            salary_min: { type: ['number', 'null'] },
+            salary_max: { type: ['number', 'null'] },
+            salary_unit: {
+              type: 'string',
+              enum: ['YEAR', 'MONTH', 'HOUR'],
             },
-            address_region: { type: "string", description: "都道府県名のみ（例: 東京都）" },
-            address_locality: { type: "string", description: "市区町村名のみ（例: 渋谷区）" }
+            address_region: { type: 'string', description: '都道府県名のみ（例: 東京都）' },
+            address_locality: { type: 'string', description: '市区町村名のみ（例: 渋谷区）' },
           },
           required: [
-            "title", 
-            "description", 
-            "employment_type", 
-            "salary_min", 
-            "salary_max", 
-            "salary_unit", 
-            "address_region", 
-            "address_locality"
+            'title',
+            'description',
+            'employment_type',
+            'salary_min',
+            'salary_max',
+            'salary_unit',
+            'address_region',
+            'address_locality',
           ],
-          additionalProperties: false
-        }
-      }
-    }
+          additionalProperties: false,
+        },
+      },
+    },
   })
 
   // 4. AIレスポンスのパース
@@ -181,7 +193,10 @@ export async function generateJobPostingFromMemo(jobId: string, memo: string) {
   return { success: true, data: generatedData }
 }
 
-export async function updateJobPosting(jobId: string, data: { title: string; description: string }) {
+export async function updateJobPosting(
+  jobId: string,
+  data: { title: string; description: string }
+) {
   const serverUser = await getServerUser()
   if (!serverUser || !serverUser.tenant_id) {
     throw new Error('テナント情報が見つかりません。')
@@ -207,7 +222,10 @@ export async function updateJobPosting(jobId: string, data: { title: string; des
   return { success: true }
 }
 
-export async function updateJobPostingStatus(jobId: string, status: 'draft' | 'published' | 'closed') {
+export async function updateJobPostingStatus(
+  jobId: string,
+  status: 'draft' | 'published' | 'closed'
+) {
   const serverUser = await getServerUser()
   if (!serverUser || !serverUser.tenant_id) {
     throw new Error('テナント情報が見つかりません。')
@@ -299,4 +317,110 @@ export async function updateJobPostingMemo(jobId: string, memo: string) {
   }
 
   return { success: true }
+}
+
+// ============================================================
+// 採用ファネルダッシュボード用 Server Actions（P1-A）
+// ============================================================
+
+/** 候補者を新規登録する */
+export async function createCandidate(input: CreateCandidateInput): Promise<{ id: string }> {
+  const serverUser = await getServerUser()
+  if (!serverUser || !serverUser.tenant_id) {
+    throw new Error('テナント情報が見つかりません。ログインし直してください。')
+  }
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('candidates')
+    .insert({
+      tenant_id: serverUser.tenant_id,
+      job_posting_id: input.job_posting_id ?? null,
+      name: input.name,
+      email: input.email ?? null,
+      phone: input.phone ?? null,
+      stage: input.stage ?? 'applied',
+      assigned_to: input.assigned_to ?? null,
+      notes: input.notes ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('createCandidate error:', error)
+    throw new Error('候補者の登録に失敗しました。')
+  }
+
+  revalidatePath('/adm/funnel')
+  return { id: data.id as string }
+}
+
+/** 候補者のファネルステージを更新する（DB トリガーが last_action_at を自動更新） */
+export async function updateCandidateStage(
+  candidateId: string,
+  stage: CandidateStage
+): Promise<void> {
+  const serverUser = await getServerUser()
+  if (!serverUser || !serverUser.tenant_id) {
+    throw new Error('テナント情報が見つかりません。ログインし直してください。')
+  }
+
+  const supabase = await createClient()
+
+  // RLS により自テナントの候補者のみ更新可能
+  const { error } = await supabase.from('candidates').update({ stage }).eq('id', candidateId)
+
+  if (error) {
+    console.error('updateCandidateStage error:', error)
+    throw new Error('ステージの更新に失敗しました。')
+  }
+
+  revalidatePath('/adm/funnel')
+}
+
+/**
+ * ステージでフィルタした候補者一覧を取得する（Client Component からの呼び出し用 Server Action）
+ * queries.ts の getCandidatesByStage は Server Component 専用のため、こちらを使う。
+ */
+export async function fetchCandidatesByStage(stage: CandidateStage): Promise<Candidate[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('candidates')
+    .select(
+      '*, job_posting:job_postings(id, title), assignee:employees!candidates_assigned_to_fkey(id, name)'
+    )
+    .eq('stage', stage)
+    .order('last_action_at', { ascending: true })
+
+  if (error) {
+    console.error('fetchCandidatesByStage error:', error)
+    throw new Error('候補者一覧の取得に失敗しました。')
+  }
+
+  return (data ?? []) as Candidate[]
+}
+
+/** 候補者の基本情報（担当者・メモ等）を更新する */
+export async function updateCandidate(
+  candidateId: string,
+  input: UpdateCandidateInput
+): Promise<void> {
+  const serverUser = await getServerUser()
+  if (!serverUser || !serverUser.tenant_id) {
+    throw new Error('テナント情報が見つかりません。ログインし直してください。')
+  }
+
+  const supabase = await createClient()
+
+  // RLS により自テナントの候補者のみ更新可能
+  const { error } = await supabase.from('candidates').update(input).eq('id', candidateId)
+
+  if (error) {
+    console.error('updateCandidate error:', error)
+    throw new Error('候補者情報の更新に失敗しました。')
+  }
+
+  revalidatePath('/adm/funnel')
 }

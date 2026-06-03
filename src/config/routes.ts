@@ -77,6 +77,10 @@ export const APP_ROUTES = {
     SKILL_JOURNEY: (employeeId: string) => `/skill-approvals/journey/${employeeId}`,
     /** 上司 目標提案フォーム（:employeeId） */
     SKILL_JOURNEY_PROPOSE: (employeeId: string) => `/skill-approvals/journey/${employeeId}/propose`,
+    /** 採用ファネルダッシュボード（P1-A） — (recurit) はルートグループのため URL パスは /adm/funnel */
+    ADMIN_RECRUIT_FUNNEL: '/adm/funnel',
+    /** 労務コンプライアンスダッシュボード（P1-B） */
+    ADMIN_LABOR_COMPLIANCE: '/adm/labor-compliance',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

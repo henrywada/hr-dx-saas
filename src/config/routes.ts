@@ -81,6 +81,8 @@ export const APP_ROUTES = {
     ADMIN_RECRUIT_FUNNEL: '/adm/funnel',
     /** 労務コンプライアンスダッシュボード（P1-B） */
     ADMIN_LABOR_COMPLIANCE: '/adm/labor-compliance',
+    /** 横断KPIダッシュボード（経営層向け）（P1-D） */
+    ADMIN_HR_KPI: '/adm/hr-kpi',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

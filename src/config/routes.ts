@@ -114,5 +114,7 @@ export const APP_ROUTES = {
     MY_EVALUATION: '/my-evaluation',
     /** 従業員：評価シート詳細入力 */
     MY_EVALUATION_SHEET: (sheetId: string) => `/my-evaluation/${sheetId}`,
+    /** ワークフロー進捗管理（テナント管理者） */
+    WORKFLOW: '/adm/evaluation/workflow',
   },
 } as const

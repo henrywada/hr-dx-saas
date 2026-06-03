@@ -57,7 +57,9 @@ export function PendingList({ periodId, pendingEmployees }: Props) {
         period_id: periodId,
         sheet_id: emp.sheet_id,
         reminder_type:
-          emp.days_remaining !== null && emp.days_remaining < 0 ? 'overdue' : 'deadline_approaching',
+          emp.days_remaining !== null && emp.days_remaining < 0
+            ? 'overdue'
+            : 'deadline_approaching',
         target_status: emp.flow_status,
       })
       setMessage(
@@ -277,9 +279,7 @@ export function PendingList({ periodId, pendingEmployees }: Props) {
             {pendingEmployees.map(emp => {
               const isOverdue = emp.days_remaining !== null && emp.days_remaining < 0
               const isUrgent =
-                emp.days_remaining !== null &&
-                emp.days_remaining >= 0 &&
-                emp.days_remaining <= 3
+                emp.days_remaining !== null && emp.days_remaining >= 0 && emp.days_remaining <= 3
               return (
                 <tr key={emp.sheet_id} className="hover:bg-gray-50">
                   <td className="px-3 py-3">

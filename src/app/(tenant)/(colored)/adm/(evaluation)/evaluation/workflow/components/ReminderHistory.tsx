@@ -10,16 +10,16 @@ interface Props {
 
 const REMINDER_TYPE_LABELS: Record<string, string> = {
   deadline_approaching: '期限前',
-  overdue:              '期限超過',
-  bulk_nudge:           '一括催促',
-  rollback_notify:      '差し戻し',
+  overdue: '期限超過',
+  bulk_nudge: '一括催促',
+  rollback_notify: '差し戻し',
 }
 
 const REMINDER_TYPE_COLORS: Record<string, string> = {
   deadline_approaching: 'bg-blue-50 text-blue-700',
-  overdue:              'bg-red-50 text-red-700',
-  bulk_nudge:           'bg-yellow-50 text-yellow-700',
-  rollback_notify:      'bg-purple-50 text-purple-700',
+  overdue: 'bg-red-50 text-red-700',
+  bulk_nudge: 'bg-yellow-50 text-yellow-700',
+  rollback_notify: 'bg-purple-50 text-purple-700',
 }
 
 export function ReminderHistory({ records }: Props) {

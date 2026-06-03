@@ -15,7 +15,13 @@ const STATUS_COLORS: Record<string, string> = {
   info: 'text-blue-600',
 }
 
-export function KpiSummaryCard({ label, value, sub, status = 'normal', icon }: KpiSummaryCardProps) {
+export function KpiSummaryCard({
+  label,
+  value,
+  sub,
+  status = 'normal',
+  icon,
+}: KpiSummaryCardProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2 mb-1">

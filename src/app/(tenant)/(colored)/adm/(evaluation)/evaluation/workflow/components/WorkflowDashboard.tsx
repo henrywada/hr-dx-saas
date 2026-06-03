@@ -62,8 +62,7 @@ export function WorkflowDashboard({
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <span className="text-red-500">⚠</span>
           <p className="text-sm font-medium text-red-700">
-            期限超過:{' '}
-            <span className="font-bold">{overdueCount}名</span>
+            期限超過: <span className="font-bold">{overdueCount}名</span>
             {urgentCount > 0 && (
               <span className="ml-3 text-yellow-700">
                 期限3日以内: <span className="font-bold">{urgentCount}名</span>

@@ -5,29 +5,29 @@ import type { PhaseCount, PendingEmployee, ReminderRecord } from './workflow-typ
 
 /** フロー状態ごとのカラー設定 */
 const PHASE_COLORS: Record<string, string> = {
-  draft:               '#9ca3af',
-  goal_set:            '#60a5fa',
-  self_eval:           '#a78bfa',
-  self_submitted:      '#7c3aed',
-  primary_eval:        '#fbbf24',
-  primary_submitted:   '#d97706',
-  secondary_eval:      '#fb923c',
+  draft: '#9ca3af',
+  goal_set: '#60a5fa',
+  self_eval: '#a78bfa',
+  self_submitted: '#7c3aed',
+  primary_eval: '#fbbf24',
+  primary_submitted: '#d97706',
+  secondary_eval: '#fb923c',
   secondary_submitted: '#ea580c',
-  confirming:          '#818cf8',
-  confirmed:           '#34d399',
+  confirming: '#818cf8',
+  confirmed: '#34d399',
 }
 
 const FLOW_STATUS_LABELS: Record<string, string> = {
-  draft:               '下書き',
-  goal_set:            '目標設定完了',
-  self_eval:           '自己評価中',
-  self_submitted:      '自己評価済',
-  primary_eval:        '一次評価中',
-  primary_submitted:   '一次評価済',
-  secondary_eval:      '二次評価中',
+  draft: '下書き',
+  goal_set: '目標設定完了',
+  self_eval: '自己評価中',
+  self_submitted: '自己評価済',
+  primary_eval: '一次評価中',
+  primary_submitted: '一次評価済',
+  secondary_eval: '二次評価中',
   secondary_submitted: '二次評価済',
-  confirming:          '確定者確認中',
-  confirmed:           '確定',
+  confirming: '確定者確認中',
+  confirmed: '確定',
 }
 
 /** フロー状態からフェーズ期限日を取得する */
@@ -73,9 +73,16 @@ export async function getWorkflowPhaseCounts(
   }
 
   const order: FlowStatus[] = [
-    'draft', 'goal_set', 'self_eval', 'self_submitted',
-    'primary_eval', 'primary_submitted', 'secondary_eval',
-    'secondary_submitted', 'confirming', 'confirmed',
+    'draft',
+    'goal_set',
+    'self_eval',
+    'self_submitted',
+    'primary_eval',
+    'primary_submitted',
+    'secondary_eval',
+    'secondary_submitted',
+    'confirming',
+    'confirmed',
   ]
 
   return order
@@ -97,7 +104,8 @@ export async function getPendingEmployees(
 ): Promise<PendingEmployee[]> {
   const { data: sheets, error } = await (supabase as any)
     .from('evaluation_sheets')
-    .select(`
+    .select(
+      `
       id,
       employee_id,
       flow_status,
@@ -109,7 +117,8 @@ export async function getPendingEmployees(
           parent:parent_id ( name )
         )
       )
-    `)
+    `
+    )
     .eq('tenant_id', tenantId)
     .eq('period_id', periodId)
     .neq('flow_status', 'confirmed')
@@ -145,8 +154,7 @@ export async function getPendingEmployees(
     const emp = s.employees
     const divName = emp?.division?.name ?? null
     const parentName = emp?.division?.parent?.name ?? null
-    const division_path =
-      parentName && divName ? `${parentName} / ${divName}` : (divName ?? null)
+    const division_path = parentName && divName ? `${parentName} / ${divName}` : (divName ?? null)
 
     const phaseDeadline = getPhaseDeadline(s.flow_status as FlowStatus, period)
     const days_remaining = phaseDeadline
@@ -175,7 +183,8 @@ export async function getReminderHistory(
 ): Promise<ReminderRecord[]> {
   const { data, error } = await (supabase as any)
     .from('evaluation_reminders')
-    .select(`
+    .select(
+      `
       id,
       sheet_id,
       reminder_type,
@@ -183,7 +192,8 @@ export async function getReminderHistory(
       target_status,
       sent_at,
       sent_by_employee:sent_by ( name )
-    `)
+    `
+    )
     .eq('tenant_id', tenantId)
     .eq('period_id', periodId)
     .order('sent_at', { ascending: false })
@@ -209,14 +219,17 @@ export async function getReminderHistory(
     }
   }
 
-  return (data ?? []).map((r: any) => ({
-    id: r.id,
-    sheet_id: r.sheet_id,
-    employee_name: empMap[r.sheet_id] ?? r.sheet_id,
-    reminder_type: r.reminder_type,
-    message: r.message ?? null,
-    target_status: r.target_status ?? null,
-    sent_by_name: r.sent_by_employee?.name ?? '不明',
-    sent_at: r.sent_at,
-  } satisfies ReminderRecord))
+  return (data ?? []).map(
+    (r: any) =>
+      ({
+        id: r.id,
+        sheet_id: r.sheet_id,
+        employee_name: empMap[r.sheet_id] ?? r.sheet_id,
+        reminder_type: r.reminder_type,
+        message: r.message ?? null,
+        target_status: r.target_status ?? null,
+        sent_by_name: r.sent_by_employee?.name ?? '不明',
+        sent_at: r.sent_at,
+      }) satisfies ReminderRecord
+  )
 }

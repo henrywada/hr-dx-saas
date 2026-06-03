@@ -48,9 +48,7 @@ export function EngagementKpiSection({ kpi }: Props) {
         <KpiSummaryCard
           label="パルスサーベイ回答率"
           value={
-            kpi.latestPulseResponseRate != null
-              ? `${kpi.latestPulseResponseRate}%`
-              : 'データなし'
+            kpi.latestPulseResponseRate != null ? `${kpi.latestPulseResponseRate}%` : 'データなし'
           }
           sub="直近期間"
           icon={<MessageSquare size={14} />}
@@ -64,11 +62,7 @@ export function EngagementKpiSection({ kpi }: Props) {
         />
         <KpiSummaryCard
           label="高ストレス率"
-          value={
-            kpi.highStressRatePercent != null
-              ? `${kpi.highStressRatePercent}%`
-              : 'データなし'
-          }
+          value={kpi.highStressRatePercent != null ? `${kpi.highStressRatePercent}%` : 'データなし'}
           sub="直近ストレスチェック"
           icon={<Activity size={14} />}
           status={stressStatus}

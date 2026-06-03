@@ -175,7 +175,10 @@ async function fetchProductivityKpi(
   if (workData && workData.length > 0) {
     const perEmployee = new Map<string, number>()
     for (const row of workData) {
-      perEmployee.set(row.employee_id, (perEmployee.get(row.employee_id) ?? 0) + row.overtime_minutes)
+      perEmployee.set(
+        row.employee_id,
+        (perEmployee.get(row.employee_id) ?? 0) + row.overtime_minutes
+      )
     }
     const totalMinutes = Array.from(perEmployee.values()).reduce((a, b) => a + b, 0)
     avgOvertimeHoursThisMonth =
@@ -384,4 +387,3 @@ export async function getHrKpiBundle(
     return { ok: false, error: `KPIデータの取得に失敗しました: ${msg}` }
   }
 }
-

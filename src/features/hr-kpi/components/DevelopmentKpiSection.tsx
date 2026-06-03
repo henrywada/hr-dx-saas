@@ -27,11 +27,7 @@ export function DevelopmentKpiSection({ kpi }: Props) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiSummaryCard
           label="スキルギャップ率"
-          value={
-            kpi.skillGapRatePercent != null
-              ? `${kpi.skillGapRatePercent}%`
-              : 'データなし'
-          }
+          value={kpi.skillGapRatePercent != null ? `${kpi.skillGapRatePercent}%` : 'データなし'}
           sub="スキル割り当て済み従業員"
           icon={<Target size={14} />}
           status={
@@ -47,9 +43,7 @@ export function DevelopmentKpiSection({ kpi }: Props) {
         <KpiSummaryCard
           label="eラーニング完了率"
           value={
-            kpi.elCompletionRatePercent != null
-              ? `${kpi.elCompletionRatePercent}%`
-              : 'データなし'
+            kpi.elCompletionRatePercent != null ? `${kpi.elCompletionRatePercent}%` : 'データなし'
           }
           sub="全割り当て累計"
           icon={<BookOpen size={14} />}

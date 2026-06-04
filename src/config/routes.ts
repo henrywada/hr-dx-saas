@@ -85,6 +85,8 @@ export const APP_ROUTES = {
     ADMIN_HR_KPI: '/adm/hr-kpi',
     /** 離職予兆スコアリング & アラート（P2-A） */
     ADMIN_TURNOVER_RISK: '/adm/turnover-risk',
+    /** 統合エンゲージメントダッシュボード（P2-B） */
+    ADMIN_ENGAGEMENT: '/adm/engagement',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

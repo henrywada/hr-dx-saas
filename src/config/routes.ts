@@ -83,6 +83,8 @@ export const APP_ROUTES = {
     ADMIN_LABOR_COMPLIANCE: '/adm/labor-compliance',
     /** 横断KPIダッシュボード（経営層向け）（P1-D） */
     ADMIN_HR_KPI: '/adm/hr-kpi',
+    /** 離職予兆スコアリング & アラート（P2-A） */
+    ADMIN_TURNOVER_RISK: '/adm/turnover-risk',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

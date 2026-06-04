@@ -77,9 +77,7 @@ export function RiskRankingTable({ rows }: Props) {
                       idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                     } transition-[background-color,box-shadow] duration-300 ease-out hover:bg-gray-100 hover:shadow-[0_6px_22px_-4px_rgba(15,23,42,0.22)]`}
                   >
-                    <td className="border-b border-gray-200 px-4 py-3 text-gray-500">
-                      {idx + 1}
-                    </td>
+                    <td className="border-b border-gray-200 px-4 py-3 text-gray-500">{idx + 1}</td>
                     <td className="border-b border-gray-200 px-4 py-3 font-medium text-gray-900">
                       {row.employee_name}
                     </td>
@@ -95,8 +93,8 @@ export function RiskRankingTable({ rows }: Props) {
                           row.risk_score >= 60
                             ? 'text-red-600'
                             : row.risk_score >= 30
-                            ? 'text-yellow-600'
-                            : 'text-green-600'
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
                         }`}
                       >
                         {row.risk_score}
@@ -117,9 +115,7 @@ export function RiskRankingTable({ rows }: Props) {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() =>
-                            setExpandedId(
-                              expandedId === row.employee_id ? null : row.employee_id
-                            )
+                            setExpandedId(expandedId === row.employee_id ? null : row.employee_id)
                           }
                           className="rounded-md border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
                         >
@@ -141,10 +137,7 @@ export function RiskRankingTable({ rows }: Props) {
                   </tr>
                   {expandedId === row.employee_id && (
                     <tr key={`${row.employee_id}-detail`}>
-                      <td
-                        colSpan={8}
-                        className="border-b border-gray-200 bg-gray-50 px-8 py-4"
-                      >
+                      <td colSpan={8} className="border-b border-gray-200 bg-gray-50 px-8 py-4">
                         <RiskFactorBreakdown factors={row.score_factors} />
                       </td>
                     </tr>

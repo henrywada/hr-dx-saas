@@ -51,7 +51,11 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
     .eq('tenant_id', user.tenant_id)
     .eq('active_status', 'active')
 
-  type EmpRow = { id: string; user_id: string | null; divisions: { id: string; name: string } | null }
+  type EmpRow = {
+    id: string
+    user_id: string | null
+    divisions: { id: string; name: string } | null
+  }
   const employees = (empRaw ?? []) as EmpRow[]
   const userIdToEmpId = new Map<string, string>(
     employees.filter(e => e.user_id).map(e => [e.user_id!, e.id])
@@ -84,9 +88,16 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
   type PulseRow = { user_id: string; score: number; survey_period: string }
   const pulseData = (pulseRaw ?? []) as PulseRow[]
 
-  const pulseByPeriod = new Map<string, { scoreSum: number; scoreCount: number; respondedUsers: Set<string> }>()
+  const pulseByPeriod = new Map<
+    string,
+    { scoreSum: number; scoreCount: number; respondedUsers: Set<string> }
+  >()
   for (const r of pulseData) {
-    const acc = pulseByPeriod.get(r.survey_period) ?? { scoreSum: 0, scoreCount: 0, respondedUsers: new Set() }
+    const acc = pulseByPeriod.get(r.survey_period) ?? {
+      scoreSum: 0,
+      scoreCount: 0,
+      respondedUsers: new Set(),
+    }
     acc.scoreSum += r.score
     acc.scoreCount++
     acc.respondedUsers.add(r.user_id)
@@ -100,7 +111,8 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
       period,
       label: periodToLabel(period),
       score: acc.scoreCount > 0 ? toDisplayScore(acc.scoreSum / acc.scoreCount) : 0,
-      responseRate: totalEmployees > 0 ? Math.round((acc.respondedUsers.size / totalEmployees) * 100) : 0,
+      responseRate:
+        totalEmployees > 0 ? Math.round((acc.respondedUsers.size / totalEmployees) * 100) : 0,
     }))
 
   const latestPulsePoint = pulseTrend.length > 0 ? pulseTrend[pulseTrend.length - 1] : null
@@ -171,7 +183,12 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
     .order('start_date', { ascending: false })
     .limit(6)
 
-  type QuestPeriodRow = { id: string; label: string | null; start_date: string | null; questionnaire_id: string }
+  type QuestPeriodRow = {
+    id: string
+    label: string | null
+    start_date: string | null
+    questionnaire_id: string
+  }
   const questPeriods = (questPeriodRaw ?? []) as QuestPeriodRow[]
 
   let questionnaireTrend: QuestionnaireTrendPoint[] = []
@@ -200,7 +217,9 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
 
     type RespRow = { assignment_id: string; submitted_at: string | null }
     const responses = (responseRaw ?? []) as RespRow[]
-    const submittedSet = new Set(responses.filter(r => r.submitted_at !== null).map(r => r.assignment_id))
+    const submittedSet = new Set(
+      responses.filter(r => r.submitted_at !== null).map(r => r.assignment_id)
+    )
 
     const questByPeriod = new Map<string, { total: number; submitted: number }>()
     for (const a of assignments) {
@@ -227,7 +246,8 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
       .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
 
     if (questionnaireTrend.length > 0) {
-      latestQuestionnaireResponseRate = questionnaireTrend[questionnaireTrend.length - 1].responseRate
+      latestQuestionnaireResponseRate =
+        questionnaireTrend[questionnaireTrend.length - 1].responseRate
     }
   }
 
@@ -319,25 +339,32 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
     const stressAcc = divStressRate.get(divId)
     const questAcc = divQuestRate.get(divId)
 
-    const pulseScore = pulseAcc && pulseAcc.count > 0
-      ? toDisplayScore(pulseAcc.scoreSum / pulseAcc.count)
-      : null
-    const highStressRate = stressAcc && stressAcc.total > 0
-      ? Math.round((stressAcc.high / stressAcc.total) * 100)
-      : null
-    const questionnaireResponseRate = questAcc && questAcc.total > 0
-      ? Math.round((questAcc.submitted / questAcc.total) * 100)
-      : null
+    const pulseScore =
+      pulseAcc && pulseAcc.count > 0 ? toDisplayScore(pulseAcc.scoreSum / pulseAcc.count) : null
+    const highStressRate =
+      stressAcc && stressAcc.total > 0 ? Math.round((stressAcc.high / stressAcc.total) * 100) : null
+    const questionnaireResponseRate =
+      questAcc && questAcc.total > 0
+        ? Math.round((questAcc.submitted / questAcc.total) * 100)
+        : null
 
     let compositeSum = 0
     let compositeWeight = 0
-    if (pulseScore !== null) { compositeSum += (pulseScore / 5) * 40; compositeWeight += 40 }
-    if (highStressRate !== null) { compositeSum += ((100 - highStressRate) / 100) * 30; compositeWeight += 30 }
-    if (questionnaireResponseRate !== null) { compositeSum += (questionnaireResponseRate / 100) * 30; compositeWeight += 30 }
+    if (pulseScore !== null) {
+      compositeSum += (pulseScore / 5) * 40
+      compositeWeight += 40
+    }
+    if (highStressRate !== null) {
+      compositeSum += ((100 - highStressRate) / 100) * 30
+      compositeWeight += 30
+    }
+    if (questionnaireResponseRate !== null) {
+      compositeSum += (questionnaireResponseRate / 100) * 30
+      compositeWeight += 30
+    }
 
-    const compositeScore = compositeWeight > 0
-      ? Math.round((compositeSum / compositeWeight) * 100)
-      : 0
+    const compositeScore =
+      compositeWeight > 0 ? Math.round((compositeSum / compositeWeight) * 100) : 0
 
     departments.push({
       divisionId: divId,

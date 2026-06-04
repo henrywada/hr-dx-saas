@@ -48,16 +48,12 @@ export function RiskFactorBreakdown({ factors }: Props) {
 
   return (
     <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-        リスク因子内訳
-      </p>
-      {rows.map((row) => (
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">リスク因子内訳</p>
+      {rows.map(row => (
         <div key={row.label}>
           <div className="mb-1 flex items-center justify-between text-sm">
             <span className="text-gray-700">{row.label}</span>
-            <span
-              className={`font-semibold ${row.score > 0 ? 'text-red-600' : 'text-gray-400'}`}
-            >
+            <span className={`font-semibold ${row.score > 0 ? 'text-red-600' : 'text-gray-400'}`}>
               {row.score} / {row.maxScore} pt
             </span>
           </div>
@@ -67,8 +63,8 @@ export function RiskFactorBreakdown({ factors }: Props) {
                 row.score === 0
                   ? 'bg-gray-300'
                   : row.score >= row.maxScore * 0.7
-                  ? 'bg-red-400'
-                  : 'bg-yellow-400'
+                    ? 'bg-red-400'
+                    : 'bg-yellow-400'
               }`}
               style={{ width: `${(row.score / row.maxScore) * 100}%` }}
             />

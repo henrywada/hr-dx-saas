@@ -1,25 +1,25 @@
 /** パルスサーベイ 月次集計 */
 export interface PulseTrendPoint {
-  period: string          // 'YYYY-MM'
-  label: string           // 'YYYY年M月度'
-  score: number           // 0.0〜5.0（DBスコア ÷2）
-  responseRate: number    // 0〜100（%）
+  period: string // 'YYYY-MM'
+  label: string // 'YYYY年M月度'
+  score: number // 0.0〜5.0（DBスコア ÷2）
+  responseRate: number // 0〜100（%）
 }
 
 /** ストレスチェック 実施期間別集計 */
 export interface StressTrendPoint {
-  periodTitle: string     // stress_check_periods.title
-  periodStart: string     // 'YYYY-MM-DD'
-  highStressRate: number  // 0〜100（%）
+  periodTitle: string // stress_check_periods.title
+  periodStart: string // 'YYYY-MM-DD'
+  highStressRate: number // 0〜100（%）
   totalCount: number
   highStressCount: number
 }
 
 /** アンケート（Echo）実施期間別集計 */
 export interface QuestionnaireTrendPoint {
-  periodLabel: string     // questionnaire_periods.label
-  periodStart: string     // 'YYYY-MM-DD'
-  responseRate: number    // 0〜100（%）
+  periodLabel: string // questionnaire_periods.label
+  periodStart: string // 'YYYY-MM-DD'
+  responseRate: number // 0〜100（%）
   submittedCount: number
   totalCount: number
 }
@@ -31,7 +31,7 @@ export interface DepartmentEngagementRow {
   pulseScore: number | null
   highStressRate: number | null
   questionnaireResponseRate: number | null
-  compositeScore: number            // 0〜100 の合成スコア
+  compositeScore: number // 0〜100 の合成スコア
   status: 'good' | 'caution' | 'alert'
 }
 

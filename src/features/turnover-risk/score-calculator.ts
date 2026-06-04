@@ -72,8 +72,7 @@ export function calculateRiskScore(data: EmployeeRawData): {
         is_high_stress: data.is_high_stress,
         latest_survey_score: data.latest_survey_score,
         overtime_hours_last_month: data.overtime_hours_last_month,
-        overtime_delta_hours:
-          data.overtime_hours_last_month - data.overtime_hours_two_months_ago,
+        overtime_delta_hours: data.overtime_hours_last_month - data.overtime_hours_two_months_ago,
         unanswered_questionnaire_count: data.unanswered_questionnaire_count,
       },
     },

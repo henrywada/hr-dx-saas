@@ -35,7 +35,7 @@ export async function recalculateTurnoverRiskScores(): Promise<{
     const supabase = await createClient()
     const now = new Date().toISOString()
 
-    const records = rawDataList.map((raw) => {
+    const records = rawDataList.map(raw => {
       const { risk_score, risk_level, score_factors } = calculateRiskScore(raw)
       return {
         tenant_id: user.tenant_id!,
@@ -64,13 +64,7 @@ export async function recalculateTurnoverRiskScores(): Promise<{
 
 const actionLogSchema = z.object({
   employeeId: z.string().uuid(),
-  actionType: z.enum([
-    'one_on_one',
-    'counseling',
-    'manager_talk',
-    'hr_interview',
-    'other',
-  ]),
+  actionType: z.enum(['one_on_one', 'counseling', 'manager_talk', 'hr_interview', 'other']),
   notes: z.string().max(1000).optional(),
 })
 

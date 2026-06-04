@@ -1,11 +1,6 @@
 export type RiskLevel = 'high' | 'medium' | 'low'
 
-export type ActionType =
-  | 'one_on_one'
-  | 'counseling'
-  | 'manager_talk'
-  | 'hr_interview'
-  | 'other'
+export type ActionType = 'one_on_one' | 'counseling' | 'manager_talk' | 'hr_interview' | 'other'
 
 export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
   one_on_one: '1on1 実施',

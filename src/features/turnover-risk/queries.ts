@@ -26,7 +26,7 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
 
   if (scoresError || !scores) return []
 
-  const latestByEmployee = new Map<string, typeof scores[number]>()
+  const latestByEmployee = new Map<string, (typeof scores)[number]>()
   for (const s of scores) {
     if (!latestByEmployee.has(s.employee_id)) {
       latestByEmployee.set(s.employee_id, s)
@@ -40,10 +40,7 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
     .order('actioned_at', { ascending: false })
     .limit(500)
 
-  const latestActionByEmployee = new Map<
-    string,
-    { action_type: string; actioned_at: string }
-  >()
+  const latestActionByEmployee = new Map<string, { action_type: string; actioned_at: string }>()
   for (const a of actions ?? []) {
     if (!latestActionByEmployee.has(a.employee_id)) {
       latestActionByEmployee.set(a.employee_id, a)
@@ -61,7 +58,7 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
 
   if (empError || !employees) return []
 
-  const empMap = new Map(employees.map((e) => [e.id, e]))
+  const empMap = new Map(employees.map(e => [e.id, e]))
 
   const rows: TurnoverRiskRow[] = []
   for (const [empId, score] of latestByEmployee) {
@@ -70,8 +67,8 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
     const action = latestActionByEmployee.get(empId)
     const divisionData = emp.divisions as { name: string } | { name: string }[] | null
     const departmentName = Array.isArray(divisionData)
-      ? divisionData[0]?.name ?? null
-      : divisionData?.name ?? null
+      ? (divisionData[0]?.name ?? null)
+      : (divisionData?.name ?? null)
     rows.push({
       employee_id: empId,
       employee_name: emp.name ?? '',
@@ -91,14 +88,13 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
 /** ダッシュボード集計サマリーを取得する */
 export async function getTurnoverRiskSummary(): Promise<TurnoverRiskSummary> {
   const rows = await getTurnoverRiskRows()
-  const highCount = rows.filter((r) => r.risk_level === 'high').length
-  const mediumCount = rows.filter((r) => r.risk_level === 'medium').length
-  const lowCount = rows.filter((r) => r.risk_level === 'low').length
+  const highCount = rows.filter(r => r.risk_level === 'high').length
+  const mediumCount = rows.filter(r => r.risk_level === 'medium').length
+  const lowCount = rows.filter(r => r.risk_level === 'low').length
   const lastCalculatedAt =
     rows.length > 0
-      ? rows.reduce((latest, r) =>
-          r.calculated_at > latest.calculated_at ? r : latest
-        ).calculated_at
+      ? rows.reduce((latest, r) => (r.calculated_at > latest.calculated_at ? r : latest))
+          .calculated_at
       : null
 
   return { highCount, mediumCount, lowCount, totalCount: rows.length, lastCalculatedAt }
@@ -132,9 +128,7 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
 
   const supabase = await createClient()
 
-  const now = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })
-  )
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
 
@@ -149,9 +143,7 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
   const prevMonthStart = `${prevYm}-01`
   const prevMonthEnd = new Date(prevMonthYear, prevMonth, 0).toISOString().split('T')[0]
   const prevPrevMonthStart = `${prevPrevYm}-01`
-  const prevPrevMonthEnd = new Date(prevPrevMonthYear, prevPrevMonth, 0)
-    .toISOString()
-    .split('T')[0]
+  const prevPrevMonthEnd = new Date(prevPrevMonthYear, prevPrevMonth, 0).toISOString().split('T')[0]
 
   // 1. アクティブ従業員一覧（active_status カラム）
   const { data: employees } = await supabase
@@ -161,10 +153,8 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
     .eq('active_status', 'active')
 
   if (!employees || employees.length === 0) return []
-  const employeeIds = employees.map((e) => e.id)
-  const userIdToEmpId = new Map(
-    employees.filter((e) => e.user_id).map((e) => [e.user_id!, e.id])
-  )
+  const employeeIds = employees.map(e => e.id)
+  const userIdToEmpId = new Map(employees.filter(e => e.user_id).map(e => [e.user_id!, e.id]))
 
   // 2. 最新ストレスチェック結果
   const { data: stressResults } = await supabase
@@ -218,7 +208,7 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
   const prevPrevOtMap = calcOvertimeHours(prevPrevWtr ?? [])
 
   // 4. パルスサーベイスコア（pulse_survey_responses は user_id 参照、score は 1-10）
-  const userIds = employees.filter((e) => e.user_id).map((e) => e.user_id!)
+  const userIds = employees.filter(e => e.user_id).map(e => e.user_id!)
   const latestSurveyByEmp = new Map<string, number>()
 
   if (userIds.length > 0) {
@@ -247,18 +237,17 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
     .order('assigned_at', { ascending: false })
     .limit(employeeIds.length * 3)
 
-  const assignmentIds = (assignments ?? []).map((a) => a.id)
-  const { data: responses } = assignmentIds.length > 0
-    ? await supabase
-        .from('questionnaire_responses')
-        .select('assignment_id, submitted_at')
-        .in('assignment_id', assignmentIds)
-    : { data: [] }
+  const assignmentIds = (assignments ?? []).map(a => a.id)
+  const { data: responses } =
+    assignmentIds.length > 0
+      ? await supabase
+          .from('questionnaire_responses')
+          .select('assignment_id, submitted_at')
+          .in('assignment_id', assignmentIds)
+      : { data: [] }
 
   const submittedSet = new Set(
-    (responses ?? [])
-      .filter((r) => r.submitted_at !== null)
-      .map((r) => r.assignment_id)
+    (responses ?? []).filter(r => r.submitted_at !== null).map(r => r.assignment_id)
   )
 
   const assignmentsByEmp = new Map<string, string[]>()
@@ -270,11 +259,11 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
 
   const unansweredCountMap = new Map<string, number>()
   for (const [empId, assignIds] of assignmentsByEmp) {
-    const unanswered = assignIds.filter((id) => !submittedSet.has(id)).length
+    const unanswered = assignIds.filter(id => !submittedSet.has(id)).length
     unansweredCountMap.set(empId, unanswered)
   }
 
-  return employeeIds.map((empId) => ({
+  return employeeIds.map(empId => ({
     employee_id: empId,
     is_high_stress: latestStressByEmp.get(empId) ?? false,
     latest_survey_score: latestSurveyByEmp.get(empId) ?? null,

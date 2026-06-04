@@ -1,10 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import {
-  getTurnoverRiskRows,
-  getTurnoverRiskSummary,
-} from '@/features/turnover-risk/queries'
+import { getTurnoverRiskRows, getTurnoverRiskSummary } from '@/features/turnover-risk/queries'
 import { TurnoverRiskDashboard } from '@/features/turnover-risk/components/TurnoverRiskDashboard'
 
 export const metadata = { title: '離職予兆スコアリング' }
@@ -19,10 +16,7 @@ export default async function TurnoverRiskPage() {
     redirect(APP_ROUTES.TENANT.ADMIN)
   }
 
-  const [rows, summary] = await Promise.all([
-    getTurnoverRiskRows(),
-    getTurnoverRiskSummary(),
-  ])
+  const [rows, summary] = await Promise.all([getTurnoverRiskRows(), getTurnoverRiskSummary()])
 
   return <TurnoverRiskDashboard rows={rows} summary={summary} />
 }

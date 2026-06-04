@@ -10,9 +10,24 @@ const STATUS_STYLE: Record<
   DepartmentEngagementRow['status'],
   { bg: string; text: string; badge: string; label: string }
 > = {
-  good:    { bg: 'bg-green-50',  text: 'text-green-700',  badge: 'bg-green-100 text-green-700',   label: '良好' },
-  caution: { bg: 'bg-yellow-50', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700', label: '要注意' },
-  alert:   { bg: 'bg-red-50',    text: 'text-red-700',    badge: 'bg-red-100 text-red-700',        label: 'アラート' },
+  good: {
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    badge: 'bg-green-100 text-green-700',
+    label: '良好',
+  },
+  caution: {
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    badge: 'bg-yellow-100 text-yellow-700',
+    label: '要注意',
+  },
+  alert: {
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    badge: 'bg-red-100 text-red-700',
+    label: 'アラート',
+  },
 }
 
 function ScoreCell({
@@ -36,11 +51,7 @@ function ScoreCell({
 
 export function DepartmentHeatmap({ departments }: Props) {
   if (departments.length === 0) {
-    return (
-      <div className="py-10 text-center text-sm text-gray-400">
-        部署データなし
-      </div>
-    )
+    return <div className="py-10 text-center text-sm text-gray-400">部署データなし</div>
   }
 
   return (
@@ -94,7 +105,9 @@ export function DepartmentHeatmap({ departments }: Props) {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-medium ${st.badge}`}>
+                  <span
+                    className={`inline-block rounded-full px-3 py-0.5 text-xs font-medium ${st.badge}`}
+                  >
                     {st.label}
                   </span>
                 </td>

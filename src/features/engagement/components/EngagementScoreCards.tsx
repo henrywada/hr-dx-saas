@@ -16,9 +16,7 @@ interface ScoreCardProps {
 function ScoreCard({ label, value, sub, colorClass, hasData }: ScoreCardProps) {
   return (
     <div className="flex flex-col items-center rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <span className={`text-3xl font-bold ${colorClass}`}>
-        {hasData ? value : '—'}
-      </span>
+      <span className={`text-3xl font-bold ${colorClass}`}>{hasData ? value : '—'}</span>
       <span className="mt-1 text-sm font-medium text-gray-700">{label}</span>
       <span className="mt-0.5 text-xs text-gray-400">{hasData ? sub : 'データなし'}</span>
     </div>
@@ -53,7 +51,9 @@ export function EngagementScoreCards({
       />
       <ScoreCard
         label="アンケート回答率"
-        value={latestQuestionnaireResponseRate !== null ? `${latestQuestionnaireResponseRate}%` : '—'}
+        value={
+          latestQuestionnaireResponseRate !== null ? `${latestQuestionnaireResponseRate}%` : '—'
+        }
         sub="最新アンケート期"
         colorClass={
           latestQuestionnaireResponseRate !== null && latestQuestionnaireResponseRate < 50

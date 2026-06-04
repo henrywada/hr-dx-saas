@@ -50,9 +50,7 @@ export function MonthlyTrendChart({ pulseTrend, stressTrend, questionnaireTrend 
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-        データなし
-      </div>
+      <div className="flex h-48 items-center justify-center text-sm text-gray-400">データなし</div>
     )
   }
 

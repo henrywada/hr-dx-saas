@@ -20,12 +20,7 @@ const ACTION_TYPES: ActionType[] = [
   'other',
 ]
 
-export function ActionLogModal({
-  employeeId,
-  employeeName,
-  isOpen,
-  onClose,
-}: Props) {
+export function ActionLogModal({ employeeId, employeeName, isOpen, onClose }: Props) {
   const [actionType, setActionType] = useState<ActionType>('one_on_one')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -58,15 +53,13 @@ export function ActionLogModal({
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              アクション種別
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">アクション種別</label>
             <select
               value={actionType}
-              onChange={(e) => setActionType(e.target.value as ActionType)}
+              onChange={e => setActionType(e.target.value as ActionType)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              {ACTION_TYPES.map((t) => (
+              {ACTION_TYPES.map(t => (
                 <option key={t} value={t}>
                   {ACTION_TYPE_LABELS[t]}
                 </option>
@@ -75,27 +68,19 @@ export function ActionLogModal({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              メモ（任意）
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">メモ（任意）</label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               rows={4}
               maxLength={1000}
               placeholder="面談内容や次のアクションを記録してください"
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <p className="mt-1 text-right text-xs text-gray-400">
-              {notes.length}/1000
-            </p>
+            <p className="mt-1 text-right text-xs text-gray-400">{notes.length}/1000</p>
           </div>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
+          {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <button

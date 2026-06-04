@@ -50,8 +50,7 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
       })
     : null
 
-  const filtered =
-    filter === 'all' ? rows : rows.filter((r) => r.risk_level === filter)
+  const filtered = filter === 'all' ? rows : rows.filter(r => r.risk_level === filter)
 
   return (
     <div className="p-6">
@@ -68,9 +67,7 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
               離職予兆スコアリング
             </h1>
-            {lastCalc && (
-              <p className="mt-1 text-xs text-gray-500">最終算出: {lastCalc}</p>
-            )}
+            {lastCalc && <p className="mt-1 text-xs text-gray-500">最終算出: {lastCalc}</p>}
           </div>
           <RecalculateButton />
         </div>
@@ -79,31 +76,19 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
         <div className="space-y-6 p-6">
           {/* サマリーカード */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <SummaryCard
-              label="対象者合計"
-              count={summary.totalCount}
-              colorClass="text-gray-800"
-            />
-            <SummaryCard
-              label="高リスク"
-              count={summary.highCount}
-              colorClass="text-red-600"
-            />
+            <SummaryCard label="対象者合計" count={summary.totalCount} colorClass="text-gray-800" />
+            <SummaryCard label="高リスク" count={summary.highCount} colorClass="text-red-600" />
             <SummaryCard
               label="中リスク"
               count={summary.mediumCount}
               colorClass="text-yellow-600"
             />
-            <SummaryCard
-              label="低リスク"
-              count={summary.lowCount}
-              colorClass="text-green-600"
-            />
+            <SummaryCard label="低リスク" count={summary.lowCount} colorClass="text-green-600" />
           </div>
 
           {/* フィルターバー */}
           <div className="-mx-6 -mt-6 mb-6 flex items-center gap-2 border-b border-gray-200 bg-white px-6 py-3.5">
-            {PILLS.map((p) => (
+            {PILLS.map(p => (
               <button
                 key={p.key}
                 onClick={() => setFilter(p.key)}
@@ -116,9 +101,7 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
                 {p.label}
               </button>
             ))}
-            <span className="ml-auto text-sm text-gray-500">
-              {filtered.length} 名
-            </span>
+            <span className="ml-auto text-sm text-gray-500">{filtered.length} 名</span>
           </div>
 
           {/* ランキングテーブル */}

@@ -78,7 +78,7 @@ export async function getTurnoverRiskRows(): Promise<TurnoverRiskRow[]> {
       department_name: departmentName,
       risk_score: score.risk_score,
       risk_level: score.risk_level as 'high' | 'medium' | 'low',
-      score_factors: score.score_factors as ScoreFactors,
+      score_factors: score.score_factors as unknown as ScoreFactors,
       calculated_at: score.calculated_at,
       latest_action_at: action?.actioned_at ?? null,
       latest_action_type: (action?.action_type as ActionType) ?? null,

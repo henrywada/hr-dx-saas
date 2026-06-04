@@ -42,7 +42,8 @@ export async function recalculateTurnoverRiskScores(): Promise<{
         employee_id: raw.employee_id,
         risk_score,
         risk_level,
-        score_factors,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        score_factors: score_factors as any,
         calculated_at: now,
       }
     })

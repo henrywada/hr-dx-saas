@@ -1969,6 +1969,71 @@ export type Database = {
           },
         ]
       }
+      evaluation_reminders: {
+        Row: {
+          id: string
+          message: string | null
+          period_id: string
+          reminder_type: string
+          sent_at: string
+          sent_by: string
+          sheet_id: string
+          target_status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          message?: string | null
+          period_id: string
+          reminder_type: string
+          sent_at?: string
+          sent_by: string
+          sheet_id: string
+          target_status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          message?: string | null
+          period_id?: string
+          reminder_type?: string
+          sent_at?: string
+          sent_by?: string
+          sheet_id?: string
+          target_status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_reminders_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_reminders_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_reminders_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluation_scores: {
         Row: {
           achievement_rate: number | null
@@ -6677,6 +6742,103 @@ export type Database = {
         }
         Relationships: []
       }
+      turnover_risk_action_logs: {
+        Row: {
+          action_type: string
+          actioned_at: string
+          employee_id: string
+          id: string
+          logged_by: string
+          notes: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action_type: string
+          actioned_at?: string
+          employee_id: string
+          id?: string
+          logged_by: string
+          notes?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action_type?: string
+          actioned_at?: string
+          employee_id?: string
+          id?: string
+          logged_by?: string
+          notes?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnover_risk_action_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnover_risk_action_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnover_risk_action_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turnover_risk_scores: {
+        Row: {
+          calculated_at: string
+          employee_id: string
+          id: string
+          risk_level: string
+          risk_score: number
+          score_factors: Json
+          tenant_id: string
+        }
+        Insert: {
+          calculated_at?: string
+          employee_id: string
+          id?: string
+          risk_level: string
+          risk_score: number
+          score_factors?: Json
+          tenant_id: string
+        }
+        Update: {
+          calculated_at?: string
+          employee_id?: string
+          id?: string
+          risk_level?: string
+          risk_score?: number
+          score_factors?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnover_risk_scores_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnover_risk_scores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_time_records: {
         Row: {
           created_at: string | null
@@ -7230,4 +7392,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -2961,6 +2962,102 @@ export type Database = {
             columns: ["current_company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_on_one_sessions: {
+        Row: {
+          conducted_at: string
+          created_at: string
+          employee_id: string
+          id: string
+          manager_id: string
+          next_date: string | null
+          notes: string | null
+          tenant_id: string
+          theme: string
+        }
+        Insert: {
+          conducted_at?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          manager_id: string
+          next_date?: string | null
+          notes?: string | null
+          tenant_id: string
+          theme: string
+        }
+        Update: {
+          conducted_at?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          manager_id?: string
+          next_date?: string | null
+          notes?: string | null
+          tenant_id?: string
+          theme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_on_one_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "one_on_one_sessions_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "one_on_one_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_on_one_theme_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_on_one_theme_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -7392,3 +7489,6 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+A new version of Supabase CLI is available: v2.104.0 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

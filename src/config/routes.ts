@@ -87,6 +87,8 @@ export const APP_ROUTES = {
     ADMIN_TURNOVER_RISK: '/adm/turnover-risk',
     /** 統合エンゲージメントダッシュボード（P2-B） */
     ADMIN_ENGAGEMENT: '/adm/engagement',
+    /** 1on1支援機能（P2-C） */
+    ADMIN_ONE_ON_ONE: '/adm/one-on-one',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

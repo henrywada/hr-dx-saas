@@ -12,7 +12,10 @@ const sessionSchema = z.object({
   employeeId: z.string().uuid(),
   theme: z.string().min(1).max(200),
   notes: z.string().max(2000).optional(),
-  nextDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  nextDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   conductedAt: z.string().datetime().optional(),
 })
 
@@ -127,18 +130,30 @@ export async function seedDefaultThemeTemplates(): Promise<{ success: boolean; e
 
   const defaults = [
     { name: '目標進捗確認', description: 'OKR・KPI の進捗を確認する', sort_order: 0 },
-    { name: '悩み・困りごと相談', description: '業務や人間関係の困りごとをヒアリングする', sort_order: 1 },
-    { name: 'キャリア・成長について', description: 'キャリアパスや成長目標を話し合う', sort_order: 2 },
-    { name: 'ポジティブフィードバック', description: '良かった行動・成果を具体的に伝える', sort_order: 3 },
+    {
+      name: '悩み・困りごと相談',
+      description: '業務や人間関係の困りごとをヒアリングする',
+      sort_order: 1,
+    },
+    {
+      name: 'キャリア・成長について',
+      description: 'キャリアパスや成長目標を話し合う',
+      sort_order: 2,
+    },
+    {
+      name: 'ポジティブフィードバック',
+      description: '良かった行動・成果を具体的に伝える',
+      sort_order: 3,
+    },
     { name: 'フリートーク', description: '特定テーマなし・リラックスした対話', sort_order: 4 },
   ]
 
-  const { error } = await supabase.from('one_on_one_theme_templates').insert(
-    defaults.map(d => ({ ...d, tenant_id: user.tenant_id! }))
-  )
+  const { error } = await supabase
+    .from('one_on_one_theme_templates')
+    .insert(defaults.map(d => ({ ...d, tenant_id: user.tenant_id! })))
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath(APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE)
+  // revalidatePath はレンダリング中に呼び出せないため省略（page.tsx から呼ばれるシード関数）
   return { success: true }
 }

@@ -1,5 +1,7 @@
 // 退職理由の構造的蓄積・傾向分析 専用型定義
 
+import { z } from 'zod'
+
 export type MainReason =
   | 'compensation'
   | 'interpersonal'
@@ -139,3 +141,16 @@ export interface ExitInterviewInput {
 }
 
 export type ActionResult = { success: true } | { success: false; error: string }
+
+export const exitInterviewSchema = z.object({
+  employee_id: z.string().max(36).optional().or(z.literal('')),
+  employee_name: z.string().min(1).max(100),
+  department_name: z.string().max(100).optional().or(z.literal('')),
+  exit_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  age_group: z.enum(['under_25', '25_to_34', '35_to_44', '45_to_54', '55_plus', 'unknown']),
+  main_reason: z.enum(['compensation', 'interpersonal', 'career', 'life_event', 'management', 'work_style', 'company_direction', 'other']),
+  sub_reasons: z.array(z.string()).max(20),
+  notes: z.string().max(2000),
+})
+
+export const EXIT_INTERVIEW_ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer'] as const

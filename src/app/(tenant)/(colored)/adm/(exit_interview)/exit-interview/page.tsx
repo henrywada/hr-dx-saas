@@ -4,15 +4,14 @@ import { APP_ROUTES } from '@/config/routes'
 import { createClient } from '@/lib/supabase/server'
 import { getExitInterviews, getExitInterviewAnalytics } from '@/features/exit-interview/queries'
 import { ExitInterviewDashboard } from '@/features/exit-interview/components/ExitInterviewDashboard'
+import { EXIT_INTERVIEW_ALLOWED_ROLES } from '@/features/exit-interview/types'
 
 export const metadata = { title: '退職理由分析' }
-
-const ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer']
 
 export default async function ExitInterviewPage() {
   const user = await getServerUser()
   if (!user?.tenant_id) redirect(APP_ROUTES.AUTH.LOGIN)
-  if (!ALLOWED_ROLES.includes(user.appRole ?? '')) redirect(APP_ROUTES.TENANT.ADMIN)
+  if (!(EXIT_INTERVIEW_ALLOWED_ROLES as readonly string[]).includes(user.appRole ?? '')) redirect(APP_ROUTES.TENANT.ADMIN)
 
   const supabase = await createClient()
 

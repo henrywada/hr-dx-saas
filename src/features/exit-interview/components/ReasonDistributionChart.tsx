@@ -26,7 +26,7 @@ export function ReasonDistributionChart({ data }: Props) {
     )
   }
 
-  const chartData = data
+  const chartData = [...data]
     .sort((a, b) => b.count - a.count)
     .map(d => ({
       name: MAIN_REASON_LABELS[d.reason],

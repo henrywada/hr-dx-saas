@@ -22,8 +22,8 @@ export async function getExitInterviews(
     .select('*')
     .eq('tenant_id', tenantId)
     .order('exit_date', { ascending: false })
+    .limit(200)
   if (error) {
-    console.warn('[getExitInterviews] failed:', error.message)
     return []
   }
   return (data ?? []) as ExitInterview[]
@@ -39,7 +39,6 @@ export async function getExitInterviewAnalytics(
     .select('main_reason, department_name, tenure_months, age_group, exit_date')
     .eq('tenant_id', tenantId)
   if (error) {
-    console.warn('[getExitInterviewAnalytics] failed:', error.message)
     return emptyAnalytics()
   }
   const records = (rows ?? []) as Array<{

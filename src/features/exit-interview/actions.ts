@@ -3,14 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
+import { APP_ROUTES } from '@/config/routes'
 import type { ExitInterviewInput, ActionResult } from './types'
-
-const ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer']
+import { exitInterviewSchema, EXIT_INTERVIEW_ALLOWED_ROLES } from './types'
 
 async function authorizeHr() {
   const user = await getServerUser()
   if (!user?.tenant_id) throw new Error('Unauthorized')
-  if (!ALLOWED_ROLES.includes(user.appRole ?? '')) throw new Error('Forbidden')
+  if (!(EXIT_INTERVIEW_ALLOWED_ROLES as readonly string[]).includes(user.appRole ?? '')) throw new Error('Forbidden')
   return user
 }
 
@@ -28,6 +28,8 @@ function calcTenureMonths(startDate: string, exitDate: string): number {
 export async function createExitInterview(input: ExitInterviewInput): Promise<ActionResult> {
   try {
     const user = await authorizeHr()
+    const parsed = exitInterviewSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
     const supabase = await createClient()
 
     const { data: recorder } = await (supabase as any)
@@ -62,7 +64,7 @@ export async function createExitInterview(input: ExitInterviewInput): Promise<Ac
       recorded_by: recorder?.id ?? null,
     })
     if (error) return { success: false, error: error.message }
-    revalidatePath('/adm/exit-interview')
+    revalidatePath(APP_ROUTES.TENANT.ADMIN_EXIT_INTERVIEW)
     return { success: true }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : '予期せぬエラー' }
@@ -76,6 +78,8 @@ export async function updateExitInterview(
 ): Promise<ActionResult> {
   try {
     const user = await authorizeHr()
+    const parsed = exitInterviewSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
     const supabase = await createClient()
 
     let tenureMonths = 0
@@ -107,7 +111,7 @@ export async function updateExitInterview(
       .eq('id', id)
       .eq('tenant_id', user.tenant_id)
     if (error) return { success: false, error: error.message }
-    revalidatePath('/adm/exit-interview')
+    revalidatePath(APP_ROUTES.TENANT.ADMIN_EXIT_INTERVIEW)
     return { success: true }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : '予期せぬエラー' }
@@ -125,7 +129,7 @@ export async function deleteExitInterview(id: string): Promise<ActionResult> {
       .eq('id', id)
       .eq('tenant_id', user.tenant_id)
     if (error) return { success: false, error: error.message }
-    revalidatePath('/adm/exit-interview')
+    revalidatePath(APP_ROUTES.TENANT.ADMIN_EXIT_INTERVIEW)
     return { success: true }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : '予期せぬエラー' }

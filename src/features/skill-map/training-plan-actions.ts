@@ -82,6 +82,17 @@ export async function addCourseToTemplate(
   if (!HR_ROLES.includes(user.appRole ?? '')) return { success: false, error: 'Permission denied' }
 
   const supabase = await createClient()
+
+  // テンプレートがこのテナントのものであることを確認（テナント横断挿入を防ぐ）
+  const { data: tmpl } = await supabase
+    .from('training_plan_templates')
+    .select('id')
+    .eq('id', templateId)
+    .eq('tenant_id', user.tenant_id)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!tmpl) return { success: false, error: 'テンプレートが見つかりません' }
+
   const { data: existing } = await supabase
     .from('training_plan_template_courses')
     .select('sort_order')
@@ -152,6 +163,16 @@ export async function createEmployeeTrainingPlan(input: {
   if (!parsed.success) return { success: false, error: 'Invalid input' }
 
   const supabase = await createClient()
+
+  // 同一テンプレートの育成計画が既に存在する場合はエラー（重複計画を防ぐ）
+  const { data: existingPlan } = await supabase
+    .from('employee_training_plans')
+    .select('id')
+    .eq('tenant_id', user.tenant_id)
+    .eq('employee_id', parsed.data.employeeId)
+    .eq('template_id', parsed.data.templateId)
+    .maybeSingle()
+  if (existingPlan) return { success: false, error: '同じテンプレートの育成計画がすでに存在します' }
 
   // 育成計画レコードを作成
   const { error: planError } = await supabase.from('employee_training_plans').insert({

@@ -1,12 +1,6 @@
 'use client'
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error
-  reset: () => void
-}) {
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 space-y-4">
       <p className="text-slate-600 text-sm">データの取得に失敗しました: {error.message}</p>

@@ -35,10 +35,12 @@ export default async function My360EvaluationPage() {
 
       <div className="space-y-3">
         {items.map(item => {
-          const isComplete =
-            item.answered_count >= item.question_count && item.question_count > 0
+          const isComplete = item.answered_count >= item.question_count && item.question_count > 0
           return (
-            <div key={item.reviewer_id} className="border border-slate-200 rounded-xl p-4 space-y-2">
+            <div
+              key={item.reviewer_id}
+              className="border border-slate-200 rounded-xl p-4 space-y-2"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{item.campaign_name}</p>

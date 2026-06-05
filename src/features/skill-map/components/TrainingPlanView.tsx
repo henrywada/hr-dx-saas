@@ -57,15 +57,9 @@ export function TrainingPlanView({ data, employeeRows, jobRoles }: Props) {
         />
       )}
       {subTab === 'plans' && (
-        <TrainingPlanList
-          plans={data.plans}
-          templates={data.templates}
-          employees={employees}
-        />
+        <TrainingPlanList plans={data.plans} templates={data.templates} employees={employees} />
       )}
-      {subTab === 'progress' && (
-        <TrainingProgressReport rows={data.progressRows} />
-      )}
+      {subTab === 'progress' && <TrainingProgressReport rows={data.progressRows} />}
     </div>
   )
 }

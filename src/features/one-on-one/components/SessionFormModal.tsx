@@ -23,9 +23,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
   const [theme, setTheme] = useState('')
   const [notes, setNotes] = useState('')
   const [nextDate, setNextDate] = useState('')
-  const [conductedAt, setConductedAt] = useState(
-    new Date().toISOString().slice(0, 16)
-  )
+  const [conductedAt, setConductedAt] = useState(new Date().toISOString().slice(0, 16))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -81,22 +79,17 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
               <option value="">選択してください</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.name}{emp.department_name ? ` (${emp.department_name})` : ''}
+                  {emp.name}
+                  {emp.department_name ? ` (${emp.department_name})` : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          <TemplateSelector
-            templates={templates}
-            value={theme}
-            onChange={setTheme}
-          />
+          <TemplateSelector templates={templates} value={theme} onChange={setTheme} />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              実施日時
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">実施日時</label>
             <input
               type="datetime-local"
               value={conductedAt}
@@ -106,9 +99,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              記録内容（任意）
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">記録内容（任意）</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -130,9 +121,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <button

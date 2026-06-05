@@ -10,9 +10,7 @@ interface Props {
 }
 
 export function TemplateSelector({ templates, value, onChange }: Props) {
-  const displayThemes = templates.length > 0
-    ? templates.map(t => t.name)
-    : [...DEFAULT_THEMES]
+  const displayThemes = templates.length > 0 ? templates.map(t => t.name) : [...DEFAULT_THEMES]
 
   return (
     <div className="space-y-1.5">

@@ -126,10 +126,7 @@ export function SuccessionDashboard({ data, employees, divisions }: Props) {
                     候補者が登録されていません
                   </p>
                 ) : (
-                  <NineBoxGrid
-                    candidates={allCandidates}
-                    positionTitleMap={positionTitleMap}
-                  />
+                  <NineBoxGrid candidates={allCandidates} positionTitleMap={positionTitleMap} />
                 ))}
               {activeTab === 'risk' && <RiskPanel positions={data.positions} />}
             </div>

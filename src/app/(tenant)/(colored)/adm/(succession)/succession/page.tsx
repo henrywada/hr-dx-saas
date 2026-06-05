@@ -28,9 +28,7 @@ export default async function SuccessionPage() {
 
   const employees = (empRows ?? []).map(e => {
     const divData = e.divisions as { name: string } | { name: string }[] | null
-    const deptName = Array.isArray(divData)
-      ? (divData[0]?.name ?? null)
-      : (divData?.name ?? null)
+    const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
     return { id: e.id, name: e.name ?? '', department_name: deptName }
   })
 

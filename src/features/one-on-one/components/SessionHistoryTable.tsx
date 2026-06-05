@@ -22,12 +22,24 @@ export function SessionHistoryTable({ sessions }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">実施日</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">部下</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">管理職</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">テーマ</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">前回からの経過</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">次回予定</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              実施日
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              部下
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              管理職
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              テーマ
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              前回からの経過
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              次回予定
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -49,18 +61,20 @@ export function SessionHistoryTable({ sessions }: Props) {
                 </span>
               </td>
               <td className="px-4 py-3 text-gray-500">
-                {s.days_since_last === null
-                  ? <span className="text-xs text-gray-300">初回</span>
-                  : <span className={s.days_since_last >= 30 ? 'text-orange-500 font-medium' : ''}>
-                      {s.days_since_last}日
-                    </span>
-                }
+                {s.days_since_last === null ? (
+                  <span className="text-xs text-gray-300">初回</span>
+                ) : (
+                  <span className={s.days_since_last >= 30 ? 'text-orange-500 font-medium' : ''}>
+                    {s.days_since_last}日
+                  </span>
+                )}
               </td>
               <td className="px-4 py-3 text-gray-500">
-                {s.next_date
-                  ? format(new Date(s.next_date), 'M/d', { locale: ja })
-                  : <span className="text-xs text-gray-300">—</span>
-                }
+                {s.next_date ? (
+                  format(new Date(s.next_date), 'M/d', { locale: ja })
+                ) : (
+                  <span className="text-xs text-gray-300">—</span>
+                )}
               </td>
             </tr>
           ))}

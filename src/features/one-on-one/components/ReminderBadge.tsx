@@ -15,9 +15,7 @@ export function ReminderBadge({ overdueEmployees }: Props) {
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
           {overdueEmployees.length}
         </span>
-        <h3 className="text-sm font-semibold text-orange-800">
-          30日以上 1on1 未実施の部下
-        </h3>
+        <h3 className="text-sm font-semibold text-orange-800">30日以上 1on1 未実施の部下</h3>
       </div>
       <ul className="space-y-1.5">
         {overdueEmployees.slice(0, 5).map(emp => (
@@ -29,17 +27,12 @@ export function ReminderBadge({ overdueEmployees }: Props) {
               )}
             </span>
             <span className="text-orange-600 font-medium">
-              {emp.days_overdue === -1
-                ? '未実施'
-                : `${emp.days_overdue}日経過`
-              }
+              {emp.days_overdue === -1 ? '未実施' : `${emp.days_overdue}日経過`}
             </span>
           </li>
         ))}
         {overdueEmployees.length > 5 && (
-          <li className="text-xs text-gray-400">
-            他 {overdueEmployees.length - 5} 名
-          </li>
+          <li className="text-xs text-gray-400">他 {overdueEmployees.length - 5} 名</li>
         )}
       </ul>
     </div>

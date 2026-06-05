@@ -139,10 +139,7 @@ export function LifecycleDashboard({ data, employees }: Props) {
       )}
 
       {selectedInstance && (
-        <TaskChecklistModal
-          instance={selectedInstance}
-          onClose={() => setSelectedInstance(null)}
-        />
+        <TaskChecklistModal instance={selectedInstance} onClose={() => setSelectedInstance(null)} />
       )}
     </div>
   )

@@ -18,11 +18,7 @@ interface Props {
   onClose: () => void
 }
 
-const READINESS_OPTIONS: ReadinessLevel[] = [
-  'ready_now',
-  'one_to_two_years',
-  'three_to_five_years',
-]
+const READINESS_OPTIONS: ReadinessLevel[] = ['ready_now', 'one_to_two_years', 'three_to_five_years']
 const SCORE_OPTIONS = [1, 2, 3] as const
 const SCORE_LABELS = ['低', '中', '高'] as const
 
@@ -128,9 +124,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                パフォーマンス
-              </label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">パフォーマンス</label>
               <div className="flex gap-1">
                 {SCORE_OPTIONS.map((s, i) => (
                   <button
@@ -150,9 +144,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                ポテンシャル
-              </label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">ポテンシャル</label>
               <div className="flex gap-1">
                 {SCORE_OPTIONS.map((s, i) => (
                   <button

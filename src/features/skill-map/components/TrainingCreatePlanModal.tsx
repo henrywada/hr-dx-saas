@@ -23,8 +23,14 @@ export function TrainingCreatePlanModal({ templates, employees, onClose }: Props
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!employeeId) { setError('従業員を選択してください'); return }
-    if (!templateId) { setError('テンプレートを選択してください'); return }
+    if (!employeeId) {
+      setError('従業員を選択してください')
+      return
+    }
+    if (!templateId) {
+      setError('テンプレートを選択してください')
+      return
+    }
     setError(null)
 
     startTransition(async () => {

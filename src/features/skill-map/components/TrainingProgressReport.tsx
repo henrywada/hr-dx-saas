@@ -19,15 +19,19 @@ function RateBar({ rate, total }: { rate: number | null; total: number }) {
   if (rate === null || total === 0) {
     return <span className="text-xs text-gray-400">—</span>
   }
-  const barColor =
-    rate >= 80 ? 'bg-green-500' : rate >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+  const barColor = rate >= 80 ? 'bg-green-500' : rate >= 50 ? 'bg-yellow-400' : 'bg-red-400'
 
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
-        <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${rate}%` }} />
+        <div
+          className={`h-2 rounded-full transition-all ${barColor}`}
+          style={{ width: `${rate}%` }}
+        />
       </div>
-      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${rateColorClass(rate)}`}>
+      <span
+        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${rateColorClass(rate)}`}
+      >
         {rate}%
       </span>
     </div>
@@ -72,12 +76,8 @@ export function TrainingProgressReport({ rows }: Props) {
                 key={row.employee_id}
                 className={`border-b border-gray-100 transition-[background-color,box-shadow] duration-300 ease-out hover:bg-gray-100 hover:shadow-[0_6px_22px_-4px_rgba(15,23,42,0.22)] ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
               >
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                  {row.employee_name}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {row.department_name ?? '—'}
-                </td>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.employee_name}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{row.department_name ?? '—'}</td>
                 <td className="px-4 py-3 min-w-[180px]">
                   <div className="space-y-0.5">
                     <RateBar rate={row.el_total > 0 ? row.el_rate : null} total={row.el_total} />
@@ -98,9 +98,7 @@ export function TrainingProgressReport({ rows }: Props) {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {row.active_plan_name ?? '—'}
-                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{row.active_plan_name ?? '—'}</td>
               </tr>
             ))}
           </tbody>

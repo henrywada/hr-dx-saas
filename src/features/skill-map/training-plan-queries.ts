@@ -37,9 +37,7 @@ export async function getTrainingPlanTemplates(supabase: DB): Promise<TrainingPl
   const courseMap = new Map((courses ?? []).map((c: any) => [c.id, c]))
 
   // 職種名を一括取得
-  const skillIds = [
-    ...new Set(templates.map((t: any) => t.skill_id).filter(Boolean)),
-  ] as string[]
+  const skillIds = [...new Set(templates.map((t: any) => t.skill_id).filter(Boolean))] as string[]
   const { data: skills } =
     skillIds.length > 0
       ? await (supabase as any).from('tenant_skills').select('id, name').in('id', skillIds)
@@ -52,7 +50,11 @@ export async function getTrainingPlanTemplates(supabase: DB): Promise<TrainingPl
     const course = courseMap.get(tc.course_id)
     if (!course) continue
     const arr = coursesByTemplate.get(tc.template_id) ?? []
-    arr.push({ id: (course as any).id, title: (course as any).title, category: (course as any).category })
+    arr.push({
+      id: (course as any).id,
+      title: (course as any).title,
+      category: (course as any).category,
+    })
     coursesByTemplate.set(tc.template_id, arr)
   }
 
@@ -85,9 +87,7 @@ export async function getEmployeeTrainingPlans(supabase: DB): Promise<TrainingEm
   const empMap = new Map(
     (employees ?? []).map((e: any) => {
       const divData = e.divisions as { name: string } | { name: string }[] | null
-      const deptName = Array.isArray(divData)
-        ? (divData[0]?.name ?? null)
-        : (divData?.name ?? null)
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
       return [e.id, { name: e.name ?? '', deptName }]
     })
   )
@@ -131,9 +131,7 @@ export async function getEmployeeTrainingPlans(supabase: DB): Promise<TrainingEm
   return plans.map((p: any) => {
     const emp = empMap.get(p.employee_id)
     const courses = coursesByTemplate.get(p.template_id) ?? []
-    const completed = courses.filter(cid =>
-      completionSet.has(`${p.employee_id}:${cid}`)
-    ).length
+    const completed = courses.filter(cid => completionSet.has(`${p.employee_id}:${cid}`)).length
 
     return {
       id: p.id,
@@ -211,15 +209,11 @@ export async function getTrainingProgressRows(
           .select('id, name')
           .in('id', planTemplateIds)
       : { data: [] }
-  const planTemplateMap = new Map(
-    (planTemplates ?? []).map((t: any) => [t.id, t.name as string])
-  )
+  const planTemplateMap = new Map((planTemplates ?? []).map((t: any) => [t.id, t.name as string]))
 
   return employees.map((e: any) => {
     const divData = e.divisions as { name: string } | { name: string }[] | null
-    const deptName = Array.isArray(divData)
-      ? (divData[0]?.name ?? null)
-      : (divData?.name ?? null)
+    const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
 
     const el = elByEmployee.get(e.id) ?? { total: 0, completed: 0 }
     const skill = completionMap.get(e.id)
@@ -235,9 +229,7 @@ export async function getTrainingProgressRows(
       skill_total: skill?.total ?? 0,
       skill_completed: skill?.completed ?? 0,
       skill_rate: skill?.rate ?? null,
-      active_plan_name: latestTemplateId
-        ? (planTemplateMap.get(latestTemplateId) ?? null)
-        : null,
+      active_plan_name: latestTemplateId ? (planTemplateMap.get(latestTemplateId) ?? null) : null,
     }
   })
 }

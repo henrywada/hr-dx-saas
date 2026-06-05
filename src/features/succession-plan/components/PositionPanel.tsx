@@ -4,12 +4,7 @@ import { useState, useTransition } from 'react'
 import { deactivatePosition, deleteCandidate } from '../actions'
 import { PositionFormModal } from './PositionFormModal'
 import { CandidateFormModal } from './CandidateFormModal'
-import type {
-  PositionWithCandidates,
-  CandidateRow,
-  EmployeeOption,
-  DivisionOption,
-} from '../types'
+import type { PositionWithCandidates, CandidateRow, EmployeeOption, DivisionOption } from '../types'
 import { RISK_LEVEL_LABELS, RISK_LEVEL_COLORS, READINESS_LABELS, READINESS_COLORS } from '../types'
 
 interface Props {
@@ -119,12 +114,8 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
                     <tbody className="divide-y divide-gray-100">
                       {position.candidates.map(c => (
                         <tr key={c.id} className="transition-colors hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {c.employee_name}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {c.department_name ?? '—'}
-                          </td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{c.employee_name}</td>
+                          <td className="px-4 py-3 text-gray-600">{c.department_name ?? '—'}</td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${READINESS_COLORS[c.readiness]}`}
@@ -146,9 +137,7 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
                               <button
-                                onClick={() =>
-                                  setEditingCandidate({ position, candidate: c })
-                                }
+                                onClick={() => setEditingCandidate({ position, candidate: c })}
                                 className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-100"
                               >
                                 編集

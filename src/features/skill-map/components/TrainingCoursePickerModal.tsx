@@ -46,7 +46,10 @@ export function TrainingCoursePickerModal({
             <h2 className="text-base font-semibold text-gray-900">コースを追加</h2>
             <p className="text-xs text-gray-500 mt-0.5">{templateName}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          >
             ×
           </button>
         </div>

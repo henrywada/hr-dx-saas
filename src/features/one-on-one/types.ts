@@ -17,8 +17,8 @@ export interface OneOnOneSession {
   employee_id: string
   theme: string
   notes: string | null
-  next_date: string | null  // 'YYYY-MM-DD'
-  conducted_at: string       // ISO 8601
+  next_date: string | null // 'YYYY-MM-DD'
+  conducted_at: string // ISO 8601
   created_at: string
 }
 

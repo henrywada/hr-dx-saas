@@ -65,11 +65,15 @@ export function OneOnOneDashboard({ data, employees }: Props) {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 平均実施率
               </p>
-              <p className={`mt-2 text-3xl font-bold ${
-                data.averageRate >= 80 ? 'text-green-600'
-                  : data.averageRate >= 50 ? 'text-amber-600'
-                  : 'text-red-600'
-              }`}>
+              <p
+                className={`mt-2 text-3xl font-bold ${
+                  data.averageRate >= 80
+                    ? 'text-green-600'
+                    : data.averageRate >= 50
+                      ? 'text-amber-600'
+                      : 'text-red-600'
+                }`}
+              >
                 {data.averageRate}
                 <span className="ml-1 text-sm font-normal text-gray-400">%</span>
               </p>
@@ -78,9 +82,11 @@ export function OneOnOneDashboard({ data, employees }: Props) {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 未実施リマインダー
               </p>
-              <p className={`mt-2 text-3xl font-bold ${
-                data.overdueEmployees.length > 0 ? 'text-orange-500' : 'text-gray-900'
-              }`}>
+              <p
+                className={`mt-2 text-3xl font-bold ${
+                  data.overdueEmployees.length > 0 ? 'text-orange-500' : 'text-gray-900'
+                }`}
+              >
                 {data.overdueEmployees.length}
                 <span className="ml-1 text-sm font-normal text-gray-400">名</span>
               </p>

@@ -18,7 +18,8 @@ export async function getOneOnOneSessions(): Promise<SessionRow[]> {
 
   const { data, error } = await supabase
     .from('one_on_one_sessions')
-    .select(`
+    .select(
+      `
       id,
       manager_id,
       employee_id,
@@ -26,14 +27,17 @@ export async function getOneOnOneSessions(): Promise<SessionRow[]> {
       notes,
       next_date,
       conducted_at
-    `)
+    `
+    )
     .eq('tenant_id', user.tenant_id)
     .order('conducted_at', { ascending: false })
     .limit(200)
 
   if (error || !data) return []
 
-  const allEmployeeIds = [...new Set([...data.map(s => s.manager_id), ...data.map(s => s.employee_id)])]
+  const allEmployeeIds = [
+    ...new Set([...data.map(s => s.manager_id), ...data.map(s => s.employee_id)]),
+  ]
 
   const { data: employees } = await supabase
     .from('employees')
@@ -44,9 +48,7 @@ export async function getOneOnOneSessions(): Promise<SessionRow[]> {
   const empMap = new Map(
     (employees ?? []).map(e => {
       const divData = e.divisions as { name: string } | { name: string }[] | null
-      const deptName = Array.isArray(divData)
-        ? (divData[0]?.name ?? null)
-        : (divData?.name ?? null)
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
       return [e.id, { name: e.name ?? '', deptName }]
     })
   )
@@ -126,27 +128,27 @@ export async function getImplementationRates(): Promise<ImplementationRateRow[]>
     sessionsByManager.set(s.manager_id, set)
   }
 
-  return managers.map(m => {
-    const divData = m.divisions as { name: string } | { name: string }[] | null
-    const deptName = Array.isArray(divData)
-      ? (divData[0]?.name ?? null)
-      : (divData?.name ?? null)
+  return managers
+    .map(m => {
+      const divData = m.divisions as { name: string } | { name: string }[] | null
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
 
-    const subs = m.division_id ? (subordinatesByDivision.get(m.division_id) ?? []) : []
-    const conducted = sessionsByManager.get(m.id) ?? new Set()
-    const totalSubs = subs.length
-    const sessionsCount = conducted.size
-    const rate = totalSubs > 0 ? Math.round((sessionsCount / totalSubs) * 100) : 0
+      const subs = m.division_id ? (subordinatesByDivision.get(m.division_id) ?? []) : []
+      const conducted = sessionsByManager.get(m.id) ?? new Set()
+      const totalSubs = subs.length
+      const sessionsCount = conducted.size
+      const rate = totalSubs > 0 ? Math.round((sessionsCount / totalSubs) * 100) : 0
 
-    return {
-      manager_id: m.id,
-      manager_name: m.name ?? '',
-      department_name: deptName,
-      total_subordinates: totalSubs,
-      sessions_last_30days: sessionsCount,
-      rate,
-    }
-  }).sort((a, b) => b.rate - a.rate)
+      return {
+        manager_id: m.id,
+        manager_name: m.name ?? '',
+        department_name: deptName,
+        total_subordinates: totalSubs,
+        sessions_last_30days: sessionsCount,
+        rate,
+      }
+    })
+    .sort((a, b) => b.rate - a.rate)
 }
 
 /** テーマテンプレート一覧を取得する */
@@ -195,14 +197,18 @@ export async function getOverdueEmployees(): Promise<OverdueEmployee[]> {
   const latestByEmployee = new Map<string, { manager_id: string; conducted_at: string }>()
   for (const s of sessions ?? []) {
     if (!latestByEmployee.has(s.employee_id)) {
-      latestByEmployee.set(s.employee_id, { manager_id: s.manager_id, conducted_at: s.conducted_at })
+      latestByEmployee.set(s.employee_id, {
+        manager_id: s.manager_id,
+        conducted_at: s.conducted_at,
+      })
     }
   }
 
   const managerIds = [...new Set([...latestByEmployee.values()].map(v => v.manager_id))]
-  const { data: managers } = managerIds.length > 0
-    ? await supabase.from('employees').select('id, name').in('id', managerIds)
-    : { data: [] }
+  const { data: managers } =
+    managerIds.length > 0
+      ? await supabase.from('employees').select('id, name').in('id', managerIds)
+      : { data: [] }
   const managerMap = new Map((managers ?? []).map(m => [m.id, m.name ?? '']))
 
   const now = new Date()
@@ -215,9 +221,7 @@ export async function getOverdueEmployees(): Promise<OverdueEmployee[]> {
 
     if (daysOverdue >= 30) {
       const divData = emp.divisions as { name: string } | { name: string }[] | null
-      const deptName = Array.isArray(divData)
-        ? (divData[0]?.name ?? null)
-        : (divData?.name ?? null)
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
 
       overdue.push({
         employee_id: emp.id,
@@ -243,11 +247,15 @@ export async function getOneOnOneDashboardData(): Promise<OneOnOneDashboardData>
   ])
 
   const totalSessionsLast30Days = implementationRates.reduce(
-    (sum, r) => sum + r.sessions_last_30days, 0
+    (sum, r) => sum + r.sessions_last_30days,
+    0
   )
-  const averageRate = implementationRates.length > 0
-    ? Math.round(implementationRates.reduce((sum, r) => sum + r.rate, 0) / implementationRates.length)
-    : 0
+  const averageRate =
+    implementationRates.length > 0
+      ? Math.round(
+          implementationRates.reduce((sum, r) => sum + r.rate, 0) / implementationRates.length
+        )
+      : 0
 
   return {
     sessions,

@@ -90,9 +90,7 @@ export function SkillMapTabs({
       {tab === 'analysis' && (
         <AnalysisView rows={completionRows} skills={skills} divisions={divisions} />
       )}
-      {tab === 'bottleneck' && (
-        <BottleneckView skills={skills} divisions={divisions} />
-      )}
+      {tab === 'bottleneck' && <BottleneckView skills={skills} divisions={divisions} />}
       {tab === 'simulation' && (
         <SimulationWorkspace
           skills={skills}

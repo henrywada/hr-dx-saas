@@ -71,9 +71,7 @@ export function InstanceList({ instances, onSelectInstance }: Props) {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
                     {inst.employee_name}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {inst.department_name ?? '—'}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{inst.department_name ?? '—'}</td>
                   <td className="px-4 py-3 text-center">
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClass[inst.status] ?? 'bg-gray-100 text-gray-500'}`}

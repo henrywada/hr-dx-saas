@@ -1,12 +1,7 @@
 'use client'
 
 import type { PositionWithCandidates } from '../types'
-import {
-  RISK_LEVEL_LABELS,
-  RISK_LEVEL_COLORS,
-  READINESS_COLORS,
-  READINESS_LABELS,
-} from '../types'
+import { RISK_LEVEL_LABELS, RISK_LEVEL_COLORS, READINESS_COLORS, READINESS_LABELS } from '../types'
 
 interface Props {
   positions: PositionWithCandidates[]
@@ -97,8 +92,7 @@ export function RiskPanel({ positions }: Props) {
               <tbody className="divide-y divide-gray-100">
                 {noReadyNow.map(p => {
                   const shortestCandidate =
-                    p.candidates.find(c => c.readiness === 'one_to_two_years') ??
-                    p.candidates[0]
+                    p.candidates.find(c => c.readiness === 'one_to_two_years') ?? p.candidates[0]
                   return (
                     <tr key={p.id} className="bg-white transition-colors hover:bg-yellow-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{p.title}</td>

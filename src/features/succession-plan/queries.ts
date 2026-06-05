@@ -1,10 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import type {
-  CandidateRow,
-  PositionWithCandidates,
-  SuccessionDashboardData,
-} from './types'
+import type { CandidateRow, PositionWithCandidates, SuccessionDashboardData } from './types'
 
 const EMPTY: SuccessionDashboardData = {
   positions: [],
@@ -58,17 +54,13 @@ export async function getSuccessionDashboardData(): Promise<SuccessionDashboardD
 
     for (const e of employees ?? []) {
       const divData = e.divisions as { name: string } | { name: string }[] | null
-      const deptName = Array.isArray(divData)
-        ? (divData[0]?.name ?? null)
-        : (divData?.name ?? null)
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
       empMap.set(e.id, { name: e.name ?? '', department_name: deptName })
     }
   }
 
   // 部署名を一括取得
-  const divisionIds = positionRows
-    .map(p => p.division_id)
-    .filter(Boolean) as string[]
+  const divisionIds = positionRows.map(p => p.division_id).filter(Boolean) as string[]
   const divMap = new Map<string, string>()
 
   if (divisionIds.length > 0) {
@@ -123,7 +115,8 @@ export async function getSuccessionDashboardData(): Promise<SuccessionDashboardD
   return {
     positions,
     noSuccessorCount: positions.filter(p => p.candidates.length === 0).length,
-    readyNowCount: positions.filter(p => p.candidates.some(c => c.readiness === 'ready_now')).length,
+    readyNowCount: positions.filter(p => p.candidates.some(c => c.readiness === 'ready_now'))
+      .length,
     totalCandidateCount: positions.reduce((sum, p) => sum + p.candidates.length, 0),
   }
 }

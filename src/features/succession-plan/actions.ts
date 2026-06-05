@@ -39,10 +39,7 @@ export async function createPosition(input: PositionFormInput): Promise<ActionRe
 }
 
 /** ポジションを更新する */
-export async function updatePosition(
-  id: string,
-  input: PositionFormInput
-): Promise<ActionResult> {
+export async function updatePosition(id: string, input: PositionFormInput): Promise<ActionResult> {
   try {
     const user = await authorizeHr()
     const supabase = await createClient()
@@ -96,20 +93,34 @@ export async function upsertCandidate(input: CandidateFormInput): Promise<Action
     const user = await authorizeHr()
     const supabase = await createClient()
 
-    const { error } = await supabase.from('succession_candidates').upsert(
-      {
-        tenant_id: user.tenant_id,
-        position_id: input.position_id,
-        employee_id: input.employee_id,
-        readiness: input.readiness,
-        performance_score: input.performance_score,
-        potential_score: input.potential_score,
-        development_actions: input.development_actions.trim() || null,
-        notes: input.notes.trim() || null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'position_id,employee_id', ignoreDuplicates: false }
-    )
+    // 既存レコードを確認してから insert か update を選択する
+    const { data: existing } = await supabase
+      .from('succession_candidates')
+      .select('id')
+      .eq('position_id', input.position_id)
+      .eq('employee_id', input.employee_id)
+      .eq('tenant_id', user.tenant_id)
+      .maybeSingle()
+
+    const payload = {
+      tenant_id: user.tenant_id,
+      position_id: input.position_id,
+      employee_id: input.employee_id,
+      readiness: input.readiness,
+      performance_score: input.performance_score,
+      potential_score: input.potential_score,
+      development_actions: input.development_actions.trim() || null,
+      notes: input.notes.trim() || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { error } = existing
+      ? await supabase
+          .from('succession_candidates')
+          .update(payload)
+          .eq('id', existing.id)
+          .eq('tenant_id', user.tenant_id)
+      : await supabase.from('succession_candidates').insert(payload)
 
     if (error) return { success: false, error: error.message }
 

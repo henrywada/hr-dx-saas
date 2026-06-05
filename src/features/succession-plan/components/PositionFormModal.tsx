@@ -45,7 +45,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
         ? await updatePosition(position.id, form)
         : await createPosition(form)
 
-      if (!result.success) {
+      if (result.success === false) {
         setError(result.error)
         return
       }

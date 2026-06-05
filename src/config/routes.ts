@@ -91,6 +91,8 @@ export const APP_ROUTES = {
     ADMIN_ONE_ON_ONE: '/adm/one-on-one',
     /** 入退社ライフサイクルワークフロー（P2-D） */
     ADMIN_LIFECYCLE: '/adm/lifecycle',
+    /** サクセッションプラン（P3-A） */
+    ADMIN_SUCCESSION: '/adm/succession',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

@@ -55,7 +55,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
 
     startTransition(async () => {
       const result = await upsertCandidate(form)
-      if (!result.success) {
+      if (result.success === false) {
         setError(result.error)
         return
       }

@@ -2404,6 +2404,79 @@ export type Database = {
           },
         ]
       }
+      exit_interviews: {
+        Row: {
+          age_group: string
+          created_at: string
+          department_name: string | null
+          employee_id: string | null
+          employee_name: string
+          exit_date: string
+          id: string
+          main_reason: string
+          notes: string | null
+          recorded_by: string | null
+          sub_reasons: string[]
+          tenant_id: string
+          tenure_months: number
+          updated_at: string
+        }
+        Insert: {
+          age_group?: string
+          created_at?: string
+          department_name?: string | null
+          employee_id?: string | null
+          employee_name: string
+          exit_date: string
+          id?: string
+          main_reason: string
+          notes?: string | null
+          recorded_by?: string | null
+          sub_reasons?: string[]
+          tenant_id: string
+          tenure_months?: number
+          updated_at?: string
+        }
+        Update: {
+          age_group?: string
+          created_at?: string
+          department_name?: string | null
+          employee_id?: string | null
+          employee_name?: string
+          exit_date?: string
+          id?: string
+          main_reason?: string
+          notes?: string | null
+          recorded_by?: string | null
+          sub_reasons?: string[]
+          tenant_id?: string
+          tenure_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exit_interviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exit_interviews_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exit_interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       global_evaluation_template_items: {
         Row: {
           axis: string

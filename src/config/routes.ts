@@ -95,6 +95,8 @@ export const APP_ROUTES = {
     ADMIN_SUCCESSION: '/adm/succession',
     /** 退職理由の構造的蓄積・傾向分析（P3-C） */
     ADMIN_EXIT_INTERVIEW: '/adm/exit-interview',
+    /** AI 人事相談アシスタント（NEW-1） */
+    ADMIN_HR_ASSISTANT: '/adm/hr-assistant',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

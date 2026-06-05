@@ -34,6 +34,11 @@ CREATE POLICY "r360c_update" ON public.review_360_campaigns
 CREATE POLICY "r360c_delete" ON public.review_360_campaigns
   FOR DELETE USING (tenant_id = public.current_tenant_id());
 
+-- updated_at を自動更新するトリガー
+CREATE TRIGGER set_r360_campaigns_updated_at
+  BEFORE UPDATE ON public.review_360_campaigns
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
 -- ② 被評価者（キャンペーンに紐づく対象従業員）
 CREATE TABLE IF NOT EXISTS public.review_360_subjects (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -131,5 +136,31 @@ CREATE POLICY "r360res_select" ON public.review_360_responses
 CREATE POLICY "r360res_insert" ON public.review_360_responses
   FOR INSERT WITH CHECK (tenant_id = public.current_tenant_id());
 CREATE POLICY "r360res_update" ON public.review_360_responses
-  FOR UPDATE USING (tenant_id = public.current_tenant_id())
-  WITH CHECK (tenant_id = public.current_tenant_id());
+  FOR UPDATE USING (
+    tenant_id = public.current_tenant_id()
+    AND reviewer_id IN (
+      SELECT id FROM public.review_360_reviewers
+      WHERE reviewer_employee_id = (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+      )
+    )
+  )
+  WITH CHECK (
+    tenant_id = public.current_tenant_id()
+    AND reviewer_id IN (
+      SELECT id FROM public.review_360_reviewers
+      WHERE reviewer_employee_id = (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+      )
+    )
+  );
+CREATE POLICY "r360res_delete" ON public.review_360_responses
+  FOR DELETE USING (
+    tenant_id = public.current_tenant_id()
+    AND reviewer_id IN (
+      SELECT id FROM public.review_360_reviewers
+      WHERE reviewer_employee_id = (
+        SELECT id FROM public.employees WHERE user_id = auth.uid()
+      )
+    )
+  );

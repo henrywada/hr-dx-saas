@@ -1677,6 +1677,58 @@ export type Database = {
           },
         ]
       }
+      employee_training_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          employee_id: string
+          id: string
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          template_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'employee_training_plans_employee_id_fkey'
+            columns: ['employee_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'employee_training_plans_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'training_plan_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'employee_training_plans_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       employees: {
         Row: {
           active_status: string | null
@@ -6990,6 +7042,103 @@ export type Database = {
           work_date?: string
         }
         Relationships: []
+      }
+      training_plan_template_courses: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          sort_order: number
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          template_id: string
+          tenant_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'training_plan_template_courses_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'el_courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'training_plan_template_courses_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'training_plan_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'training_plan_template_courses_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      training_plan_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          skill_id: string | null
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          skill_id?: string | null
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          skill_id?: string | null
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'training_plan_templates_skill_id_fkey'
+            columns: ['skill_id']
+            isOneToOne: false
+            referencedRelation: 'tenant_skills'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'training_plan_templates_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
       }
       turnover_risk_action_logs: {
         Row: {

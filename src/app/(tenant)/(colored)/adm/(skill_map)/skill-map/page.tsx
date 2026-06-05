@@ -15,6 +15,8 @@ import {
 } from '@/features/skill-map/queries'
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
+import { getTrainingPlanDashboardData } from '@/features/skill-map/training-plan-queries'
+import type { TrainingPlanDashboardData } from '@/features/skill-map/training-plan-types'
 
 export default async function SkillMapPage() {
   const user = await getServerUser()
@@ -33,6 +35,12 @@ export default async function SkillMapPage() {
   let completionRows: Awaited<ReturnType<typeof getSkillCompletionData>> = []
   /** シミュレーションデータ */
   let initialSimulations: any[] = []
+  let trainingPlanData: TrainingPlanDashboardData = {
+    templates: [],
+    plans: [],
+    progressRows: [],
+    availableCourses: [],
+  }
 
   try {
     skills = await getTenantSkillsWithRequirements(supabase)
@@ -84,6 +92,11 @@ export default async function SkillMapPage() {
   } catch (e: any) {
     console.warn('getProjectSimulations failed:', e.message)
     initialSimulations = []
+  }
+  try {
+    trainingPlanData = await getTrainingPlanDashboardData(supabase, completionRows)
+  } catch (e: any) {
+    console.warn('getTrainingPlanDashboardData failed:', e.message)
   }
 
   const divisionById = new Map(divisionNodes.map(d => [d.id, d]))
@@ -159,6 +172,7 @@ export default async function SkillMapPage() {
               skillViewRequirementSelections={skillViewRequirementSelections}
               completionRows={completionRows}
               initialSimulations={initialSimulations}
+              trainingPlanData={trainingPlanData}
             />
           </div>
         </div>

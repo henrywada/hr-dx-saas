@@ -52,7 +52,7 @@ export async function getTrainingPlanTemplates(supabase: DB): Promise<TrainingPl
     const course = courseMap.get(tc.course_id)
     if (!course) continue
     const arr = coursesByTemplate.get(tc.template_id) ?? []
-    arr.push({ id: course.id, title: course.title, category: course.category })
+    arr.push({ id: (course as any).id, title: (course as any).title, category: (course as any).category })
     coursesByTemplate.set(tc.template_id, arr)
   }
 
@@ -138,8 +138,8 @@ export async function getEmployeeTrainingPlans(supabase: DB): Promise<TrainingEm
     return {
       id: p.id,
       employee_id: p.employee_id,
-      employee_name: emp?.name ?? '',
-      department_name: emp?.deptName ?? null,
+      employee_name: (emp as any)?.name ?? '',
+      department_name: (emp as any)?.deptName ?? null,
       template_id: p.template_id,
       template_name: templateMap.get(p.template_id) ?? '',
       due_date: p.due_date,

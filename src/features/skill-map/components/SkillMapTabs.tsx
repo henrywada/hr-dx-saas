@@ -13,6 +13,8 @@ import { SkillGroupView } from './SkillGroupView'
 import { AnalysisView } from './AnalysisView'
 import { BottleneckView } from './BottleneckView'
 import { SimulationWorkspace } from './SimulationWorkspace'
+import type { TrainingPlanDashboardData } from '../training-plan-types'
+import { TrainingPlanView } from './TrainingPlanView'
 
 type Props = {
   employeeRows: EmployeeSkillRow[]
@@ -26,6 +28,7 @@ type Props = {
   completionRows: EmployeeCompletionRow[]
   /** シミュレーション一覧 */
   initialSimulations: any[]
+  trainingPlanData: TrainingPlanDashboardData
 }
 
 const TABS = [
@@ -34,6 +37,7 @@ const TABS = [
   { key: 'analysis', label: '分析ビュー' },
   { key: 'bottleneck', label: 'ボトルネック分析' },
   { key: 'simulation', label: 'アサインシミュレータ' },
+  { key: 'training', label: '育成計画' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -47,6 +51,7 @@ export function SkillMapTabs({
   skillViewRequirementSelections,
   completionRows,
   initialSimulations,
+  trainingPlanData,
 }: Props) {
   const [tab, setTab] = useState<TabKey>('employee')
 
@@ -93,6 +98,13 @@ export function SkillMapTabs({
           skills={skills}
           divisions={divisions}
           initialSimulations={initialSimulations}
+        />
+      )}
+      {tab === 'training' && (
+        <TrainingPlanView
+          data={trainingPlanData}
+          employeeRows={employeeRows}
+          jobRoles={skills.map(s => ({ id: s.id, name: s.name }))}
         />
       )}
     </div>

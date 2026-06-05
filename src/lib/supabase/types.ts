@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -7030,6 +7031,98 @@ export type Database = {
           },
         ]
       }
+      tenant_hr_assistant_messages: {
+        Row: {
+          cited_chunk_ids: string[] | null
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          mode: string
+          role: string
+          session_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          cited_chunk_ids?: string[] | null
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          role: string
+          session_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          cited_chunk_ids?: string[] | null
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          mode?: string
+          role?: string
+          session_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_hr_assistant_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_hr_assistant_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_hr_assistant_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_hr_assistant_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          mode: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode?: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_hr_assistant_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_inquiry_chat_messages: {
         Row: {
           cited_chunk_ids: string[] | null
@@ -8284,3 +8377,5 @@ export const Constants = {
   },
 } as const
 
+A new version of Supabase CLI is available: v2.105.0 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

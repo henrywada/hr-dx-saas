@@ -282,6 +282,31 @@ export async function getMyPending360Reviews(
     .in('id', subjectEmployeeIds)
   const empNameMap = new Map<string, string>((subjectEmps ?? []).map((e: any) => [e.id as string, e.name ?? '']))
 
+  // 設問数をキャンペーンIDごとに一括取得
+  const questionCountMap = new Map<string, number>()
+  if (campaignIds.length > 0) {
+    const { data: qRows } = await (supabase as any)
+      .from('review_360_questions')
+      .select('campaign_id')
+      .in('campaign_id', campaignIds)
+    for (const q of qRows ?? []) {
+      questionCountMap.set(q.campaign_id, (questionCountMap.get(q.campaign_id) ?? 0) + 1)
+    }
+  }
+
+  // 回答数を評価者IDごとに一括取得
+  const answeredCountMap = new Map<string, number>()
+  const allReviewerIds = reviewerList.map((r: any) => r.id)
+  if (allReviewerIds.length > 0) {
+    const { data: aRows } = await (supabase as any)
+      .from('review_360_responses')
+      .select('reviewer_id')
+      .in('reviewer_id', allReviewerIds)
+    for (const a of aRows ?? []) {
+      answeredCountMap.set(a.reviewer_id, (answeredCountMap.get(a.reviewer_id) ?? 0) + 1)
+    }
+  }
+
   const result: PendingReviewItem[] = []
   for (const r of reviewerList) {
     const sub = r.review_360_subjects
@@ -289,26 +314,14 @@ export async function getMyPending360Reviews(
     const campaign = campaignMap.get(sub.campaign_id)
     if (!campaign) continue
 
-    const { data: qs } = await (supabase as any)
-      .from('review_360_questions')
-      .select('id')
-      .eq('campaign_id', sub.campaign_id)
-    const questionCount = (qs ?? []).length
-
-    const { data: ans } = await (supabase as any)
-      .from('review_360_responses')
-      .select('id')
-      .eq('reviewer_id', r.id)
-    const answeredCount = (ans ?? []).length
-
     result.push({
       reviewer_id: r.id,
       campaign_name: campaign.name,
       subject_name: empNameMap.get(sub.employee_id) ?? '',
       deadline: campaign.deadline,
       is_anonymous: r.is_anonymous,
-      question_count: questionCount,
-      answered_count: answeredCount,
+      question_count: questionCountMap.get(sub.campaign_id) ?? 0,
+      answered_count: answeredCountMap.get(r.id) ?? 0,
     })
   }
   return result

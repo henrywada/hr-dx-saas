@@ -93,6 +93,8 @@ export const APP_ROUTES = {
     ADMIN_LIFECYCLE: '/adm/lifecycle',
     /** サクセッションプラン（P3-A） */
     ADMIN_SUCCESSION: '/adm/succession',
+    /** 退職理由の構造的蓄積・傾向分析（P3-C） */
+    ADMIN_EXIT_INTERVIEW: '/adm/exit-interview',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

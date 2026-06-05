@@ -1,2 +1,5 @@
+export { HrAssistantClient } from './HrAssistantClient'
 export { MessageBubble } from './MessageBubble'
 export { ModeSelector } from './ModeSelector'
+export { SessionHistory } from './SessionHistory'
+export { ChatPanel } from './ChatPanel'

@@ -128,5 +128,11 @@ export const APP_ROUTES = {
     MY_EVALUATION_SHEET: (sheetId: string) => `/my-evaluation/${sheetId}`,
     /** ワークフロー進捗管理（テナント管理者） */
     WORKFLOW: '/adm/evaluation/workflow',
+    /** 360度評価キャンペーン管理（P3-B） */
+    ADMIN_360: '/adm/evaluation-360',
+    /** 従業員：360度評価回答一覧 */
+    MY_EVALUATION_360: '/my-evaluation-360',
+    /** 従業員：360度評価回答フォーム */
+    MY_EVALUATION_360_ANSWER: (reviewerId: string) => `/my-evaluation-360/${reviewerId}`,
   },
 } as const

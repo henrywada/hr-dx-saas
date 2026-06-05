@@ -56,9 +56,10 @@ export async function getExitInterviewAnalytics(
   for (const r of records) {
     reasonMap.set(r.main_reason, (reasonMap.get(r.main_reason) ?? 0) + 1)
   }
-  const reason_distribution: ReasonCount[] = ALL_MAIN_REASONS
-    .map(reason => ({ reason, count: reasonMap.get(reason) ?? 0 }))
-    .filter(x => x.count > 0)
+  const reason_distribution: ReasonCount[] = ALL_MAIN_REASONS.map(reason => ({
+    reason,
+    count: reasonMap.get(reason) ?? 0,
+  })).filter(x => x.count > 0)
 
   // ---- 月次トレンド（直近12ヶ月） ----
   const now = new Date()
@@ -97,16 +98,19 @@ export async function getExitInterviewAnalytics(
       let topReason: MainReason = 'other'
       let topCount = 0
       for (const [reason, c] of rm.entries()) {
-        if (c > topCount) { topCount = c; topReason = reason }
+        if (c > topCount) {
+          topCount = c
+          topReason = reason
+        }
       }
       return { department_name: dept, count, top_reason: topReason }
     })
 
   // ---- 在籍年数グループ別 ----
   function tenureGroup(months: number): string {
-    if (months < 12)  return '1年未満'
-    if (months < 36)  return '1〜3年'
-    if (months < 60)  return '3〜5年'
+    if (months < 12) return '1年未満'
+    if (months < 36) return '1〜3年'
+    if (months < 60) return '3〜5年'
     if (months < 120) return '5〜10年'
     return '10年以上'
   }
@@ -116,20 +120,28 @@ export async function getExitInterviewAnalytics(
     const g = tenureGroup(r.tenure_months)
     tenureMap.set(g, (tenureMap.get(g) ?? 0) + 1)
   }
-  const tenure_breakdown: TenureGroupCount[] = TENURE_ORDER
-    .filter(g => tenureMap.has(g))
-    .map(g => ({ tenure_group: g, count: tenureMap.get(g)! }))
+  const tenure_breakdown: TenureGroupCount[] = TENURE_ORDER.filter(g => tenureMap.has(g)).map(
+    g => ({ tenure_group: g, count: tenureMap.get(g)! })
+  )
 
   // ---- 年齢層別 ----
   const ageMap = new Map<AgeGroup, number>()
   for (const r of records) {
     ageMap.set(r.age_group, (ageMap.get(r.age_group) ?? 0) + 1)
   }
-  const age_breakdown: AgeGroupCount[] = ALL_AGE_GROUPS
-    .filter(g => ageMap.has(g))
-    .map(g => ({ age_group: g, count: ageMap.get(g)! }))
+  const age_breakdown: AgeGroupCount[] = ALL_AGE_GROUPS.filter(g => ageMap.has(g)).map(g => ({
+    age_group: g,
+    count: ageMap.get(g)!,
+  }))
 
-  return { total, reason_distribution, monthly_trend, department_breakdown, tenure_breakdown, age_breakdown }
+  return {
+    total,
+    reason_distribution,
+    monthly_trend,
+    department_breakdown,
+    tenure_breakdown,
+    age_breakdown,
+  }
 }
 
 function emptyAnalytics(): ExitInterviewAnalytics {

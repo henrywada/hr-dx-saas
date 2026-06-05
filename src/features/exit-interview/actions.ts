@@ -10,7 +10,8 @@ import { exitInterviewSchema, EXIT_INTERVIEW_ALLOWED_ROLES } from './types'
 async function authorizeHr() {
   const user = await getServerUser()
   if (!user?.tenant_id) throw new Error('Unauthorized')
-  if (!(EXIT_INTERVIEW_ALLOWED_ROLES as readonly string[]).includes(user.appRole ?? '')) throw new Error('Forbidden')
+  if (!(EXIT_INTERVIEW_ALLOWED_ROLES as readonly string[]).includes(user.appRole ?? ''))
+    throw new Error('Forbidden')
   return user
 }
 
@@ -19,8 +20,7 @@ function calcTenureMonths(startDate: string, exitDate: string): number {
   const exit = new Date(exitDate)
   return Math.max(
     0,
-    (exit.getFullYear() - start.getFullYear()) * 12 +
-      (exit.getMonth() - start.getMonth())
+    (exit.getFullYear() - start.getFullYear()) * 12 + (exit.getMonth() - start.getMonth())
   )
 }
 
@@ -29,7 +29,8 @@ export async function createExitInterview(input: ExitInterviewInput): Promise<Ac
   try {
     const user = await authorizeHr()
     const parsed = exitInterviewSchema.safeParse(input)
-    if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
+    if (!parsed.success)
+      return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
     const supabase = await createClient()
 
     const { data: recorder } = await (supabase as any)
@@ -79,7 +80,8 @@ export async function updateExitInterview(
   try {
     const user = await authorizeHr()
     const parsed = exitInterviewSchema.safeParse(input)
-    if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
+    if (!parsed.success)
+      return { success: false, error: parsed.error.issues[0]?.message ?? '入力が不正です' }
     const supabase = await createClient()
 
     let tenureMonths = 0

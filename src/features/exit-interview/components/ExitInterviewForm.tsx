@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { createExitInterview, updateExitInterview } from '@/features/exit-interview/actions'
-import type { ExitInterview, ExitInterviewInput, MainReason, AgeGroup } from '@/features/exit-interview/types'
+import type {
+  ExitInterview,
+  ExitInterviewInput,
+  MainReason,
+  AgeGroup,
+} from '@/features/exit-interview/types'
 import {
   ALL_MAIN_REASONS,
   ALL_AGE_GROUPS,
@@ -75,14 +80,23 @@ export function ExitInterviewForm({ record, employees, onClose }: Props) {
   }
 
   function handleSubmit() {
-    if (!form.employee_name.trim()) { setError('退職者名は必須です'); return }
-    if (!form.exit_date) { setError('退職日は必須です'); return }
+    if (!form.employee_name.trim()) {
+      setError('退職者名は必須です')
+      return
+    }
+    if (!form.exit_date) {
+      setError('退職日は必須です')
+      return
+    }
     setError('')
     startTransition(async () => {
       const result = isEdit
         ? await updateExitInterview(record.id, form)
         : await createExitInterview(form)
-      if (result.success === false) { setError(result.error); return }
+      if (result.success === false) {
+        setError(result.error)
+        return
+      }
       onClose()
     })
   }
@@ -107,7 +121,8 @@ export function ExitInterviewForm({ record, employees, onClose }: Props) {
               <option value="">従業員を選択</option>
               {employees.map(e => (
                 <option key={e.id} value={e.id}>
-                  {e.name}{e.department_name ? ` （${e.department_name}）` : ''}
+                  {e.name}
+                  {e.department_name ? ` （${e.department_name}）` : ''}
                 </option>
               ))}
             </select>
@@ -142,7 +157,9 @@ export function ExitInterviewForm({ record, employees, onClose }: Props) {
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {ALL_AGE_GROUPS.map(g => (
-                <option key={g} value={g}>{AGE_GROUP_LABELS[g]}</option>
+                <option key={g} value={g}>
+                  {AGE_GROUP_LABELS[g]}
+                </option>
               ))}
             </select>
           </div>
@@ -153,20 +170,29 @@ export function ExitInterviewForm({ record, employees, onClose }: Props) {
             </label>
             <select
               value={form.main_reason}
-              onChange={e => setForm(prev => ({ ...prev, main_reason: e.target.value as MainReason }))}
+              onChange={e =>
+                setForm(prev => ({ ...prev, main_reason: e.target.value as MainReason }))
+              }
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {ALL_MAIN_REASONS.map(r => (
-                <option key={r} value={r}>{MAIN_REASON_LABELS[r]}</option>
+                <option key={r} value={r}>
+                  {MAIN_REASON_LABELS[r]}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">詳細理由（複数可）</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              詳細理由（複数可）
+            </label>
             <div className="grid grid-cols-2 gap-1">
               {SUB_REASON_OPTIONS.map(opt => (
-                <label key={opt.value} className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
+                <label
+                  key={opt.value}
+                  className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={form.sub_reasons.includes(opt.value)}
@@ -180,7 +206,9 @@ export function ExitInterviewForm({ record, employees, onClose }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">面談メモ（任意）</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              面談メモ（任意）
+            </label>
             <textarea
               value={form.notes}
               onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}

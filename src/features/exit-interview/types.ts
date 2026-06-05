@@ -12,69 +12,74 @@ export type MainReason =
   | 'company_direction'
   | 'other'
 
-export type AgeGroup =
-  | 'under_25'
-  | '25_to_34'
-  | '35_to_44'
-  | '45_to_54'
-  | '55_plus'
-  | 'unknown'
+export type AgeGroup = 'under_25' | '25_to_34' | '35_to_44' | '45_to_54' | '55_plus' | 'unknown'
 
 export const MAIN_REASON_LABELS: Record<MainReason, string> = {
-  compensation:       '待遇・給与',
-  interpersonal:      '人間関係',
-  career:             'キャリア・成長機会',
-  life_event:         'ライフイベント',
-  management:         '上司・マネジメント',
-  work_style:         '働き方・環境',
-  company_direction:  '会社の方向性',
-  other:              'その他',
+  compensation: '待遇・給与',
+  interpersonal: '人間関係',
+  career: 'キャリア・成長機会',
+  life_event: 'ライフイベント',
+  management: '上司・マネジメント',
+  work_style: '働き方・環境',
+  company_direction: '会社の方向性',
+  other: 'その他',
 }
 
 export const MAIN_REASON_COLORS: Record<MainReason, string> = {
-  compensation:       '#3b82f6',
-  interpersonal:      '#ef4444',
-  career:             '#10b981',
-  life_event:         '#f59e0b',
-  management:         '#8b5cf6',
-  work_style:         '#06b6d4',
-  company_direction:  '#ec4899',
-  other:              '#6b7280',
+  compensation: '#3b82f6',
+  interpersonal: '#ef4444',
+  career: '#10b981',
+  life_event: '#f59e0b',
+  management: '#8b5cf6',
+  work_style: '#06b6d4',
+  company_direction: '#ec4899',
+  other: '#6b7280',
 }
 
 export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
-  under_25:  '25歳未満',
+  under_25: '25歳未満',
   '25_to_34': '25〜34歳',
   '35_to_44': '35〜44歳',
   '45_to_54': '45〜54歳',
-  '55_plus':  '55歳以上',
-  unknown:   '不明',
+  '55_plus': '55歳以上',
+  unknown: '不明',
 }
 
 export const SUB_REASON_OPTIONS: { value: string; label: string }[] = [
-  { value: 'salary_low',       label: '給与水準が低い' },
-  { value: 'no_raise',         label: '昇給・昇格が見込めない' },
-  { value: 'boss_conflict',    label: '上司との関係' },
-  { value: 'colleague_issue',  label: '同僚・チームとの関係' },
-  { value: 'no_growth',        label: 'スキルアップの機会がない' },
-  { value: 'role_mismatch',    label: 'やりたい仕事ができない' },
-  { value: 'marriage',         label: '結婚・パートナーの転勤' },
-  { value: 'childcare',        label: '育児・介護' },
-  { value: 'health',           label: '健康上の理由' },
-  { value: 'long_hours',       label: '長時間労働・残業' },
-  { value: 'remote_denied',    label: 'リモートワーク不可' },
-  { value: 'vision_mismatch',  label: '会社の方向性と合わない' },
-  { value: 'better_offer',     label: 'より良い条件の転職先' },
-  { value: 'freelance',        label: '独立・起業' },
+  { value: 'salary_low', label: '給与水準が低い' },
+  { value: 'no_raise', label: '昇給・昇格が見込めない' },
+  { value: 'boss_conflict', label: '上司との関係' },
+  { value: 'colleague_issue', label: '同僚・チームとの関係' },
+  { value: 'no_growth', label: 'スキルアップの機会がない' },
+  { value: 'role_mismatch', label: 'やりたい仕事ができない' },
+  { value: 'marriage', label: '結婚・パートナーの転勤' },
+  { value: 'childcare', label: '育児・介護' },
+  { value: 'health', label: '健康上の理由' },
+  { value: 'long_hours', label: '長時間労働・残業' },
+  { value: 'remote_denied', label: 'リモートワーク不可' },
+  { value: 'vision_mismatch', label: '会社の方向性と合わない' },
+  { value: 'better_offer', label: 'より良い条件の転職先' },
+  { value: 'freelance', label: '独立・起業' },
 ]
 
 export const ALL_MAIN_REASONS: MainReason[] = [
-  'compensation', 'interpersonal', 'career', 'life_event',
-  'management', 'work_style', 'company_direction', 'other',
+  'compensation',
+  'interpersonal',
+  'career',
+  'life_event',
+  'management',
+  'work_style',
+  'company_direction',
+  'other',
 ]
 
 export const ALL_AGE_GROUPS: AgeGroup[] = [
-  'under_25', '25_to_34', '35_to_44', '45_to_54', '55_plus', 'unknown',
+  'under_25',
+  '25_to_34',
+  '35_to_44',
+  '45_to_54',
+  '55_plus',
+  'unknown',
 ]
 
 export interface ExitInterview {
@@ -148,9 +153,23 @@ export const exitInterviewSchema = z.object({
   department_name: z.string().max(100).optional().or(z.literal('')),
   exit_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   age_group: z.enum(['under_25', '25_to_34', '35_to_44', '45_to_54', '55_plus', 'unknown']),
-  main_reason: z.enum(['compensation', 'interpersonal', 'career', 'life_event', 'management', 'work_style', 'company_direction', 'other']),
+  main_reason: z.enum([
+    'compensation',
+    'interpersonal',
+    'career',
+    'life_event',
+    'management',
+    'work_style',
+    'company_direction',
+    'other',
+  ]),
   sub_reasons: z.array(z.string()).max(20),
   notes: z.string().max(2000),
 })
 
-export const EXIT_INTERVIEW_ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer'] as const
+export const EXIT_INTERVIEW_ALLOWED_ROLES = [
+  'hr',
+  'hr_manager',
+  'tenant_admin',
+  'developer',
+] as const

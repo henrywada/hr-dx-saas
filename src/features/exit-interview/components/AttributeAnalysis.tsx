@@ -1,7 +1,11 @@
 'use client'
 
 import type { ExitInterviewAnalytics } from '@/features/exit-interview/types'
-import { MAIN_REASON_LABELS, MAIN_REASON_COLORS, AGE_GROUP_LABELS } from '@/features/exit-interview/types'
+import {
+  MAIN_REASON_LABELS,
+  MAIN_REASON_COLORS,
+  AGE_GROUP_LABELS,
+} from '@/features/exit-interview/types'
 
 interface Props {
   analytics: ExitInterviewAnalytics

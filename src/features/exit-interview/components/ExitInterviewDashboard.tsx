@@ -60,21 +60,24 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
 
       <div className="border-b border-slate-200">
         <div className="flex gap-0">
-          {([['analytics', '分析ダッシュボード'], ['records', '面談記録一覧']] as const).map(
-            ([tab, label]) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm transition-colors ${
-                  activeTab === tab
-                    ? 'border-b-2 border-primary text-primary font-medium'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {label}
-              </button>
-            )
-          )}
+          {(
+            [
+              ['analytics', '分析ダッシュボード'],
+              ['records', '面談記録一覧'],
+            ] as const
+          ).map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm transition-colors ${
+                activeTab === tab
+                  ? 'border-b-2 border-primary text-primary font-medium'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -86,7 +89,9 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
               <ReasonDistributionChart data={analytics.reason_distribution} />
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4">月次退職件数（直近12ヶ月）</h3>
+              <h3 className="text-sm font-semibold text-slate-700 mb-4">
+                月次退職件数（直近12ヶ月）
+              </h3>
               <TrendChart data={analytics.monthly_trend} />
             </div>
           </div>

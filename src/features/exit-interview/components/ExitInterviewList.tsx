@@ -66,9 +66,10 @@ export function ExitInterviewList({ records, employees }: Props) {
             {records.map(r => {
               const tenureYears = Math.floor(r.tenure_months / 12)
               const tenureRem = r.tenure_months % 12
-              const tenureLabel = tenureYears > 0
-                ? `${tenureYears}年${tenureRem > 0 ? `${tenureRem}ヶ月` : ''}`
-                : `${r.tenure_months}ヶ月`
+              const tenureLabel =
+                tenureYears > 0
+                  ? `${tenureYears}年${tenureRem > 0 ? `${tenureRem}ヶ月` : ''}`
+                  : `${r.tenure_months}ヶ月`
               return (
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="py-2 pr-3 text-slate-700 whitespace-nowrap">{r.exit_date}</td>
@@ -105,11 +106,13 @@ export function ExitInterviewList({ records, employees }: Props) {
         </table>
       </div>
 
-      {showForm && (
-        <ExitInterviewForm employees={employees} onClose={() => setShowForm(false)} />
-      )}
+      {showForm && <ExitInterviewForm employees={employees} onClose={() => setShowForm(false)} />}
       {editing && (
-        <ExitInterviewForm record={editing} employees={employees} onClose={() => setEditing(null)} />
+        <ExitInterviewForm
+          record={editing}
+          employees={employees}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   )

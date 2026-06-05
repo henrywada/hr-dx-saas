@@ -41,9 +41,7 @@ export function TrendChart({ data }: Props) {
             tick={{ fontSize: 11 }}
             tickFormatter={(v, i) => {
               const item = chartData[i]
-              return item?.fullLabel?.slice(5) === '01'
-                ? `${item.fullLabel.slice(0, 4)}/${v}`
-                : v
+              return item?.fullLabel?.slice(5) === '01' ? `${item.fullLabel.slice(0, 4)}/${v}` : v
             }}
           />
           <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />

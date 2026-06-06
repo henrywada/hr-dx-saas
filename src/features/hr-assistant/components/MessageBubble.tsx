@@ -24,7 +24,7 @@ export function MessageBubble({ message, citations }: Props) {
             'rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
             isUser
               ? 'bg-blue-600 text-white rounded-br-sm'
-              : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-sm',
+              : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-sm'
           )}
         >
           {message.content}

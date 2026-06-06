@@ -55,7 +55,7 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
       metadata: {},
       created_at: new Date().toISOString(),
     }
-    setMessages((prev) => [...prev, optimisticUser])
+    setMessages(prev => [...prev, optimisticUser])
 
     const res = await sendHrAssistantMessage({
       sessionId: currentSessionId.current,
@@ -67,7 +67,7 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
 
     if (res.ok === false) {
       setError(res.error)
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticUser.id))
+      setMessages(prev => prev.filter(m => m.id !== optimisticUser.id))
       return
     }
 
@@ -86,7 +86,7 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
       created_at: new Date().toISOString(),
       pendingCitations: res.citations,
     }
-    setMessages((prev) => [...prev, assistantMessage])
+    setMessages(prev => [...prev, assistantMessage])
   }
 
   const isEmpty = messages.length === 0
@@ -118,12 +118,8 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
           </div>
         )}
 
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            citations={msg.pendingCitations}
-          />
+        {messages.map(msg => (
+          <MessageBubble key={msg.id} message={msg} citations={msg.pendingCitations} />
         ))}
 
         {loading && (
@@ -149,8 +145,8 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
         <form onSubmit={handleSubmit} className="flex gap-2 items-end">
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault()
                 handleSubmit(e as unknown as React.FormEvent)

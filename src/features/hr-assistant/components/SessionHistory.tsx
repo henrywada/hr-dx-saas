@@ -7,10 +7,10 @@ import type { HrAssistantSession, AssistantMode } from '../types'
 import { ASSISTANT_MODE_LABELS } from '../types'
 
 const MODE_BADGE_COLORS: Record<AssistantMode, string> = {
-  general:        'bg-slate-100 text-slate-600',
-  labor_calc:     'bg-amber-100 text-amber-700',
+  general: 'bg-slate-100 text-slate-600',
+  labor_calc: 'bg-amber-100 text-amber-700',
   comment_review: 'bg-violet-100 text-violet-700',
-  case_search:    'bg-teal-100 text-teal-700',
+  case_search: 'bg-teal-100 text-teal-700',
 }
 
 type Props = {
@@ -20,7 +20,12 @@ type Props = {
   onNewSession: () => void
 }
 
-export function SessionHistory({ sessions, activeSessionId, onSelectSession, onNewSession }: Props) {
+export function SessionHistory({
+  sessions,
+  activeSessionId,
+  onSelectSession,
+  onNewSession,
+}: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   async function handleDelete(e: React.MouseEvent, sessionId: string) {
@@ -46,11 +51,9 @@ export function SessionHistory({ sessions, activeSessionId, onSelectSession, onN
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {sessions.length === 0 && (
-          <p className="text-xs text-slate-500 text-center py-8">
-            まだ相談履歴がありません
-          </p>
+          <p className="text-xs text-slate-500 text-center py-8">まだ相談履歴がありません</p>
         )}
-        {sessions.map((session) => (
+        {sessions.map(session => (
           <div
             key={session.id}
             onClick={() => onSelectSession(session)}
@@ -58,7 +61,7 @@ export function SessionHistory({ sessions, activeSessionId, onSelectSession, onN
               'group relative p-3 rounded-lg cursor-pointer transition-colors',
               activeSessionId === session.id
                 ? 'bg-blue-50 border border-blue-200'
-                : 'hover:bg-slate-50 border border-transparent',
+                : 'hover:bg-slate-50 border border-transparent'
             )}
           >
             <div className="flex items-start justify-between gap-2">
@@ -70,7 +73,8 @@ export function SessionHistory({ sessions, activeSessionId, onSelectSession, onN
                   <span
                     className={cn(
                       'text-xs px-2 py-0.5 rounded-full font-medium',
-                      MODE_BADGE_COLORS[session.mode as AssistantMode] ?? 'bg-slate-100 text-slate-600',
+                      MODE_BADGE_COLORS[session.mode as AssistantMode] ??
+                        'bg-slate-100 text-slate-600'
                     )}
                   >
                     {ASSISTANT_MODE_LABELS[session.mode as AssistantMode] ?? session.mode}
@@ -85,7 +89,7 @@ export function SessionHistory({ sessions, activeSessionId, onSelectSession, onN
               </div>
               <button
                 type="button"
-                onClick={(e) => handleDelete(e, session.id)}
+                onClick={e => handleDelete(e, session.id)}
                 disabled={deleting === session.id}
                 className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-opacity shrink-0"
                 aria-label="削除"

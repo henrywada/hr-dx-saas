@@ -89,11 +89,11 @@ export async function sendHrAssistantMessage(input: {
         return `【資料${i + 1}: ${title}】\n${r.content}`
       })
 
-      citations = rows.slice(0, 5).map((r) => ({
+      citations = rows.slice(0, 5).map(r => ({
         title: (r.metadata?.document_title as string) || '文書',
         snippet: r.content.slice(0, 200) + (r.content.length > 200 ? '…' : ''),
       }))
-      citedIds = rows.map((r) => r.id)
+      citedIds = rows.map(r => r.id)
     }
   } catch (e) {
     console.error('[hr-assistant] embedding/rag', e)
@@ -181,7 +181,9 @@ export async function sendHrAssistantMessage(input: {
   return { ok: true, sessionId, answer, citations }
 }
 
-export async function deleteHrAssistantSession(sessionId: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteHrAssistantSession(
+  sessionId: string
+): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 

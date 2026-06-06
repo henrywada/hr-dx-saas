@@ -5,8 +5,7 @@ export function buildSystemPrompt(mode: AssistantMode, hasRagContext: boolean): 
     ? '以下の「参照資料」に基づいて回答してください。参照資料にない情報は推測せず「登録された資料には記載がありません」と述べてください。'
     : '参照資料は登録されていません。一般的な日本の労働法令・人事慣行に基づいて回答してください。'
 
-  const disclaimer =
-    '重要: 最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。'
+  const disclaimer = '重要: 最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。'
 
   const modeInstructions: Record<AssistantMode, string> = {
     general: `あなたは人事担当者を支援する AI アシスタントです。

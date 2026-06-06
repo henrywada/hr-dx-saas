@@ -7,10 +7,10 @@ import { ASSISTANT_MODE_LABELS, ASSISTANT_MODE_DESCRIPTIONS } from '../types'
 const MODES: AssistantMode[] = ['general', 'labor_calc', 'comment_review', 'case_search']
 
 const MODE_ICONS: Record<AssistantMode, string> = {
-  general:        '💬',
-  labor_calc:     '🧮',
+  general: '💬',
+  labor_calc: '🧮',
   comment_review: '✏️',
-  case_search:    '🔍',
+  case_search: '🔍',
 }
 
 type Props = {
@@ -22,7 +22,7 @@ type Props = {
 export function ModeSelector({ value, onChange, disabled }: Props) {
   return (
     <div className="flex gap-2 flex-wrap">
-      {MODES.map((mode) => (
+      {MODES.map(mode => (
         <button
           key={mode}
           type="button"
@@ -34,7 +34,7 @@ export function ModeSelector({ value, onChange, disabled }: Props) {
             value === mode
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-            disabled && 'opacity-50 cursor-not-allowed',
+            disabled && 'opacity-50 cursor-not-allowed'
           )}
         >
           <span>{MODE_ICONS[mode]}</span>

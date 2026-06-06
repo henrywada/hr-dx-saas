@@ -42,7 +42,7 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
-    setSessions((prev) => [newSession, ...prev])
+    setSessions(prev => [newSession, ...prev])
     setActiveSessionId(sessionId)
 
     const url = new URL(window.location.href)
@@ -71,7 +71,7 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
         <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 bg-white">
           <button
             type="button"
-            onClick={() => setIsSidebarOpen((v) => !v)}
+            onClick={() => setIsSidebarOpen(v => !v)}
             className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 text-sm"
             aria-label={isSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
           >

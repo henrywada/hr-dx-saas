@@ -107,6 +107,18 @@ export const APP_ROUTES = {
     ADMIN_JOB_BRANDING: '/adm/job-branding',
     /** 採用ブランディング 求人票詳細（NEW-3） */
     ADMIN_JOB_BRANDING_DETAIL: (jobPostingId: string) => `/adm/job-branding/${jobPostingId}`,
+    /** リファラル採用管理（NEW-4）管理者一覧 */
+    ADMIN_REFERRAL: '/adm/referral',
+    /** リファラル推薦詳細（NEW-4） */
+    ADMIN_REFERRAL_DETAIL: (id: string) => `/adm/referral/${id}`,
+    /** リファラル求人管理（NEW-4） */
+    ADMIN_REFERRAL_POSTINGS: '/adm/referral/postings',
+    /** リファラル報奨金管理（NEW-4） */
+    ADMIN_REFERRAL_REWARDS: '/adm/referral/rewards',
+    /** 従業員：推薦フォーム（NEW-4） */
+    REFERRAL_FORM: '/referral',
+    /** 従業員：マイ推薦一覧（NEW-4） */
+    REFERRAL_MY: '/referral/my',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

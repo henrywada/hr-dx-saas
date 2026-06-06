@@ -4943,6 +4943,226 @@ export type Database = {
           },
         ]
       }
+      referral_nominations: {
+        Row: {
+          created_at: string
+          hired_at: string | null
+          hr_notes: string | null
+          id: string
+          nomination_reason: string | null
+          nominee_email: string | null
+          nominee_name: string
+          nominee_phone: string | null
+          referral_posting_id: string
+          referrer_employee_id: string
+          relationship: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hired_at?: string | null
+          hr_notes?: string | null
+          id?: string
+          nomination_reason?: string | null
+          nominee_email?: string | null
+          nominee_name: string
+          nominee_phone?: string | null
+          referral_posting_id: string
+          referrer_employee_id: string
+          relationship?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hired_at?: string | null
+          hr_notes?: string | null
+          id?: string
+          nomination_reason?: string | null
+          nominee_email?: string | null
+          nominee_name?: string
+          nominee_phone?: string | null
+          referral_posting_id?: string
+          referrer_employee_id?: string
+          relationship?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_nominations_referral_posting_id_fkey"
+            columns: ["referral_posting_id"]
+            isOneToOne: false
+            referencedRelation: "referral_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_nominations_referrer_employee_id_fkey"
+            columns: ["referrer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_nominations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_postings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          department: string | null
+          description: string | null
+          employment_type: string | null
+          id: string
+          is_active: boolean
+          job_posting_id: string | null
+          reward_amount: number
+          reward_condition: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          department?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          is_active?: boolean
+          job_posting_id?: string | null
+          reward_amount?: number
+          reward_condition?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          department?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          is_active?: boolean
+          job_posting_id?: string | null
+          reward_amount?: number
+          reward_condition?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_postings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_postings_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_rewards: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          created_at: string
+          id: string
+          nomination_id: string
+          notes: string | null
+          paid_at: string | null
+          referrer_employee_id: string
+          scheduled_date: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          nomination_id: string
+          notes?: string | null
+          paid_at?: string | null
+          referrer_employee_id: string
+          scheduled_date?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          nomination_id?: string
+          notes?: string | null
+          paid_at?: string | null
+          referrer_employee_id?: string
+          scheduled_date?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_nomination_id_fkey"
+            columns: ["nomination_id"]
+            isOneToOne: true
+            referencedRelation: "referral_nominations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_employee_id_fkey"
+            columns: ["referrer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_360_campaigns: {
         Row: {
           created_at: string

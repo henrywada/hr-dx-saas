@@ -1,6 +1,15 @@
 -- 既存テーブルは一切変更しない。新規テーブルのみ追加。
 -- OKR / 目標管理機能（NEW-2）
 
+-- updated_at を自動更新するトリガー関数（他マイグレーションで未定義の場合に備え定義）
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- =========================================================
 -- objectives — 目標（Objective）
 -- =========================================================

@@ -9,6 +9,8 @@ import {
   WithdrawalRatePoint,
   FunnelDashboardData,
   ACTIVE_STAGES,
+  JobPostingAiVariant,
+  TenantBrandingInfo,
 } from './types'
 
 // 人事向け。自テナントのすべての求人を取得。
@@ -240,4 +242,50 @@ export async function getCandidatesByStage(stage: CandidateStage): Promise<Candi
   }
 
   return (data ?? []) as Candidate[]
+}
+
+// ── NEW-3 採用ブランディング支援 ──────────────────────────────────────────
+
+/** 求人票に紐づくAIバリアント一覧を取得（新しい順） */
+export async function getJobPostingAiVariants(
+  jobPostingId: string
+): Promise<JobPostingAiVariant[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('job_posting_ai_variants')
+    .select('*')
+    .eq('job_posting_id', jobPostingId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error('AIバリアントの取得に失敗しました。')
+
+  return (data ?? []) as JobPostingAiVariant[]
+}
+
+/** テナントのブランディング補足情報を取得 */
+export async function getTenantBrandingInfo(): Promise<TenantBrandingInfo | null> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('tenant_id')
+    .eq('user_id', user.id)
+    .single()
+  if (!employee) return null
+
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('industry, founding_year, recruitment_strengths')
+    .eq('id', employee.tenant_id)
+    .single()
+
+  if (error) return null
+
+  return data as TenantBrandingInfo
 }

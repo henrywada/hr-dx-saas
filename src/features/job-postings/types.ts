@@ -133,3 +133,68 @@ export interface FunnelDashboardData {
   withdrawalTrend: WithdrawalRatePoint[]
   staleThresholdDays: number
 }
+
+// ── NEW-3 採用ブランディング支援 ──────────────────────────────────────────
+
+/** 媒体種別 */
+export type MediaType = 'indeed' | 'linkedin' | 'hellowork' | 'company_site'
+
+/** 媒体の表示名マッピング */
+export const MEDIA_LABELS: Record<MediaType, string> = {
+  indeed: 'Indeed',
+  linkedin: 'LinkedIn',
+  hellowork: 'ハローワーク',
+  company_site: '自社採用サイト',
+}
+
+/** AI生成バリアント（DB行と対応） */
+export interface JobPostingAiVariant {
+  id: string
+  tenant_id: string
+  job_posting_id: string | null
+  media_type: MediaType
+  title: string
+  description: string
+  differentiation_points: string | null
+  prompt_snapshot: Record<string, unknown> | null
+  is_applied: boolean
+  applied_at: string | null
+  created_at: string
+}
+
+/** ブランディング情報プロンプト入力 */
+export interface BrandingPromptInput {
+  jobTitle: string
+  jobDescription: string
+  companyName: string
+  industry: string | null
+  foundingYear: number | null
+  recruitmentStrengths: string | null
+  targetMedia: MediaType[]
+}
+
+/** テナントのブランディング補足情報 */
+export interface TenantBrandingInfo {
+  industry: string | null
+  founding_year: number | null
+  recruitment_strengths: string | null
+}
+
+/** 差別化ポイント生成結果 */
+export interface DifferentiationPoints {
+  points: string[]
+  summary: string
+}
+
+/** 媒体別バリアント生成結果 */
+export interface MediaVariant {
+  media_type: MediaType
+  title: string
+  description: string
+}
+
+/** バリアント生成 Server Action の戻り値 */
+export interface GenerateVariantsResult {
+  variants: JobPostingAiVariant[]
+  error?: string
+}

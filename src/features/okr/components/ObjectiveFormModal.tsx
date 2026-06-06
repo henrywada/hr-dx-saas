@@ -75,11 +75,12 @@ export function ObjectiveFormModal({
       : await createObjective(input)
 
     setLoading(false)
-    if (result.success) {
-      onClose()
-    } else {
+    if (result.success === false) {
       setError(result.error ?? '保存に失敗しました')
+      return
     }
+
+    onClose()
   }
 
   return (

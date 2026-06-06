@@ -103,6 +103,10 @@ export const APP_ROUTES = {
     ADMIN_OKR_TREE: '/adm/okr/tree',
     /** OKR 目標詳細（NEW-2） */
     ADMIN_OKR_DETAIL: (objectiveId: string) => `/adm/okr/${objectiveId}`,
+    /** 採用ブランディング支援（NEW-3） */
+    ADMIN_JOB_BRANDING: '/adm/job-branding',
+    /** 採用ブランディング 求人票詳細（NEW-3） */
+    ADMIN_JOB_BRANDING_DETAIL: (jobPostingId: string) => `/adm/job-branding/${jobPostingId}`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

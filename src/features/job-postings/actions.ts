@@ -10,6 +10,11 @@ import {
   CandidateStage,
   CreateCandidateInput,
   UpdateCandidateInput,
+  BrandingPromptInput,
+  JobPostingAiVariant,
+  TenantBrandingInfo,
+  GenerateVariantsResult,
+  MediaType,
 } from './types'
 import { generateHelloWorkCSV } from '@/lib/csv-export'
 import OpenAI from 'openai'
@@ -423,4 +428,180 @@ export async function updateCandidate(
   }
 
   revalidatePath('/adm/funnel')
+}
+
+// ── NEW-3 採用ブランディング支援 ──────────────────────────────────────────
+
+/** 求人票の差別化ポイントを生成（gpt-4o-mini でコスト最適化） */
+export async function generateDifferentiationPoints(input: BrandingPromptInput): Promise<{
+  points: string[]
+  summary: string
+}> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const prompt = `あなたは採用ブランディングの専門家です。
+以下の求人情報を分析し、他社との差別化ポイントを抽出してください。
+
+求人職種: ${input.jobTitle}
+業界: ${input.industry ?? '不明'}
+設立年: ${input.foundingYear ? `${input.foundingYear}年` : '不明'}
+採用強み（自社申告）: ${input.recruitmentStrengths ?? 'なし'}
+
+差別化ポイントを5つ、箇条書きで出力してください。
+その後、それらをまとめた一言サマリー（50字以内）を出力してください。
+
+出力形式:
+{
+  "points": ["ポイント1", "ポイント2", "ポイント3", "ポイント4", "ポイント5"],
+  "summary": "サマリー文"
+}`
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    temperature: 0.7,
+  })
+
+  const content = response.choices[0]?.message?.content
+  if (!content) throw new Error('AI応答が空でした。')
+
+  const parsed = JSON.parse(content) as { points: string[]; summary: string }
+  return parsed
+}
+
+/** 媒体別求人票バリアントを生成して DB に保存（gpt-4o で品質優先） */
+export async function generateBrandedVariants(
+  input: BrandingPromptInput,
+  differentiationPoints: string[],
+  jobPostingId?: string
+): Promise<GenerateVariantsResult> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const mediaPrompts: Record<MediaType, string> = {
+    indeed: `Indeed向け（シンプルで明確な表現、検索ヒット率重視、給与・勤務条件を前面に、300字程度）`,
+    linkedin: `LinkedIn向け（プロフェッショナル訴求、キャリア成長・企業文化を強調、400字程度）`,
+    hellowork: `ハローワーク向け（公的な文体、必須要件を明示、福利厚生を詳述、300字程度）`,
+    company_site: `自社採用サイト向け（企業ブランドを最大活用、ビジョン・カルチャー重視、500字程度）`,
+  }
+
+  const pointsText = differentiationPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')
+
+  const generateForMedia = async (media: MediaType): Promise<JobPostingAiVariant | null> => {
+    const prompt = `あなたは採用ブランディングの専門家です。
+以下の情報をもとに、${mediaPrompts[media]}求人票を日本語で作成してください。
+
+元の求人票:
+職種: ${input.jobTitle}
+内容: ${input.jobDescription}
+
+会社情報:
+社名: ${input.companyName}
+業界: ${input.industry ?? '不明'}
+設立: ${input.foundingYear ? `${input.foundingYear}年` : '不明'}
+
+差別化ポイント:
+${pointsText}
+
+出力形式（JSON）:
+{
+  "title": "求人タイトル（40字以内）",
+  "description": "求人説明文"
+}`
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) return null
+
+    const generated = JSON.parse(content) as { title: string; description: string }
+
+    const { data, error } = await supabase
+      .from('job_posting_ai_variants')
+      .insert({
+        tenant_id: user.tenant_id,
+        job_posting_id: jobPostingId ?? null,
+        media_type: media,
+        title: generated.title,
+        description: generated.description,
+        differentiation_points: pointsText,
+        prompt_snapshot: input as unknown as Record<string, unknown>,
+      })
+      .select()
+      .single()
+
+    if (error) return null
+    return data as JobPostingAiVariant
+  }
+
+  const results = await Promise.all(input.targetMedia.map(generateForMedia))
+  const variants = results.filter((v): v is JobPostingAiVariant => v !== null)
+
+  if (jobPostingId) revalidatePath(`/adm/job-branding/${jobPostingId}`)
+  revalidatePath('/adm/job-branding')
+
+  return { variants }
+}
+
+/** バリアントを求人票に適用（is_applied を true にし、job_postings を更新） */
+export async function applyVariantToJobPosting(variantId: string): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const { data: variant, error: fetchError } = await supabase
+    .from('job_posting_ai_variants')
+    .select('*')
+    .eq('id', variantId)
+    .single()
+
+  if (fetchError || !variant) throw new Error('バリアントが見つかりません。')
+
+  await supabase
+    .from('job_posting_ai_variants')
+    .update({ is_applied: true, applied_at: new Date().toISOString() })
+    .eq('id', variantId)
+
+  if (variant.job_posting_id) {
+    await supabase
+      .from('job_postings')
+      .update({ title: variant.title, description: variant.description })
+      .eq('id', variant.job_posting_id)
+
+    revalidatePath(`/adm/job-branding/${variant.job_posting_id}`)
+    revalidatePath(`/adm/job-positions/${variant.job_posting_id}`)
+  }
+
+  revalidatePath('/adm/job-branding')
+}
+
+/** テナントのブランディング補足情報を更新 */
+export async function updateTenantBrandingInfo(info: TenantBrandingInfo): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('tenants')
+    .update({
+      industry: info.industry,
+      founding_year: info.founding_year,
+      recruitment_strengths: info.recruitment_strengths,
+    })
+    .eq('id', user.tenant_id)
+
+  if (error) throw new Error('ブランディング情報の更新に失敗しました。')
+
+  revalidatePath('/adm/job-branding')
 }

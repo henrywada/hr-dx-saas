@@ -46,14 +46,15 @@ export function CheckinFormModal({
     })
 
     setLoading(false)
-    if (result.success) {
-      setConfidence(3)
-      setCurrentValue('')
-      setComment('')
-      onClose()
-    } else {
+    if (result.success === false) {
       setError(result.error ?? 'チェックインに失敗しました')
+      return
     }
+
+    setConfidence(3)
+    setCurrentValue('')
+    setComment('')
+    onClose()
   }
 
   return (

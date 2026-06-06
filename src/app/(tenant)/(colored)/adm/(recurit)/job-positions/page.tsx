@@ -29,6 +29,12 @@ export default async function JobPositionsPage() {
             採用プロセス
           </Link>
           <Link
+            href={APP_ROUTES.TENANT.ADMIN_JOB_BRANDING}
+            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium px-4 py-2 rounded shadow-sm transition"
+          >
+            ブランディング強化
+          </Link>
+          <Link
             href="/adm/job-positions/integration"
             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium px-4 py-2 rounded shadow-sm transition"
           >

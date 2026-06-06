@@ -59,11 +59,12 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
       : await createKeyResult(input)
 
     setLoading(false)
-    if (result.success) {
-      onClose()
-    } else {
+    if (result.success === false) {
       setError(result.error ?? '保存に失敗しました')
+      return
     }
+
+    onClose()
   }
 
   return (

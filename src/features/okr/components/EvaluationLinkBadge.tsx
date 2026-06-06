@@ -29,11 +29,12 @@ export function EvaluationLinkBadge({
     setError(null)
     const result = await linkToEvaluationSheet(objectiveId, selectedId || null)
     setLoading(false)
-    if (result.success) {
-      setEditing(false)
-    } else {
+    if (result.success === false) {
       setError(result.error ?? '保存に失敗しました')
+      return
     }
+
+    setEditing(false)
   }
 
   if (!editing) {

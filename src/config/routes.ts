@@ -97,6 +97,12 @@ export const APP_ROUTES = {
     ADMIN_EXIT_INTERVIEW: '/adm/exit-interview',
     /** AI 人事相談アシスタント（NEW-1） */
     ADMIN_HR_ASSISTANT: '/adm/hr-assistant',
+    /** OKR / 目標管理ダッシュボード（NEW-2） */
+    ADMIN_OKR_DASHBOARD: '/adm/okr',
+    /** OKR ツリービュー（NEW-2） */
+    ADMIN_OKR_TREE: '/adm/okr/tree',
+    /** OKR 目標詳細（NEW-2） */
+    ADMIN_OKR_DETAIL: (objectiveId: string) => `/adm/okr/${objectiveId}`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

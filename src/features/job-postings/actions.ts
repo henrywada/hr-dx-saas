@@ -534,7 +534,7 @@ ${pointsText}
         title: generated.title,
         description: generated.description,
         differentiation_points: pointsText,
-        prompt_snapshot: input as unknown as Record<string, unknown>,
+        prompt_snapshot: JSON.parse(JSON.stringify(input)),
       })
       .select()
       .single()

@@ -329,6 +329,64 @@ export type Database = {
           },
         ]
       }
+      checkins: {
+        Row: {
+          checkin_date: string
+          comment: string | null
+          confidence: number
+          created_at: string
+          current_value: number | null
+          employee_id: string
+          id: string
+          key_result_id: string
+          tenant_id: string
+        }
+        Insert: {
+          checkin_date?: string
+          comment?: string | null
+          confidence: number
+          created_at?: string
+          current_value?: number | null
+          employee_id: string
+          id?: string
+          key_result_id: string
+          tenant_id: string
+        }
+        Update: {
+          checkin_date?: string
+          comment?: string | null
+          confidence?: number
+          created_at?: string
+          current_value?: number | null
+          employee_id?: string
+          id?: string
+          key_result_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkins_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkins_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkins_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       closure_audit_logs: {
         Row: {
           action: string
@@ -2910,6 +2968,91 @@ export type Database = {
           },
         ]
       }
+      key_results: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_value: number
+          description: string | null
+          due_date: string | null
+          id: string
+          kr_type: string
+          objective_id: string
+          progress: number
+          sort_order: number
+          start_value: number
+          status: string
+          target_value: number | null
+          tenant_id: string
+          title: string
+          unit: string | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          kr_type?: string
+          objective_id: string
+          progress?: number
+          sort_order?: number
+          start_value?: number
+          status?: string
+          target_value?: number | null
+          tenant_id: string
+          title: string
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          kr_type?: string
+          objective_id?: string
+          progress?: number
+          sort_order?: number
+          start_value?: number
+          status?: string
+          target_value?: number | null
+          tenant_id?: string
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lifecycle_instances: {
         Row: {
           completed_at: string | null
@@ -3316,6 +3459,132 @@ export type Database = {
             columns: ["current_company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          evaluation_sheet_id: string | null
+          fiscal_year: number
+          half_year: string | null
+          id: string
+          owner_division_id: string | null
+          owner_employee_id: string | null
+          owner_type: string
+          parent_id: string | null
+          period_label: string
+          progress: number
+          sort_order: number
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evaluation_sheet_id?: string | null
+          fiscal_year: number
+          half_year?: string | null
+          id?: string
+          owner_division_id?: string | null
+          owner_employee_id?: string | null
+          owner_type: string
+          parent_id?: string | null
+          period_label: string
+          progress?: number
+          sort_order?: number
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evaluation_sheet_id?: string | null
+          fiscal_year?: number
+          half_year?: string | null
+          id?: string
+          owner_division_id?: string | null
+          owner_employee_id?: string | null
+          owner_type?: string
+          parent_id?: string | null
+          period_label?: string
+          progress?: number
+          sort_order?: number
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_evaluation_sheet_id_fkey"
+            columns: ["evaluation_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_division_id_fkey"
+            columns: ["owner_division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_division_id_fkey"
+            columns: ["owner_division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

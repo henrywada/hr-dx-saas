@@ -14,6 +14,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **技術スタック：** Next.js 16（App Router）+ React 19、TypeScript 5（strict: false）、Supabase（PostgreSQL + RLS + Auth）、Tailwind CSS v4、Zod v4、Recharts、SWR、OpenAI SDK、date-fns
 
+**ソース管理 / インフラ：**
+- **GitHub**：リポジトリ `henrywada/hr-dx-saas`（ソース管理）。`.github/workflows/` は未配置のため GitHub Actions CI/CD は設定なし（ビルド・デプロイは Vercel の Git 連携に委譲）
+- **Vercel**：本番ホスティング / デプロイ。本番カスタムドメイン `https://app.hr-dx.jp`。GitHub へのプッシュをトリガーに自動ビルド・デプロイ（webpack モード）。Server Actions の `allowedOrigins` で本番ドメイン・Vercel ホスト（`VERCEL_URL`）・ローカルの Origin を許可（`next.config.ts` 参照）
+
 ---
 
 ## コマンド

@@ -27,7 +27,7 @@ export default async function RecruitmentAiLogPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto min-h-[calc(100vh-100px)]">
+    <div className="max-w-5xl mx-auto min-h-[calc(100vh-100px)]">
       
       {/* ── Header ── */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">

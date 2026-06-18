@@ -10,7 +10,7 @@ export default async function RecruitFunnelPage() {
   const data = await getRecruitFunnelData()
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* パスバー */}
       <div className="-mx-6 -mt-6 border-b border-gray-200 bg-gray-100 px-6 py-2.5 text-sm text-gray-600 flex items-center gap-1">
         <Link href="/adm/job-positions" className="hover:underline">

@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export function Footer() {
   return (
-    <footer className="h-12 bg-white border-t border-slate-200 flex items-center relative px-8 text-xs shrink-0 z-10">
+    <footer className="h-12 bg-white border-t border-slate-200 flex items-center relative px-[24px] text-xs shrink-0 z-10">
       {/* Left: Links */}
       <div className="flex items-center gap-4 text-slate-500">
         <Link href="#" className="hover:text-accent-orange hover:underline">

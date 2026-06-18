@@ -17,7 +17,7 @@ export default async function CompaniesPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* ページヘッダー */}
       <div className="bg-white border-b border-gray-200 mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div>
               <div className="flex items-center space-x-2 text-blue-600 text-xs font-black uppercase tracking-widest mb-2">
@@ -38,7 +38,7 @@ export default async function CompaniesPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* メインの保守UI */}
           <div className="lg:col-span-3">

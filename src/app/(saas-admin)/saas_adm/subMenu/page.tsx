@@ -53,10 +53,10 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
   ]
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-4 max-w-7xl mx-auto">
+    <div className="w-full space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-4">
       <div className="relative pl-5">
         <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full" />
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {category?.name || '未設定のカテゴリ'}
         </h1>
         <p className="text-sm text-slate-500 mt-1 font-medium pl-0.5">

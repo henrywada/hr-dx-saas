@@ -7,14 +7,14 @@ interface Props {
 
 export default function OneOnOneError({ error, reset }: Props) {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
         <div className="border-b border-red-200 bg-red-50 px-6 py-4">
           <h2 className="text-base font-semibold text-red-700">
             1on1支援機能の読み込みに失敗しました
           </h2>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <p className="text-sm text-gray-600">{error.message}</p>
           <button
             onClick={reset}

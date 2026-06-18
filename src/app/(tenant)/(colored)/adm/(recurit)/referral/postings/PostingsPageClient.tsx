@@ -57,7 +57,7 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* ページヘッダー */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">リファラル求人管理</h1>
@@ -113,7 +113,7 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
             </div>
 
             {/* フォーム */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* タイトル（必須） */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-1">

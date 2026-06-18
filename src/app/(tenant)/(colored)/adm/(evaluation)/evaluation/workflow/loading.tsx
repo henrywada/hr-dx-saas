@@ -1,7 +1,7 @@
 export default function WorkflowLoading() {
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="animate-pulse border-b border-gray-300 bg-gray-200 px-6 py-5">
             <div className="h-7 w-48 rounded bg-gray-300" />

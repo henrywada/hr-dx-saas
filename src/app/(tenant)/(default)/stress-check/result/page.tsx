@@ -53,7 +53,7 @@ export default async function StressCheckResultPage({ params, searchParams }: Pr
 
   // 5. 結果ページレイアウト（上から順に表示）
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* ① プロフィール要約（テキスト） */}
       <ProfileSummary result={result} />
 

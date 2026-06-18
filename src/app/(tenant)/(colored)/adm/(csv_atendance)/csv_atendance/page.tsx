@@ -19,7 +19,7 @@ export default async function CsvAtendanceImportPage() {
 
   if (!canAccessHrAttendanceDashboard(user)) {
     return (
-      <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <div className="max-w-2xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-slate-900">出勤・退勤データ実績 CSV 取り込み</h1>
         <p className="text-sm text-slate-600">
           この機能は人事（hr）、人事マネージャー、テナント管理者、または開発者ロールのみ利用できます。
@@ -29,7 +29,7 @@ export default async function CsvAtendanceImportPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">出勤・退勤データ実績 CSV 取り込み</h1>
         <p className="text-sm text-slate-500 mt-1">

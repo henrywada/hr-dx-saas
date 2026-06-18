@@ -68,7 +68,7 @@ export default function TraceabilityPage() {
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="max-w-4xl mx-auto">
         {/* 検索フォーム */}
         <TraceabilitySearchForm onSearch={handleSearch} isPending={isPending} />
 

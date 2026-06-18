@@ -14,7 +14,7 @@ export default function StressCheckLoading() {
       <div className="h-3 bg-gray-100 rounded-full" />
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="h-16 bg-gradient-to-r from-blue-500 to-indigo-600" />
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="space-y-3">
               <div className="flex items-center gap-3">

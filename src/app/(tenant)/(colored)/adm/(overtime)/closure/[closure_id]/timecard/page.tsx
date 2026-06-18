@@ -15,7 +15,7 @@ export default async function ClosureTimecardPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-6xl">
       <TimecardAnomaliesClient closureId={closure_id} />
     </div>
   )

@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   const displayName = user?.name || 'ゲスト'
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 w-full">
       {/* 1. Welcome Area */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="animate-in fade-in slide-in-from-left-4 duration-500">
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
               {formattedDate} ({dayOfWeek})
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             <span className="inline-block origin-bottom-right hover:rotate-12 transition-transform duration-300">
               😀
             </span>{' '}
@@ -86,9 +86,9 @@ export default async function DashboardPage() {
           <div className="absolute -top-10 -right-10 p-4 opacity-[0.03] pointer-events-none text-orange-900">
             <AlertCircle size={200} />
           </div>
-          <div className="relative p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="space-y-3">
+          <div className="relative p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800">
                     <AlertCircle className="w-3.5 h-3.5 mr-1" />
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
                     {importantTask.deadlineLabel}
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-slate-900">
                   【未回答】{importantTask.title}
                 </h2>
                 {importantTask.description && (
@@ -111,11 +111,11 @@ export default async function DashboardPage() {
               <div className="w-full sm:w-auto shrink-0 z-10">
                 <Link
                   href={importantTask.linkPath}
-                  className="flex items-center justify-center w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm shadow-orange-500/20 group h-14 px-8 rounded-xl text-base transition-colors"
+                  className="flex items-center justify-center w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm shadow-orange-500/20 group h-10 px-4 rounded-lg text-sm transition-colors"
                 >
-                  <CheckCircle2 className="w-5 h-5 mr-2 opacity-90" />
+                  <CheckCircle2 className="w-4 h-4 mr-1.5 opacity-90" />
                   今すぐ回答する
-                  <ChevronRight className="w-5 h-5 ml-1 opacity-70 group-hover:translate-x-1.5 transition-transform" />
+                  <ChevronRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
             </div>
@@ -126,9 +126,9 @@ export default async function DashboardPage() {
       {/* ストレスチェック受検タスク */}
       {showStressCheckTask && (
         <div className="relative overflow-hidden bg-white rounded-2xl border-t-2 border-t-teal-500 border border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-backwards">
-          <div className="relative p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="space-y-3">
+          <div className="relative p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
                     <ClipboardList className="w-3.5 h-3.5 mr-1" />
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-slate-900">
                   {stressCheckAlreadyAnswered
                     ? '✅ 回答済み'
                     : `【未回答】${activePeriod?.title ?? 'ストレスチェック'}`}
@@ -155,15 +155,15 @@ export default async function DashboardPage() {
               <div className="w-full sm:w-auto shrink-0 z-10">
                 <Link
                   href="/stress-check"
-                  className={`flex items-center justify-center w-full sm:w-auto font-bold shadow-sm group h-14 px-8 rounded-xl text-base transition-colors ${
+                  className={`flex items-center justify-center w-full sm:w-auto font-semibold shadow-sm group h-10 px-4 rounded-lg text-sm transition-colors ${
                     stressCheckAlreadyAnswered
                       ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-500/20'
                   }`}
                 >
-                  <ClipboardList className="w-5 h-5 mr-2 opacity-90" />
+                  <ClipboardList className="w-4 h-4 mr-1.5 opacity-90" />
                   {stressCheckAlreadyAnswered ? '結果を確認する' : '今すぐ回答する'}
-                  <ChevronRight className="w-5 h-5 ml-1 opacity-70 group-hover:translate-x-1.5 transition-transform" />
+                  <ChevronRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
             </div>
@@ -223,16 +223,14 @@ export default async function DashboardPage() {
         </div>
 
         {/* Right: Shortcuts */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
-          <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg shadow-inner">
-                <Zap className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg shadow-inner">
+              <Zap className="w-5 h-5" />
             </div>
+            <h2 className="text-lg font-bold text-slate-800">クイックアクセス</h2>
           </div>
-          <div className="p-6 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             <QuickAccessCards />
             <MobileNavSection />
           </div>

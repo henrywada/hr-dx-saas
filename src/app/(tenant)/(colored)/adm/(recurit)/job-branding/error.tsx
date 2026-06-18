@@ -13,7 +13,7 @@ export default function JobBrandingError({ error, reset }: Props) {
   }, [error])
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="mx-auto max-w-4xl">
       <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
         <div className="mb-4 text-4xl">⚠</div>
         <h2 className="mb-2 text-xl font-bold text-gray-900">

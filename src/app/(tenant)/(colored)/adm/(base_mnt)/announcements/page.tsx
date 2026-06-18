@@ -13,7 +13,7 @@ export default async function AnnouncementsPage() {
   const announcements = await getAnnouncementsForAdmin()
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <AnnouncementTable announcements={announcements} />
     </div>
   )

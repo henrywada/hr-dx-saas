@@ -2,7 +2,7 @@
 
 export default function Error({ reset }: { reset: () => void }) {
   return (
-    <div className="p-6 flex flex-col items-center justify-center min-h-64 text-center">
+    <div className="flex flex-col items-center justify-center min-h-64 text-center">
       <p className="text-sm text-gray-600 mb-4">コース一覧の読み込みに失敗しました</p>
       <button
         onClick={reset}

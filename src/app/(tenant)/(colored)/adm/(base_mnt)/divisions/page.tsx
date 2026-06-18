@@ -17,7 +17,7 @@ export default async function DivisionsPage() {
   ]);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <DivisionTree
         divisions={divisions}
         employees={employees}

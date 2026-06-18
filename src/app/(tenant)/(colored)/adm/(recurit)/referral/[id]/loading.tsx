@@ -1,7 +1,7 @@
 /** 推薦詳細ページ ローディングスケルトン */
 export default function Loading() {
   return (
-    <div className="p-6 space-y-6 animate-pulse">
+    <div className="space-y-6 animate-pulse">
       {/* 戻るリンク + タイトルスケルトン */}
       <div className="space-y-2">
         <div className="h-4 bg-slate-200 rounded w-32" />

@@ -21,7 +21,7 @@ export default async function SkillApplicationsPage() {
 
   return (
     <div className="min-h-full">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-300 bg-gray-200 px-6 py-5">
             <h1 className="text-[1.35rem] font-bold text-gray-900 sm:text-[1.65rem]">

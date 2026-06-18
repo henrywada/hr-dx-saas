@@ -15,7 +15,7 @@ export default function ServiceAssignmentsError({
   }, [error])
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-lg font-bold text-slate-900 mb-2">エラーが発生しました</h2>

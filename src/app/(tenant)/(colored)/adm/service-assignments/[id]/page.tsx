@@ -28,7 +28,7 @@ export default async function ServiceAssignmentDetailPage({ params }: PageProps)
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <ServiceAssignmentDetailClient assignment={assignment} users={users} />
     </div>
   )

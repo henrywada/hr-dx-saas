@@ -8,7 +8,7 @@ export default function Error({
   reset: () => void
 }) {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
         <div className="border-b border-red-200 bg-red-50 px-6 py-5">
           <h2 className="text-lg font-bold text-red-700">エラーが発生しました</h2>

@@ -27,7 +27,7 @@ export default async function AnswersPage({ searchParams }: Props) {
 
     return (
       <div className="min-h-screen bg-neutral-50">
-        <div className="max-w-lg mx-auto px-4 py-6">
+        <div className="max-w-lg mx-auto">
           <AnswerFormClient
             assignmentId={assignmentId}
             detail={data.detail}
@@ -43,7 +43,7 @@ export default async function AnswersPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-lg mx-auto px-4 py-6">
+      <div className="max-w-lg mx-auto">
         {/* ページヘッダー */}
         <div className="mb-6">
           <h1 className="text-xl font-bold text-neutral-800">アンケートに回答する</h1>

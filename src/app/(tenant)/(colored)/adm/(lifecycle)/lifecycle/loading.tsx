@@ -1,10 +1,10 @@
 export default function LifecycleLoading() {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm animate-pulse">
         <div className="border-b border-gray-200 bg-gray-100 h-10" />
         <div className="border-b border-gray-200 bg-gray-200 h-20" />
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <div className="flex gap-2">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-8 w-32 rounded-full bg-gray-100" />

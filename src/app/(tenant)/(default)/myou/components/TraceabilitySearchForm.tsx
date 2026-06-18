@@ -62,7 +62,7 @@ export default function TraceabilitySearchForm({ onSearch, isPending }: Traceabi
         </button>
       </div>
 
-      <div className="p-6">
+      <div>
         {showScanner ? (
           <div className="mb-6">
             <QrScanner onScanSuccess={handleScanSuccess} />

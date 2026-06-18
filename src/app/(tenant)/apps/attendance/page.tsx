@@ -3,7 +3,7 @@ import React from 'react'
 
 export default function AttendanceAppPage() {
   return (
-    <div className="p-6">
+    <div>
       <h1 className="mb-4 text-2xl font-bold">勤怠管理アプリ</h1>
       <p className="mb-6 text-gray-600">現場向け機能からお選びください。</p>
       <ul className="flex flex-col gap-3">

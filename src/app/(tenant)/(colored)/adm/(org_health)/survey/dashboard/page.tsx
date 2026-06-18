@@ -55,7 +55,7 @@ export default async function PulseSurveyDashboardPage() {
     scoreChangeNum === null ? 'bg-gray-50' : scoreChangeNum >= 0 ? 'bg-emerald-50' : 'bg-red-50'
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* 1. ページヘッダー */}
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

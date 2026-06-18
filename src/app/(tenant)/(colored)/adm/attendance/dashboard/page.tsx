@@ -56,7 +56,7 @@ export default async function AttendanceDashboardPage({
 
   if (bundle.ok === false) {
     return (
-      <div className="max-w-3xl mx-auto py-10 px-4">
+      <div className="max-w-3xl mx-auto">
         <Alert variant="destructive">
           <AlertTitle>データを読み込めませんでした</AlertTitle>
           <AlertDescription>
@@ -78,7 +78,7 @@ export default async function AttendanceDashboardPage({
 
   if (divErr) {
     return (
-      <div className="max-w-3xl mx-auto py-10 px-4">
+      <div className="max-w-3xl mx-auto">
         <Alert variant="destructive">
           <AlertTitle>部署一覧を取得できませんでした</AlertTitle>
           <AlertDescription>{divErr.message}</AlertDescription>

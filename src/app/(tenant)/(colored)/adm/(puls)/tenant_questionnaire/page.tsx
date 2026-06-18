@@ -30,7 +30,7 @@ export default async function TenantQuestionnairePage() {
   ])
 
   return (
-    <div className="p-6 max-w-[92rem] mx-auto w-full">
+    <div className="max-w-[92rem] mx-auto w-full">
       <TenantEchoListClient
         tenantId={user.tenant_id}
         initialQuestionnaires={questionnaires}

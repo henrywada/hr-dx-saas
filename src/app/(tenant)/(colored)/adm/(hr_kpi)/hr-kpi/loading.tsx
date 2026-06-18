@@ -1,6 +1,6 @@
 export default function HrKpiLoading() {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="bg-gray-200 border-b border-gray-300 px-6 py-5 flex items-center justify-between">
           <div>
@@ -9,7 +9,7 @@ export default function HrKpiLoading() {
           </div>
           <div className="h-9 w-32 rounded-lg bg-gray-300 animate-pulse" />
         </div>
-        <div className="p-6 space-y-8">
+        <div className="space-y-8">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i}>
               <div className="mb-3 h-5 w-24 rounded bg-gray-200 animate-pulse" />

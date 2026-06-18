@@ -1,6 +1,6 @@
 export default function SuccessionLoading() {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="h-10 animate-pulse bg-gray-100" />
         <div className="h-24 animate-pulse bg-gray-200" />

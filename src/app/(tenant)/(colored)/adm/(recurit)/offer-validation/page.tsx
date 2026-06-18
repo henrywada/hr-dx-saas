@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function OfferValidationPage() {
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
+    <div className="container mx-auto max-w-5xl">
       <div className="mb-8 border-b pb-4">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
           <ShieldCheckIcon className="h-8 w-8 text-indigo-600" />

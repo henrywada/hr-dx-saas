@@ -7,7 +7,7 @@ interface Props {
 
 export default function SuccessionError({ error, reset }: Props) {
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
         <div className="p-8 text-center">
           <p className="text-sm font-medium text-red-600">エラーが発生しました</p>

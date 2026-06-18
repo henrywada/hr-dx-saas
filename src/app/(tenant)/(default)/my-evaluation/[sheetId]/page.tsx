@@ -35,7 +35,7 @@ export default async function MyEvaluationSheetPage({
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-4 pb-6 pt-3 sm:px-6">
+      <div className="w-full">
         <MyEvaluationSheetClient
           sheet={sheet}
           template={template}

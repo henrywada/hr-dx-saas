@@ -8,7 +8,7 @@ interface Props {
 export default function WorkflowError({ error, reset }: Props) {
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
           <div className="border-b border-red-200 bg-red-50 px-6 py-5">
             <h1 className="text-lg font-bold text-red-700">エラーが発生しました</h1>

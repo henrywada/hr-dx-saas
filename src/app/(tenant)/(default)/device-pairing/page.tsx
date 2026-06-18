@@ -13,7 +13,7 @@ export default async function DevicePairingPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
           テレワーク端末ペアリング

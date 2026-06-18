@@ -15,7 +15,7 @@ export default function Error({ error, reset }: Props) {
   }, [error])
 
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-200 bg-gray-100 px-6 py-2.5 text-sm text-gray-600">
           /adm/okr/tree — OKR ツリービュー

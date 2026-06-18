@@ -711,11 +711,11 @@ export async function createCourseWithAiScenario(input: {
   const user = await getServerUser()
   if (!user) return { ok: false, error: 'ログインが必要です' }
 
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  if (!process.env.GEMINI_API_KEY?.trim()) {
     return {
       ok: false,
       error:
-        'AIシナリオ生成には OpenAI API キーが必要です。Vercel の Project → Settings → Environment Variables に OPENAI_API_KEY を設定し、再デプロイしてください。',
+        'AIシナリオ生成には Gemini API キーが必要です。Vercel の Project → Settings → Environment Variables に GEMINI_API_KEY を設定し、再デプロイしてください。',
     }
   }
 

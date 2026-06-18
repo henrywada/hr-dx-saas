@@ -1,6 +1,5 @@
 'use server'
 
-import OpenAI from 'openai'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
@@ -9,8 +8,7 @@ import { embedQueryText, formatVectorForPg } from '../inquiry-chat/embedding'
 import { RAG_TOP_K, CHAT_MODEL } from '../inquiry-chat/constants'
 import { buildSystemPrompt } from './prompts'
 import type { AssistantMode, SendMessageResult, Citation } from './types'
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+import { getGeminiClient } from '@/lib/ai/gemini'
 
 /** 最大コンテキスト履歴ターン数（古いものは除外してトークンを節約） */
 const MAX_HISTORY_TURNS = 6
@@ -23,7 +21,7 @@ export async function sendHrAssistantMessage(input: {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
   if (!input.message?.trim()) return { ok: false, error: 'メッセージを入力してください' }
-  if (!process.env.OPENAI_API_KEY) return { ok: false, error: 'OPENAI_API_KEY が未設定です' }
+  if (!process.env.GEMINI_API_KEY) return { ok: false, error: 'GEMINI_API_KEY が未設定です' }
 
   const message = input.message.trim()
   const mode = input.mode
@@ -111,21 +109,24 @@ export async function sendHrAssistantMessage(input: {
 
   const recentHistory = ((historyRows ?? []) as { role: string; content: string }[]).reverse()
 
-  // OpenAI へ送信するメッセージ配列を構築
+  // Gemini へ送信するメッセージ配列を構築（system は systemInstruction で渡す）
   const systemPrompt = buildSystemPrompt(mode, contextBlocks.length > 0)
 
-  const openaiMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
-    { role: 'system', content: systemPrompt },
-  ]
+  // Gemini の contents 形式（assistant ロールは 'model'）
+  const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = []
 
   if (contextBlocks.length > 0) {
-    openaiMessages.push({
+    contents.push({
       role: 'user',
-      content: `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n以上を踏まえて会話を続けてください。`,
+      parts: [
+        {
+          text: `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n以上を踏まえて会話を続けてください。`,
+        },
+      ],
     })
-    openaiMessages.push({
-      role: 'assistant',
-      content: '参照資料を確認しました。ご質問をどうぞ。',
+    contents.push({
+      role: 'model',
+      parts: [{ text: '参照資料を確認しました。ご質問をどうぞ。' }],
     })
   }
 
@@ -133,21 +134,28 @@ export async function sendHrAssistantMessage(input: {
   const history = recentHistory.slice(0, -1)
   for (const h of history) {
     if (h.role === 'user' || h.role === 'assistant') {
-      openaiMessages.push({ role: h.role, content: h.content })
+      contents.push({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.content }],
+      })
     }
   }
 
-  openaiMessages.push({ role: 'user', content: message })
+  contents.push({ role: 'user', parts: [{ text: message }] })
 
   let answer: string
   try {
-    const completion = await openai.chat.completions.create({
+    const ai = getGeminiClient()
+    const completion = await ai.models.generateContent({
       model: CHAT_MODEL,
-      messages: openaiMessages,
-      temperature: 0.3,
-      max_tokens: 2000,
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.3,
+        maxOutputTokens: 2000,
+      },
     })
-    answer = completion.choices[0]?.message?.content?.trim() || ''
+    answer = completion.text?.trim() || ''
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'AI 応答に失敗しました'
     return { ok: false, error: msg }

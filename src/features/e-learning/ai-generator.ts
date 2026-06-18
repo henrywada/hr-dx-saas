@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+import { generateGeminiContent, GEMINI_PRO_MODEL } from '@/lib/ai/gemini'
 import type { AiGeneratedCourse, AiGeneratedMicroCourse } from './types'
 
 // ============================================================
@@ -159,26 +159,15 @@ categoryは必ず「初級」「中級」「上級」のいずれかにしてく
 export async function generateMicroCourseFromText(
   rawText: string
 ): Promise<AiGeneratedMicroCourse> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error('OPENAI_API_KEY が設定されていません')
+  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY が設定されていません')
 
-  const openai = new OpenAI({ apiKey })
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: MICRO_SCENARIO_SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `以下の資料を元に、マイクロラーニング＋シナリオベースのeラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
-      },
-    ],
+  const content = await generateGeminiContent({
+    model: GEMINI_PRO_MODEL,
+    system: MICRO_SCENARIO_SYSTEM_PROMPT,
+    prompt: `以下の資料を元に、マイクロラーニング＋シナリオベースのeラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
     temperature: 0.7,
+    json: true,
   })
-
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error('AI からの応答が空でした')
 
   let parsed: AiGeneratedMicroCourse
   try {
@@ -194,26 +183,15 @@ export async function generateMicroCourseFromText(
 
 // 後方互換: 従来の text/quiz 形式でコースを生成する
 export async function generateCourseFromText(rawText: string): Promise<AiGeneratedCourse> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error('OPENAI_API_KEY が設定されていません')
+  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY が設定されていません')
 
-  const openai = new OpenAI({ apiKey })
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: LEGACY_SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `以下の資料を元に、eラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
-      },
-    ],
+  const content = await generateGeminiContent({
+    model: GEMINI_PRO_MODEL,
+    system: LEGACY_SYSTEM_PROMPT,
+    prompt: `以下の資料を元に、eラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
     temperature: 0.7,
+    json: true,
   })
-
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error('AI からの応答が空でした')
 
   return JSON.parse(content) as AiGeneratedCourse
 }

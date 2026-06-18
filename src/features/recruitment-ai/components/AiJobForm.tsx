@@ -1,70 +1,72 @@
-"use client";
+'use client'
 
-import React, { useState, useTransition } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
-import { Button, Card } from "@/components/ui";
-import { generateJobContent, getMonthlyUsageCount } from "../actions";
-import type { GenerateJobInput } from "../actions";
-import type { AiGenerationResult } from "../types";
-import type { PlanType } from "@/types/auth";
-import { AiOutputDisplay } from "./AiOutputDisplay";
+import React, { useState, useTransition } from 'react'
+import { Sparkles, Loader2 } from 'lucide-react'
+import { Button, Card } from '@/components/ui'
+import { generateJobContent, getMonthlyUsageCount } from '../actions'
+import type { GenerateJobInput } from '../actions'
+import type { AiGenerationResult } from '../types'
+import type { PlanType } from '@/types/auth'
+import { AiOutputDisplay } from './AiOutputDisplay'
 
 interface AiJobFormProps {
   /** テナントのプラン種別 */
-  planType?: PlanType;
+  planType?: PlanType
 }
 
 /**
  * AI 求人コンテンツ生成フォーム
  *
- * 3つの質問に回答 → OpenAI で「キャッチコピー」「スカウト文」「面接ガイド」を一括生成
+ * 3つの質問に回答 → Gemini で「キャッチコピー」「スカウト文」「面接ガイド」を一括生成
  */
 export function AiJobForm({ planType }: AiJobFormProps) {
-  const [isPending, startTransition] = useTransition();
-  const [result, setResult] = useState<AiGenerationResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition()
+  const [result, setResult] = useState<AiGenerationResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState<GenerateJobInput>({
-    challenge: "",
-    expectations: "",
-    uniquePoints: "",
-  });
+    challenge: '',
+    expectations: '',
+    uniquePoints: '',
+  })
 
-  const [usage, setUsage] = useState<{ count: number; max: number; isUnlimited: boolean } | null>(null);
+  const [usage, setUsage] = useState<{ count: number; max: number; isUnlimited: boolean } | null>(
+    null
+  )
 
   React.useEffect(() => {
-    getMonthlyUsageCount().then(setUsage).catch(console.error);
-  }, []);
+    getMonthlyUsageCount().then(setUsage).catch(console.error)
+  }, [])
 
   const updateField = (field: keyof GenerateJobInput, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setResult(null);
+    e.preventDefault()
+    setError(null)
+    setResult(null)
 
     startTransition(async () => {
-      const res = await generateJobContent(form);
+      const res = await generateJobContent(form)
       if (res.success && res.data) {
-        setResult(res.data);
+        setResult(res.data)
         // 生成成功後に利用回数を再取得
-        const updatedUsage = await getMonthlyUsageCount();
-        setUsage(updatedUsage);
+        const updatedUsage = await getMonthlyUsageCount()
+        setUsage(updatedUsage)
       } else {
-        setError(res.error || "生成に失敗しました。");
+        setError(res.error || '生成に失敗しました。')
       }
-    });
-  };
+    })
+  }
 
   const isValid =
     form.challenge.trim().length > 0 &&
     form.expectations.trim().length > 0 &&
-    form.uniquePoints.trim().length > 0;
+    form.uniquePoints.trim().length > 0
 
-  const isLimitReached = !usage?.isUnlimited && usage && usage.count >= usage.max;
-  const remainingCount = usage ? Math.max(0, usage.max - usage.count) : 0;
+  const isLimitReached = !usage?.isUnlimited && usage && usage.count >= usage.max
+  const remainingCount = usage ? Math.max(0, usage.max - usage.count) : 0
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -76,9 +78,7 @@ export function AiJobForm({ planType }: AiJobFormProps) {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">
-                AI 求人コンテンツ生成
-              </h2>
+              <h2 className="text-lg font-bold text-slate-800">AI 求人コンテンツ生成</h2>
               <p className="text-xs text-slate-500">
                 3つの質問に答えるだけで、AIが求人原稿を自動生成します
               </p>
@@ -102,7 +102,7 @@ export function AiJobForm({ planType }: AiJobFormProps) {
               className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="現在の採用課題を具体的にお書きください..."
               value={form.challenge}
-              onChange={(e) => updateField("challenge", e.target.value)}
+              onChange={e => updateField('challenge', e.target.value)}
               disabled={isPending}
             />
           </div>
@@ -124,7 +124,7 @@ export function AiJobForm({ planType }: AiJobFormProps) {
               className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="求める経験・スキル・人物像をお書きください..."
               value={form.expectations}
-              onChange={(e) => updateField("expectations", e.target.value)}
+              onChange={e => updateField('expectations', e.target.value)}
               disabled={isPending}
             />
           </div>
@@ -146,7 +146,7 @@ export function AiJobForm({ planType }: AiJobFormProps) {
               className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="候補者に伝えたい御社の魅力をお書きください..."
               value={form.uniquePoints}
-              onChange={(e) => updateField("uniquePoints", e.target.value)}
+              onChange={e => updateField('uniquePoints', e.target.value)}
               disabled={isPending}
             />
           </div>
@@ -165,14 +165,16 @@ export function AiJobForm({ planType }: AiJobFormProps) {
                 <span className="text-sm font-medium text-slate-600">今月のAI無料チケット</span>
                 <span className="text-sm font-bold flex items-center gap-2">
                   残り
-                  <span className={`text-lg ${isLimitReached ? 'text-red-500' : 'text-purple-600'}`}>
+                  <span
+                    className={`text-lg ${isLimitReached ? 'text-red-500' : 'text-purple-600'}`}
+                  >
                     {remainingCount}
                   </span>
                   / {usage.max} 回
                 </span>
               </div>
             )}
-            
+
             <Button
               type="submit"
               variant="primary"
@@ -217,5 +219,5 @@ export function AiJobForm({ planType }: AiJobFormProps) {
         )}
       </div>
     </div>
-  );
+  )
 }

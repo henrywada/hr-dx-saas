@@ -15,11 +15,13 @@
     "supabase:migration-up": "supabase migration up",
     "supabase:migration-list": "supabase migration list",
     "supabase:migration-repair": "bash scripts/supabase-migration-repair.sh",
-    "recalculate-stress-results": "tsx scripts/recalculate_stress_results.ts"
+    "recalculate-stress-results": "tsx scripts/recalculate_stress_results.ts",
+    "reembed-rag-chunks": "tsx scripts/reembed_tenant_rag_chunks.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",
+    "@google/genai": "^2.8.0",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@stitches/react": "^1.2.8",
@@ -37,7 +39,6 @@
     "mammoth": "^1.12.0",
     "next": "16.1.6",
     "nodemailer": "^8.0.1",
-    "openai": "^6.25.0",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
     "postgres": "^3.4.7",

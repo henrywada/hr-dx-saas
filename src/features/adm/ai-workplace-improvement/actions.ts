@@ -10,6 +10,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolveEstablishmentIdForDivision } from '@/lib/stress/resolve-establishment'
 import { getServerUser } from '@/lib/auth/server-user'
+import { generateGeminiContent, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
 import type { GroupData } from '@/features/adm/stress-check/queries'
 
 // ─────────────────────────────────────────────
@@ -91,11 +92,11 @@ export async function generateAIProposals(
       return { success: false, error: '認証されていません。ログインしてください。' }
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey || apiKey.includes('xxxxxxxx')) {
       return {
         success: false,
-        error: 'OpenAI API キーが設定されていません。管理者にお問い合わせください。',
+        error: 'Gemini API キーが設定されていません。管理者にお問い合わせください。',
       }
     }
 
@@ -142,51 +143,31 @@ export async function generateAIProposals(
 
     const userPrompt = `${divisionContext}\n\n【集団分析データ】\n${JSON.stringify(analysisSummary, null, 2)}`
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
+    let content: string
+    try {
+      content = await generateGeminiContent({
+        model: GEMINI_FLASH_MODEL,
+        system: SYSTEM_PROMPT,
+        prompt: userPrompt,
         temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' },
-      }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[AI職場改善] OpenAI API error:', errorText)
+        maxOutputTokens: 2000,
+        json: true,
+      })
+    } catch (e) {
+      console.error('[AI職場改善] Gemini API error:', e)
+      const msg = e instanceof Error ? e.message : ''
       let userMessage = 'AI生成中にエラーが発生しました。しばらくしてからお試しください。'
-      try {
-        const errJson = JSON.parse(errorText) as { error?: { message?: string; code?: string } }
-        const msg = errJson?.error?.message
-        if (msg) {
-          if (msg.includes('api_key') || msg.includes('API key') || msg.includes('Invalid')) {
-            userMessage =
-              'OpenAI API キーが無効です。.env.local の OPENAI_API_KEY を確認してください。'
-          } else if (msg.includes('rate') || msg.includes('quota') || msg.includes('limit')) {
-            userMessage = 'API利用制限に達しました。しばらくしてからお試しください。'
-          } else {
-            userMessage = msg.length > 100 ? msg.slice(0, 100) + '…' : msg
-          }
-        }
-      } catch {
-        // JSON パース失敗時は汎用メッセージのまま
+      if (msg.includes('API key') || msg.includes('API_KEY') || msg.includes('GEMINI_API_KEY')) {
+        userMessage = 'Gemini API キーが無効です。.env.local の GEMINI_API_KEY を確認してください。'
+      } else if (
+        msg.includes('rate') ||
+        msg.includes('quota') ||
+        msg.includes('limit') ||
+        msg.includes('RESOURCE_EXHAUSTED')
+      ) {
+        userMessage = 'API利用制限に達しました。しばらくしてからお試しください。'
       }
       return { success: false, error: userMessage }
-    }
-
-    const completion = await response.json()
-    const content = completion.choices?.[0]?.message?.content
-    if (!content) {
-      return { success: false, error: 'AIからの応答が空でした。' }
     }
 
     const parsed = JSON.parse(content)

@@ -48,6 +48,15 @@ supabase/.temp
 supabase/backups/
 supabase/snippets/
 
+# ローカルのバックアップ（DBダンプ・コードアーカイブ。個人情報を含むためコミット禁止）
+backups/
+
+# ローカルのマニュアル類（バージョン管理しない）
+docs/manual/
+
+# Cursor のローカルスキル定義（バージョン管理しない）
+.cursor/skills/my-grill-me/
+
 # vscode (keep settings but ignore local workspace files)
 .vscode/*
 !.vscode/settings.json

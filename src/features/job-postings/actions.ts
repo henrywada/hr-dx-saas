@@ -17,11 +17,7 @@ import {
   MediaType,
 } from './types'
 import { generateHelloWorkCSV } from '@/lib/csv-export'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { generateGeminiContent, GEMINI_PRO_MODEL, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
 
 export async function createJobPostingDraft(
   data: Partial<Omit<InsertJobPosting, 'tenant_id' | 'status'>>
@@ -103,65 +99,30 @@ export async function generateJobPostingFromMemo(jobId: string, memo: string) {
 【社風・魅力】: ${t.culture_and_benefits || ''}`
   }
 
-  // 3. OpenAI API を用いて求人票を生成
-  // Structured Outputs の json_schema を使用して出力を強制
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o', // または gpt-4o-mini
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      {
-        role: 'user',
-        content: memo,
-      },
-    ],
-    response_format: {
-      type: 'json_schema',
-      json_schema: {
-        name: 'job_posting_schema',
-        strict: true,
-        schema: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            description: { type: 'string', description: 'HTML形式の求人詳細文' },
-            employment_type: {
-              type: 'string',
-              enum: ['FULL_TIME', 'PART_TIME', 'CONTRACTOR'],
-            },
-            salary_min: { type: ['number', 'null'] },
-            salary_max: { type: ['number', 'null'] },
-            salary_unit: {
-              type: 'string',
-              enum: ['YEAR', 'MONTH', 'HOUR'],
-            },
-            address_region: { type: 'string', description: '都道府県名のみ（例: 東京都）' },
-            address_locality: { type: 'string', description: '市区町村名のみ（例: 渋谷区）' },
-          },
-          required: [
-            'title',
-            'description',
-            'employment_type',
-            'salary_min',
-            'salary_max',
-            'salary_unit',
-            'address_region',
-            'address_locality',
-          ],
-          additionalProperties: false,
-        },
-      },
-    },
+  // 3. Gemini API を用いて求人票を生成
+  // responseMimeType=application/json で JSON 出力を強制し、スキーマはプロンプトで明示する
+  systemPrompt += `
+
+【出力形式】以下のキーを持つ JSON オブジェクトのみを出力してください（前後の説明文やコードフェンスは不要）:
+{
+  "title": "求人タイトル(string)",
+  "description": "HTML形式の求人詳細文(string)",
+  "employment_type": "FULL_TIME | PART_TIME | CONTRACTOR のいずれか",
+  "salary_min": 数値 または null,
+  "salary_max": 数値 または null,
+  "salary_unit": "YEAR | MONTH | HOUR のいずれか",
+  "address_region": "都道府県名のみ（例: 東京都）",
+  "address_locality": "市区町村名のみ（例: 渋谷区）"
+}`
+
+  const content = await generateGeminiContent({
+    model: GEMINI_PRO_MODEL,
+    system: systemPrompt,
+    prompt: memo,
+    json: true,
   })
 
   // 4. AIレスポンスのパース
-  const content = response.choices[0].message.content
-  if (!content) {
-    throw new Error('AIからのレスポンスが空でした。')
-  }
-
   let generatedData
   try {
     generatedData = JSON.parse(content)
@@ -432,7 +393,7 @@ export async function updateCandidate(
 
 // ── NEW-3 採用ブランディング支援 ──────────────────────────────────────────
 
-/** 求人票の差別化ポイントを生成（gpt-4o-mini でコスト最適化） */
+/** 求人票の差別化ポイントを生成（gemini-2.5-flash でコスト最適化） */
 export async function generateDifferentiationPoints(input: BrandingPromptInput): Promise<{
   points: string[]
   summary: string
@@ -457,21 +418,18 @@ export async function generateDifferentiationPoints(input: BrandingPromptInput):
   "summary": "サマリー文"
 }`
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
+  const content = await generateGeminiContent({
+    model: GEMINI_FLASH_MODEL,
+    prompt,
+    json: true,
     temperature: 0.7,
   })
-
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error('AI応答が空でした。')
 
   const parsed = JSON.parse(content) as { points: string[]; summary: string }
   return parsed
 }
 
-/** 媒体別求人票バリアントを生成して DB に保存（gpt-4o で品質優先） */
+/** 媒体別求人票バリアントを生成して DB に保存（gemini-2.5-pro で品質優先） */
 export async function generateBrandedVariants(
   input: BrandingPromptInput,
   differentiationPoints: string[],
@@ -513,15 +471,17 @@ ${pointsText}
   "description": "求人説明文"
 }`
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.8,
-    })
-
-    const content = response.choices[0]?.message?.content
-    if (!content) return null
+    let content: string
+    try {
+      content = await generateGeminiContent({
+        model: GEMINI_PRO_MODEL,
+        prompt,
+        json: true,
+        temperature: 0.8,
+      })
+    } catch {
+      return null
+    }
 
     const generated = JSON.parse(content) as { title: string; description: string }
 

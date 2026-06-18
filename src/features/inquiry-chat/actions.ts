@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import OpenAI from 'openai'
 import { randomUUID } from 'node:crypto'
 import { Buffer } from 'node:buffer'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -13,11 +12,10 @@ import { APP_ROUTES } from '@/config/routes'
 import { chunkPlainText } from './chunk'
 import { embedChunks, embedQueryText, formatVectorForPg } from './embedding'
 import { CHAT_MODEL, RAG_TOP_K } from './constants'
+import { generateGeminiContent } from '@/lib/ai/gemini'
 
 // extractors（pdfjs 等）は取り込み Server Action 内でのみ dynamic import する。
 // 先頭で静的 import するとチャット送信だけでもバンドルが読み込まれ Next サーバーで落ちる。
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 /**
  * Supabase Storage の object key に非 ASCII を含めると `Invalid key` になるため、
@@ -105,7 +103,9 @@ async function finalizeDocumentChunks(params: {
         updated_at: new Date().toISOString(),
       })
       .eq('id', documentId)
-    await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, { reason: 'empty_text' })
+    await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, {
+      reason: 'empty_text',
+    })
     return { ok: false, error: '本文が空です' }
   }
 
@@ -123,7 +123,9 @@ async function finalizeDocumentChunks(params: {
         updated_at: new Date().toISOString(),
       })
       .eq('id', documentId)
-    await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, { reason: 'embedding' })
+    await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, {
+      reason: 'embedding',
+    })
     return { ok: false, error: msg }
   }
 
@@ -155,7 +157,9 @@ async function finalizeDocumentChunks(params: {
           updated_at: new Date().toISOString(),
         })
         .eq('id', documentId)
-      await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, { reason: 'chunk_insert' })
+      await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, {
+        reason: 'chunk_insert',
+      })
       return { ok: false, error: 'チャンクの保存に失敗しました' }
     }
   }
@@ -170,11 +174,15 @@ async function finalizeDocumentChunks(params: {
     })
     .eq('id', documentId)
 
-  await writeAudit(supabase, tenantId, userId, 'ingest_completed', documentId, { chunk_count: chunks.length })
+  await writeAudit(supabase, tenantId, userId, 'ingest_completed', documentId, {
+    chunk_count: chunks.length,
+  })
   return { ok: true }
 }
 
-export async function ingestPasteAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function ingestPasteAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
@@ -225,7 +233,9 @@ export async function ingestPasteAction(formData: FormData): Promise<{ ok: boole
   return { ok: true }
 }
 
-export async function ingestUrlAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function ingestUrlAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
@@ -291,7 +301,9 @@ export async function ingestUrlAction(formData: FormData): Promise<{ ok: boolean
   return { ok: true }
 }
 
-export async function ingestFileAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function ingestFileAction(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
@@ -300,7 +312,9 @@ export async function ingestFileAction(formData: FormData): Promise<{ ok: boolea
   if (file.size > 50 * 1024 * 1024) return { ok: false, error: '50MB 以下のファイルにしてください' }
 
   const title =
-    (formData.get('title') as string)?.trim() || file.name.replace(/\.[^.]+$/, '') || 'アップロード文書'
+    (formData.get('title') as string)?.trim() ||
+    file.name.replace(/\.[^.]+$/, '') ||
+    'アップロード文書'
 
   const resolvedMime = resolveMimeTypeForRagUpload(file)
 
@@ -357,7 +371,10 @@ export async function ingestFileAction(formData: FormData): Promise<{ ok: boolea
     return { ok: false, error: 'ファイルの保存に失敗しました' }
   }
 
-  await supabase.from('tenant_rag_documents').update({ storage_path: storagePath }).eq('id', documentId)
+  await supabase
+    .from('tenant_rag_documents')
+    .update({ storage_path: storagePath })
+    .eq('id', documentId)
 
   const fin = await finalizeDocumentChunks({
     supabase,
@@ -374,7 +391,9 @@ export async function ingestFileAction(formData: FormData): Promise<{ ok: boolea
   return { ok: true }
 }
 
-export async function deleteRagDocumentAction(documentId: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteRagDocumentAction(
+  documentId: string
+): Promise<{ ok: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
@@ -425,7 +444,7 @@ export async function sendInquiryMessage(input: {
 
   const message = input.message?.trim() || ''
   if (!message) return { ok: false, error: 'メッセージを入力してください' }
-  if (!process.env.OPENAI_API_KEY) return { ok: false, error: 'OPENAI_API_KEY が未設定です' }
+  if (!process.env.GEMINI_API_KEY) return { ok: false, error: 'GEMINI_API_KEY が未設定です' }
 
   const supabase = await createClient()
 
@@ -493,29 +512,19 @@ export async function sendInquiryMessage(input: {
 参照資料にないことは推測せず、「登録された資料には記載がありません」と述べてください。
 回答は日本語で簡潔に。最後に「重要: 最終的な判断は必ず人事担当へご確認ください」と一文入れてください。`
 
-  const userContent =
-    contextBlocks.length > 0
-      ? `${systemPrompt}\n\n参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\nユーザーの質問:\n${message}`
-      : `${systemPrompt}\n\n参照資料はありません。\n\nユーザーの質問:\n${message}`
-
   let answer: string
   try {
-    const completion = await openai.chat.completions.create({
+    const text = await generateGeminiContent({
       model: CHAT_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content:
-            contextBlocks.length > 0
-              ? `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n質問: ${message}`
-              : `参照資料は登録されていません。質問: ${message}`,
-        },
-      ],
+      system: systemPrompt,
+      prompt:
+        contextBlocks.length > 0
+          ? `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n質問: ${message}`
+          : `参照資料は登録されていません。質問: ${message}`,
       temperature: 0.3,
-      max_tokens: 2000,
+      maxOutputTokens: 2000,
     })
-    answer = completion.choices[0]?.message?.content?.trim() || ''
+    answer = text.trim()
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'AI 応答に失敗しました'
     return { ok: false, error: msg }
@@ -523,12 +532,12 @@ export async function sendInquiryMessage(input: {
 
   if (!answer) return { ok: false, error: 'AI からの応答が空でした' }
 
-  const citations: InquiryCitation[] = rows.slice(0, 5).map((r) => ({
+  const citations: InquiryCitation[] = rows.slice(0, 5).map(r => ({
     title: (r.metadata?.document_title as string) || '文書',
     snippet: r.content.slice(0, 200) + (r.content.length > 200 ? '…' : ''),
   }))
 
-  const citedIds = rows.map((r) => r.id)
+  const citedIds = rows.map(r => r.id)
 
   const { error: aErr } = await supabase.from('tenant_inquiry_chat_messages').insert({
     tenant_id: user.tenant_id,

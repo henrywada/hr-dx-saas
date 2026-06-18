@@ -1,26 +1,27 @@
-'use server';
+'use server'
 
 /**
  * TalentDraft AI — Server Actions
  *
- * OpenAI API (gpt-4o) を使って求人コンテンツを自動生成し、
+ * Google Gemini API (gemini-2.5-pro) を使って求人コンテンツを自動生成し、
  * recruitment_jobs テーブルへ保存する。
  */
 
-import { createClient } from '@/lib/supabase/server';
-import { getServerUser } from '@/lib/auth/server-user';
-import type { AiGenerationResult } from './types';
+import { createClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/auth/server-user'
+import { generateGeminiContent, GEMINI_PRO_MODEL } from '@/lib/ai/gemini'
+import type { AiGenerationResult } from './types'
 
 // ─────────────────────────────────────────────
 // 入力フォームの型
 // ─────────────────────────────────────────────
 export interface GenerateJobInput {
   /** 採用で解決したい課題 */
-  challenge: string;
+  challenge: string
   /** 候補者に期待すること */
-  expectations: string;
+  expectations: string
   /** 自社のユニークな点・魅力 */
-  uniquePoints: string;
+  uniquePoints: string
 }
 
 // ─────────────────────────────────────────────
@@ -69,7 +70,7 @@ const SYSTEM_PROMPT = `あなたは日本の採用市場に精通したプロフ
   "scoutText": "採用文面（上記パターンのルールに従い、スカウト文・求人原稿を出し分けて記載）",
   "interviewGuide": "面接質問ガイド（5つの質問と各質問の評価ポイントを改行を含めた1つのテキストとして記載）",
   "mediaAdvice": "掲載メディア・アドバイス（上記パターンのルールに従い、中小企業に寄り添うトーンで記載）"
-}`;
+}`
 
 // ─────────────────────────────────────────────
 // generateJobContent — AI求人コンテンツ生成
@@ -79,29 +80,36 @@ export async function generateJobContent(
 ): Promise<{ success: boolean; data?: AiGenerationResult; error?: string }> {
   try {
     // 1. 認証チェック
-    const user = await getServerUser();
+    const user = await getServerUser()
     if (!user || !user.tenant_id) {
-      return { success: false, error: '認証されていません。ログインしてください。' };
+      return { success: false, error: '認証されていません。ログインしてください。' }
     }
 
     // 1.5 プラン・利用回数チェック
-    const usage = await getMonthlyUsageCount();
+    const usage = await getMonthlyUsageCount()
     if (!usage.isUnlimited && usage.count >= usage.max) {
-      return { success: false, error: '今月のAI無料利用チケット（10回）の上限に達しました。無制限でご利用いただくにはProプランへのアップグレードをご検討ください。' };
+      return {
+        success: false,
+        error:
+          '今月のAI無料利用チケット（10回）の上限に達しました。無制限でご利用いただくにはProプランへのアップグレードをご検討ください。',
+      }
     }
 
-    // 2. OpenAI API キー確認
-    const apiKey = process.env.OPENAI_API_KEY;
+    // 2. Gemini API キー確認
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey || apiKey.includes('xxxxxxxx')) {
-      return { success: false, error: 'OpenAI API キーが設定されていません。管理者にお問い合わせください。' };
+      return {
+        success: false,
+        error: 'Gemini API キーが設定されていません。管理者にお問い合わせください。',
+      }
     }
 
     // 3. 入力バリデーション
     if (!input.challenge?.trim() || !input.expectations?.trim() || !input.uniquePoints?.trim()) {
-      return { success: false, error: 'すべての質問に回答してください。' };
+      return { success: false, error: 'すべての質問に回答してください。' }
     }
 
-    // 4. OpenAI API 呼び出し
+    // 4. Gemini API 呼び出し
     const userPrompt = `以下の情報をもとに、求人コンテンツを生成してください。
 
 【採用で解決したい課題】
@@ -111,108 +119,102 @@ ${input.challenge.trim()}
 ${input.expectations.trim()}
 
 【自社のユニークな点・魅力】
-${input.uniquePoints.trim()}`;
+${input.uniquePoints.trim()}`
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
+    let content: string
+    try {
+      content = await generateGeminiContent({
+        model: GEMINI_PRO_MODEL,
+        system: SYSTEM_PROMPT,
+        prompt: userPrompt,
         temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[TalentDraft AI] OpenAI API error:', errorText);
-      return { success: false, error: 'AI生成中にエラーが発生しました。しばらくしてからお試しください。' };
-    }
-
-    const completion = await response.json();
-    const content = completion.choices?.[0]?.message?.content;
-    if (!content) {
-      return { success: false, error: 'AIからの応答が空でした。' };
+        maxOutputTokens: 2000,
+        json: true,
+      })
+    } catch (e) {
+      console.error('[TalentDraft AI] Gemini API error:', e)
+      return {
+        success: false,
+        error: 'AI生成中にエラーが発生しました。しばらくしてからお試しください。',
+      }
     }
 
     // 5. JSON パース
-    let parsed: AiGenerationResult;
+    let parsed: AiGenerationResult
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(content)
     } catch {
-      console.error('[TalentDraft AI] JSON parse error:', content);
-      return { success: false, error: 'AI出力の解析に失敗しました。' };
+      console.error('[TalentDraft AI] JSON parse error:', content)
+      return { success: false, error: 'AI出力の解析に失敗しました。' }
     }
 
     // 6. コンテンツ生成結果（全プラン共通化：フルオープン）
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatValue = (val: any): string => {
-      if (!val) return '';
-      if (typeof val === 'string') return val;
+      if (!val) return ''
+      if (typeof val === 'string') return val
       if (Array.isArray(val)) {
-        return val.map(v => typeof v === 'object' && v !== null ? Object.entries(v).map(([key, value]) => `【${key}】 ${value}`).join('\n') : String(v)).join('\n\n');
+        return val
+          .map(v =>
+            typeof v === 'object' && v !== null
+              ? Object.entries(v)
+                  .map(([key, value]) => `【${key}】 ${value}`)
+                  .join('\n')
+              : String(v)
+          )
+          .join('\n\n')
       }
       if (typeof val === 'object' && val !== null) {
-        return Object.entries(val).map(([key, value]) => `【${key}】 ${value}`).join('\n');
+        return Object.entries(val)
+          .map(([key, value]) => `【${key}】 ${value}`)
+          .join('\n')
       }
-      return String(val);
-    };
+      return String(val)
+    }
 
     const result: AiGenerationResult = {
       catchphrase: formatValue(parsed.catchphrase),
       scoutText: formatValue(parsed.scoutText),
       interviewGuide: formatValue(parsed.interviewGuide),
       mediaAdvice: formatValue(parsed.mediaAdvice),
-    };
+    }
 
     // 7. DB に保存
-    const supabase = await createClient();
+    const supabase = await createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: dbError } = await (supabase as any)
-      .from('recruitment_jobs')
-      .insert({
-        tenant_id: user.tenant_id,
-        title: parsed.catchphrase?.substring(0, 100) || '未設定',
-        description: input.challenge,
-        requirements: input.expectations,
-        ai_catchphrase: parsed.catchphrase,
-        ai_scout_text: parsed.scoutText,
-        ai_interview_guide: parsed.interviewGuide,
-        media_advice: parsed.mediaAdvice,
-        created_by: user.id,
-        status: '下書き',
-      });
+    const { error: dbError } = await (supabase as any).from('recruitment_jobs').insert({
+      tenant_id: user.tenant_id,
+      title: parsed.catchphrase?.substring(0, 100) || '未設定',
+      description: input.challenge,
+      requirements: input.expectations,
+      ai_catchphrase: parsed.catchphrase,
+      ai_scout_text: parsed.scoutText,
+      ai_interview_guide: parsed.interviewGuide,
+      media_advice: parsed.mediaAdvice,
+      created_by: user.id,
+      status: '下書き',
+    })
 
     if (dbError) {
-      console.error('[TalentDraft AI] DB insert error:', dbError);
+      console.error('[TalentDraft AI] DB insert error:', dbError)
       // DB保存失敗でもAI結果は返す
     }
-    
+
     // 8. ai_usage_logs に利用履歴を記録
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: logError } = await (supabase as any)
-      .from('ai_usage_logs')
-      .insert({
-        tenant_id: user.tenant_id,
-        feature_name: 'talent-draft',
-      });
-      
+    const { error: logError } = await (supabase as any).from('ai_usage_logs').insert({
+      tenant_id: user.tenant_id,
+      feature_name: 'talent-draft',
+    })
+
     if (logError) {
-      console.error('[TalentDraft AI] DB insert ai_usage_logs error:', logError);
+      console.error('[TalentDraft AI] DB insert ai_usage_logs error:', logError)
     }
 
-    return { success: true, data: result };
+    return { success: true, data: result }
   } catch (error) {
-    console.error('[TalentDraft AI] Unexpected error:', error);
-    return { success: false, error: '予期せぬエラーが発生しました。' };
+    console.error('[TalentDraft AI] Unexpected error:', error)
+    return { success: false, error: '予期せぬエラーが発生しました。' }
   }
 }
 
@@ -220,24 +222,24 @@ ${input.uniquePoints.trim()}`;
 // getMonthlyUsageCount — 今月の利用回数取得
 // ─────────────────────────────────────────────
 export async function getMonthlyUsageCount(): Promise<{
-  count: number;
-  max: number;
-  isUnlimited: boolean;
+  count: number
+  max: number
+  isUnlimited: boolean
 }> {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user || !user.tenant_id) {
-    return { count: 0, max: 10, isUnlimited: false };
+    return { count: 0, max: 10, isUnlimited: false }
   }
 
-  const isPro = user.planType === 'pro' || user.planType === 'enterprise';
+  const isPro = user.planType === 'pro' || user.planType === 'enterprise'
   if (isPro) {
-    return { count: 0, max: 10, isUnlimited: true };
+    return { count: 0, max: 10, isUnlimited: true }
   }
 
-  const supabase = await createClient();
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  const supabase = await createClient()
+  const startOfMonth = new Date()
+  startOfMonth.setDate(1)
+  startOfMonth.setHours(0, 0, 0, 0)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { count, error } = await (supabase as any)
@@ -245,44 +247,48 @@ export async function getMonthlyUsageCount(): Promise<{
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', user.tenant_id)
     .eq('feature_name', 'talent-draft')
-    .gte('created_at', startOfMonth.toISOString());
+    .gte('created_at', startOfMonth.toISOString())
 
   if (error) {
-    console.error('[TalentDraft AI] usage logs fetch error:', error);
+    console.error('[TalentDraft AI] usage logs fetch error:', error)
   }
 
-  return { count: count || 0, max: 10, isUnlimited: false };
+  return { count: count || 0, max: 10, isUnlimited: false }
 }
 
 // ─────────────────────────────────────────────
 // getRecruitmentAiLogs — AI求人メーカーの生成履歴を取得 (Pro限定)
 // ─────────────────────────────────────────────
 export async function getRecruitmentAiLogs() {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user || !user.tenant_id) {
-    return { success: false, error: '認証されていません。', data: [] };
+    return { success: false, error: '認証されていません。', data: [] }
   }
 
   // 権限チェック（Pro または Enterprise のみアクセス可）
-  const isPro = user.planType === 'pro' || user.planType === 'enterprise';
+  const isPro = user.planType === 'pro' || user.planType === 'enterprise'
   if (!isPro) {
     // サーバーサイドで厳密に遮断し、データは絶対に返さない
-    return { success: false, error: '過去の生成データを利用・管理するには、Proプランへのアップグレードが必要です。', data: [] };
+    return {
+      success: false,
+      error: '過去の生成データを利用・管理するには、Proプランへのアップグレードが必要です。',
+      data: [],
+    }
   }
 
-  const supabase = await createClient();
-  
+  const supabase = await createClient()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('recruitment_jobs')
     .select('*')
     .eq('tenant_id', user.tenant_id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('[TalentDraft AI] fetch logs error:', error);
-    return { success: false, error: '履歴の取得に失敗しました。', data: [] };
+    console.error('[TalentDraft AI] fetch logs error:', error)
+    return { success: false, error: '履歴の取得に失敗しました。', data: [] }
   }
 
-  return { success: true, data };
+  return { success: true, data }
 }

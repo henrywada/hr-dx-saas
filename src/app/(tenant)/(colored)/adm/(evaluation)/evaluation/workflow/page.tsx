@@ -26,7 +26,7 @@ export default async function EvaluationWorkflowPage() {
   if (!activePeriod) {
     return (
       <div className="min-h-full bg-gray-50">
-        <div className="px-6 pb-6 pt-3">
+        <div className="w-full">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <header className="border-b border-gray-300 bg-gray-200 px-6 py-5">
               <h1 className="text-[1.35rem] font-bold text-gray-800 sm:text-[1.65rem]">
@@ -52,7 +52,7 @@ export default async function EvaluationWorkflowPage() {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <header className="relative border-b border-gray-300 bg-gray-200 px-6 py-5">
             <div className="flex min-w-0 flex-wrap items-start gap-3">

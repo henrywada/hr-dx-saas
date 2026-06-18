@@ -75,6 +75,12 @@ export function SidebarNav({
     return false
   }
 
+  const navLinkBase =
+    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative'
+  const navLinkInactive = 'text-slate-300 hover:bg-white/10 hover:text-white'
+  const navLinkActive =
+    'bg-white/10 text-accent-orange shadow-sm border border-white/10'
+
   return (
     <>
       {/* Mobile overlay */}
@@ -86,12 +92,13 @@ export function SidebarNav({
       )}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 bg-slate-50 md:bg-slate-50/50 border-r border-slate-200 flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 border-r border-slate-800 flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
+        style={{ backgroundColor: '#0f1117' }}
       >
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
           {/* Main Navigation */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-3">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
               メインメニュー
             </h3>
             <nav className="space-y-1">
@@ -99,10 +106,8 @@ export function SidebarNav({
                 href={dashboardHref}
                 isActive={isActive(dashboardHref)}
                 onNavigate={() => setIsMobileMenuOpen(false)}
-                linkClassName={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
-                  isActive(dashboardHref)
-                    ? 'bg-white text-accent-orange shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                    : 'text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm'
+                linkClassName={`${navLinkBase} ${
+                  isActive(dashboardHref) ? navLinkActive : navLinkInactive
                 }`}
               />
             </nav>
@@ -123,11 +128,7 @@ export function SidebarNav({
                       categoryName={category.name}
                       active={active}
                       onNavigate={() => setIsMobileMenuOpen(false)}
-                      linkClassName={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
-                        active
-                          ? 'bg-white text-accent-orange shadow-sm border border-slate-100'
-                          : 'text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm'
-                      }`}
+                      linkClassName={`${navLinkBase} ${active ? navLinkActive : navLinkInactive}`}
                     />
                   )
                 })}
@@ -138,22 +139,22 @@ export function SidebarNav({
                   href={APP_ROUTES.TENANT.PORTAL}
                   icon={ArrowLeft}
                   label="ポータルへ戻る"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"
+                  className={`w-full ${navLinkBase} ${navLinkInactive}`}
                 />
               ) : (
                 <button
                   onClick={handleLogoutOrReturn}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm"
+                  className={`w-full ${navLinkBase} ${navLinkInactive}`}
                 >
-                  <LogOut className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+                  <LogOut className="w-5 h-5 text-slate-400 group-hover:text-slate-200" />
                   <span className="flex-1 text-left">ログアウト</span>
                 </button>
               )}
 
               {/* Login Tenant Display */}
               {tenantName && (
-                <div className="mt-6 pt-4 border-t border-slate-200 px-2">
-                  <p className="text-xs font-semibold text-slate-700 truncate">{tenantName}</p>
+                <div className="mt-6 pt-4 border-t border-slate-700 px-2">
+                  <p className="text-xs font-semibold text-slate-400 truncate">{tenantName}</p>
                 </div>
               )}
             </nav>
@@ -161,19 +162,19 @@ export function SidebarNav({
         </div>
 
         {/* User / Bottom Actions */}
-        <div className="p-4 border-t border-slate-200 bg-white md:bg-transparent">
+        <div className="p-4 border-t border-slate-800">
           {userName && (
             <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm border border-slate-300">
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-200 font-bold text-sm border border-slate-600">
                 {userName.charAt(0)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-medium text-slate-700 truncate">{userName}</p>
-                <p className="text-[10px] text-slate-400 truncate">ログイン中</p>
+                <p className="text-sm font-medium text-slate-200 truncate">{userName}</p>
+                <p className="text-[10px] text-slate-500 truncate">ログイン中</p>
               </div>
             </div>
           )}
-          <button className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-white/10 rounded-lg transition-colors">
             ヘルプ＆サポート
           </button>
         </div>

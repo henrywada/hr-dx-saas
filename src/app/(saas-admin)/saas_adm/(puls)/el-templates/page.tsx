@@ -16,7 +16,7 @@ export default async function ElTemplatesPage() {
 
   return (
     <main className="flex-1 w-full min-h-screen bg-white">
-      <div className="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8">
+      <div className="w-full">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-gray-800">eラーニング テンプレート管理</h1>
           <p className="text-sm text-gray-500 mt-1">

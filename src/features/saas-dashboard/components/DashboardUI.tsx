@@ -57,19 +57,19 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
           return (
             <div
               key={index}
-              className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group"
+              className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group"
             >
               {/* 左側：タイトルと数値 */}
               <div>
-                <p className="text-sm font-medium text-slate-500 mb-2">{card.title}</p>
-                <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{card.value}</h3>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">{card.title}</p>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{card.value}</h3>
               </div>
 
               {/* 右側：アイコン */}
               <div
-                className={`p-4 rounded-full ${card.color} bg-opacity-10 group-hover:bg-opacity-20 transition-colors duration-300`}
+                className={`p-3 rounded-full ${card.color} bg-opacity-10 group-hover:bg-opacity-20 transition-colors duration-300`}
               >
-                <Icon className={`w-8 h-8 ${card.color.replace('bg-', 'text-')}`} />
+                <Icon className={`w-6 h-6 ${card.color.replace('bg-', 'text-')}`} />
               </div>
             </div>
           )
@@ -80,7 +80,7 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
         {/* チャート */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm min-h-[300px]">
           <h3 className="font-bold text-lg mb-4 text-slate-800">日次アクティビティ</h3>
-          <div className="h-64 bg-slate-50 rounded-lg border border-dashed border-slate-300 p-2">
+          <div className="h-64 bg-white rounded-lg border border-dashed border-slate-300 p-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={activityData}>
                 <CartesianGrid stroke="#eee" strokeDasharray="3 3" />

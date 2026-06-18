@@ -15,7 +15,7 @@ interface MyNominationsClientProps {
 /** マイ推薦一覧 クライアントコンポーネント */
 export function MyNominationsClient({ nominations, rewards }: MyNominationsClientProps) {
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8">
       {/* ヘッダー */}
       <div>
         <Link

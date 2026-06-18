@@ -20,7 +20,7 @@ export default async function RemortWorkPage({ params, searchParams }: Props) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4 space-y-10 pb-16">
+    <div className="max-w-3xl mx-auto space-y-10">
       <div className="flex items-start gap-4">
         <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-700 shadow-inner">
           <Laptop className="w-8 h-8" />

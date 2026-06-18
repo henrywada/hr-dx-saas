@@ -26,7 +26,7 @@ export default async function InquiryChatKnowledgePage() {
   const docs = await listRagDocuments()
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">人事ナレッジ（RAG）登録</h1>

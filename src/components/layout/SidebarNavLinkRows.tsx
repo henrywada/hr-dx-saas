@@ -27,7 +27,7 @@ function DashboardLinkInner({ isActive }: { isActive: boolean }) {
       ) : (
         <LayoutDashboard
           className={`w-5 h-5 transition-colors ${
-            isActive ? 'text-accent-orange' : 'text-slate-400 group-hover:text-slate-600'
+            isActive ? 'text-accent-orange' : 'text-slate-400 group-hover:text-slate-200'
           }`}
         />
       )}
@@ -68,7 +68,7 @@ function CategoryLinkInner({ active, categoryName }: { active: boolean; category
       ) : (
         <Briefcase
           className={`w-5 h-5 transition-colors ${
-            active ? 'text-accent-orange' : 'text-slate-400 group-hover:text-slate-600'
+            active ? 'text-accent-orange' : 'text-slate-400 group-hover:text-slate-200'
           }`}
         />
       )}
@@ -106,7 +106,7 @@ function PlainLinkInner({ icon: Icon, label }: { icon: LucideIcon; label: string
       {pending ? (
         <Loader2 className="w-5 h-5 shrink-0 animate-spin text-slate-400" aria-hidden />
       ) : (
-        <Icon className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+        <Icon className="w-5 h-5 text-slate-400 group-hover:text-slate-200" />
       )}
       <span className="flex-1 text-left">{label}</span>
     </>

@@ -1,7 +1,7 @@
 /** リファラル採用管理ページ ローディングスケルトン */
 export default function Loading() {
   return (
-    <div className="p-6 space-y-6 animate-pulse">
+    <div className="space-y-6 animate-pulse">
       {/* ヘッダースケルトン */}
       <div className="h-8 bg-slate-200 rounded-lg w-48" />
 

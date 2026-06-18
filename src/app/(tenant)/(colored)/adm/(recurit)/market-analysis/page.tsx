@@ -15,7 +15,7 @@ export default async function MarketAnalysisPage() {
   const isLocked = planType !== 'pro';
 
   return (
-    <div className="p-6">
+    <div>
       <PaywallOverlay 
         isLocked={isLocked}
         message="採用市場・競合分析機能はProプラン限定です"

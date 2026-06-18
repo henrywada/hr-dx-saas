@@ -11,7 +11,7 @@ export default async function HelloWorkPage() {
   const jobs = await getTenantJobPostings()
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
           <Link href="/adm/job-positions" className="hover:underline">求人票管理</Link>

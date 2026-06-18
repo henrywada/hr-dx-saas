@@ -30,7 +30,7 @@ import { DepartmentCard } from '@/components/ui/DepartmentCard';
  */
 export default function BizMenuPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* ウェルカムヘッダー */}
         <WelcomeHeader 

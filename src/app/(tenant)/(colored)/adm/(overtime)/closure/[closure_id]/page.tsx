@@ -30,7 +30,7 @@ export default async function ClosureDetailPage({
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
+      <div className="mx-auto max-w-6xl">
         <p className="text-red-700">締め情報の取得に失敗しました。</p>
         <Link href="/adm/closure" className="mt-4 inline-block text-primary hover:underline">
           一覧へ戻る
@@ -68,7 +68,7 @@ export default async function ClosureDetailPage({
   }))
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-6xl">
       <ClosureDetailClient closure={closure} aggregateRows={aggregateRows} />
     </div>
   )

@@ -13,7 +13,7 @@ export default async function ServiceAssignmentsPage() {
   const assignments = await getServiceAssignmentsForAdmin()
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <ServiceAssignmentTable assignments={assignments} />
     </div>
   )

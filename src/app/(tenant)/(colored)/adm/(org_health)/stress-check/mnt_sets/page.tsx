@@ -23,7 +23,7 @@ export default async function StressCheckMntSetsPage() {
   ])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <MntSetsUI tenantId={user.tenant_id} periods={periods} allDivisions={allDivisions} />
     </div>
   )

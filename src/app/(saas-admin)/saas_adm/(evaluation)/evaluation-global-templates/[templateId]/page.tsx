@@ -27,7 +27,7 @@ export default async function EvaluationGlobalTemplateDetailPage({ params }: Pro
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="mb-3">
           <Link
             href={APP_ROUTES.SAAS.EVAL_GLOBAL_TEMPLATES}

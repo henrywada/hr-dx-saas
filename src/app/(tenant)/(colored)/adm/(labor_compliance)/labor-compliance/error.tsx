@@ -16,7 +16,7 @@ export default function Error({
   }, [error])
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
+    <div className="max-w-3xl mx-auto">
       <Alert variant="destructive">
         <AlertTitle>エラーが発生しました</AlertTitle>
         <AlertDescription className="mt-2">

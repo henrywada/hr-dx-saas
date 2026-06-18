@@ -23,7 +23,7 @@ export default async function ClosureManagementPage() {
 
   if (result.ok === false) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
+      <div className="mx-auto max-w-6xl">
         <ClosureListClient initialItems={[]} loadError={result.error} suggestedYearMonth={null} />
       </div>
     )
@@ -32,7 +32,7 @@ export default async function ClosureManagementPage() {
   const suggestedYearMonth = suggestedOldestOpenYearMonth(result.items)
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-6xl">
       <ClosureListClient initialItems={result.items} suggestedYearMonth={suggestedYearMonth} />
     </div>
   )

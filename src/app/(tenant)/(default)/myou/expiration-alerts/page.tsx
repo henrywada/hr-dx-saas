@@ -19,10 +19,10 @@ export default async function ExpirationAlertsPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-gray-50">
       {/* ヒーローセクション風のヘッダー */}
       <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div>
               <nav className="flex mb-3 text-blue-200 text-xs font-medium space-x-2">

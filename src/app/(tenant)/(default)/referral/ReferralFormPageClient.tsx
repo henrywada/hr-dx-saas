@@ -35,7 +35,7 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
   }
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8">
       {/* ページヘッダー */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>

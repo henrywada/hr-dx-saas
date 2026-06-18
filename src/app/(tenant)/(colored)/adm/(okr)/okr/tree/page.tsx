@@ -21,7 +21,7 @@ export default async function OkrTreePage() {
   const tree = await getObjectiveTree(currentYear)
 
   return (
-    <div className="p-6">
+    <div>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* パスバー */}
         <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-6 py-2.5 text-sm text-gray-600">

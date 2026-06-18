@@ -29,7 +29,7 @@ export default async function ProposePage({ params }: Props) {
     .order('name', { ascending: true })
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50">
       <ProposeGoalForm
         employeeId={employeeId}
         employeeName={emp?.name ?? null}

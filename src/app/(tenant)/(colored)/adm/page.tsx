@@ -11,13 +11,14 @@ import {
   LineChart,
   BookOpen,
   ChevronRight,
+  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
 import { APP_ROUTES } from '@/config/routes'
 
 export default function HrDashboardPage() {
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 w-full">
       {/* 1. Header Area */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
@@ -215,6 +216,9 @@ export default function HrDashboardPage() {
         {/* Right Column: Quick Actions */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           <div className="flex items-center gap-2 mb-2">
+            <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-md">
+              <Zap className="w-4 h-4" />
+            </div>
             <h2 className="text-lg font-bold text-slate-800">クイックアクション</h2>
           </div>
 

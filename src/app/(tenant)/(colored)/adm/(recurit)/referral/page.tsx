@@ -21,7 +21,7 @@ export default async function ReferralAdminPage() {
   const [summary, nominations] = await Promise.all([getReferralSummary(), getReferralNominations()])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* ページヘッダー */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">リファラル採用管理</h1>

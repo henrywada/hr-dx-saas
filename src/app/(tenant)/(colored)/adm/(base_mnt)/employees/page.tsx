@@ -23,7 +23,7 @@ export default async function EmployeesPage() {
   ])
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-[1600px]">
+    <div className="mx-auto w-full max-w-[1600px]">
       <EmployeeTable
         employees={employees}
         divisions={divisions}

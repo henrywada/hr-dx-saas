@@ -30,7 +30,7 @@ export default async function ElCourseDetailPage({ params }: Props) {
   if (!course) notFound()
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-6">
         <div className="flex justify-end">
           <a href="/adm/el-courses" className="text-sm font-bold text-blue-600 hover:underline">

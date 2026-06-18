@@ -127,7 +127,7 @@ export default async function SkillMapPage() {
 
   return (
     <div className="min-h-full">
-      <div className="px-6 pb-6 pt-3">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="relative flex flex-wrap items-start justify-between gap-4 border-b border-gray-300 bg-gray-200 px-6 py-5">
             <div className="flex min-w-0 items-start gap-3">

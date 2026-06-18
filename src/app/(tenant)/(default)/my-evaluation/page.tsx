@@ -19,7 +19,7 @@ export default async function MyEvaluationPage() {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="px-4 pb-6 pt-3 sm:px-6">
+      <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <header className="border-b border-gray-200 px-6 py-5">
             <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">私の評価</h1>

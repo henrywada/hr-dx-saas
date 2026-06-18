@@ -13,7 +13,7 @@ export default async function DeliveryScanPage() {
   const companies = await getCompanies()
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-blue-700">納入登録（QRスキャン）</h1>
         <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">

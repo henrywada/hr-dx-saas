@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, Lock } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Mail, Lock, Zap, ArrowRight } from 'lucide-react'
 import { signInAction } from '@/lib/auth/actions'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,67 +43,62 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white p-8 sm:p-10 rounded-2xl border border-slate-200/80 shadow-md space-y-8">
-      <div className="flex flex-col items-center text-center space-y-4">
-        {/* 精緻で立体的なロックアイコン */}
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-blue-50 to-indigo-50 shadow-inner ring-1 ring-blue-100/60 overflow-hidden">
-          <div className="absolute inset-0 bg-linear-to-b from-white/60 to-transparent"></div>
-          <Lock className="relative h-6 w-6 text-blue-600 stroke-[1.5]" aria-hidden />
-        </div>
-        
-        <div className="relative isolate pt-0.5">
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-primary/30 via-blue-400/20 to-accent-teal/30 blur-2xl"
-            aria-hidden
-          />
-          <h1
-            className="relative flex items-baseline justify-center gap-2.5 text-[2.5rem] sm:text-[2.875rem] leading-none tracking-[-0.02em] [font-family:var(--font-playfair-display),ui-serif,Georgia,serif]"
-          >
-            <span className="font-bold text-slate-700/90">Log</span>
-            <span className="font-extrabold bg-linear-to-br from-primary via-blue-500 to-accent-teal bg-clip-text text-transparent">
-              In
-            </span>
-          </h1>
-        </div>
+    <div className="space-y-8">
+      {/* ヘッダー */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">ログイン</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          システムをご利用いただくにはアカウント情報が必要です。
+        </p>
       </div>
 
       {error && (
-        <div className="bg-rose-50 text-rose-700 border border-rose-100 p-3.5 rounded-xl text-sm mb-4 font-medium animate-fade-in flex items-start gap-2">
+        <div className="bg-rose-50 text-rose-700 border border-rose-100 p-3.5 rounded-xl text-sm font-medium animate-fade-in flex items-start gap-2">
           <span className="shrink-0 text-rose-500">⚠️</span>
           <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5" aria-busy={loading}>
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="block text-xs font-bold text-slate-700 tracking-wider uppercase">
+        {/* メールアドレス */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             メールアドレス
           </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="name@company.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            className="block w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs disabled:bg-slate-100 disabled:text-slate-400 placeholder:text-slate-400 text-sm"
-          />
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Mail className="h-4 w-4 text-slate-400" aria-hidden />
+            </span>
+            <input
+              id="email"
+              type="email"
+              placeholder="example@hr-dx.jp"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="block w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg bg-slate-50/80 hover:bg-white text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all disabled:bg-slate-100 disabled:text-slate-400 placeholder:text-slate-400 text-sm"
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
+        {/* パスワード */}
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="password" className="block text-xs font-bold text-slate-700 tracking-wider uppercase">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
               パスワード
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+              className="text-xs font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
               パスワードをお忘れですか？
             </Link>
           </div>
           <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Lock className="h-4 w-4 text-slate-400" aria-hidden />
+            </span>
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -111,12 +107,12 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
               disabled={loading}
-              className="block w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs pr-10 disabled:bg-slate-100 disabled:text-slate-400 placeholder:text-slate-400 text-sm"
+              className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-lg bg-slate-50/80 hover:bg-white text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all disabled:bg-slate-100 disabled:text-slate-400 placeholder:text-slate-400 text-sm"
             />
             <button
               type="button"
               disabled={loading}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none disabled:opacity-50 cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none disabled:opacity-50 cursor-pointer"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
             >
@@ -129,11 +125,24 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* 次回から入力を省略する */}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={e => setRememberMe(e.target.checked)}
+            disabled={loading}
+            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20 cursor-pointer"
+          />
+          <span className="text-sm text-slate-600">次回から入力を省略する</span>
+        </label>
+
+        {/* ログインボタン */}
         <button
           type="submit"
           disabled={loading}
           aria-busy={loading}
-          className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs shadow-blue-500/10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[46px] mt-6"
+          className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:ring-offset-2 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
         >
           {loading ? (
             <>
@@ -141,10 +150,25 @@ export default function LoginPage() {
               <span>ログイン中…</span>
             </>
           ) : (
-            <span>ログインする</span>
+            <>
+              <span>ログイン</span>
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </>
           )}
         </button>
       </form>
+
+      {/* セキュリティ注意事項 */}
+      <div className="border-l-4 border-amber-500 bg-amber-50/60 rounded-r-lg px-4 py-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Zap className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+          <span className="text-xs font-bold text-amber-700 tracking-wide">ご利用にあたって</span>
+        </div>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          共有端末でのご利用後は必ずログアウトしてください。パスワードを忘れた場合は「パスワードをお忘れですか？」から再設定できます。
+        </p>
+      </div>
+
     </div>
   )
 }

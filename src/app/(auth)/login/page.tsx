@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -125,17 +125,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* 次回から入力を省略する */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={e => setRememberMe(e.target.checked)}
-            disabled={loading}
-            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20 cursor-pointer"
-          />
-          <span className="text-sm text-slate-600">次回から入力を省略する</span>
-        </label>
 
         {/* ログインボタン */}
         <button

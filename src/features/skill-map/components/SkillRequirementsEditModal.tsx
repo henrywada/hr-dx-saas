@@ -142,7 +142,7 @@ export function SkillRequirementsEditModal({ skillId, skillName, onClose }: Prop
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {/* 追加フォーム */}
-          <div className="mb-5 rounded-xl border border-primary/20 bg-blue-50/50 p-4">
+          <div className="mb-5 rounded-xl border border-primary/20 bg-[#f6f8fa]/50 p-4">
             <h3 className="mb-3 text-xs font-semibold text-gray-700">＋ 要件を追加</h3>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <input

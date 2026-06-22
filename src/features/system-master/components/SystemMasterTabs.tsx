@@ -49,7 +49,7 @@ export default function SystemMasterTabs({
               className={`
                 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
                 ${activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-[#FD7601] text-[#FD7601]'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }
               `}

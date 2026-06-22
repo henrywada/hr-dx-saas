@@ -74,12 +74,12 @@ export function AiJobForm({ planType }: AiJobFormProps) {
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-200/50">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-orange-600 flex items-center justify-center shadow-lg shadow-purple-200/50">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">AI 求人コンテンツ生成</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-lg font-bold text-[#24292f]">AI 求人コンテンツ生成</h2>
+              <p className="text-xs text-[#57606a]">
                 3つの質問に答えるだけで、AIが求人原稿を自動生成します
               </p>
             </div>
@@ -89,17 +89,17 @@ export function AiJobForm({ planType }: AiJobFormProps) {
           <div>
             <label
               htmlFor="challenge"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-[#24292f] mb-1.5"
             >
               Q1. 採用で解決したい課題は何ですか？
             </label>
-            <p className="text-xs text-slate-500 mb-2">
+            <p className="text-xs text-[#57606a] mb-2">
               例: エンジニア不足でプロダクト開発が遅延している
             </p>
             <textarea
               id="challenge"
               rows={3}
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
+              className="w-full rounded-lg border border-[#e2e6ec] px-4 py-3 text-sm text-[#24292f] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="現在の採用課題を具体的にお書きください..."
               value={form.challenge}
               onChange={e => updateField('challenge', e.target.value)}
@@ -111,17 +111,17 @@ export function AiJobForm({ planType }: AiJobFormProps) {
           <div>
             <label
               htmlFor="expectations"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-[#24292f] mb-1.5"
             >
               Q2. 候補者にどんなことを期待しますか？
             </label>
-            <p className="text-xs text-slate-500 mb-2">
+            <p className="text-xs text-[#57606a] mb-2">
               例: React/TypeScript での開発経験、チームリードの経験
             </p>
             <textarea
               id="expectations"
               rows={3}
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
+              className="w-full rounded-lg border border-[#e2e6ec] px-4 py-3 text-sm text-[#24292f] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="求める経験・スキル・人物像をお書きください..."
               value={form.expectations}
               onChange={e => updateField('expectations', e.target.value)}
@@ -133,17 +133,17 @@ export function AiJobForm({ planType }: AiJobFormProps) {
           <div>
             <label
               htmlFor="uniquePoints"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-[#24292f] mb-1.5"
             >
               Q3. 自社のユニークな点・魅力は何ですか？
             </label>
-            <p className="text-xs text-slate-500 mb-2">
+            <p className="text-xs text-[#57606a] mb-2">
               例: フルリモート勤務OK、自社プロダクトで社会課題を解決
             </p>
             <textarea
               id="uniquePoints"
               rows={3}
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
+              className="w-full rounded-lg border border-[#e2e6ec] px-4 py-3 text-sm text-[#24292f] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-colors resize-none"
               placeholder="候補者に伝えたい御社の魅力をお書きください..."
               value={form.uniquePoints}
               onChange={e => updateField('uniquePoints', e.target.value)}
@@ -161,8 +161,8 @@ export function AiJobForm({ planType }: AiJobFormProps) {
           {/* 送信ボタン周辺 */}
           <div className="space-y-3 pt-2">
             {!usage?.isUnlimited && usage && (
-              <div className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-lg border border-slate-200">
-                <span className="text-sm font-medium text-slate-600">今月のAI無料チケット</span>
+              <div className="flex items-center justify-between bg-[#f6f8fa] px-4 py-3 rounded-lg border border-[#e2e6ec]">
+                <span className="text-sm font-medium text-[#57606a]">今月のAI無料チケット</span>
                 <span className="text-sm font-bold flex items-center gap-2">
                   残り
                   <span
@@ -179,7 +179,7 @@ export function AiJobForm({ planType }: AiJobFormProps) {
               type="submit"
               variant="primary"
               disabled={!isValid || isPending || isLimitReached}
-              className="w-full !bg-gradient-to-r !from-purple-600 !to-indigo-600 hover:!from-purple-700 hover:!to-indigo-700 disabled:!from-slate-300 disabled:!to-slate-400 shadow-lg shadow-purple-200/50 flex items-center justify-center gap-2 !py-3"
+              className="w-full !bg-gradient-to-r !from-purple-600 !to-orange-600 hover:!from-purple-700 hover:!to-indigo-700 disabled:!from-slate-300 disabled:!to-slate-400 shadow-lg shadow-purple-200/50 flex items-center justify-center gap-2 !py-3"
             >
               {isPending ? (
                 <>
@@ -207,11 +207,11 @@ export function AiJobForm({ planType }: AiJobFormProps) {
         {result ? (
           <AiOutputDisplay result={result} planType={planType} />
         ) : (
-          <div className="h-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+          <div className="h-full bg-[#f6f8fa] border-2 border-dashed border-[#e2e6ec] rounded-xl flex flex-col items-center justify-center text-[#57606a] p-8 text-center">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-              <Sparkles className="h-8 w-8 text-slate-300" />
+              <Sparkles className="h-8 w-8 text-[#57606a]" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-500">生成結果がここに表示されます</h3>
+            <h3 className="text-lg font-semibold text-[#57606a]">生成結果がここに表示されます</h3>
             <p className="text-sm max-w-xs mt-2">
               左側のフォームに入力して「AI で求人原稿を生成する」ボタンを押してください。
             </p>

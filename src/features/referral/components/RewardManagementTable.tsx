@@ -13,7 +13,7 @@ interface RewardManagementTableProps {
 export function RewardManagementTable({ rewards }: RewardManagementTableProps) {
   if (rewards.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center text-sm text-slate-400">
+      <div className="flex h-32 items-center justify-center text-sm text-[#57606a]">
         報奨金データがありません
       </div>
     )
@@ -23,31 +23,31 @@ export function RewardManagementTable({ rewards }: RewardManagementTableProps) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-[#e2e6ec] bg-[#f6f8fa]">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               推薦者名
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               候補者名
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               金額
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               ステータス
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               支払い予定日
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               支払い日
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               操作
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[#e2e6ec]">
           {rewards.map(reward => (
             <RewardRow key={reward.id} reward={reward} />
           ))}
@@ -77,17 +77,17 @@ function RewardRow({ reward }: { reward: ReferralReward }) {
   }
 
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
+    <tr className="hover:bg-[#f6f8fa] transition-colors">
       {/* 推薦者名 */}
-      <td className="px-4 py-3 font-medium text-slate-900">
-        {reward.referrer?.name ?? <span className="text-slate-400">—</span>}
+      <td className="px-4 py-3 font-medium text-[#24292f]">
+        {reward.referrer?.name ?? <span className="text-[#57606a]">—</span>}
       </td>
       {/* 候補者名 */}
-      <td className="px-4 py-3 text-slate-700">
-        {reward.nomination?.nominee_name ?? <span className="text-slate-400">—</span>}
+      <td className="px-4 py-3 text-[#24292f]">
+        {reward.nomination?.nominee_name ?? <span className="text-[#57606a]">—</span>}
       </td>
       {/* 金額 */}
-      <td className="px-4 py-3 font-semibold text-slate-900">
+      <td className="px-4 py-3 font-semibold text-[#24292f]">
         ¥{reward.amount.toLocaleString('ja-JP')}
       </td>
       {/* ステータス */}
@@ -95,11 +95,11 @@ function RewardRow({ reward }: { reward: ReferralReward }) {
         <RewardStatusBadge status={reward.status} />
       </td>
       {/* 支払い予定日 */}
-      <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+      <td className="px-4 py-3 whitespace-nowrap text-[#57606a]">
         {reward.scheduled_date ? formatDate(reward.scheduled_date) : '—'}
       </td>
       {/* 支払い日 */}
-      <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+      <td className="px-4 py-3 whitespace-nowrap text-[#57606a]">
         {reward.paid_at ? formatDate(reward.paid_at) : '—'}
       </td>
       {/* 操作 */}
@@ -109,7 +109,7 @@ function RewardRow({ reward }: { reward: ReferralReward }) {
             type="button"
             onClick={handleApprove}
             disabled={isPending}
-            className="rounded-lg border border-[#0055ff] px-3 py-1 text-xs font-semibold text-[#0055ff] hover:bg-blue-50 disabled:opacity-50 transition-colors"
+            className="rounded-lg border border-[#0055ff] px-3 py-1 text-xs font-semibold text-[#0055ff] hover:bg-[#f6f8fa] disabled:opacity-50 transition-colors"
           >
             承認
           </button>

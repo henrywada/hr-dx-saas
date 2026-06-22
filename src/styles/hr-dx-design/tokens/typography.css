@@ -1,0 +1,60 @@
+/* ============================================================
+   HR-DX — Typography tokens
+   Primary: Noto Sans JP (UI + display, JP + Latin)
+   Mono:    Noto Sans Mono (resource IDs, code, tabular data)
+   Enterprise console: compact, legible, 14px UI base.
+   ============================================================ */
+:root {
+  /* Families */
+  --font-sans:
+    'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Yu Gothic',
+    Meiryo, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale (px) — compact UI ramp */
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px; /* UI default */
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.75;
+
+  /* Letter spacing (JP reads tighter; headings slightly negative) */
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-caps: 0.08em;
+
+  /* Semantic roles */
+  --display-size: var(--text-5xl);
+  --display-weight: var(--weight-black);
+  --display-leading: var(--leading-tight);
+
+  --h1-size: var(--text-3xl);
+  --h2-size: var(--text-2xl);
+  --h3-size: var(--text-xl);
+  --title-weight: var(--weight-bold);
+
+  --body-size: var(--text-base);
+  --body-leading: var(--leading-normal);
+  --caption-size: var(--text-xs);
+}

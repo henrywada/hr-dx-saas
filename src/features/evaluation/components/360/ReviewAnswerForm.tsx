@@ -93,8 +93,8 @@ export function ReviewAnswerForm({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-lg font-semibold text-slate-800">回答が完了しました</h2>
-        <p className="text-sm text-slate-500">ご協力ありがとうございました。</p>
+        <h2 className="text-lg font-semibold text-[#24292f]">回答が完了しました</h2>
+        <p className="text-sm text-[#57606a]">ご協力ありがとうございました。</p>
         <button
           onClick={() => router.push(APP_ROUTES.EVALUATION.MY_EVALUATION_360)}
           className="px-4 py-2 bg-primary text-white text-sm rounded-xl hover:bg-primary/90"
@@ -107,12 +107,12 @@ export function ReviewAnswerForm({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="bg-slate-50 rounded-xl p-4 space-y-1">
-        <h1 className="text-lg font-bold text-slate-900">{campaignName}</h1>
-        <p className="text-sm text-slate-600">
+      <div className="bg-[#f6f8fa] rounded-xl p-4 space-y-1">
+        <h1 className="text-lg font-bold text-[#24292f]">{campaignName}</h1>
+        <p className="text-sm text-[#57606a]">
           評価対象者：<span className="font-medium">{subjectName}</span>
         </p>
-        <p className="text-sm text-slate-500">回答期限：{deadline}</p>
+        <p className="text-sm text-[#57606a]">回答期限：{deadline}</p>
         {isAnonymous && (
           <p className="text-xs text-primary bg-primary/10 inline-block px-2 py-0.5 rounded-full">
             この評価は匿名で集計されます
@@ -122,14 +122,14 @@ export function ReviewAnswerForm({
 
       <div className="space-y-4">
         {questions.map((q, i) => (
-          <div key={q.id} className="border border-slate-200 rounded-xl p-4 space-y-3">
+          <div key={q.id} className="border border-[#e2e6ec] rounded-xl p-4 space-y-3">
             <div className="flex items-start gap-2">
-              <span className="text-xs text-slate-400 shrink-0 mt-0.5">Q{i + 1}</span>
+              <span className="text-xs text-[#57606a] shrink-0 mt-0.5">Q{i + 1}</span>
               <div>
-                <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full mr-2">
+                <span className="text-xs px-2 py-0.5 bg-[#f6f8fa] text-[#57606a] rounded-full mr-2">
                   {QUESTION_CATEGORY_LABELS[q.category]}
                 </span>
-                <span className="text-sm font-medium text-slate-800">{q.question_text}</span>
+                <span className="text-sm font-medium text-[#24292f]">{q.question_text}</span>
               </div>
             </div>
 
@@ -142,7 +142,7 @@ export function ReviewAnswerForm({
                   className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
                     responses[q.id]?.score === s
                       ? 'bg-primary text-white border-primary'
-                      : 'border-slate-200 text-slate-600 hover:border-primary hover:text-primary'
+                      : 'border-[#e2e6ec] text-[#57606a] hover:border-primary hover:text-primary'
                   }`}
                 >
                   {s}
@@ -150,7 +150,7 @@ export function ReviewAnswerForm({
               ))}
             </div>
             {responses[q.id]?.score && (
-              <p className="text-xs text-slate-500">{SCORE_LABELS[responses[q.id].score!]}</p>
+              <p className="text-xs text-[#57606a]">{SCORE_LABELS[responses[q.id].score!]}</p>
             )}
 
             <textarea
@@ -158,7 +158,7 @@ export function ReviewAnswerForm({
               onChange={e => updateComment(q.id, e.target.value)}
               rows={2}
               placeholder="コメント（任意）"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         ))}

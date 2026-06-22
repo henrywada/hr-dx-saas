@@ -167,7 +167,7 @@ export function EvalApproversManager({ rows, allEmployees }: Props) {
               {rows.map((row, i) => (
                 <tr
                   key={row.employee_id}
-                  className={`border-b border-gray-100 hover:bg-blue-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  className={`border-b border-gray-100 hover:bg-[#f6f8fa] ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                 >
                   <td className="w-10 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
                     {i + 1}

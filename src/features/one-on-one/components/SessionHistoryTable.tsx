@@ -56,7 +56,7 @@ export function SessionHistoryTable({ sessions }: Props) {
               </td>
               <td className="px-4 py-3 text-gray-600">{s.manager_name}</td>
               <td className="px-4 py-3">
-                <span className="inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                <span className="inline-block rounded-full bg-[#f6f8fa] px-2.5 py-0.5 text-xs font-medium text-[#FD7601]">
                   {s.theme}
                 </span>
               </td>

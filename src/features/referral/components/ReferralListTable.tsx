@@ -14,7 +14,7 @@ interface ReferralListTableProps {
 export function ReferralListTable({ nominations }: ReferralListTableProps) {
   if (nominations.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center text-sm text-slate-400">
+      <div className="flex h-32 items-center justify-center text-sm text-[#57606a]">
         推薦データがありません
       </div>
     )
@@ -24,57 +24,57 @@ export function ReferralListTable({ nominations }: ReferralListTableProps) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-[#e2e6ec] bg-[#f6f8fa]">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               推薦日
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               候補者名
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               推薦求人
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               推薦者
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               ステータス
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               最終更新
             </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#57606a]">
               操作
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[#e2e6ec]">
           {nominations.map(nomination => (
-            <tr key={nomination.id} className="hover:bg-slate-50 transition-colors">
+            <tr key={nomination.id} className="hover:bg-[#f6f8fa] transition-colors">
               {/* 推薦日 */}
-              <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+              <td className="px-4 py-3 whitespace-nowrap text-[#57606a]">
                 {formatDate(nomination.created_at)}
               </td>
               {/* 候補者名 */}
-              <td className="px-4 py-3 font-medium text-slate-900">{nomination.nominee_name}</td>
+              <td className="px-4 py-3 font-medium text-[#24292f]">{nomination.nominee_name}</td>
               {/* 推薦求人 */}
               <td className="px-4 py-3">
                 {nomination.referral_posting ? (
-                  <span className="text-slate-700">{nomination.referral_posting.title}</span>
+                  <span className="text-[#24292f]">{nomination.referral_posting.title}</span>
                 ) : (
-                  <span className="text-slate-400">—</span>
+                  <span className="text-[#57606a]">—</span>
                 )}
               </td>
               {/* 推薦者 */}
-              <td className="px-4 py-3 text-slate-600">
-                {nomination.referrer?.name ?? <span className="text-slate-400">—</span>}
+              <td className="px-4 py-3 text-[#57606a]">
+                {nomination.referrer?.name ?? <span className="text-[#57606a]">—</span>}
               </td>
               {/* ステータス */}
               <td className="px-4 py-3">
                 <ReferralStatusBadge status={nomination.status} />
               </td>
               {/* 最終更新 */}
-              <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+              <td className="px-4 py-3 whitespace-nowrap text-[#57606a]">
                 {formatDate(nomination.updated_at)}
               </td>
               {/* 操作 */}

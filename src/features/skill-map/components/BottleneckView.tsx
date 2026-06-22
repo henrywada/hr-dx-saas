@@ -79,12 +79,12 @@ export function BottleneckView({ skills, divisions }: Props) {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* 説明ガイダンス */}
-      <div className="rounded-xl border border-blue-100 bg-linear-to-r from-blue-50/40 to-indigo-50/10 p-5 shadow-sm">
+      <div className="rounded-xl border border-[#e2e6ec] bg-linear-to-r from-blue-50/40 to-indigo-50/10 p-5 shadow-sm">
         <div className="flex gap-3">
-          <HelpCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <HelpCircle className="h-5 w-5 text-[#FD7601] shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-sm font-bold text-blue-950">組織スキルボトルネック分析</h4>
-            <p className="text-xs text-blue-800 mt-1 leading-relaxed max-w-[75ch]">
+            <h4 className="text-sm font-bold text-[#24292f]">組織スキルボトルネック分析</h4>
+            <p className="text-xs text-[#FD7601] mt-1 leading-relaxed max-w-[75ch]">
               選択した職種・部門に所属するメンバー全体をスキャンし、**「どの技能要件が特にクリアできていないか（達成率が低いか）」**をボトルネックとして可視化します。
               未達成者が多く、クリア率が極めて低い項目（ボトルネック）を特定することで、社内研修やeラーニングの優先アサインターゲット、または中途採用で獲得すべきピンポイントスキルの特定など、実効性の高い育成・採用投資を可能にします。
             </p>
@@ -201,7 +201,7 @@ export function BottleneckView({ skills, divisions }: Props) {
                     ? 'bg-red-50 text-red-700 border-red-100'
                     : item.completion_rate < 60
                       ? 'bg-amber-50 text-amber-700 border-amber-100'
-                      : 'bg-blue-50 text-blue-700 border-blue-100'
+                      : 'bg-[#f6f8fa] text-[#FD7601] border-[#e2e6ec]'
 
                 return (
                   <div
@@ -217,7 +217,7 @@ export function BottleneckView({ skills, divisions }: Props) {
                           </span>
                         )}
                         {item.category && (
-                          <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 rounded font-semibold">
+                          <span className="text-[9px] bg-[#f6f8fa] text-[#57606a] px-1.5 rounded font-semibold">
                             {item.category}
                           </span>
                         )}

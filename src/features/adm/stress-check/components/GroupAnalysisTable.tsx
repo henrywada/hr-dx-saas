@@ -87,7 +87,7 @@ export default function GroupAnalysisTable({ departments }: Props) {
           {departments.map((dept) => (
             <tr
               key={dept.departmentName}
-              className={`transition-colors ${dept.isMasked ? 'bg-gray-50/30' : 'hover:bg-blue-50/30'}`}
+              className={`transition-colors ${dept.isMasked ? 'bg-gray-50/30' : 'hover:bg-[#f6f8fa]/30'}`}
             >
               {/* 部署名 */}
               <td className="px-5 py-3 whitespace-nowrap sticky left-0 bg-inherit z-10">

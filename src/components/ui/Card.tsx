@@ -27,21 +27,22 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   onClick,
 }) => {
-  const baseStyles = 'rounded-lg shadow-sm p-6 transition-shadow duration-200'
+  const baseStyles =
+    'rounded-xl border border-[#e2e6ec] shadow-none p-6 transition-shadow duration-200'
   const hoverStyles = onClick ? 'cursor-pointer hover:shadow-md' : ''
 
   const variantStyles = {
-    default: 'bg-white border border-gray-200',
-    primary: 'bg-primary-light border border-primary/20',
-    'accent-teal': 'bg-success-light border border-accent-teal/25',
-    'accent-orange': 'bg-warning-light border border-accent-orange/25',
+    default: 'bg-white',
+    primary: 'bg-primary-light',
+    'accent-teal': 'bg-success-light',
+    'accent-orange': 'bg-warning-light',
   }
 
   const titleColorStyles = {
-    default: 'text-gray-900',
-    primary: 'text-primary',
-    'accent-teal': 'text-accent-teal',
-    'accent-orange': 'text-accent-orange',
+    default: 'text-sm font-medium text-[#57606a]',
+    primary: 'text-sm font-medium text-primary',
+    'accent-teal': 'text-sm font-medium text-accent-teal',
+    'accent-orange': 'text-sm font-medium text-accent-orange',
   }
 
   return (

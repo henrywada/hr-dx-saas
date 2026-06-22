@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-sm min-w-[200px]">
       <p className="font-bold text-gray-800 mb-2 text-xs leading-snug break-all">{d.name}</p>
-      <p className="text-blue-600">
+      <p className="text-[#FD7601]">
         受検者：<span className="font-bold">{d.submitted}名</span>
       </p>
       <p className="text-gray-500">

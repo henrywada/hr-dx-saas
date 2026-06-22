@@ -90,14 +90,14 @@ export function AnnouncementFormDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-slate-200 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0">
-          <h3 className="text-lg font-bold text-slate-900">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-[#e2e6ec] max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa] sticky top-0">
+          <h3 className="text-lg font-bold text-[#24292f]">
             {isEdit ? 'お知らせを編集' : 'お知らせを追加'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -109,45 +109,45 @@ export function AnnouncementFormDialog({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">タイトル *</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">タイトル *</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
               placeholder="例: 健康診断の予約について（全社員対象）"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">本文</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">本文</label>
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
               placeholder="お知らせの詳細（任意）"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">公開日時</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">公開日時</label>
             <input
               type="datetime-local"
               value={publishedAt}
               onChange={e => setPublishedAt(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">対象</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">対象</label>
             <input
               type="text"
               value={targetAudience}
               onChange={e => setTargetAudience(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
               placeholder="例: 全社員対象"
             />
           </div>
@@ -158,36 +158,36 @@ export function AnnouncementFormDialog({
               id="is_new"
               checked={isNew}
               onChange={e => setIsNew(e.target.checked)}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-[#e2e6ec] text-[#FD7601] focus:ring-[#FD7601]"
             />
-            <label htmlFor="is_new" className="text-sm font-medium text-slate-700">
+            <label htmlFor="is_new" className="text-sm font-medium text-[#24292f]">
               NEW バッジを表示する
             </label>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">表示順</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">表示順</label>
             <input
               type="number"
               value={sortOrder}
               onChange={e => setSortOrder(Number(e.target.value) || 0)}
               min={0}
-              className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-24 px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#e2e6ec]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
             >
               {isPending ? '保存中...' : isEdit ? '更新' : '追加'}
             </button>

@@ -50,7 +50,7 @@ export function TeamGrowthGrid({ cards }: TeamGrowthGridProps) {
                   ? `目標: ${card.goal_skill_name}${card.goal_deadline ? ` ・ 期限 ${new Date(card.goal_deadline).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' })}` : ''}`
                   : '目標未設定'}
               </p>
-              <div className="bg-blue-100 rounded-full h-1.5 overflow-hidden mb-1">
+              <div className="bg-[#FD7601]-10 rounded-full h-1.5 overflow-hidden mb-1">
                 <div
                   className="bg-primary h-1.5 rounded-full"
                   style={{ width: `${card.achievement_rate}%` }}

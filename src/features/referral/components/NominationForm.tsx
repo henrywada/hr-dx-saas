@@ -51,18 +51,18 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
   return (
     // オーバーレイ
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-lg">
+      <div className="w-full max-w-lg bg-white rounded-2xl border border-[#e2e6ec] shadow-lg">
         {/* ヘッダー */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-[#e2e6ec]">
           <div>
-            <h2 className="text-base font-bold text-slate-900">推薦フォーム</h2>
-            <p className="mt-0.5 text-xs text-slate-500">求人: {posting.title}</p>
+            <h2 className="text-base font-bold text-[#24292f]">推薦フォーム</h2>
+            <p className="mt-0.5 text-xs text-[#57606a]">求人: {posting.title}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="閉じる"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="rounded-lg p-1.5 text-[#57606a] hover:bg-[#f6f8fa] hover:text-[#57606a] transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -72,7 +72,7 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* 候補者名（必須） */}
           <div>
-            <label htmlFor="nominee_name" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="nominee_name" className="block text-sm font-medium text-[#24292f] mb-1">
               候補者名 <span className="text-red-500">*</span>
             </label>
             <input
@@ -81,7 +81,7 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
               type="text"
               required
               placeholder="山田 太郎"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -89,16 +89,16 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
           <div>
             <label
               htmlFor="nominee_email"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium text-[#24292f] mb-1"
             >
-              メールアドレス <span className="text-slate-400 text-xs font-normal">任意</span>
+              メールアドレス <span className="text-[#57606a] text-xs font-normal">任意</span>
             </label>
             <input
               id="nominee_email"
               name="nominee_email"
               type="email"
               placeholder="taro.yamada@example.com"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -106,28 +106,28 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
           <div>
             <label
               htmlFor="nominee_phone"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium text-[#24292f] mb-1"
             >
-              電話番号 <span className="text-slate-400 text-xs font-normal">任意</span>
+              電話番号 <span className="text-[#57606a] text-xs font-normal">任意</span>
             </label>
             <input
               id="nominee_phone"
               name="nominee_phone"
               type="text"
               placeholder="090-0000-0000"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
           {/* 関係性（任意） */}
           <div>
-            <label htmlFor="relationship" className="block text-sm font-medium text-slate-700 mb-1">
-              関係性 <span className="text-slate-400 text-xs font-normal">任意</span>
+            <label htmlFor="relationship" className="block text-sm font-medium text-[#24292f] mb-1">
+              関係性 <span className="text-[#57606a] text-xs font-normal">任意</span>
             </label>
             <select
               id="relationship"
               name="relationship"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
             >
               <option value="">選択してください</option>
               <option value="元同僚">元同僚</option>
@@ -141,16 +141,16 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
           <div>
             <label
               htmlFor="nomination_reason"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium text-[#24292f] mb-1"
             >
-              推薦理由 <span className="text-slate-400 text-xs font-normal">任意</span>
+              推薦理由 <span className="text-[#57606a] text-xs font-normal">任意</span>
             </label>
             <textarea
               id="nomination_reason"
               name="nomination_reason"
               rows={3}
               placeholder="候補者の強みや推薦理由をご記入ください"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             />
           </div>
 
@@ -165,7 +165,7 @@ export function NominationForm({ posting, onClose, onSuccess }: NominationFormPr
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[#57606a] hover:text-[#24292f] disabled:opacity-50 transition-colors"
             >
               キャンセル
             </button>

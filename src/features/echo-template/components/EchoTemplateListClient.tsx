@@ -45,8 +45,8 @@ export default function EchoTemplateListClient({ initialTemplates }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Echo テンプレート管理</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-[#24292f]">Echo テンプレート管理</h1>
+          <p className="text-sm text-[#57606a] mt-1">
             パルスサーベイ用の設問テンプレートを管理します。
           </p>
         </div>
@@ -60,35 +60,35 @@ export default function EchoTemplateListClient({ initialTemplates }: Props) {
       </div>
 
       {templates.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="text-center py-16 text-[#57606a]">
           <FileText size={48} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">テンプレートがありません。「新規作成」から追加してください。</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e6ec] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
               <tr>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">テンプレート名</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">説明</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">設問数</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">操作</th>
+                <th className="text-left px-5 py-3 font-medium text-[#57606a]">テンプレート名</th>
+                <th className="text-left px-5 py-3 font-medium text-[#57606a]">説明</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">設問数</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e2e6ec]">
               {templates.map(t => (
-                <tr key={t.id} className="hover:bg-slate-50">
-                  <td className="px-5 py-3 font-medium text-slate-800">{t.title}</td>
-                  <td className="px-5 py-3 text-slate-500 max-w-xs truncate">
+                <tr key={t.id} className="hover:bg-[#f6f8fa]">
+                  <td className="px-5 py-3 font-medium text-[#24292f]">{t.title}</td>
+                  <td className="px-5 py-3 text-[#57606a] max-w-xs truncate">
                     {t.description ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-center text-slate-600">{t.question_count}</td>
+                  <td className="px-4 py-3 text-center text-[#57606a]">{t.question_count}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleOpenEdit(t.id)}
                         disabled={isPending}
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                        className="flex items-center gap-1 px-3 py-1 text-xs text-[#57606a] border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] disabled:opacity-50"
                       >
                         <Pencil size={12} />
                         編集
@@ -104,7 +104,7 @@ export default function EchoTemplateListClient({ initialTemplates }: Props) {
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(null)}
-                            className="px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
+                            className="px-3 py-1 text-xs text-[#57606a] hover:bg-[#f6f8fa] rounded-lg"
                           >
                             戻る
                           </button>

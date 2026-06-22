@@ -150,7 +150,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
         )
       case 'pro':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#FD7601]-10 text-[#FD7601] border border-[#e2e6ec]">
             Pro
           </span>
         )
@@ -201,7 +201,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
           placeholder="テナント名・責任者名・メールで検索..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none text-sm transition-all"
         />
       </div>
 
@@ -254,7 +254,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                 </tr>
               ) : (
                 filteredTenants.map(tenant => (
-                  <tr key={tenant.id} className="hover:bg-blue-50/50 transition-colors">
+                  <tr key={tenant.id} className="hover:bg-[#f6f8fa]/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
@@ -270,7 +270,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FD7601]-10 text-[#FD7601]">
                         {tenant.max_employees ?? '—'} 名
                       </span>
                     </td>
@@ -302,7 +302,7 @@ export default function TenantManagementPage({ initialTenants }: Props) {
                         <button
                           onClick={() => openEditDialog(tenant)}
                           disabled={loading}
-                          className="text-blue-500 hover:text-blue-700 text-lg transition-colors disabled:opacity-50"
+                          className="text-[#FD7601] hover:text-[#FD7601] text-lg transition-colors disabled:opacity-50"
                           title="編集"
                         >
                           ✏️

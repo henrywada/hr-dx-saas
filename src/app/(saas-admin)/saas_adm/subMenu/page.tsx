@@ -53,7 +53,7 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
   ]
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-4">
+    <div className="w-full space-y-4 animate-in fade-in duration-500 slide-in-from-bottom-4 px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
       <div className="relative pl-5">
         <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full" />
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -69,7 +69,7 @@ async function SaasSubMenuCategoryContent({ categoryId }: { categoryId: string }
           <p className="text-slate-500">利用可能なサービスがありません。</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {services.map((service, index) => {
             const variant = CARD_VARIANTS[index % CARD_VARIANTS.length]
 

@@ -25,6 +25,7 @@ interface SidebarNavProps {
   userName?: string
   /** company_doctor の場合は「ポータルへ戻る」の代わりに「ログアウト」を表示 */
   appRole?: string
+  variant?: 'portal' | 'admin' | 'saas'
 }
 
 export function SidebarNav({
@@ -34,6 +35,7 @@ export function SidebarNav({
   basePath = `${APP_ROUTES.TENANT.PORTAL}/subMenu`,
   userName,
   appRole,
+  variant,
 }: SidebarNavProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -77,9 +79,8 @@ export function SidebarNav({
 
   const navLinkBase =
     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative'
-  const navLinkInactive = 'text-slate-300 hover:bg-white/10 hover:text-white'
-  const navLinkActive =
-    'bg-white/10 text-accent-orange shadow-sm border border-white/10'
+  const navLinkInactive = 'text-[#24292f] hover:bg-[#f6f8fa]'
+  const navLinkActive = 'bg-[#fff3e6] text-[#FD7601] border-l-2 border-[#FD7601]'
 
   return (
     <>
@@ -92,13 +93,12 @@ export function SidebarNav({
       )}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 border-r border-slate-800 flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
-        style={{ backgroundColor: '#0f1117' }}
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 bg-white border-r border-[#e2e6ec] flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
       >
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
           {/* Main Navigation */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
+            <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wider mb-3 px-3">
               メインメニュー
             </h3>
             <nav className="space-y-1">
@@ -146,15 +146,15 @@ export function SidebarNav({
                   onClick={handleLogoutOrReturn}
                   className={`w-full ${navLinkBase} ${navLinkInactive}`}
                 >
-                  <LogOut className="w-5 h-5 text-slate-400 group-hover:text-slate-200" />
+                  <LogOut className="w-5 h-5 text-[#57606a] group-hover:text-[#24292f]" />
                   <span className="flex-1 text-left">ログアウト</span>
                 </button>
               )}
 
               {/* Login Tenant Display */}
               {tenantName && (
-                <div className="mt-6 pt-4 border-t border-slate-700 px-2">
-                  <p className="text-xs font-semibold text-slate-400 truncate">{tenantName}</p>
+                <div className="mt-6 pt-4 border-t border-[#e2e6ec] px-2">
+                  <p className="text-xs font-semibold text-[#57606a] truncate">{tenantName}</p>
                 </div>
               )}
             </nav>
@@ -162,19 +162,19 @@ export function SidebarNav({
         </div>
 
         {/* User / Bottom Actions */}
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-[#e2e6ec]">
           {userName && (
             <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-200 font-bold text-sm border border-slate-600">
+              <div className="w-8 h-8 rounded-full bg-[#f6f8fa] flex items-center justify-center text-[#24292f] font-bold text-sm border border-[#e2e6ec]">
                 {userName.charAt(0)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-medium text-slate-200 truncate">{userName}</p>
-                <p className="text-[10px] text-slate-500 truncate">ログイン中</p>
+                <p className="text-sm font-medium text-[#24292f] truncate">{userName}</p>
+                <p className="text-[10px] text-[#57606a] truncate">ログイン中</p>
               </div>
             </div>
           )}
-          <button className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-white/10 rounded-lg transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-[#57606a] hover:text-[#24292f] hover:bg-[#f6f8fa] rounded-lg transition-colors">
             ヘルプ＆サポート
           </button>
         </div>

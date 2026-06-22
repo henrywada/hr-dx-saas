@@ -54,7 +54,7 @@ export function QuizSlideView({ slide, assignmentId, isCompleted, onCompleted }:
             if (opt.is_correct) cls = 'border-green-500 bg-green-50'
             else if (idx === selectedIdx) cls = 'border-red-400 bg-red-50'
           } else if (idx === selectedIdx) {
-            cls = 'border-blue-500 bg-blue-50'
+            cls = 'border-[#FD7601] bg-[#f6f8fa]'
           }
 
           return (
@@ -77,7 +77,7 @@ export function QuizSlideView({ slide, assignmentId, isCompleted, onCompleted }:
         <button
           onClick={handleAnswer}
           disabled={selectedIdx === null || isPending}
-          className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 transition-opacity"
+          className="w-full py-3 rounded-xl bg-[#FD7601] text-white font-semibold text-sm disabled:opacity-40 transition-opacity"
         >
           {isPending ? '記録中...' : '回答する'}
         </button>

@@ -35,7 +35,7 @@ export function EngagementScoreCards({
         label="パルスサーベイ"
         value={latestPulseScore !== null ? latestPulseScore.toFixed(1) : '—'}
         sub={latestPulsePeriod ?? ''}
-        colorClass="text-indigo-600"
+        colorClass="text-[#FD7601]"
         hasData={latestPulseScore !== null}
       />
       <ScoreCard

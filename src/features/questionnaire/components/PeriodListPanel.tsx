@@ -30,7 +30,7 @@ function computePeriodListRowStatus(period: PeriodListItem): PeriodListRowStatus
 }
 
 const STATUS_CONFIG: Record<PeriodListRowStatus, { label: string; className: string }> = {
-  upcoming:    { label: '未開始',   className: 'bg-blue-100 text-blue-700' },
+  upcoming:    { label: '未開始',   className: 'bg-[#FD7601]-10 text-[#FD7601]' },
   active:      { label: '実施中',   className: 'bg-green-100 text-green-700' },
   no_assignees: { label: '対象者なし', className: 'bg-amber-100 text-amber-800' },
   closed:      { label: '終了',     className: 'bg-gray-100 text-gray-500' },

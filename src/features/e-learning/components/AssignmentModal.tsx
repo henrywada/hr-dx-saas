@@ -75,12 +75,12 @@ export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Pr
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="従業員名で検索"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
             />
           </div>
 
           <div className="flex items-center justify-between text-sm text-gray-500">
-            <button onClick={toggleAll} className="hover:text-blue-600 underline text-xs">
+            <button onClick={toggleAll} className="hover:text-[#FD7601] underline text-xs">
               {selected.size === filtered.length ? 'すべて解除' : 'すべて選択'}
             </button>
             <span>{selected.size}名選択中</span>
@@ -96,7 +96,7 @@ export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Pr
                   type="checkbox"
                   checked={selected.has(emp.id)}
                   onChange={() => toggle(emp.id)}
-                  className="rounded text-blue-600"
+                  className="rounded text-[#FD7601]"
                 />
                 <span className="text-sm text-gray-700">{emp.name}</span>
               </label>
@@ -112,7 +112,7 @@ export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Pr
               type="date"
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
             />
           </div>
 
@@ -126,7 +126,7 @@ export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Pr
           <button
             onClick={handleSubmit}
             disabled={isPending || selected.size === 0}
-            className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+            className="px-5 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg disabled:opacity-50"
           >
             {isPending ? 'アサイン中...' : `${selected.size}名をアサイン`}
           </button>

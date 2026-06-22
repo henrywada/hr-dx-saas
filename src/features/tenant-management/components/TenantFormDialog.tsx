@@ -180,7 +180,7 @@ export default function TenantFormDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: 株式会社サンプル"
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                 errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
               }`}
             />
@@ -197,7 +197,7 @@ export default function TenantFormDialog({
             <select
               value={planType}
               onChange={(e) => setPlanType(e.target.value)}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                 errors.plan_type ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
               }`}
             >
@@ -219,7 +219,7 @@ export default function TenantFormDialog({
               type="date"
               value={contractEndDay}
               onChange={(e) => setContractEndDay(e.target.value)}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                 errors.contract_end_day ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
               }`}
             />
@@ -241,7 +241,7 @@ export default function TenantFormDialog({
                 onChange={(e) => setPaidAmount(e.target.value)}
                 placeholder="0"
                 min="0"
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                   errors.paid_amount ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
                 }`}
               />
@@ -259,7 +259,7 @@ export default function TenantFormDialog({
                 onChange={(e) => setMaxEmployees(e.target.value)}
                 placeholder="30"
                 min="1"
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                   errors.max_employees ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
                 }`}
               />
@@ -274,7 +274,7 @@ export default function TenantFormDialog({
             <>
               <div className="pt-2 border-t border-gray-100">
                 <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                  <span className="w-1 h-4 bg-blue-500 rounded-full inline-block"></span>
+                  <span className="w-1 h-4 bg-[#f6f8fa]0 rounded-full inline-block"></span>
                   責任者情報
                 </h3>
               </div>
@@ -289,7 +289,7 @@ export default function TenantFormDialog({
                   value={managerName}
                   onChange={(e) => setManagerName(e.target.value)}
                   placeholder="例: 山田 太郎"
-                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                     errors.manager_name ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
                   }`}
                 />
@@ -308,7 +308,7 @@ export default function TenantFormDialog({
                   value={managerEmail}
                   onChange={(e) => setManagerEmail(e.target.value)}
                   placeholder="例: manager@example.com"
-                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all ${
                     errors.manager_email ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
                   }`}
                 />

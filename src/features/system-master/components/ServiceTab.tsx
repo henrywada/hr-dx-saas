@@ -168,7 +168,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
     <div className="space-y-4 w-full">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">サービス一覧</h3>
-        <button onClick={handleAddNew} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">+ 新規追加</button>
+        <button onClick={handleAddNew} className="px-4 py-2 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold">+ 新規追加</button>
       </div>
 
       <div className="overflow-x-auto border rounded-lg shadow-sm">
@@ -256,13 +256,13 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                     <div className="flex justify-center gap-3 items-center">
                       {isEditing ? (
                         <>
-                          <button onClick={() => handleSave(item.id)} disabled={loading} className="text-blue-600 font-bold hover:underline text-sm">{loading ? '...' : '保存'}</button>
+                          <button onClick={() => handleSave(item.id)} disabled={loading} className="text-[#FD7601] font-bold hover:underline text-sm">{loading ? '...' : '保存'}</button>
                           <button onClick={() => {setEditingId(null);}} className="text-gray-500 hover:underline text-sm">取消</button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => handleEdit(item)} className="text-blue-500 text-lg hover:scale-110 transition-transform" title="編集">✏️</button>
-                          <button onClick={() => openModal(item.id)} className="text-indigo-600 text-xs border border-indigo-200 px-3 py-1.5 rounded bg-indigo-50 hover:bg-indigo-100 transition-colors font-bold">詳細変更</button>
+                          <button onClick={() => handleEdit(item)} className="text-[#FD7601] text-lg hover:scale-110 transition-transform" title="編集">✏️</button>
+                          <button onClick={() => openModal(item.id)} className="text-[#FD7601] text-xs border border-[#e2e6ec] px-3 py-1.5 rounded bg-[#f6f8fa] hover:bg-[#f6f8fa] transition-colors font-bold">詳細変更</button>
                           <button onClick={() => handleDelete(item.id, item.name)} className="text-red-500 text-lg hover:scale-110 transition-transform" title="削除">🗑️</button>
                         </>
                       )}
@@ -301,7 +301,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                   value={modalTitle}
                   onChange={(e) => setModalTitle(e.target.value)}
                   placeholder="ユーザーに表示されるサービスのキャッチフレーズ..."
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                   value={modalDescription}
                   onChange={(e) => setModalDescription(e.target.value)}
                   placeholder="サービスの詳しい機能や目的を入力..."
-                  className="w-full border border-gray-300 rounded-lg p-3 min-h-[160px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+                  className="w-full border border-gray-300 rounded-lg p-3 min-h-[160px] text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none resize-y"
                 />
               </div>
 
@@ -321,7 +321,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                 <button
                   onClick={handleAiAdvice}
                   disabled={isAiLoading || loading}
-                  className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-sm rounded-lg hover:opacity-90 transition-opacity shadow-sm ${
+                  className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-sm rounded-lg hover:opacity-90 transition-opacity shadow-sm ${
                     isAiLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
@@ -335,14 +335,14 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               <button
                 onClick={() => setModalServiceId(null)}
                 disabled={loading || isAiLoading}
-                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSaveModal}
                 disabled={loading || isAiLoading}
-                className="px-5 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 min-w-[100px]"
+                className="px-5 py-2 text-sm font-bold text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-1 disabled:opacity-50 min-w-[100px]"
               >
                 {loading ? '保存中...' : '保存して閉じる'}
               </button>

@@ -92,13 +92,13 @@ export function DivisionFormDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-slate-200">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-[#e2e6ec]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa]">
+          <h3 className="text-lg font-bold text-[#24292f]">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -117,7 +117,7 @@ export function DivisionFormDialog({
             <div className="flex justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
               >
                 キャンセル
               </button>
@@ -133,42 +133,42 @@ export function DivisionFormDialog({
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">部署名 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">部署名 <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all"
                 placeholder="例：東京事務所"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">コード</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">コード</label>
               <input
                 type="text"
                 value={code}
                 onChange={e => setCode(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all"
                 placeholder="例：TKY-001"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">階層（レイヤー）</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">階層（レイヤー）</label>
               <input
                 type="number"
                 value={layer}
                 onChange={e => setLayer(Number(e.target.value))}
                 min={1}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">親部署</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">親部署</label>
               <select
                 value={parentId || ''}
                 onChange={e => setParentId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none transition-all bg-white"
               >
                 <option value="">なし（ルート）</option>
                 {availableParents.map(d => (
@@ -182,14 +182,14 @@ export function DivisionFormDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
                 disabled={isPending || !name.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
               >
                 {isPending ? '保存中...' : '保存'}
               </button>

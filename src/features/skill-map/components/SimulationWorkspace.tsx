@@ -392,7 +392,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
 
         <button
           onClick={handleCreateSimulation}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg shadow-sm"
         >
           <Plus className="w-4 h-4" />
           新規アサインシミュレーション作成
@@ -420,7 +420,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                     type="text"
                     value={localName}
                     onChange={e => setLocalName(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-[#FD7601]"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -429,7 +429,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                     type="text"
                     value={localDesc}
                     onChange={e => setLocalNameDesc(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-[#FD7601]"
                   />
                 </div>
               </div>
@@ -499,7 +499,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                 </h4>
                 <button
                   onClick={handleAddPosition}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] border border-[#e2e6ec] rounded-lg"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   ポジション追加
@@ -518,7 +518,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                     }}
                     className={`p-4 rounded-xl border transition-all cursor-pointer ${
                       isActive
-                        ? 'border-blue-500 bg-blue-50/10 ring-2 ring-blue-500/20 shadow-md'
+                        ? 'border-[#FD7601] bg-[#f6f8fa]/10 ring-2 ring-blue-500/20 shadow-md'
                         : 'border-gray-200 bg-white hover:border-gray-300 shadow-sm'
                     }`}
                   >
@@ -546,7 +546,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                           className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                             req.is_essential
                               ? 'bg-red-50 text-red-700 border-red-100 font-semibold'
-                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                              : 'bg-[#f6f8fa] text-[#57606a] border-[#e2e6ec]'
                           }`}
                         >
                           {req.is_essential ? '必須: ' : '歓迎: '}
@@ -672,7 +672,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                           cand.matching_score >= 80
                             ? 'text-emerald-600 border-emerald-100 bg-emerald-50'
                             : cand.matching_score >= 50
-                              ? 'text-blue-600 border-blue-100 bg-blue-50'
+                              ? 'text-[#FD7601] border-[#e2e6ec] bg-[#f6f8fa]'
                               : 'text-amber-600 border-amber-100 bg-amber-50'
 
                         return (
@@ -707,7 +707,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                                   <span
                                     key={`${d.requirement_id}-${idx}`}
                                     className={`text-[8px] px-1 rounded flex items-center gap-0.5 ${
-                                      d.is_met ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-400'
+                                      d.is_met ? 'bg-[#f6f8fa] text-[#FD7601]' : 'bg-red-50 text-red-400'
                                     }`}
                                   >
                                     {d.is_met ? '✓' : '✗'} {d.requirement_name}
@@ -722,7 +722,7 @@ export function SimulationWorkspace({ skills, divisions, initialSimulations }: P
                               </span>
                               <button
                                 onClick={() => handleAssignMember(cand)}
-                                className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-white bg-blue-600 hover:bg-blue-700 rounded shadow-sm font-semibold"
+                                className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-white bg-[#FD7601] hover:bg-[#FD7601] rounded shadow-sm font-semibold"
                               >
                                 <UserPlus className="w-3 h-3" />
                                 アサイン

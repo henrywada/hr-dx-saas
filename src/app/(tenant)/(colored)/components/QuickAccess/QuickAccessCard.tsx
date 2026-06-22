@@ -32,40 +32,38 @@ export function QuickAccessCard({
   return (
     <Link
       href={href}
-      className="w-full bg-white border border-slate-200 hover:border-indigo-300 text-left p-5 rounded-xl shadow-sm hover:shadow-md hover:bg-indigo-50/30 transition-all group flex items-center justify-between outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      className="w-full text-left px-6 py-2 flex items-center justify-between gap-4 group hover:bg-slate-50/80 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 -mx-6 border-b border-slate-200 last:border-b-0"
     >
-      <div className="flex items-center gap-4 min-w-0">
-        <div
-          className={`p-2.5 rounded-lg shrink-0 ${iconBoxClass} group-hover:scale-110 transition-transform duration-300`}
-        >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className={`p-2 rounded-lg shrink-0 ${iconBoxClass}`}>
           <Icon className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-0.5">
-            <h3
-              className={`text-slate-800 font-bold transition-colors ${titleHoverClass}`}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4
+              className={`text-sm font-semibold text-slate-800 transition-colors m-0 ${titleHoverClass}`}
             >
               {title}
-            </h3>
+            </h4>
             {badgeLabel ? (
               <span
-                className="relative ml-1 inline-flex shrink-0 items-center rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-red-800/20 before:pointer-events-none before:absolute before:left-[-6px] before:top-1/2 before:-translate-y-1/2 before:border-y-[5px] before:border-r-[6px] before:border-l-0 before:border-solid before:border-y-transparent before:border-r-red-600 before:content-['']"
+                className="relative inline-flex shrink-0 items-center rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-red-800/20 before:pointer-events-none before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:border-y-[5px] before:border-r-[6px] before:border-l-0 before:border-solid before:border-y-transparent before:border-r-red-600 before:content-['']"
                 aria-label={`承認待ち: ${badgeLabel}`}
               >
                 {badgeLabel}
               </span>
             ) : null}
           </div>
-          <p className="text-slate-500 text-xs">{subtitle}</p>
+          <p className="text-slate-500 text-xs mt-0.5 leading-tight">{subtitle}</p>
         </div>
       </div>
       {trailingLabel ? (
-        <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-slate-500 group-hover:text-indigo-500 transition-colors">
+        <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-slate-500 group-hover:text-indigo-500 transition-colors whitespace-nowrap">
           {trailingLabel}
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </span>
       ) : (
-        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
       )}
     </Link>
   )

@@ -24,7 +24,7 @@ export default function SaasEmployeeList({ employees, tenantNames }: Props) {
         <select
           value={selectedTenant}
           onChange={e => setSelectedTenant(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none min-w-[200px]"
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none min-w-[200px]"
         >
           <option value="all">全テナント</option>
           {tenantNames.map(name => (
@@ -68,7 +68,7 @@ export default function SaasEmployeeList({ employees, tenantNames }: Props) {
                 </tr>
               ) : (
                 filtered.map(emp => (
-                  <tr key={emp.id} className="hover:bg-blue-50/50 transition-colors">
+                  <tr key={emp.id} className="hover:bg-[#f6f8fa]/50 transition-colors">
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500 tabular-nums">
                       {emp.employee_no ?? '—'}
                     </td>

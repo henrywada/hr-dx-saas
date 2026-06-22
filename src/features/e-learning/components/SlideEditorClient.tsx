@@ -86,13 +86,13 @@ export function SlideEditorClient({ course }: Props) {
               onClick={() => setSelectedId(slide.id)}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
                 selectedId === slide.id
-                  ? 'bg-blue-50 border border-blue-200'
+                  ? 'bg-[#f6f8fa] border border-[#e2e6ec]'
                   : 'hover:bg-gray-50 border border-transparent'
               }`}
             >
               <span className="text-gray-400 w-5 text-center text-xs font-mono">{i + 1}</span>
               <span
-                className={`flex-shrink-0 ${selectedId === slide.id ? 'text-blue-500' : 'text-gray-400'}`}
+                className={`flex-shrink-0 ${selectedId === slide.id ? 'text-[#FD7601]' : 'text-gray-400'}`}
               >
                 {SLIDE_ICONS[slide.slide_type]}
               </span>

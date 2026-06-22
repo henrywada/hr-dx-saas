@@ -41,7 +41,7 @@ export function EvaluationLinkBadge({
     return (
       <div className="flex items-center gap-2">
         {evaluationSheetId ? (
-          <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 text-xs bg-[#f6f8fa] text-[#FD7601] border border-[#e2e6ec] px-3 py-1 rounded-full">
             評価シート連動済み
           </span>
         ) : (
@@ -66,7 +66,7 @@ export function EvaluationLinkBadge({
       <select
         value={selectedId}
         onChange={e => setSelectedId(e.target.value)}
-        className="text-sm rounded-lg border border-gray-200 px-2 py-1 focus:border-blue-400 focus:outline-none"
+        className="text-sm rounded-lg border border-gray-200 px-2 py-1 focus:border-[#FD7601] focus:outline-none"
       >
         <option value="">連動しない</option>
         {availableSheets.map(s => (

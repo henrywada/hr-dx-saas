@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **技術スタック：** Next.js 16（App Router）+ React 19、TypeScript 5（strict: false）、Supabase（PostgreSQL + RLS + Auth）、Tailwind CSS v4、Zod v4、Recharts、SWR、OpenAI SDK、date-fns
 
 **ソース管理 / インフラ：**
+
 - **GitHub**：リポジトリ `henrywada/hr-dx-saas`（ソース管理）。`.github/workflows/` は未配置のため GitHub Actions CI/CD は設定なし（ビルド・デプロイは Vercel の Git 連携に委譲）
 - **Vercel**：本番ホスティング / デプロイ。本番カスタムドメイン `https://app.hr-dx.jp`。GitHub へのプッシュをトリガーに自動ビルド・デプロイ（webpack モード）。Server Actions の `allowedOrigins` で本番ドメイン・Vercel ホスト（`VERCEL_URL`）・ローカルの Origin を許可（`next.config.ts` 参照）
 
@@ -155,10 +156,10 @@ Client Component
 
 ### Supabase クライアントの使い分け
 
-| クライアント | インポート元 | 用途 |
-|-------------|------------|------|
-| `createClient()` | `@/lib/supabase/server` または `client` | 一般ユーザー・管理者用（RLS 有効） |
-| `createAdminClient()` | `@/lib/supabase/admin` | SaaS 管理者・バッチ専用（RLS バイパス） |
+| クライアント          | インポート元                            | 用途                                    |
+| --------------------- | --------------------------------------- | --------------------------------------- |
+| `createClient()`      | `@/lib/supabase/server` または `client` | 一般ユーザー・管理者用（RLS 有効）      |
+| `createAdminClient()` | `@/lib/supabase/admin`                  | SaaS 管理者・バッチ専用（RLS バイパス） |
 
 **`createAdminClient()` はエンドユーザーが触れる `actions.ts` の中では絶対に使わない。**
 
@@ -166,15 +167,15 @@ Client Component
 
 `getServerUser()`（`@/lib/auth/server-user`）は `employees` + `app_role` + `tenants` を JOIN して `AppUser` を返す：
 
-| フィールド | 内容 |
-|-----------|------|
-| `id` | auth.users の UUID |
-| `appRole` | `app_role.app_role`（権限コード）|
-| `tenant_id` | テナント ID |
-| `planType` | `'free' \| 'pro' \| 'enterprise'` |
-| `employee_id` | `employees.id` |
-| `division_id` | 所属部署 ID（未配属は null）|
-| `is_manager` | 上長・承認者フラグ |
+| フィールド    | 内容                              |
+| ------------- | --------------------------------- |
+| `id`          | auth.users の UUID                |
+| `appRole`     | `app_role.app_role`（権限コード） |
+| `tenant_id`   | テナント ID                       |
+| `planType`    | `'free' \| 'pro' \| 'enterprise'` |
+| `employee_id` | `employees.id`                    |
+| `division_id` | 所属部署 ID（未配属は null）      |
+| `is_manager`  | 上長・承認者フラグ                |
 
 クライアント側は `useAuth()` / `useTenant()` フック経由で参照する。
 
@@ -185,6 +186,7 @@ Edge Runtime で動作。全 GET リクエストで `access_logs` に PAGE_VIEW 
 ### Server Actions の制限
 
 `next.config.ts` の設定値：
+
 - `serverActions.bodySizeLimit: "50mb"`（ファイルアップロード対応）
 - `allowedOrigins`: `https://app.hr-dx.jp`, Vercel URL, `http://localhost:3000`
 
@@ -194,26 +196,171 @@ Edge Runtime で動作。全 GET リクエストで `access_logs` に PAGE_VIEW 
 
 ### 命名規則
 
-| 対象 | 規則 | 例 |
-|------|------|----|
-| コンポーネント | PascalCase | `StressCheckForm.tsx` |
-| 関数・変数 | camelCase | `getServerUser()` |
-| 型・インターフェース | PascalCase | `EmployeeRecord` |
-| ファイル名 | kebab-case（コンポーネントは PascalCase） | `score-calculator.ts` |
-| DB カラム | snake_case | `tenant_id`, `created_at` |
+| 対象                 | 規則                                      | 例                        |
+| -------------------- | ----------------------------------------- | ------------------------- |
+| コンポーネント       | PascalCase                                | `StressCheckForm.tsx`     |
+| 関数・変数           | camelCase                                 | `getServerUser()`         |
+| 型・インターフェース | PascalCase                                | `EmployeeRecord`          |
+| ファイル名           | kebab-case（コンポーネントは PascalCase） | `score-calculator.ts`     |
+| DB カラム            | snake_case                                | `tenant_id`, `created_at` |
 
 - TypeScript `strict: false`（現状維持）
 - パスエイリアス：`@/*` → `./src/*`
 - **コードコメントは日本語で記述する**
 - ビジネスロジック（法令準拠の採点ロジック等）は出典を明記する
-- Tailwind CSS v4 を使用。カスタムカラー：`primary`（#0055ff）、`accent-teal`（#00c2b8）、`accent-orange`（#ff6b00）
-- 日本語フォントは `Noto Serif JP`
+- デザイントークンは HR-DX Design System（styles.css + tokens/）を優先する。ブランドカラー #FD7601（オレンジ）+ クールグレー系。Tailwind はユーティリティ補助として使用する。
+- 日本語フォントは Noto Sans JP（本文・ラベル）/ Noto Sans Mono（ID・数値）。Noto Serif JP は使用しない。
+- カラー・スペーシング・ボーダー等は tokens/ の CSS 変数（--brand, --text-secondary 等）を参照する。
 - Supabase への日時書き込みは `Asia/Tokyo` タイムゾーンで行う
 - データ取得が発生するルートには `loading.tsx` と `error.tsx` を配置する
 
 ### UI — 管理者向けカード／一覧テーブル（共通）
 
-一覧まわりのカードコンテナ／`<table>` の見た目は **[docs/ui/admin-card-and-table.md](./docs/ui/admin-card-and-table.md)** に準拠する。**Claude Code** では同内容を **`.claude/rules/admin-card-table.md`** と合わせて参照する。**Cursor** では **`.cursor/rules/admin-card-table-style.mdc`**（該当 globs で編集中）が適用される。実装の単一ソースは `skill-map/page.tsx` および `SkillMapTabs`／`EmployeeSkillTable`／`SkillRequirementsTable` を参照すること。
+デザインは HR-DX Design System に準拠する。components/ の Card・DataTable・Badge・StatusIndicator 等を使用する。styles.css をリンクし、tokens/ の CSS 変数でスタイリングする。
+
+#### メイン領域パディング標準（AWS 2 パターン）
+
+AppLayout のメインコンテンツエリアは、ページの用途に応じて 2 パターンから選択：
+
+**パターン A: コンテンツ幅制限型（SES ダッシュボール風）**
+
+最大幅を制限してコンテンツを中央に配置。情報系ダッシュボード・詳細画面向け。
+
+| 画面サイズ | パディング | 説明 |
+| --------- | --------- | ---- |
+| 小〜中     | `px-4`    | モバイル・タブレット |
+| 大以上    | `px-6`    | デスクトップ         |
+
+```tsx
+<div className="px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
+  {children}
+</div>
+```
+
+**用途：** ストレスチェック結果、詳細情報、レポート、ダッシュボード
+
+---
+
+**パターン B: フル幅型（EC2 コンソール風）**
+
+画面幅をフルに使ってデータ表示。テーブル・リスト・グリッド向け。
+
+| 画面サイズ | パディング | 説明 |
+| --------- | --------- | ---- |
+| 小〜中     | `px-4`    | モバイル・タブレット |
+| 大        | `px-6`    | デスクトップ         |
+| 超大      | `px-8`    | 1024px 以上         |
+
+```tsx
+<div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-[1920px]">
+  {children}
+</div>
+```
+
+**用途：** テーブル、従業員管理、e-learning 管理、データリスト
+
+---
+
+**選択ガイド：**
+
+| 特徴 | パターン A（制限型） | パターン B（フル幅型） |
+| --- | --------------- | ------------------- |
+| コンテンツ中央配置 | ✓ | |
+| 左右余白が大きい | ✓ | |
+| データ表示に最適 | | ✓ |
+| テーブル・リスト | | ✓ |
+| 読みやすさ重視 | ✓ | |
+| 情報密度重視 | | ✓ |
+
+#### カード間隔標準（AWS 風コンパクト）
+
+ダッシュボード（/top）のカード間隔をデフォルト化。AWS コンソール風の情報密度を実現。
+
+| 項目 | 値 | 用途 |
+|------|-----|------|
+| **セクション間隔** | `space-y-4` | セクション（タスク、情報）間の上下マージン |
+| **カード横間隔** | `gap-4` | 2 列グリッド内のカード間隔 |
+| **コンテナパディング** | `px-4 sm:px-6 py-6` | メインコンテナの上下左右パディング |
+| **max-width** | `max-w-300` | コンテンツ幅制限（1200px） |
+
+**実装例：**
+```tsx
+<div className="space-y-4 px-4 sm:px-6 py-6 mx-auto max-w-300">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {/* タスクカード */}
+  </div>
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {/* 情報カード */}
+  </div>
+</div>
+```
+
+#### フォーム実装ガイド
+
+フォーム（検索・フィルタ・登録等）はメイン領域の標準パディングを継承し、以下のパターンで実装：
+
+**パターン 1: Skill 参照を指示するとき（推奨）**
+```
+フォームを /layout-padding-standard に従って、メイン領域の標準パディングで実装してください
+```
+→ スキル更新時に自動で反映される
+
+**パターン 2: クラスを明示的に指示するとき**
+```
+フォームコンテナを <div className="px-4 sm:px-6 lg:px-8"> でラップしてください
+```
+→ 確実だが、将来的な変更時に修正が必要
+
+**パターン 3: 短縮指示**
+```
+フォームをメイン領域の標準幅で実装してください（AWS パディング準拠）
+```
+→ 開発者が CLAUDE.md 「フォーム実装ガイド」を参照
+
+**推奨:** パターン 1 または 3（Skill / ガイド参照型）
+
+#### DataTable コンポーネント仕様
+
+`src/components/ui/DataTable.tsx` はプロジェクト全体で再利用可能なテーブルコンポーネント。AWS コンソール風のコンパクト設計。
+
+**レイアウト標準（重要）：**
+- ヘッダー行・データ行：`py-1`（上下パディング 4px）← コンパクト密度
+- 左右パディング：`px-4`（16px）
+- 行の高さ：自動（コンテンツに応じて調整）
+- ホバー背景：`#f6f8fa`（淡いグレー）
+- ボーダー：1px `#e2e6ec`（淡いグレー）
+
+**機能：**
+- `searchable={true}`：検索バー表示（テーブル上部）
+- `selectable={true}`：チェックボックス列表示
+- `sortable={true}`：ソート可能な列（ヘッダーにアイコン表示）
+- `onSortChange`：外部ソート制御（複雑なソートロジックはコンポーネント外で管理）
+- `itemsPerPage`：デフォルト 20 件/ページ
+
+**使用例：**
+```tsx
+<DataTable
+  columns={columns}
+  data={items}
+  searchable={true}
+  searchPlaceholder="検索..."
+  searchKey="name"
+  selectable={true}
+  selectedIds={selectedIds}
+  onSelectChange={setSelectedIds}
+  sortKey={sortColumn}
+  sortOrder={sortDirection}
+  onSortChange={handleSort}
+  getRowId={item => item.id}
+/>
+```
+
+**Column<T> インターフェース：**
+- `key`：データキー（`keyof T`）
+- `label`：ヘッダーテキスト
+- `sortable?`：ソート可能か（デフォルト false）
+- `render?`：カスタムセルレンダリング関数
+- `width?`：列幅（Tailwind クラス、例：`w-20`）
 
 ### ルーティング
 
@@ -282,26 +429,26 @@ CREATE POLICY "tenant_isolation" ON public.new_table
 
 ## 絶対禁止
 
-| 禁止操作 | 理由 |
-|---------|------|
-| `supabase db reset` の実行 | ローカルデータが消滅する |
+| 禁止操作                                                        | 理由                                           |
+| --------------------------------------------------------------- | ---------------------------------------------- |
+| `supabase db reset` の実行                                      | ローカルデータが消滅する                       |
 | エンドユーザー向け `actions.ts` で `createAdminClient()` を使用 | RLS バイパスによるテナント横断アクセスのリスク |
-| 新規テーブルに RLS ポリシーを設定しない | 他社データ漏洩の直接原因 |
-| `app/api/` に不要な API Route を追加 | 外部連携以外は Server Actions に集約する |
-| URL のハードコード | `APP_ROUTES` 定数を使う |
-| `npx supabase` の使用 | グローバルインストール版の `supabase` を使う |
+| 新規テーブルに RLS ポリシーを設定しない                         | 他社データ漏洩の直接原因                       |
+| `app/api/` に不要な API Route を追加                            | 外部連携以外は Server Actions に集約する       |
+| URL のハードコード                                              | `APP_ROUTES` 定数を使う                        |
+| `npx supabase` の使用                                           | グローバルインストール版の `supabase` を使う   |
 
 ---
 
 ## 環境変数
 
-| 変数名 | 用途 |
-|--------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API URL（公開） |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー（公開） |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase サービスロールキー（サーバー専用） |
-| `DATABASE_URL` | PostgreSQL 直接接続 URL |
-| `OPENAI_API_KEY` | OpenAI API キー |
-| `SERPAPI_API_KEY` | 求人検索 API キー |
+| 変数名                          | 用途                                        |
+| ------------------------------- | ------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase API URL（公開）                    |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー（公開）                   |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase サービスロールキー（サーバー専用） |
+| `DATABASE_URL`                  | PostgreSQL 直接接続 URL                     |
+| `OPENAI_API_KEY`                | OpenAI API キー                             |
+| `SERPAPI_API_KEY`               | 求人検索 API キー                           |
 
 詳細は `.env.example` を参照。

@@ -90,7 +90,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
               value={form.employee_id}
               onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
               disabled={!!candidate}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601] disabled:bg-gray-100"
             >
               <option value="">（選択してください）</option>
               {availableEmployees.map(e => (
@@ -112,7 +112,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
                   onClick={() => setForm(f => ({ ...f, readiness: r }))}
                   className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
                     form.readiness === r
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-[#FD7601] bg-[#f6f8fa] text-[#FD7601]'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -133,7 +133,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
                     onClick={() => setForm(f => ({ ...f, performance_score: s }))}
                     className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
                       form.performance_score === s
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        ? 'border-[#FD7601] bg-[#f6f8fa] text-[#FD7601]'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -153,7 +153,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
                     onClick={() => setForm(f => ({ ...f, potential_score: s }))}
                     className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
                       form.potential_score === s
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        ? 'border-[#FD7601] bg-[#f6f8fa] text-[#FD7601]'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -171,7 +171,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
               onChange={e => setForm(f => ({ ...f, development_actions: e.target.value }))}
               rows={2}
               placeholder="例: 月1回の1on1、部門横断プロジェクトへのアサイン"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             />
           </div>
 
@@ -182,7 +182,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               rows={2}
               placeholder="特記事項"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             />
           </div>
 
@@ -197,7 +197,7 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-[#FD7601] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#FD7601] disabled:opacity-50"
             >
               {isPending ? '保存中…' : '保存する'}
             </button>

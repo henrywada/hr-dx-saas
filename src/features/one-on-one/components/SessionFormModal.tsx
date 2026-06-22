@@ -73,7 +73,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
             <select
               value={employeeId}
               onChange={e => setEmployeeId(e.target.value)}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               required
             >
               <option value="">選択してください</option>
@@ -94,7 +94,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
               type="datetime-local"
               value={conductedAt}
               onChange={e => setConductedAt(e.target.value)}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
 
@@ -105,7 +105,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
               onChange={e => setNotes(e.target.value)}
               rows={3}
               placeholder="話した内容・気づき・アクションアイテムなど"
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
             />
           </div>
 
@@ -117,7 +117,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
               type="date"
               value={nextDate}
               onChange={e => setNextDate(e.target.value)}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
 
@@ -134,7 +134,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex-1 rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
             >
               {loading ? '記録中...' : '記録する'}
             </button>

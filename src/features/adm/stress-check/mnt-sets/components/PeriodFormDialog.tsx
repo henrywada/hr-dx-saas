@@ -114,14 +114,14 @@ export function PeriodFormDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h3 className="text-lg font-bold text-slate-900">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-[#e2e6ec]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa]">
+          <h3 className="text-lg font-bold text-[#24292f]">
             {isEdit ? '実施グループを編集' : '実施グループを追加'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,7 +130,7 @@ export function PeriodFormDialog({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {/* タイトル */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[#24292f] mb-1">
               タイトル <span className="text-red-500">*</span>
             </label>
             <input
@@ -138,14 +138,14 @@ export function PeriodFormDialog({
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601]"
               placeholder="例：2026年度 ストレスチェック（営業本部）"
             />
           </div>
 
           {/* 対象部署 */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[#24292f] mb-1">
               対象部署 <span className="text-red-500">*</span>
             </label>
             <DivisionMultiSelect
@@ -161,21 +161,21 @@ export function PeriodFormDialog({
           {/* 年度・質問数 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">対象年度</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">対象年度</label>
               <input
                 type="number"
                 value={fiscalYear}
                 onChange={e => setFiscalYear(Number(e.target.value))}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">質問数</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">質問数</label>
               <select
                 value={qType}
                 onChange={e => setQType(e.target.value as QuestionnaireType)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#FD7601]"
               >
                 <option value="57">57問</option>
                 <option value="23">23問</option>
@@ -186,7 +186,7 @@ export function PeriodFormDialog({
           {/* 開始日・終了日 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
                 開始日 <span className="text-red-500">*</span>
               </label>
               <input
@@ -196,11 +196,11 @@ export function PeriodFormDialog({
                 min="2000-01-01"
                 max="2099-12-31"
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
                 終了日 <span className="text-red-500">*</span>
               </label>
               <input
@@ -210,45 +210,45 @@ export function PeriodFormDialog({
                 min="2000-01-01"
                 max="2099-12-31"
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601]"
               />
             </div>
           </div>
 
           {/* 官庁報告用：事業場情報 */}
-          <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="border border-[#e2e6ec] rounded-lg p-4 space-y-3 bg-[#f6f8fa]">
+            <p className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">
               官庁報告用（任意）
             </p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">事業場名</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">事業場名</label>
               <input
                 type="text"
                 value={workplaceName}
                 onChange={e => setWorkplaceName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] bg-white"
                 placeholder="例：東京本社"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">所在地</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">所在地</label>
               <input
                 type="text"
                 value={workplaceAddress}
                 onChange={e => setWorkplaceAddress(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] bg-white"
                 placeholder="例：東京都千代田区〇〇1-2-3"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
                 管轄労働基準監督署名
               </label>
               <input
                 type="text"
                 value={laborOfficeName}
                 onChange={e => setLaborOfficeName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] bg-white"
                 placeholder="例：千代田労働基準監督署"
               />
             </div>
@@ -256,12 +256,12 @@ export function PeriodFormDialog({
 
           {/* コメント */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">コメント</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">コメント</label>
             <textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder="備考・説明（任意）"
             />
           </div>
@@ -270,7 +270,7 @@ export function PeriodFormDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
             >
               キャンセル
             </button>
@@ -283,7 +283,7 @@ export function PeriodFormDialog({
                 !endDate ||
                 selectedDivisionIds.length === 0
               }
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
             >
               {isPending ? '保存中...' : '保存'}
             </button>

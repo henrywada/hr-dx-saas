@@ -86,23 +86,23 @@ export function PeriodTargetsModal({ period, allDivisions, onClose }: PeriodTarg
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-slate-200">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-[#e2e6ec]">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa]">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">対象者管理</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{period.title}</p>
+            <h3 className="text-lg font-bold text-[#24292f]">対象者管理</h3>
+            <p className="text-xs text-[#57606a] mt-0.5">{period.title}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* サマリー */}
-        <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 text-sm text-blue-700">
+        <div className="px-6 py-3 bg-[#f6f8fa] border-b border-[#e2e6ec] text-sm text-[#FD7601]">
           対象者 <strong>{eligibleCount}</strong> 名 / 全 <strong>{employees.length}</strong> 名
           {excludedIds.size > 0 && (
             <span className="ml-2 text-amber-600">（{excludedIds.size} 名除外中）</span>
@@ -113,35 +113,35 @@ export function PeriodTargetsModal({ period, allDivisions, onClose }: PeriodTarg
         <div className="max-h-[55vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#57606a]" />
             </div>
           ) : employees.length === 0 ? (
-            <p className="text-center text-slate-500 py-8 text-sm">
+            <p className="text-center text-[#57606a] py-8 text-sm">
               対象部署に従業員が見つかりません
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec] text-[#57606a]">
                   <th className="px-6 py-3 text-left font-semibold">社員番号</th>
                   <th className="px-6 py-3 text-left font-semibold">氏名</th>
                   <th className="px-6 py-3 text-left font-semibold">所属部署</th>
                   <th className="px-6 py-3 text-center font-semibold">受検</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#e2e6ec]">
                 {employees.map(emp => {
                   const isExcluded = excludedIds.has(emp.id)
                   return (
                     <tr
                       key={emp.id}
-                      className={`hover:bg-slate-50 transition-colors ${isExcluded ? 'opacity-50' : ''}`}
+                      className={`hover:bg-[#f6f8fa] transition-colors ${isExcluded ? 'opacity-50' : ''}`}
                     >
-                      <td className="px-6 py-3 text-slate-600 font-mono text-xs">
+                      <td className="px-6 py-3 text-[#57606a] font-mono text-xs">
                         {emp.employee_no ?? '—'}
                       </td>
-                      <td className="px-6 py-3 text-slate-900">{emp.name ?? '—'}</td>
-                      <td className="px-6 py-3 text-slate-500 text-xs">
+                      <td className="px-6 py-3 text-[#24292f]">{emp.name ?? '—'}</td>
+                      <td className="px-6 py-3 text-[#57606a] text-xs">
                         {getDivisionName(emp.division_id)}
                       </td>
                       <td className="px-6 py-3 text-center">
@@ -150,7 +150,7 @@ export function PeriodTargetsModal({ period, allDivisions, onClose }: PeriodTarg
                           disabled={isPending}
                           className={`p-1.5 rounded transition-colors ${
                             isExcluded
-                              ? 'text-slate-400 hover:bg-slate-100'
+                              ? 'text-[#57606a] hover:bg-[#f6f8fa]'
                               : 'text-emerald-600 hover:bg-emerald-50'
                           }`}
                           title={isExcluded ? '対象に戻す' : '除外する'}
@@ -170,10 +170,10 @@ export function PeriodTargetsModal({ period, allDivisions, onClose }: PeriodTarg
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+        <div className="px-6 py-4 border-t border-[#e2e6ec] flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
           >
             閉じる
           </button>

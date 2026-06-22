@@ -22,8 +22,8 @@ export default function GroupAnalysisToolbar({ mode, layer, layers }: Props) {
   const linkClass = (active: boolean) =>
     `inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
       active
-        ? 'bg-blue-600 text-white shadow-sm'
-        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+        ? 'bg-[#FD7601] text-white shadow-sm'
+        : 'bg-white text-[#24292f] border border-[#e2e6ec] hover:bg-[#f6f8fa]'
     }`
 
   return (
@@ -49,7 +49,7 @@ export default function GroupAnalysisToolbar({ mode, layer, layers }: Props) {
             </label>
             <select
               id="stress-layer-select"
-              className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+              className="text-sm border border-[#e2e6ec] rounded-lg px-2 py-1.5 bg-white"
               value={mode === 'layer' && layer != null ? String(layer) : String(layers[0])}
               onChange={e => {
                 const v = e.target.value
@@ -65,7 +65,7 @@ export default function GroupAnalysisToolbar({ mode, layer, layers }: Props) {
           </span>
         )}
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[#57606a]">
         {mode === 'division' && '所属部署を単位に集計します。'}
         {mode === 'establishment' && '拠点マスタに基づき事業場単位で集計します。'}
         {mode === 'layer' &&

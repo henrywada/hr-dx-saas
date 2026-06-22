@@ -54,7 +54,7 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-500" />
+            <Sparkles className="w-5 h-5 text-[#FD7601]" />
             <h2 className="text-lg font-bold text-gray-800">AIでコースを自動生成</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -69,7 +69,7 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
                 PDF・DOCX・TXT・PNG
                 などの資料をアップロードすると、AIがeラーニングコースの草案を自動生成します。
               </p>
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa] transition-colors">
                 <Upload className="w-8 h-8 text-gray-400 mb-2" />
                 <span className="text-sm text-gray-600">クリックしてファイルを選択</span>
                 <span className="text-xs text-gray-400 mt-1">PDF / DOCX / TXT / PNG 対応</span>
@@ -90,7 +90,7 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isPending ? 'AI生成中...' : 'コースを生成'}
@@ -101,9 +101,9 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
 
           {step === 'preview' && draft && (
             <div className="space-y-4">
-              <div className="bg-blue-50 rounded-xl p-4">
+              <div className="bg-[#f6f8fa] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-medium text-[#FD7601] bg-[#FD7601]-10 px-2 py-0.5 rounded-full">
                     {draft.category}
                   </span>
                   <span className="text-xs text-gray-500">約{draft.estimated_minutes}分</span>
@@ -153,7 +153,7 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={isPending}
-                  className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg disabled:opacity-50"
                 >
                   {isPending ? '保存中...' : 'このコースを保存'}
                 </button>
@@ -168,7 +168,7 @@ export function AiGeneratePanel({ courseType, onClose }: Props) {
               <p className="text-sm text-gray-500">コース一覧から内容を編集できます</p>
               <button
                 onClick={onClose}
-                className="mt-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                className="mt-2 px-5 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg"
               >
                 閉じる
               </button>

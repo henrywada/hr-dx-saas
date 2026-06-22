@@ -96,7 +96,7 @@ export function OkrDashboard({
             </div>
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">進行中</p>
-              <p className="mt-2 text-3xl font-bold text-blue-600">
+              <p className="mt-2 text-3xl font-bold text-[#FD7601]">
                 {data.summary.activeObjectives}
                 <span className="ml-1 text-sm font-normal text-gray-400">件</span>
               </p>

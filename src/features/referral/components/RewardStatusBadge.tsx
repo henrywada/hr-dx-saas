@@ -24,12 +24,12 @@ function getColorClass(status: RewardStatus): string {
     case 'pending':
       return 'bg-yellow-100 text-yellow-700'
     case 'approved':
-      return 'bg-blue-100 text-blue-700'
+      return 'bg-[#FD7601]-10 text-[#FD7601]'
     case 'paid':
       return 'bg-green-100 text-green-700'
     case 'cancelled':
-      return 'bg-slate-100 text-slate-500'
+      return 'bg-[#f6f8fa] text-[#57606a]'
     default:
-      return 'bg-slate-100 text-slate-500'
+      return 'bg-[#f6f8fa] text-[#57606a]'
   }
 }

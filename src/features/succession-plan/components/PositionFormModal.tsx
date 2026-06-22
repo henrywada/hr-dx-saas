@@ -82,7 +82,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="例: 営業部長、技術マネージャー"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             />
           </div>
 
@@ -91,7 +91,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
             <select
               value={form.division_id ?? ''}
               onChange={e => setForm(f => ({ ...f, division_id: e.target.value || null }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             >
               <option value="">（指定なし）</option>
               {divisions.map(d => (
@@ -107,7 +107,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
             <select
               value={form.current_holder_id ?? ''}
               onChange={e => setForm(f => ({ ...f, current_holder_id: e.target.value || null }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             >
               <option value="">（指定なし）</option>
               {employees.map(e => (
@@ -129,7 +129,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
                   onClick={() => setForm(f => ({ ...f, risk_level: r }))}
                   className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                     form.risk_level === r
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-[#FD7601] bg-[#f6f8fa] text-[#FD7601]'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -146,7 +146,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               rows={3}
               placeholder="ポジションの説明や特記事項"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-[#FD7601]"
             />
           </div>
 
@@ -161,7 +161,7 @@ export function PositionFormModal({ position, employees, divisions, onClose }: P
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-[#FD7601] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#FD7601] disabled:opacity-50"
             >
               {isPending ? '保存中…' : '保存する'}
             </button>

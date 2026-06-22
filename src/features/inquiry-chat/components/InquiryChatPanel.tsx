@@ -72,20 +72,20 @@ export function InquiryChatPanel({ variant = 'page' }: Props) {
       {answer && (
         <div
           className={cn(
-            'rounded-xl border border-slate-200 bg-white shadow-sm space-y-3',
+            'rounded-xl border border-[#e2e6ec] bg-white shadow-sm space-y-3',
             isModal ? 'p-4' : 'p-5',
           )}
         >
-          <h2 className="text-sm font-semibold text-slate-500">回答</h2>
-          <div className="prose prose-slate max-w-none whitespace-pre-wrap text-slate-800 text-sm">{answer}</div>
+          <h2 className="text-sm font-semibold text-[#57606a]">回答</h2>
+          <div className="prose prose-slate max-w-none whitespace-pre-wrap text-[#24292f] text-sm">{answer}</div>
           {citations.length > 0 && (
-            <div className="pt-3 border-t border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 mb-2">参照した資料</p>
+            <div className="pt-3 border-t border-[#e2e6ec]">
+              <p className="text-xs font-semibold text-[#57606a] mb-2">参照した資料</p>
               <ul className="space-y-2">
                 {citations.map((c, i) => (
-                  <li key={i} className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-800">{c.title}</span>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{c.snippet}</p>
+                  <li key={i} className="text-sm text-[#57606a]">
+                    <span className="font-medium text-[#24292f]">{c.title}</span>
+                    <p className="text-xs text-[#57606a] mt-0.5 line-clamp-2">{c.snippet}</p>
                   </li>
                 ))}
               </ul>
@@ -95,10 +95,10 @@ export function InquiryChatPanel({ variant = 'page' }: Props) {
       )}
 
       <form onSubmit={onSubmit} className="space-y-3">
-        <label className="block text-sm font-medium text-slate-700">質問を入力</label>
+        <label className="block text-sm font-medium text-[#24292f]">質問を入力</label>
         <textarea
           className={cn(
-            'w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+            'w-full rounded-lg border border-[#e2e6ec] px-3 py-2 text-[#24292f] focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601]',
             isModal ? 'min-h-[88px] text-sm' : 'min-h-[120px]',
           )}
           value={input}
@@ -123,7 +123,7 @@ export function InquiryChatPanel({ variant = 'page' }: Props) {
           </Button>
           {answer && (
             <div className="flex flex-col gap-2 sm:max-w-[min(100%,18rem)] sm:shrink-0 sm:items-end sm:text-right">
-              <p className="text-xs text-slate-600 leading-snug">
+              <p className="text-xs text-[#57606a] leading-snug">
                 続きは上に入力して「送信」。別の話題はこのボタンで回答を消してから入力してください。
               </p>
               <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={onNewSession}>

@@ -93,19 +93,19 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/80">
+      <div className="px-4 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/80">
         <ModeSelector value={mode} onChange={setMode} disabled={loading} />
-        <p className="text-xs text-slate-500 mt-1.5">{ASSISTANT_MODE_DESCRIPTIONS[mode]}</p>
+        <p className="text-xs text-[#57606a] mt-1.5">{ASSISTANT_MODE_DESCRIPTIONS[mode]}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isEmpty && !loading && (
           <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#f6f8fa] flex items-center justify-center">
               <span className="text-2xl">🤖</span>
             </div>
-            <h3 className="text-base font-semibold text-slate-700">AI 人事相談アシスタント</h3>
-            <p className="text-sm text-slate-500 max-w-xs">
+            <h3 className="text-base font-semibold text-[#24292f]">AI 人事相談アシスタント</h3>
+            <p className="text-sm text-[#57606a] max-w-xs">
               上のモードを選択して質問を入力してください。
               社内規程・労務計算・評価コメントなど、人事業務をサポートします。
             </p>
@@ -124,14 +124,14 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
 
         {loading && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#FD7601] flex items-center justify-center shrink-0">
               <span className="text-white text-xs font-bold">AI</span>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+            <div className="bg-white border border-[#e2e6ec] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
               <div className="flex gap-1 items-center">
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" />
+                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce" />
               </div>
             </div>
           </div>
@@ -140,7 +140,7 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-slate-200 p-4 bg-white">
+      <div className="border-t border-[#e2e6ec] p-4 bg-white">
         {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
         <form onSubmit={handleSubmit} className="flex gap-2 items-end">
           <textarea
@@ -155,7 +155,7 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
             placeholder="質問を入力…（Ctrl+Enter で送信）"
             rows={3}
             disabled={loading}
-            className="flex-1 resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 resize-none rounded-xl border border-[#e2e6ec] px-3 py-2 text-sm text-[#24292f] focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601]"
           />
           <Button
             type="submit"

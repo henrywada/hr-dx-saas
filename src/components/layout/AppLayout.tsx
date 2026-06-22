@@ -16,8 +16,12 @@ export async function AppLayout({ children, variant }: AppLayoutProps) {
   const user = await getServerUser()
 
   let bgStyle = { backgroundColor: '#F9FAFB' }
-  const mainBgStyle = { backgroundColor: '#f5f6fa' }
-  if (variant === 'admin' || variant === 'saas') {
+  let mainBgStyle = { backgroundColor: '#f5f6fa' }
+  if (variant === 'admin') {
+    // HR-DX Design System: page surface（#f6f8fa）
+    bgStyle = { backgroundColor: '#f6f8fa' }
+    mainBgStyle = { backgroundColor: '#f6f8fa' }
+  } else if (variant === 'saas') {
     bgStyle = { backgroundColor: '#f2f8f8' }
   }
 

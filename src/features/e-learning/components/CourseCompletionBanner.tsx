@@ -27,7 +27,7 @@ export function CourseCompletionBanner({ courseTitle, onClose }: Props) {
 
         <button
           onClick={onClose}
-          className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+          className="w-full py-3 rounded-xl bg-[#FD7601] text-white font-semibold text-sm hover:bg-[#FD7601] transition-colors"
         >
           コース一覧へ戻る
         </button>

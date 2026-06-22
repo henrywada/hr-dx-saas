@@ -216,7 +216,7 @@ function SkillApproversTab({
                     return (
                       <tr
                         key={a.id}
-                        className={`border-b border-gray-100 hover:bg-blue-50 ${rowBg}`}
+                        className={`border-b border-gray-100 hover:bg-[#f6f8fa] ${rowBg}`}
                       >
                         <td className="w-12 px-2 py-2.5 text-center font-mono text-xs text-gray-500">
                           {i + 1}

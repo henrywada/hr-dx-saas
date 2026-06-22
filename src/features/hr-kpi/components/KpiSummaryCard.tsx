@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   normal: 'text-emerald-600',
   warning: 'text-amber-600',
   danger: 'text-red-600',
-  info: 'text-blue-600',
+  info: 'text-[#FD7601]',
 }
 
 export function KpiSummaryCard({

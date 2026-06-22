@@ -76,7 +76,7 @@ type Props = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending_manager: 'bg-amber-50 text-amber-700 border-amber-200/60',
-  pending_hr: 'bg-blue-50 text-blue-700 border-blue-200/60',
+  pending_hr: 'bg-[#f6f8fa] text-[#FD7601] border-[#e2e6ec]/60',
   approved: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
   rejected: 'bg-red-50 text-red-600 border-red-200/60',
 }
@@ -369,7 +369,7 @@ export function MySkillsView({
                                           </span>
                                         )}
                                         {req.category && (
-                                          <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded font-medium">
+                                          <span className="text-[9px] bg-[#f6f8fa] text-[#57606a] px-1 rounded font-medium">
                                             {req.category}
                                           </span>
                                         )}
@@ -404,16 +404,16 @@ export function MySkillsView({
 
                                 {/* 自己評価の表示および入力フォーム */}
                                 {isEditingSelfEval ? (
-                                  <div className="mt-2 ml-7 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-2.5">
-                                    <p className="font-bold text-slate-700">自己評価を入力</p>
+                                  <div className="mt-2 ml-7 p-3 bg-[#f6f8fa] rounded-lg border border-[#e2e6ec] text-xs space-y-2.5">
+                                    <p className="font-bold text-[#24292f]">自己評価を入力</p>
                                     <div className="space-y-1">
-                                      <label className="text-slate-500 font-medium">
+                                      <label className="text-[#57606a] font-medium">
                                         自己認識レベル：
                                       </label>
                                       <select
                                         value={tempSelfLevelId}
                                         onChange={e => setTempSelfLevelId(e.target.value)}
-                                        className="w-full p-2 border border-slate-200 rounded bg-white text-xs"
+                                        className="w-full p-2 border border-[#e2e6ec] rounded bg-white text-xs"
                                       >
                                         <option value="">-- レベルを選択 --</option>
                                         {levels.map(lvl => (
@@ -424,7 +424,7 @@ export function MySkillsView({
                                       </select>
                                     </div>
                                     <div className="space-y-1">
-                                      <label className="text-slate-500 font-medium">
+                                      <label className="text-[#57606a] font-medium">
                                         自己評価コメント（実績や理由）：
                                       </label>
                                       <textarea
@@ -432,14 +432,14 @@ export function MySkillsView({
                                         onChange={e => setTempSelfNote(e.target.value)}
                                         placeholder="この技能に対する自己評価の理由を簡潔に記入してください"
                                         rows={2}
-                                        className="w-full p-2 border border-slate-200 rounded bg-white text-xs"
+                                        className="w-full p-2 border border-[#e2e6ec] rounded bg-white text-xs"
                                       />
                                     </div>
                                     <div className="flex justify-end gap-2 pt-1">
                                       <button
                                         type="button"
                                         onClick={() => setEditingSelfEvalReqId(null)}
-                                        className="px-2.5 py-1.5 border border-slate-300 rounded text-slate-600 font-medium hover:bg-slate-100"
+                                        className="px-2.5 py-1.5 border border-[#e2e6ec] rounded text-[#57606a] font-medium hover:bg-[#f6f8fa]"
                                       >
                                         キャンセル
                                       </button>
@@ -515,14 +515,14 @@ export function MySkillsView({
           {/* 上司からの学習推薦 ＆ 応援フィードバック */}
           <section className="space-y-4">
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
-              <Compass className="w-4.5 h-4.5 text-blue-600" />
+              <Compass className="w-4.5 h-4.5 text-[#FD7601]" />
               上司からの学習支援 ＆ フィードバックボード
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 上司からの推奨コース */}
               <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
                 <h3 className="text-xs font-bold text-gray-800 flex items-center gap-1.5 border-b border-gray-100 pb-3">
-                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  <BookOpen className="w-4 h-4 text-[#FD7601]" />
                   上司からの推奨eラーニング
                 </h3>
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
@@ -534,10 +534,10 @@ export function MySkillsView({
                     recommendedCourses.map(rec => (
                       <div
                         key={rec.id}
-                        className="p-3 bg-blue-50/40 rounded-lg border border-blue-100/60 text-xs space-y-1.5"
+                        className="p-3 bg-[#f6f8fa]/40 rounded-lg border border-[#e2e6ec]/60 text-xs space-y-1.5"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-900 bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px]">
+                          <span className="font-bold text-[#24292f] bg-[#FD7601]-10/80 px-1.5 py-0.5 rounded text-[10px]">
                             推奨
                           </span>
                           <span className="text-[10px] text-gray-500">
@@ -548,14 +548,14 @@ export function MySkillsView({
                           {rec.course?.title || '推奨コース'}
                         </p>
                         {rec.reason && (
-                          <p className="text-gray-600 mt-1 pl-2 border-l-2 border-blue-200 italic">
+                          <p className="text-gray-600 mt-1 pl-2 border-l-2 border-[#e2e6ec] italic">
                             "{rec.reason}"
                           </p>
                         )}
                         <div className="flex justify-end pt-1">
                           <a
                             href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(rec.course_id)}
-                            className="inline-flex items-center gap-1 bg-blue-600 text-white px-2.5 py-1 rounded text-[10px] font-semibold hover:bg-blue-700 transition-colors"
+                            className="inline-flex items-center gap-1 bg-[#FD7601] text-white px-2.5 py-1 rounded text-[10px] font-semibold hover:bg-[#FD7601] transition-colors"
                           >
                             受講する <ExternalLink className="w-3 h-3" />
                           </a>
@@ -687,21 +687,21 @@ export function MySkillsView({
       {activeTab === 'career' && (
         <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
           {/* キャリアガイダンス説明 */}
-          <div className="rounded-xl border border-blue-100 bg-linear-to-r from-blue-50/40 to-indigo-50/10 p-5 shadow-sm">
+          <div className="rounded-xl border border-[#e2e6ec] bg-linear-to-r from-blue-50/40 to-indigo-50/10 p-5 shadow-sm">
             <div className="flex gap-3">
-              <HelpCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <HelpCircle className="h-5 w-5 text-[#FD7601] shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-bold text-blue-950">
+                <h4 className="text-sm font-bold text-[#24292f]">
                   キャリア目標 ＆ スキルギャップシミュレータ
                 </h4>
-                <p className="text-xs text-blue-800 mt-1 leading-relaxed max-w-[75ch]">
+                <p className="text-xs text-[#FD7601] mt-1 leading-relaxed max-w-[75ch]">
                   将来目指したい職種を「目標」として設定できます。
                   現在の自身の保有スキルとの差分が多角的なレーダーチャートに変換され、
                   <strong>「何が強みで、どのカテゴリを伸ばせば目標に届くか」</strong>
                   がクリアに可視化されます。 さらに、不足技能に関連付けられた
                   <strong>おすすめeラーニング教材</strong>が自動レコメンドされます。
                 </p>
-                <p className="text-xs text-blue-700 mt-2">
+                <p className="text-xs text-[#FD7601] mt-2">
                   キャリア目標を設定し、上司と一緒に成長の旅を歩みましょう
                 </p>
                 <Link
@@ -717,7 +717,7 @@ export function MySkillsView({
           {/* 目標職種設定カード */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-              <Award className="w-4.5 h-4.5 text-blue-600" />
+              <Award className="w-4.5 h-4.5 text-[#FD7601]" />
               現在のキャリアパス目標設定
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -745,7 +745,7 @@ export function MySkillsView({
                   type="date"
                   value={targetDate}
                   onChange={e => setTargetDate(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:ring-2 focus:ring-[#FD7601]/20 focus:border-[#FD7601] transition-all"
                 />
               </div>
             </div>
@@ -755,7 +755,7 @@ export function MySkillsView({
                 type="button"
                 onClick={handleSaveGoal}
                 disabled={isPending || !selectedTargetSkillId}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#FD7601] hover:bg-[#FD7601] disabled:opacity-50 rounded-lg shadow-sm transition-colors cursor-pointer"
               >
                 <SaveGoalIcon isPending={isPending} />
                 キャリア目標を設定・保存
@@ -859,17 +859,17 @@ export function MySkillsView({
                         {/* 推奨されるeラーニング教材 */}
                         {req.recommendations.length > 0 ? (
                           <div className="mt-2.5 pt-2.5 border-t border-dashed border-gray-200 space-y-1.5">
-                            <p className="text-[9px] text-blue-600 font-bold flex items-center gap-1">
+                            <p className="text-[9px] text-[#FD7601] font-bold flex items-center gap-1">
                               <BookOpen className="w-3 h-3" /> おすすめの学習コンテンツ
                             </p>
                             {req.recommendations.map((course: any) => (
                               <a
                                 key={course.course_id}
                                 href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(course.course_id)}
-                                className="flex items-center justify-between p-2 rounded-lg bg-blue-50/50 border border-blue-100/60 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-all text-[10px] font-semibold"
+                                className="flex items-center justify-between p-2 rounded-lg bg-[#f6f8fa]/50 border border-[#e2e6ec]/60 text-[#FD7601] hover:bg-[#FD7601]-10 hover:text-[#FD7601] transition-all text-[10px] font-semibold"
                               >
                                 <span className="truncate mr-2">{course.course_title}</span>
-                                <ExternalLink className="w-2.5 h-2.5 shrink-0 text-blue-500" />
+                                <ExternalLink className="w-2.5 h-2.5 shrink-0 text-[#FD7601]" />
                               </a>
                             ))}
                           </div>

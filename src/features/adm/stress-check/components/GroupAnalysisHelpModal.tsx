@@ -28,28 +28,28 @@ export function GroupAnalysisHelpModal({ open, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="group-analysis-help-title"
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[min(90vh,820px)] flex flex-col border border-slate-200"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[min(90vh,820px)] flex flex-col border border-[#e2e6ec]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <HelpCircle className="w-5 h-5 text-blue-600 shrink-0" />
-            <h2 id="group-analysis-help-title" className="text-base font-bold text-slate-900 truncate">
+            <HelpCircle className="w-5 h-5 text-[#FD7601] shrink-0" />
+            <h2 id="group-analysis-help-title" className="text-base font-bold text-[#24292f] truncate">
               この画面の見方
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors shrink-0"
             aria-label="閉じる"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 py-4 text-sm text-slate-700 leading-relaxed space-y-5">
+        <div className="overflow-y-auto px-5 py-4 text-sm text-[#24292f] leading-relaxed space-y-5">
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">この画面の役割</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">この画面の役割</h3>
             <p>
               ストレスチェックの回答を、個人ではなく<strong>部署ごと</strong>にまとめて見る画面です。誰が悪いかを並べるためではなく、
               <strong>どの部署の職場環境に手を打った方がよさそうか</strong>を把握するためのものです。
@@ -57,7 +57,7 @@ export function GroupAnalysisHelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">健康リスクの数字（いちばん大事）</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">健康リスクの数字（いちばん大事）</h3>
             <p className="mb-2">
               <strong>健康リスク</strong>は、全国の水準と比べた目安の指数です。
             </p>
@@ -75,13 +75,13 @@ export function GroupAnalysisHelpModal({ open, onClose }: Props) {
                 <strong>120を超える</strong> … この画面では「高リスク」として特に強く注意する区分です。
               </li>
             </ul>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-[#57606a]">
               <strong>高ストレス率（％）</strong>は、その部署で高ストレスと判定された方の割合の目安です。健康リスクの色（良好など）とは別指標なので、両方あわせて見てください。
             </p>
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">上の3つのカード</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">上の3つのカード</h3>
             <ul className="list-disc pl-5 space-y-1.5">
               <li>
                 <strong>部署数</strong> … 分析対象の部署の数です。
@@ -96,7 +96,7 @@ export function GroupAnalysisHelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">ヒートマップと右の詳細</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">ヒートマップと右の詳細</h3>
             <p className="mb-2">
               左の<strong>部署別ヒートマップ</strong>は、各部署の健康リスクが全国平均と比べてどの程度かを一覧で見るためのものです。タイルをクリックすると、右の詳細がその部署に切り替わります。
             </p>
@@ -115,30 +115,30 @@ export function GroupAnalysisHelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">健康リスク推移（期間別）</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">健康リスク推移（期間別）</h3>
             <p>
               ストレスチェックを複数回・複数期間実施し、データがたまると、時系列のグラフで見られます。期間が1回分しかないときは比較線が引けないため、2期間以上あると表示される、といった案内になることがあります。
             </p>
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">高リスク部署（健康リスク120超）</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">高リスク部署（健康リスク120超）</h3>
             <p>
               健康リスクが120を超えた部署だけがリストされます。フォローや職場環境の改善を優先して検討するリストです。該当がなければ「高リスク部署はありません」と表示されます。
             </p>
           </section>
 
-          <section className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-blue-950 text-xs leading-relaxed">
+          <section className="rounded-lg bg-[#f6f8fa] border border-[#e2e6ec] px-3 py-2.5 text-[#24292f] text-xs leading-relaxed">
             <strong className="font-semibold">読み方のコツ：</strong>
             ストレスチェックの回答を部署単位で集計した結果が根拠です。健康リスクは全国平均100を基準に高い・低いを見る。120超は特に注意。ヒートマップで部署を選び、レーダーで4つの職場要因のバランスを見る。下のリストは120超の部署の抜き出し、という順で見るとつながりやすくなります。
           </section>
         </div>
 
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/80 shrink-0 flex justify-end">
+        <div className="px-5 py-3 border-t border-[#e2e6ec] bg-[#f6f8fa]/80 shrink-0 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] transition-colors"
           >
             閉じる
           </button>
@@ -155,7 +155,7 @@ export function GroupAnalysisHelpModalTrigger() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+        className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-[#FD7601] bg-[#f6f8fa] hover:bg-[#FD7601]-10 border border-[#e2e6ec] rounded-lg transition-colors"
       >
         <HelpCircle className="w-4 h-4" />
         見方・説明

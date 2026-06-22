@@ -98,7 +98,7 @@ export default function DivisionEstablishmentsClient({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href={APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_GROUP_ANALYSIS}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-[#FD7601] hover:underline"
           >
             ← 集団分析ダッシュボード
           </Link>
@@ -106,9 +106,9 @@ export default function DivisionEstablishmentsClient({
         <button
           type="button"
           onClick={() => setMinSettingsOpen(true)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e2e6ec] bg-white text-sm font-semibold text-[#24292f] shadow-sm hover:bg-[#f6f8fa]"
         >
-          <Settings2 className="w-4 h-4 text-slate-500" />
+          <Settings2 className="w-4 h-4 text-[#57606a]" />
           集団分析・開示の最低人数
         </button>
       </div>
@@ -128,29 +128,29 @@ export default function DivisionEstablishmentsClient({
             aria-label="閉じる"
             onClick={() => setMinSettingsOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="text-base font-bold text-slate-900">集団分析・開示の最低人数</h2>
+          <div className="relative w-full max-w-md rounded-2xl border border-[#e2e6ec] bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa]">
+              <h2 className="text-base font-bold text-[#24292f]">集団分析・開示の最低人数</h2>
               <button
                 type="button"
                 onClick={() => setMinSettingsOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                className="p-1.5 rounded-lg text-[#57606a] hover:bg-[#f6f8fa] hover:text-[#57606a]"
                 aria-label="閉じる"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <p className="text-sm text-[#57606a] leading-relaxed">
                 この人数未満のグループでは健康リスク等を画面・PDF上で非開示にします（デフォルト11名）。
               </p>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">最低回答者数</label>
+                <label className="block text-xs font-bold text-[#57606a] mb-1">最低回答者数</label>
                 <input
                   type="number"
                   min={1}
                   max={10000}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm"
                   value={minN}
                   onChange={e => setMinN(e.target.value)}
                 />
@@ -160,7 +160,7 @@ export default function DivisionEstablishmentsClient({
                   type="button"
                   disabled={isPending}
                   onClick={() => setMinSettingsOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                  className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa]"
                 >
                   キャンセル
                 </button>
@@ -168,7 +168,7 @@ export default function DivisionEstablishmentsClient({
                   type="button"
                   disabled={isPending}
                   onClick={handleSaveSettings}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50"
                 >
                   {isPending ? '保存中…' : '保存'}
                 </button>
@@ -178,13 +178,13 @@ export default function DivisionEstablishmentsClient({
         </div>
       )}
 
-      <section className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <section className="bg-white rounded-2xl border border-[#e2e6ec] p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900">実施グループ</h2>
+          <h2 className="text-lg font-bold text-[#24292f]">実施グループ</h2>
           <button
             type="button"
             onClick={() => setAddPeriodOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e6ec] text-sm font-semibold text-[#24292f] hover:bg-[#f6f8fa]"
           >
             <Plus className="w-4 h-4" />
             追加
@@ -192,14 +192,14 @@ export default function DivisionEstablishmentsClient({
         </div>
 
         {periods.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">
+          <p className="text-sm text-[#57606a] text-center py-6">
             「追加」から実施グループを登録してください。
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                <tr className="text-left text-xs text-[#57606a] border-b border-[#e2e6ec]">
                   <th className="py-2 px-3 font-semibold w-[28%]">タイトル</th>
                   <th className="py-2 px-2 font-semibold whitespace-nowrap">年度</th>
                   <th className="py-2 px-2 font-semibold whitespace-nowrap">質問</th>
@@ -211,15 +211,15 @@ export default function DivisionEstablishmentsClient({
                 {periods.map(p => (
                   <Fragment key={p.id}>
                     {/* メイン行 */}
-                    <tr className="border-t border-slate-100 align-top">
-                      <td className="py-2.5 px-3 font-medium text-slate-800">{p.title}</td>
-                      <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap">
+                    <tr className="border-t border-[#e2e6ec] align-top">
+                      <td className="py-2.5 px-3 font-medium text-[#24292f]">{p.title}</td>
+                      <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap">
                         {p.fiscal_year}
                       </td>
-                      <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap">
+                      <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap">
                         {p.questionnaire_type}問
                       </td>
-                      <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap text-xs">
+                      <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap text-xs">
                         {String(p.start_date).split('T')[0]} 〜 {String(p.end_date).split('T')[0]}
                       </td>
                       <td className="py-2.5 pr-3 text-right whitespace-nowrap">
@@ -229,7 +229,7 @@ export default function DivisionEstablishmentsClient({
                             setEditingPeriod(p)
                             setEditPeriodOpen(true)
                           }}
-                          className="inline-flex p-1.5 rounded-md text-slate-500 hover:bg-slate-100"
+                          className="inline-flex p-1.5 rounded-md text-[#57606a] hover:bg-[#f6f8fa]"
                           title="編集"
                         >
                           <Pencil className="w-4 h-4" />
@@ -237,7 +237,7 @@ export default function DivisionEstablishmentsClient({
                         <button
                           type="button"
                           onClick={() => setTargetsPeriod(p)}
-                          className="inline-flex p-1.5 rounded-md text-blue-500 hover:bg-blue-50"
+                          className="inline-flex p-1.5 rounded-md text-[#FD7601] hover:bg-[#f6f8fa]"
                           title="対象者編集"
                         >
                           <Users className="w-4 h-4" />
@@ -253,16 +253,16 @@ export default function DivisionEstablishmentsClient({
                       </td>
                     </tr>
                     {/* 対象部署サブ行 */}
-                    <tr className="border-b border-slate-100">
+                    <tr className="border-b border-[#e2e6ec]">
                       <td colSpan={5} className="pb-3 px-3">
                         {p.divisionIds.length === 0 ? (
-                          <span className="text-xs text-slate-400">対象部署なし</span>
+                          <span className="text-xs text-[#57606a]">対象部署なし</span>
                         ) : (
                           <div className="flex flex-wrap gap-1.5 mt-0.5">
                             {p.divisionIds.map(divId => (
                               <span
                                 key={divId}
-                                className="inline-flex items-center text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full"
+                                className="inline-flex items-center text-xs bg-[#f6f8fa] text-[#FD7601] border border-[#e2e6ec] px-2 py-0.5 rounded-full"
                               >
                                 {buildFullPath(divId)}
                               </span>

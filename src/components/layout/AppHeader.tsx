@@ -27,8 +27,7 @@ export function AppHeader({ variant }: AppHeaderProps) {
   const tenantBrandName =
     [tenantNameFromContext, user?.tenant_name]
       .find(s => typeof s === 'string' && s.trim().length > 0)
-      ?.trim() ??
-    (variant === 'saas' ? 'プラットフォーム運営' : 'ワークスペース')
+      ?.trim() ?? (variant === 'saas' ? 'プラットフォーム運営' : 'ワークスペース')
 
   const homeHref =
     variant === 'saas'
@@ -51,7 +50,8 @@ export function AppHeader({ variant }: AppHeaderProps) {
   let bgStyle = 'rgba(255, 255, 255, 0.95)'
 
   if (variant === 'admin') {
-    bgStyle = 'linear-gradient(180deg, #008AA3 0%, #00738A 40%, #005F71 100%)'
+    // HR-DX Design System: app chrome（#232a33）
+    bgStyle = '#232a33'
   } else if (variant === 'saas') {
     bgStyle = '#000B00'
   }
@@ -65,7 +65,7 @@ export function AppHeader({ variant }: AppHeaderProps) {
   return (
     <header
       style={headerStyle}
-      className={`h-16 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 rounded-b-2xl transition-all duration-300 border-b ${variant === 'portal' ? 'border-slate-100/50' : 'border-white/10'} backdrop-blur-md`}
+      className={`${variant === 'admin' ? 'h-12' : 'h-16'} flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 rounded-b-2xl transition-all duration-300 border-b ${variant === 'portal' ? 'border-slate-100/50' : 'border-white/10'} backdrop-blur-md`}
     >
       <div className="flex items-center gap-4">
         <button
@@ -93,11 +93,16 @@ export function AppHeader({ variant }: AppHeaderProps) {
               variant === 'portal' ? 'text-slate-800' : 'text-white'
             }`}
             style={{
+              // HR-DX Design System: admin は Noto Sans JP（font-sans 継承）、Noto Serif JP は不使用
               fontFamily:
-                "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', 'Yu Mincho', 'Noto Serif JP', serif",
+                variant === 'admin'
+                  ? undefined
+                  : "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', 'Yu Mincho', 'Noto Serif JP', serif",
               fontFeatureSettings: '"palt", "kern"',
               textShadow:
-                variant !== 'portal' ? '0 1px 2px rgba(0,0,0,0.25)' : '0 1px 2px rgba(255,255,255,0.8)',
+                variant !== 'portal'
+                  ? '0 1px 2px rgba(0,0,0,0.25)'
+                  : '0 1px 2px rgba(255,255,255,0.8)',
               letterSpacing: '0.05em',
             }}
           >
@@ -141,7 +146,7 @@ export function AppHeader({ variant }: AppHeaderProps) {
                 {(appRole === 'developer' || role === 'supaUser') && (
                   <Link href={APP_ROUTES.SAAS.DASHBOARD}>
                     <button
-                      className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-blue-700 bg-blue-50/80 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-md transition-all shadow-sm"
+                      className="flex items-center gap-2 px-3 py-1.5 md:py-2 text-sm font-bold text-[#57606a] bg-accent-teal/80 border border-[#e2e6ec] hover:bg-[#e2e6ec] hover:border-[#8b949e] rounded-md transition-all shadow-sm"
                       title="SaaS管理へ"
                     >
                       <Shield className="w-5 h-5 md:w-4 md:h-4" />
@@ -151,23 +156,7 @@ export function AppHeader({ variant }: AppHeaderProps) {
                 )}
               </div>
             </>
-          ) : appRole === 'company_doctor' ? (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>ログアウト</span>
-            </button>
-          ) : (
-            <Link
-              href={APP_ROUTES.TENANT.PORTAL}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-white/10 rounded-md transition-all text-white hover:text-white/90`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>ポータルへ戻る</span>
-            </Link>
-          )}
+          ) : null}
         </div>
 
         {/* Back Button */}

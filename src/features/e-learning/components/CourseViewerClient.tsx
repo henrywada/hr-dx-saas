@@ -227,7 +227,7 @@ export function CourseViewerClient({ data }: Props) {
             <button
               onClick={handleNext}
               disabled={!canAdvance() || isPending}
-              className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-1"
+              className="w-full py-2.5 rounded-xl bg-[#FD7601] text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-1"
             >
               {label ?? (
                 <>

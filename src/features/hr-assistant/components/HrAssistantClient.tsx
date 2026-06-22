@@ -56,7 +56,7 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
       <div
         className={`${
           isSidebarOpen ? 'w-72' : 'w-0'
-        } shrink-0 border-r border-slate-200 bg-white overflow-hidden transition-all duration-200`}
+        } shrink-0 border-r border-[#e2e6ec] bg-white overflow-hidden transition-all duration-200`}
       >
         <SessionHistory
           sessions={sessions}
@@ -67,17 +67,17 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
       </div>
 
       {/* 右パネル：チャット */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 bg-white">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#f6f8fa]">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e2e6ec] bg-white">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(v => !v)}
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 text-sm"
+            className="p-2 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] text-sm"
             aria-label={isSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
           >
             {isSidebarOpen ? '◀' : '▶'}
           </button>
-          <span className="text-sm font-semibold text-slate-700">AI 人事相談アシスタント</span>
+          <span className="text-sm font-semibold text-[#24292f]">AI 人事相談アシスタント</span>
         </div>
         <ChatPanel
           sessionId={activeSessionId}

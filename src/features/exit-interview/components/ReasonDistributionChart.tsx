@@ -20,7 +20,7 @@ interface Props {
 export function ReasonDistributionChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-[#57606a] text-sm">
         データがありません
       </div>
     )

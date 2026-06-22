@@ -31,34 +31,34 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">退職理由分析</h1>
-        <p className="text-sm text-slate-500">退職面談記録の蓄積と傾向分析</p>
+        <h1 className="text-xl font-bold text-[#24292f]">退職理由分析</h1>
+        <p className="text-sm text-[#57606a]">退職面談記録の蓄積と傾向分析</p>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+        <div className="bg-white border border-[#e2e6ec] rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-primary">{analytics.total}</p>
-          <p className="text-xs text-slate-500 mt-1">累計記録数</p>
+          <p className="text-xs text-[#57606a] mt-1">累計記録数</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-slate-700">{last12Count}</p>
-          <p className="text-xs text-slate-500 mt-1">直近12ヶ月</p>
+        <div className="bg-white border border-[#e2e6ec] rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-[#24292f]">{last12Count}</p>
+          <p className="text-xs text-[#57606a] mt-1">直近12ヶ月</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center col-span-2">
+        <div className="bg-white border border-[#e2e6ec] rounded-xl p-4 text-center col-span-2">
           {topReason ? (
             <>
-              <p className="text-sm font-semibold text-slate-700">
+              <p className="text-sm font-semibold text-[#24292f]">
                 {MAIN_REASON_LABELS[topReason.reason]}
               </p>
-              <p className="text-xs text-slate-500 mt-1">最多退職理由（{topReason.count}件）</p>
+              <p className="text-xs text-[#57606a] mt-1">最多退職理由（{topReason.count}件）</p>
             </>
           ) : (
-            <p className="text-sm text-slate-400">データなし</p>
+            <p className="text-sm text-[#57606a]">データなし</p>
           )}
         </div>
       </div>
 
-      <div className="border-b border-slate-200">
+      <div className="border-b border-[#e2e6ec]">
         <div className="flex gap-0">
           {(
             [
@@ -72,7 +72,7 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
               className={`px-4 py-2 text-sm transition-colors ${
                 activeTab === tab
                   ? 'border-b-2 border-primary text-primary font-medium'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-[#57606a] hover:text-[#24292f]'
               }`}
             >
               {label}
@@ -84,27 +84,27 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4">退職理由の分布</h3>
+            <div className="bg-white border border-[#e2e6ec] rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#24292f] mb-4">退職理由の分布</h3>
               <ReasonDistributionChart data={analytics.reason_distribution} />
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4">
+            <div className="bg-white border border-[#e2e6ec] rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#24292f] mb-4">
                 月次退職件数（直近12ヶ月）
               </h3>
               <TrendChart data={analytics.monthly_trend} />
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">属性別傾向分析</h3>
+          <div className="bg-white border border-[#e2e6ec] rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-[#24292f] mb-4">属性別傾向分析</h3>
             <AttributeAnalysis analytics={analytics} />
           </div>
         </div>
       )}
 
       {activeTab === 'records' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="bg-white border border-[#e2e6ec] rounded-xl p-5">
           <ExitInterviewList records={records} employees={employees} />
         </div>
       )}

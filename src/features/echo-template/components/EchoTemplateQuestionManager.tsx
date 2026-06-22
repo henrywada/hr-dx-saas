@@ -77,7 +77,7 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec]">
           {editingTitle ? (
             <input
               autoFocus
@@ -85,11 +85,11 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
               onChange={e => setTitle(e.target.value)}
               onBlur={handleSaveTitle}
               onKeyDown={e => e.key === 'Enter' && handleSaveTitle()}
-              className="text-lg font-bold text-slate-800 border-b-2 border-primary outline-none bg-transparent w-full"
+              className="text-lg font-bold text-[#24292f] border-b-2 border-primary outline-none bg-transparent w-full"
             />
           ) : (
             <h2
-              className="text-lg font-bold text-slate-800 cursor-pointer hover:text-primary"
+              className="text-lg font-bold text-[#24292f] cursor-pointer hover:text-primary"
               onClick={() => setEditingTitle(true)}
               title="クリックでタイトル編集"
             >
@@ -98,7 +98,7 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
           )}
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 ml-4 text-xl leading-none"
+            className="text-[#57606a] hover:text-[#57606a] ml-4 text-xl leading-none"
           >
             ✕
           </button>
@@ -106,19 +106,19 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {questions.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-8">
+            <p className="text-sm text-[#57606a] text-center py-8">
               設問がありません。下から追加してください。
             </p>
           )}
           {questions.map((q, idx) => (
-            <div key={q.id} className="flex items-start gap-3 bg-slate-50 rounded-lg px-4 py-3">
-              <GripVertical size={16} className="text-slate-300 mt-0.5 shrink-0" />
-              <span className="text-xs text-slate-400 font-mono mt-0.5 shrink-0">Q{idx + 1}</span>
-              <p className="flex-1 text-sm text-slate-700">{q.question_text}</p>
+            <div key={q.id} className="flex items-start gap-3 bg-[#f6f8fa] rounded-lg px-4 py-3">
+              <GripVertical size={16} className="text-[#57606a] mt-0.5 shrink-0" />
+              <span className="text-xs text-[#57606a] font-mono mt-0.5 shrink-0">Q{idx + 1}</span>
+              <p className="flex-1 text-sm text-[#24292f]">{q.question_text}</p>
               <button
                 onClick={() => handleDeleteQuestion(q.id)}
                 disabled={isPending}
-                className="text-slate-300 hover:text-red-400 shrink-0"
+                className="text-[#57606a] hover:text-red-400 shrink-0"
                 title="削除"
               >
                 <Trash2 size={15} />
@@ -127,7 +127,7 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
           ))}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 space-y-2">
+        <div className="px-6 py-4 border-t border-[#e2e6ec] space-y-2">
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
             <input
@@ -136,7 +136,7 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
               onChange={e => setNewQuestionText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddQuestion()}
               placeholder="新しい設問テキストを入力（Enter で追加）"
-              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               onClick={handleAddQuestion}
@@ -147,7 +147,7 @@ export default function EchoTemplateQuestionManager({ template, onClose, onUpdat
               追加
             </button>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#57606a]">
             追加した設問は5段階評価（rating_table）形式で作成されます。
           </p>
         </div>

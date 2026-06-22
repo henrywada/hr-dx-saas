@@ -1,3 +1,5 @@
+@import './hr-dx-design/styles.css';
+
 @import 'tailwindcss';
 
 @theme {
@@ -21,11 +23,11 @@
   --leading-relaxed: 1.75;
 
   /* ブランドカラーパレット */
-  --color-primary: #0055ff;
-  --color-primary-dark: #0044cc;
-  --color-primary-light: #e5ebff;
-  --color-accent-teal: #00c2b8;
-  --color-accent-orange: #ff6b00;
+  --color-primary: #FD7601;
+  --color-primary-dark: #e06a00;
+  --color-primary-light: #fff3e6;
+  --color-accent-teal: #f6f8fa;
+  --color-accent-orange: #FD7601;
 
   /* セマンティックカラー（ブランドパレットから派生） */
   --color-success: oklch(60% 0.10 180);
@@ -45,11 +47,11 @@
   --foreground: oklch(15% 0.012 265);
 
   /* カスタムカラーパレット */
-  --primary: #0055ff;
-  --primary-dark: #0044cc;
-  --primary-light: #e5ebff;
-  --accent-teal: #00c2b8;
-  --accent-orange: #ff6b00;
+  --primary: #FD7601;
+  --primary-dark: #e06a00;
+  --primary-light: #fff3e6;
+  --accent-teal: #f6f8fa;
+  --accent-orange: #FD7601;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -58,11 +60,11 @@
     --foreground: oklch(93% 0.005 265);
 
     /* ダークモードでもカスタムカラーを維持 */
-    --primary: #0055ff;
-    --primary-dark: #0044cc;
-    --primary-light: #e5ebff;
-    --accent-teal: #00c2b8;
-    --accent-orange: #ff6b00;
+    --primary: #FD7601;
+    --primary-dark: #e06a00;
+    --primary-light: #fff3e6;
+    --accent-teal: #f6f8fa;
+    --accent-orange: #FD7601;
   }
 }
 

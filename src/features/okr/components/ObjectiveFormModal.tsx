@@ -123,7 +123,7 @@ export function ObjectiveFormModal({
               <select
                 value={ownerDivisionId}
                 onChange={e => setOwnerDivisionId(e.target.value)}
-                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="">選択してください</option>
                 {divisions.map(d => (
@@ -142,7 +142,7 @@ export function ObjectiveFormModal({
               <select
                 value={ownerEmployeeId}
                 onChange={e => setOwnerEmployeeId(e.target.value)}
-                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="">選択してください</option>
                 {employees.map(emp => (
@@ -185,7 +185,7 @@ export function ObjectiveFormModal({
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="例: 売上高1億円の達成"
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               required
             />
           </div>
@@ -198,7 +198,7 @@ export function ObjectiveFormModal({
               onChange={e => setDescription(e.target.value)}
               rows={3}
               placeholder="目標の背景や達成基準を記入"
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
             />
           </div>
 
@@ -208,7 +208,7 @@ export function ObjectiveFormModal({
             <select
               value={status}
               onChange={e => setStatus(e.target.value as 'draft' | 'active')}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
             >
               <option value="draft">下書き</option>
               <option value="active">進行中</option>

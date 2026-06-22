@@ -76,25 +76,25 @@ export default function LayerHeatmapContent({
   const groupUnitLabel = mode === 'establishment' ? '拠点' : mode === 'layer' ? 'グループ' : '部署'
 
   const activePillClass =
-    'bg-white text-indigo-700 font-bold shadow-md px-4 py-2 rounded-xl text-sm transition-all inline-flex items-center gap-1.5'
+    'bg-white text-[#FD7601] font-bold shadow-md px-4 py-2 rounded-xl text-sm transition-all inline-flex items-center gap-1.5'
   const inactivePillClass =
     'bg-white/20 text-white border border-white/40 hover:bg-white/30 px-4 py-2 rounded-xl text-sm transition-all font-medium inline-flex items-center gap-1.5'
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f6f8fa]">
       {/* ─── グラデーションヘッダー ─── */}
       <div className="bg-gradient-to-r from-indigo-800 to-blue-600 px-6 pt-8 pb-6 shadow-lg">
         <div className="max-w-7xl mx-auto space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">組織健康度分析</h1>
-              <p className="text-indigo-200 text-sm mt-1">
+              <p className="text-[#FD7601] text-sm mt-1">
                 ストレスチェック集団分析｜組織レイヤー別ヒートマップ
               </p>
             </div>
             <Link
               href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
-              className="shrink-0 text-xs text-indigo-200 hover:text-white underline underline-offset-2 transition-colors"
+              className="shrink-0 text-xs text-[#FD7601] hover:text-white underline underline-offset-2 transition-colors"
             >
               拠点・最低人数設定
             </Link>
@@ -131,7 +131,7 @@ export default function LayerHeatmapContent({
           </div>
 
           {/* 現在の集計モード説明 */}
-          <p className="text-xs text-indigo-200">
+          <p className="text-xs text-[#FD7601]">
             {mode === 'all' && '全従業員を１本に集計した全社サマリーです。'}
             {mode === 'division' && '所属部署を単位に集計しています。'}
             {mode === 'establishment' && '拠点マスタに基づき事業場単位で集計しています。'}
@@ -162,7 +162,7 @@ export default function LayerHeatmapContent({
                       ? 'text-rose-600'
                       : riskDiff < 0
                         ? 'text-emerald-600'
-                        : 'text-slate-400'
+                        : 'text-[#57606a]'
                   }`}
                 >
                   {riskDiff > 0 ? (
@@ -208,8 +208,8 @@ export default function LayerHeatmapContent({
           {/* ヒートマップ（左 2/3） */}
           <div className="lg:col-span-2">
             <Card className="p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-1">組織健康度ヒートマップ</h2>
-              <p className="text-xs text-slate-400 mb-4">
+              <h2 className="text-lg font-bold text-[#24292f] mb-1">組織健康度ヒートマップ</h2>
+              <p className="text-xs text-[#57606a] mb-4">
                 行をクリックして右パネルに詳細を表示｜列ヘッダーでソート
               </p>
               <OrgHealthMatrixHeatmap
@@ -225,7 +225,7 @@ export default function LayerHeatmapContent({
             {selectedGroup ? (
               <Card className="p-6 h-full">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-bold text-slate-800 leading-tight text-base">
+                  <h3 className="font-bold text-[#24292f] leading-tight text-base">
                     {selectedGroup.name}
                   </h3>
                   {!selectedGroup.is_suppressed &&
@@ -236,16 +236,16 @@ export default function LayerHeatmapContent({
                       </Badge>
                     )}
                 </div>
-                <p className="text-xs text-slate-400 mb-4">対象 {selectedGroup.member_count} 名</p>
+                <p className="text-xs text-[#57606a] mb-4">対象 {selectedGroup.member_count} 名</p>
 
                 <GroupRadarChart data={selectedGroup} />
 
                 {/* 健康リスク大表示 */}
-                <div className="mt-4 text-center py-4 rounded-xl bg-slate-50">
+                <div className="mt-4 text-center py-4 rounded-xl bg-[#f6f8fa]">
                   <div
                     className={`text-5xl font-bold tabular-nums ${
                       selectedGroup.is_suppressed || selectedGroup.health_risk == null
-                        ? 'text-slate-400'
+                        ? 'text-[#57606a]'
                         : selectedGroup.health_risk >= 120
                           ? 'text-rose-600'
                           : selectedGroup.health_risk >= 110
@@ -259,9 +259,9 @@ export default function LayerHeatmapContent({
                       ? '—'
                       : selectedGroup.health_risk}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">健康リスク（全国平均＝100）</p>
+                  <p className="text-xs text-[#57606a] mt-1">健康リスク（全国平均＝100）</p>
                   {!selectedGroup.is_suppressed && selectedGroup.high_stress_rate != null && (
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[#57606a] mt-0.5">
                       高ストレス率 {selectedGroup.high_stress_rate}%
                     </p>
                   )}
@@ -271,7 +271,7 @@ export default function LayerHeatmapContent({
                 {!selectedGroup.is_suppressed &&
                   selectedGroup.previous_health_risk != null &&
                   selectedGroup.health_risk != null && (
-                    <div className="mt-3 text-center text-xs text-slate-500">
+                    <div className="mt-3 text-center text-xs text-[#57606a]">
                       前回: <span className="font-bold">{selectedGroup.previous_health_risk}</span>
                       <span
                         className={`ml-2 font-bold ${
@@ -291,7 +291,7 @@ export default function LayerHeatmapContent({
                   )}
               </Card>
             ) : (
-              <Card className="p-6 h-full flex items-center justify-center text-slate-400 text-sm text-center">
+              <Card className="p-6 h-full flex items-center justify-center text-[#57606a] text-sm text-center">
                 左の表の行をクリックして
                 <br />
                 詳細を確認できます
@@ -302,8 +302,8 @@ export default function LayerHeatmapContent({
 
         {/* ─── 健康リスク推移グラフ ─── */}
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-indigo-500" />
+          <h2 className="text-lg font-bold text-[#24292f] mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-[#FD7601]" />
             健康リスク推移（期間別）
           </h2>
           <GroupTrendChart trendData={trendData} selectedDivisionId={selectedGroup?.division_id} />
@@ -325,20 +325,20 @@ export default function LayerHeatmapContent({
                     onClick={() => setSelectedGroup(g)}
                     className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-indigo-300 bg-indigo-50 ring-2 ring-indigo-400'
+                        ? 'border-[#e2e6ec] bg-[#f6f8fa] ring-2 ring-indigo-400'
                         : 'border-rose-200 bg-rose-50 hover:bg-rose-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <Users className="h-4 w-4 text-rose-600 shrink-0" />
                       <div>
-                        <span className="font-medium text-slate-800">{g.name}</span>
-                        <span className="text-xs text-slate-500 ml-2">{g.member_count}名</span>
+                        <span className="font-medium text-[#24292f]">{g.name}</span>
+                        <span className="text-xs text-[#57606a] ml-2">{g.member_count}名</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-2xl font-bold text-rose-600">{g.health_risk}</div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-[#57606a]">
                         高ストレス率 {g.high_stress_rate ?? '—'}%
                       </div>
                     </div>
@@ -374,20 +374,20 @@ function KpiCard({
     slate: 'border-t-slate-400',
   }
   const valueColor: Record<AccentColor, string> = {
-    indigo: 'text-indigo-600',
+    indigo: 'text-[#FD7601]',
     rose: 'text-rose-600',
     amber: 'text-amber-600',
     orange: 'text-orange-600',
-    slate: 'text-slate-600',
+    slate: 'text-[#57606a]',
   }
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 border-t-4 ${borderTop[accent]}`}
+      className={`bg-white rounded-2xl border border-[#e2e6ec] shadow-sm p-5 border-t-4 ${borderTop[accent]}`}
     >
-      <p className="text-xs text-slate-500 font-medium">{label}</p>
+      <p className="text-xs text-[#57606a] font-medium">{label}</p>
       <p className={`text-4xl font-bold mt-1 tabular-nums ${valueColor[accent]}`}>{value}</p>
-      <div className="text-xs text-slate-400 mt-1">{subValue}</div>
+      <div className="text-xs text-[#57606a] mt-1">{subValue}</div>
     </div>
   )
 }

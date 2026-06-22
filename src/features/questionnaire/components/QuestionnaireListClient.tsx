@@ -263,7 +263,7 @@ export default function QuestionnaireListClient({
                               variant="outline"
                               size="sm"
                               onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
-                              className="bg-blue-50! text-blue-700! border-blue-200! hover:bg-blue-100! hover:border-blue-300! hover:text-blue-800!"
+                              className="bg-[#f6f8fa]! text-[#FD7601]! border-[#e2e6ec]! hover:bg-[#FD7601]-10! hover:border-[#e2e6ec]! hover:text-[#FD7601]!"
                             >
                               実施開始へ
                             </Button>

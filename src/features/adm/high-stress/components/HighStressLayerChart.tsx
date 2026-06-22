@@ -113,7 +113,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-sm min-w-[220px]">
       <p className="font-bold text-gray-800 mb-2 text-xs leading-snug break-all">{d.path}</p>
-      <p className="text-blue-600">
+      <p className="text-[#FD7601]">
         実施者：<span className="font-bold">{d.submittedCount}名</span>
       </p>
       <p className="text-gray-500">
@@ -250,7 +250,7 @@ export default function HighStressLayerChart({
                 {d.path}
               </span>
               <div className="flex gap-3 shrink-0">
-                <span className="text-blue-500 font-bold">実{d.submittedCount}名</span>
+                <span className="text-[#FD7601] font-bold">実{d.submittedCount}名</span>
                 <span className="text-gray-400 font-bold">未{notSubmitted}名</span>
                 <span className="text-red-500 font-bold">高{d.highStressCount}名</span>
                 <span className="text-gray-400 w-8 text-right">{rate}%</span>

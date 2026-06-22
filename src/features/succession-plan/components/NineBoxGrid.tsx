@@ -25,7 +25,7 @@ const BOX_BG: Record<string, string> = {
   '3,3': 'bg-green-50 border-green-200',
   '2,3': 'bg-emerald-50 border-emerald-200',
   '1,3': 'bg-teal-50 border-teal-200',
-  '3,2': 'bg-blue-50 border-blue-200',
+  '3,2': 'bg-[#f6f8fa] border-[#e2e6ec]',
   '2,2': 'bg-gray-50 border-gray-200',
   '1,2': 'bg-orange-50 border-orange-200',
   '3,1': 'bg-purple-50 border-purple-200',

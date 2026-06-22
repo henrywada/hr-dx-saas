@@ -56,10 +56,10 @@ export function PaywallOverlay({
         </div>
 
         {/* メッセージ */}
-        <p className="text-sm font-semibold text-slate-700 mb-1 text-center px-4">
+        <p className="text-sm font-semibold text-[#24292f] mb-1 text-center px-4">
           {message}
         </p>
-        <p className="text-xs text-slate-500 mb-5 text-center px-4">
+        <p className="text-xs text-[#57606a] mb-5 text-center px-4">
           AI スカウト文・面接ガイドなど高度な機能をアンロック
         </p>
 
@@ -68,7 +68,7 @@ export function PaywallOverlay({
           <Button
             variant="primary"
             size="sm"
-            className="!bg-gradient-to-r !from-purple-600 !to-indigo-600 hover:!from-purple-700 hover:!to-indigo-700 shadow-lg shadow-purple-200/50 flex items-center gap-2"
+            className="!bg-gradient-to-r !from-purple-600 !to-orange-600 hover:!from-purple-700 hover:!to-indigo-700 shadow-lg shadow-purple-200/50 flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
             Pro プランへアップグレード

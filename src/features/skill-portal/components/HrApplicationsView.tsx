@@ -54,7 +54,7 @@ export function HrApplicationsView({ roleApplications, requirementApplications }
                 </p>
               )}
               {(app as SkillRoleApplication).manager_comment && (
-                <p className="mt-0.5 text-xs text-blue-600">
+                <p className="mt-0.5 text-xs text-[#FD7601]">
                   上長コメント: {(app as SkillRoleApplication).manager_comment}
                 </p>
               )}
@@ -83,7 +83,7 @@ export function HrApplicationsView({ roleApplications, requirementApplications }
                   </p>
                 )}
                 {(app as SkillRequirementApplication).manager_comment && (
-                  <p className="mt-0.5 text-xs text-blue-600">
+                  <p className="mt-0.5 text-xs text-[#FD7601]">
                     上長コメント: {(app as SkillRequirementApplication).manager_comment}
                   </p>
                 )}

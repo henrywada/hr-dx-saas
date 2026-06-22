@@ -82,14 +82,14 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
     <div className="grid grid-cols-2 gap-4">
       {/* 左：被評価者リスト */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-700">被評価者</h3>
+        <h3 className="text-sm font-semibold text-[#24292f]">被評価者</h3>
 
         {!disabled && (
           <div className="flex gap-2">
             <select
               value={addSubjectEmpId}
               onChange={e => setAddSubjectEmpId(e.target.value)}
-              className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none"
+              className="flex-1 border border-[#e2e6ec] rounded px-2 py-1 text-sm focus:outline-none"
             >
               <option value="">従業員を選択</option>
               {employees
@@ -118,19 +118,19 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
               className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border ${
                 selectedSubjectId === s.id
                   ? 'border-primary bg-primary/5'
-                  : 'border-slate-200 hover:bg-slate-50'
+                  : 'border-[#e2e6ec] hover:bg-[#f6f8fa]'
               }`}
             >
               <div>
-                <p className="text-sm font-medium text-slate-800">{s.employee_name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium text-[#24292f]">{s.employee_name}</p>
+                <p className="text-xs text-[#57606a]">
                   {s.department_name} · 評価者 {s.total_count}名 ({s.responded_count}名回答済)
                 </p>
               </div>
               {!disabled && (
                 <button
                   onClick={e => { e.stopPropagation(); handleRemoveSubject(s.id) }}
-                  className="text-xs text-slate-400 hover:text-red-500"
+                  className="text-xs text-[#57606a] hover:text-red-500"
                 >
                   削除
                 </button>
@@ -138,31 +138,31 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
             </div>
           ))}
           {subjects.length === 0 && (
-            <p className="text-sm text-slate-400 py-4 text-center">被評価者がいません</p>
+            <p className="text-sm text-[#57606a] py-4 text-center">被評価者がいません</p>
           )}
         </div>
       </div>
 
       {/* 右：評価者リスト */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-700">
+        <h3 className="text-sm font-semibold text-[#24292f]">
           {selectedSubject ? `${selectedSubject.employee_name} の評価者` : '評価者'}
         </h3>
 
         {!selectedSubject && (
-          <p className="text-sm text-slate-400 py-4 text-center">左の被評価者を選択してください</p>
+          <p className="text-sm text-[#57606a] py-4 text-center">左の被評価者を選択してください</p>
         )}
 
         {selectedSubject && (
           <>
             {!disabled && (
-              <div className="space-y-2 border border-slate-200 rounded-lg p-3">
+              <div className="space-y-2 border border-[#e2e6ec] rounded-lg p-3">
                 <select
                   value={addReviewerForm.empId}
                   onChange={e =>
                     setAddReviewerForm(prev => ({ ...prev, empId: e.target.value }))
                   }
-                  className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none"
+                  className="w-full border border-[#e2e6ec] rounded px-2 py-1 text-sm focus:outline-none"
                 >
                   <option value="">評価者を選択</option>
                   {employees
@@ -180,13 +180,13 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
                         type: e.target.value as ReviewerType,
                       }))
                     }
-                    className="border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none"
+                    className="border border-[#e2e6ec] rounded px-2 py-1 text-sm focus:outline-none"
                   >
                     {REVIEWER_TYPES.map(t => (
                       <option key={t} value={t}>{REVIEWER_TYPE_LABELS[t]}</option>
                     ))}
                   </select>
-                  <label className="flex items-center gap-1 text-xs text-slate-600">
+                  <label className="flex items-center gap-1 text-xs text-[#57606a]">
                     <input
                       type="checkbox"
                       checked={addReviewerForm.isAnon}
@@ -212,11 +212,11 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
               {selectedSubject.reviewers.map(r => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between p-2 border border-slate-200 rounded-lg"
+                  className="flex items-center justify-between p-2 border border-[#e2e6ec] rounded-lg"
                 >
                   <div>
-                    <span className="text-sm font-medium text-slate-800">{r.reviewer_name}</span>
-                    <span className="ml-2 text-xs text-slate-500">
+                    <span className="text-sm font-medium text-[#24292f]">{r.reviewer_name}</span>
+                    <span className="ml-2 text-xs text-[#57606a]">
                       {REVIEWER_TYPE_LABELS[r.reviewer_type]}
                       {r.is_anonymous && ' · 匿名'}
                     </span>
@@ -228,7 +228,7 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
                     <button
                       onClick={() => handleRemoveReviewer(r.id)}
                       disabled={isPending}
-                      className="text-xs text-slate-400 hover:text-red-500"
+                      className="text-xs text-[#57606a] hover:text-red-500"
                     >
                       削除
                     </button>
@@ -236,7 +236,7 @@ export function SubjectReviewerSetup({ campaignId, subjects, employees, disabled
                 </div>
               ))}
               {selectedSubject.reviewers.length === 0 && (
-                <p className="text-sm text-slate-400 py-4 text-center">評価者がいません</p>
+                <p className="text-sm text-[#57606a] py-4 text-center">評価者がいません</p>
               )}
             </div>
           </>

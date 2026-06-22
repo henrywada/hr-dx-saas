@@ -377,7 +377,7 @@ export function GlobalSkillLevelSetWorkspace({ skillLevelSets, onMutationSuccess
                       </tr>
 
                       {addingForSetId === set.id && (
-                        <tr className="border-b border-gray-100 bg-blue-50/40">
+                        <tr className="border-b border-gray-100 bg-[#f6f8fa]/40">
                           <td className="px-3 py-2" />
                           <td className="px-3 py-2" />
                           <td className="px-3 py-2 align-top text-center">

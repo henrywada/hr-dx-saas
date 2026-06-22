@@ -408,7 +408,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
           <select
             value={slideType}
             onChange={e => setSlideType(e.target.value as SlideType)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
           >
             {isLegacySlideType(slideType) && (
               <optgroup label="旧形式（表示・編集のみ）">
@@ -428,7 +428,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 mt-5"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg disabled:opacity-50 mt-5"
         >
           <Save className="w-4 h-4" />
           {saved ? '保存済み ✓' : isPending ? '保存中...' : '保存'}
@@ -442,7 +442,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
           type="text"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
           placeholder="スライドタイトル"
         />
       </div>
@@ -461,7 +461,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             value={content}
             onChange={e => setContent(e.target.value)}
             rows={slideType === 'scenario' ? 6 : 10}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
             placeholder={
               slideType === 'scenario'
                 ? '「あなたは〇〇の場面に遭遇しました…」'
@@ -516,7 +516,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             {!imageUrl && !microLocalPreview && (
               <label
                 htmlFor={microImageInputId}
-                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa]/50 transition-colors"
               >
                 <ImageIcon className="w-5 h-5 text-gray-400 mb-1" />
                 <span className="text-sm text-gray-500">画像をアップロード</span>
@@ -528,7 +528,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             {imageUrl && !microLocalPreview && !isMicroUploading && (
               <label
                 htmlFor={microImageInputId}
-                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit"
+                className="flex items-center gap-1.5 text-xs text-[#FD7601] hover:text-[#FD7601] cursor-pointer w-fit"
               >
                 <Upload className="w-3.5 h-3.5" />
                 画像を差し替える
@@ -567,7 +567,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa]/50 transition-colors">
                 <Video className="w-5 h-5 text-gray-400 mb-1" />
                 <span className="text-sm text-gray-500">動画をアップロード</span>
                 <span className="text-xs text-gray-400 mt-0.5">
@@ -638,7 +638,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
           {!imageUrl && !localPreview && (
             <label
               htmlFor={legacyImageInputId}
-              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-5 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-5 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa] transition-colors"
             >
               <ImageIcon className="w-6 h-6 text-gray-400 mb-1" />
               <span className="text-sm text-gray-500">クリックして画像を選択</span>
@@ -651,7 +651,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
           {imageUrl && !localPreview && !isUploading && (
             <label
               htmlFor={legacyImageInputId}
-              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit"
+              className="flex items-center gap-1.5 text-xs text-[#FD7601] hover:text-[#FD7601] cursor-pointer w-fit"
             >
               <Upload className="w-3.5 h-3.5" />
               別の画像に差し替える
@@ -671,7 +671,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
               value={questionText}
               onChange={e => setQuestionText(e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder="問題文を入力"
             />
           </div>
@@ -689,7 +689,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                     onChange={() =>
                       setOptions(options.map((o, j) => ({ ...o, is_correct: j === i })))
                     }
-                    className="text-blue-600"
+                    className="text-[#FD7601]"
                   />
                   <input
                     type="text"
@@ -699,7 +699,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                         options.map((o, j) => (j === i ? { ...o, text: e.target.value } : o))
                       )
                     }
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
                     placeholder={`選択肢 ${i + 1}`}
                   />
                 </div>
@@ -712,7 +712,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
               value={explanation}
               onChange={e => setExplanation(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder="正解の解説を入力"
             />
           </div>
@@ -728,7 +728,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
               type="button"
               onClick={handleAddBranch}
               disabled={isPending}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-40"
+              className="flex items-center gap-1 text-xs text-[#FD7601] hover:text-[#FD7601] disabled:opacity-40"
             >
               <Plus className="w-3.5 h-3.5" />
               選択肢を追加
@@ -804,7 +804,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
               type="button"
               onClick={handleAddItem}
               disabled={isPending}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-40"
+              className="flex items-center gap-1 text-xs text-[#FD7601] hover:text-[#FD7601] disabled:opacity-40"
             >
               <Plus className="w-3.5 h-3.5" />
               項目を追加

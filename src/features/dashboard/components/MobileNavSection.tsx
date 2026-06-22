@@ -7,7 +7,7 @@ import { MobileLogoutButton } from './MobileLogoutButton';
 
 
 const linkClass =
-  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm';
+  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-[#57606a] hover:bg-white hover:text-accent-orange hover:shadow-sm';
 
 export async function MobileNavSection() {
   const user = await getServerUser();
@@ -49,7 +49,7 @@ export async function MobileNavSection() {
 
   return (
     <div className="md:hidden mt-1">
-      <hr className="border-slate-200 mb-3" />
+      <hr className="border-[#e2e6ec] mb-3" />
       <nav className="space-y-1">
         {categories.map((category) => (
           <Link
@@ -57,7 +57,7 @@ export async function MobileNavSection() {
             href={`${basePath}?service_category_id=${category.id}`}
             className={linkClass}
           >
-            <Briefcase className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+            <Briefcase className="w-5 h-5 text-[#57606a] group-hover:text-[#57606a]" />
             <span className="flex-1">{category.name}</span>
           </Link>
         ))}

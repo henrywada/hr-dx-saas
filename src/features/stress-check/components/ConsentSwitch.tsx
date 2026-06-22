@@ -30,8 +30,8 @@ export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitc
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl mt-0.5">
-            <ShieldCheck className="h-5 w-5 text-indigo-600" />
+          <div className="p-2 bg-[#f6f8fa] rounded-xl mt-0.5">
+            <ShieldCheck className="h-5 w-5 text-[#FD7601]" />
           </div>
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-gray-900">事業者（会社）への結果提供</h3>
@@ -45,7 +45,7 @@ export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitc
           onClick={handleToggle}
           disabled={isPending}
           className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-            consented ? 'bg-indigo-600' : 'bg-gray-200'
+            consented ? 'bg-[#FD7601]' : 'bg-gray-200'
           } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
           role="switch"
           aria-checked={consented}
@@ -60,7 +60,7 @@ export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitc
         </button>
       </div>
       {consented && (
-        <div className="mt-3 p-3 rounded-lg bg-indigo-50 text-xs text-indigo-700">
+        <div className="mt-3 p-3 rounded-lg bg-[#f6f8fa] text-xs text-[#FD7601]">
           ✓ 結果提供に同意しました。人事部門があなたの結果を閲覧できるようになります。
         </div>
       )}

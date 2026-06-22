@@ -100,15 +100,15 @@ export function EmployeeFormDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-[#e2e6ec] max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0">
-          <h3 className="text-lg font-bold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa] sticky top-0">
+          <h3 className="text-lg font-bold text-[#24292f]">
             {isEdit ? '従業員を編集' : '従業員を追加'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -123,7 +123,7 @@ export function EmployeeFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
                 氏名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -131,12 +131,12 @@ export function EmployeeFormDialog({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 placeholder="例：田中太郎"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
                 メールアドレス <span className="text-red-500">*</span>
               </label>
               <input
@@ -145,7 +145,7 @@ export function EmployeeFormDialog({
                 onChange={e => setEmail(e.target.value)}
                 required={!isEdit} // 編集時はとりあえずオプショナルにするなどの要件変更も可能
                 disabled={isEdit} // メールアドレス変更は別フローで行うとした場合
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none disabled:bg-[#f6f8fa] disabled:text-[#57606a]"
                 placeholder="例：taro@example.com"
               />
             </div>
@@ -153,12 +153,12 @@ export function EmployeeFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">社員番号</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">社員番号</label>
               <input
                 type="text"
                 value={employeeNo}
                 onChange={e => setEmployeeNo(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 placeholder="例：E-001"
               />
             </div>
@@ -166,11 +166,11 @@ export function EmployeeFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">所属部署</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">所属部署</label>
               <select
                 value={divisionId || ''}
                 onChange={e => setDivisionId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none bg-white"
               >
                 <option value="">未所属</option>
                 {divisions.map(d => (
@@ -179,12 +179,12 @@ export function EmployeeFormDialog({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">役職</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">役職</label>
               <input
                 type="text"
                 value={jobTitle}
                 onChange={e => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 placeholder="例：課長"
               />
             </div>
@@ -192,11 +192,11 @@ export function EmployeeFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">ステータス</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">ステータス</label>
               <select
                 value={activeStatus}
                 onChange={e => setActiveStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none bg-white"
               >
                 <option value="active">アクティブ</option>
                 <option value="off">休職</option>
@@ -206,11 +206,11 @@ export function EmployeeFormDialog({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">アプリロール</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">アプリロール</label>
               <select
                 value={appRoleId || ''}
                 onChange={e => setAppRoleId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none bg-white"
               >
                 <option value="">未設定</option>
                 {appRoles.map(r => (
@@ -222,11 +222,11 @@ export function EmployeeFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">性別</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">性別</label>
               <select
                 value={sex}
                 onChange={e => setSex(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none bg-white"
               >
                 <option value="">未設定</option>
                 <option value="男性">男性</option>
@@ -235,12 +235,12 @@ export function EmployeeFormDialog({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">入社日</label>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">入社日</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
               />
             </div>
           </div>
@@ -251,25 +251,25 @@ export function EmployeeFormDialog({
               id="isManager"
               checked={isManager}
               onChange={e => setIsManager(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-[#e2e6ec] text-[#FD7601] focus:ring-[#FD7601]"
             />
-            <label htmlFor="isManager" className="text-sm text-slate-700">
+            <label htmlFor="isManager" className="text-sm text-[#24292f]">
               管理者（残業申請の承認権限を持ちます）
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-2 border-t border-[#e2e6ec]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isPending || !name.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
             >
               {isPending ? '保存中...' : '保存'}
             </button>

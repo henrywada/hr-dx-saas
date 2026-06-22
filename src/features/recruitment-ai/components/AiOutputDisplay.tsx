@@ -40,10 +40,10 @@ export function AiOutputDisplay({ result }: AiOutputDisplayProps) {
             <Sparkles className="w-5 h-5 text-orange-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <h4 className="text-sm font-semibold text-[#57606a] uppercase tracking-wider mb-2">
               AI キャッチコピー
             </h4>
-            <p className="text-lg font-bold text-slate-800 leading-relaxed">
+            <p className="text-lg font-bold text-[#24292f] leading-relaxed">
               {result.catchphrase || "—"}
             </p>
           </div>
@@ -56,13 +56,13 @@ export function AiOutputDisplay({ result }: AiOutputDisplayProps) {
       <Card variant="primary" className="relative overflow-hidden min-h-[220px]">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shrink-0">
-              <MessageSquareText className="w-5 h-5 text-blue-600" />
+              <MessageSquareText className="w-5 h-5 text-[#FD7601]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-semibold text-[#57606a] uppercase tracking-wider mb-2">
                 AI スカウト文
               </h4>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-[#24292f] leading-relaxed whitespace-pre-wrap">
                 {result.scoutText || "AI がスカウト文を生成します..."}
               </p>
             </div>
@@ -78,10 +78,10 @@ export function AiOutputDisplay({ result }: AiOutputDisplayProps) {
               <ClipboardList className="w-5 h-5 text-teal-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-semibold text-[#57606a] uppercase tracking-wider mb-2">
                 AI 面接ガイド
               </h4>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-[#24292f] leading-relaxed whitespace-pre-wrap">
                 {result.interviewGuide || "AI が面接ガイドを生成します..."}
               </p>
             </div>
@@ -97,10 +97,10 @@ export function AiOutputDisplay({ result }: AiOutputDisplayProps) {
               <Lightbulb className="w-5 h-5 text-orange-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-semibold text-[#57606a] uppercase tracking-wider mb-2">
                 💡 AIからの掲載メディア・アドバイス
               </h4>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-[#24292f] leading-relaxed whitespace-pre-wrap">
                 {result.mediaAdvice || "AI が掲載メディアのアドバイスを提案します..."}
               </p>
             </div>

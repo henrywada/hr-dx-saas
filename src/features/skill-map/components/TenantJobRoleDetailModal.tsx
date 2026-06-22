@@ -148,7 +148,7 @@ export function TenantJobRoleDetailModal({ open, onOpenChange, skillId }: Props)
             ) : (
               <div className="space-y-6">
                 {editingMeta && (
-                  <div className="rounded-lg border border-primary/30 bg-blue-50 px-4 py-4">
+                  <div className="rounded-lg border border-primary/30 bg-[#f6f8fa] px-4 py-4">
                     {metaError && <p className="mb-3 text-sm text-red-600">{metaError}</p>}
                     <div className="flex flex-wrap items-center gap-3">
                       <input

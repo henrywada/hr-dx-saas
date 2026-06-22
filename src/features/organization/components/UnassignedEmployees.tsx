@@ -28,14 +28,14 @@ export function UnassignedEmployees({ employees, divisions }: UnassignedEmployee
             className="flex items-center gap-2 py-1.5 px-3 rounded-lg hover:bg-amber-50 transition-colors group"
           >
             <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-xs text-slate-500 font-mono w-16 shrink-0">
+            <span className="text-xs text-[#57606a] font-mono w-16 shrink-0">
               {emp.employee_no || '---'}
             </span>
-            <span className="text-sm text-slate-700 flex-1 truncate">
+            <span className="text-sm text-[#24292f] flex-1 truncate">
               {emp.name || '名前未設定'}
             </span>
             {emp.job_title && (
-              <span className="text-xs text-slate-400 shrink-0 hidden sm:inline">
+              <span className="text-xs text-[#57606a] shrink-0 hidden sm:inline">
                 {emp.job_title}
               </span>
             )}

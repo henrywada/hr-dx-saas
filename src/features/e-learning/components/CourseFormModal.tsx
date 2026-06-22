@@ -128,7 +128,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               router.refresh()
               onClose()
             }}
-            className="mt-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+            className="mt-2 px-6 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg"
           >
             閉じる
           </button>
@@ -159,7 +159,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
               placeholder="コースタイトルを入力"
             />
           </div>
@@ -170,7 +170,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder="コースの概要を入力"
             />
           </div>
@@ -182,7 +182,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             <select
               value={bloomLevel}
               onChange={e => setBloomLevel(e.target.value as BloomLevel | '')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
             >
               <option value="">未設定</option>
               {BLOOM_LEVELS.map(level => (
@@ -202,7 +202,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               value={objectivesText}
               onChange={e => setObjectivesText(e.target.value)}
               rows={4}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder={'ハラスメントの定義と種類を説明できる\n適切な対処法を選択できる\n相談窓口への案内ができる'}
             />
           </div>
@@ -213,7 +213,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               type="text"
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
               placeholder="例：初級、コンプライアンス"
             />
           </div>
@@ -231,7 +231,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
                     type="date"
                     value={pubStart}
                     onChange={e => setPubStart(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
                   />
                 </div>
                 <div>
@@ -240,7 +240,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
                     type="date"
                     value={pubEnd}
                     onChange={e => setPubEnd(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
                   />
                 </div>
               </div>
@@ -249,19 +249,19 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
 
           {/* AI シナリオ作成チェックボックス（新規作成時のみ） */}
           {isNew && (
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-[#e2e6ec] bg-[#f6f8fa] cursor-pointer hover:bg-[#FD7601]-10 transition-colors">
               <input
                 type="checkbox"
                 checked={useAiScenario}
                 onChange={e => setUseAiScenario(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                className="mt-0.5 h-4 w-4 rounded text-[#FD7601] focus:ring-[#FD7601]"
               />
               <div>
-                <div className="flex items-center gap-1.5 text-sm font-medium text-blue-700">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-[#FD7601]">
                   <Sparkles className="w-4 h-4" />
                   AIで学習シナリオを作成
                 </div>
-                <p className="text-xs text-blue-600 mt-0.5">
+                <p className="text-xs text-[#FD7601] mt-0.5">
                   学習目標 → 学習スライド → シナリオ問題 → 振り返り → チェックリストを自動生成します
                 </p>
               </div>
@@ -281,7 +281,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             <button
               type="submit"
               disabled={isPending || !title.trim()}
-              className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg disabled:opacity-50"
             >
               {isPending && isNew && useAiScenario && (
                 <Sparkles className="w-4 h-4 animate-pulse" />

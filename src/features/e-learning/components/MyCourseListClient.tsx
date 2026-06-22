@@ -34,7 +34,7 @@ function getStatus(a: AssignmentWithDetail): 'not_started' | 'in_progress' | 'co
 
 const STATUS_BADGE: Record<string, string> = {
   not_started: 'bg-gray-100 text-gray-600',
-  in_progress: 'bg-blue-100 text-blue-700',
+  in_progress: 'bg-[#FD7601]-10 text-[#FD7601]',
   completed: 'bg-green-100 text-green-700',
 }
 const STATUS_LABEL: Record<string, string> = {
@@ -103,7 +103,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
               <>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex flex-wrap gap-1.5 items-center">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#f6f8fa] text-[#FD7601] font-medium">
                       {a.course.category}
                     </span>
                     <span
@@ -148,7 +148,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                          status === 'completed' ? 'bg-green-500' : 'bg-[#f6f8fa]0'
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -178,7 +178,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
                   ) : (
                     <span
                       className={`text-xs font-semibold ${
-                        status === 'completed' ? 'text-green-600' : 'text-blue-600'
+                        status === 'completed' ? 'text-green-600' : 'text-[#FD7601]'
                       }`}
                     >
                       {BUTTON_LABEL[status]} →

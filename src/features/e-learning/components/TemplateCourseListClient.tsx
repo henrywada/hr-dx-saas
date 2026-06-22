@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_PALETTE = [
-  'bg-blue-100 text-blue-700',
+  'bg-[#FD7601]-10 text-[#FD7601]',
   'bg-orange-100 text-orange-700',
   'bg-green-100 text-green-700',
   'bg-purple-100 text-purple-700',
@@ -55,7 +55,7 @@ export function TemplateCourseListClient({ courses }: Props) {
         <select
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
-          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
         >
           <option value="">すべてのカテゴリ</option>
           {categories.map(c => (
@@ -70,7 +70,7 @@ export function TemplateCourseListClient({ courses }: Props) {
             setEditCourse(null)
             setShowForm(true)
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#FD7601] hover:bg-[#FD7601] rounded-lg"
         >
           <Plus className="w-4 h-4" />
           テンプレート作成
@@ -131,7 +131,7 @@ export function TemplateCourseListClient({ courses }: Props) {
                 </button>
                 <a
                   href={`/saas_adm/el-templates/${course.id}`}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] rounded-lg"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   学習内容の編集

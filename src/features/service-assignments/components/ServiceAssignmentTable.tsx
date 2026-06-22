@@ -20,35 +20,35 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">サービス対象者管理</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">サービス対象者管理</h1>
+          <p className="text-sm text-[#57606a] mt-1">
             サービスの対象ユーザーを一覧・編集・同期できます
           </p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
           新規作成
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">
+      <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/50 flex items-center gap-2">
+          <span className="text-sm font-medium text-[#57606a]">
             サービス割当一覧
-            <span className="text-xs text-slate-400 ml-2">({assignments.length}件)</span>
+            <span className="text-xs text-[#57606a] ml-2">({assignments.length}件)</span>
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/30">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+              <tr className="border-b border-[#e2e6ec] bg-[#f6f8fa]/30">
+                <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   サービス種別
                 </th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+                <th className="text-right px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   操作
                 </th>
               </tr>
@@ -56,7 +56,7 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
             <tbody>
               {assignments.length === 0 ? (
                 <tr>
-                  <td colSpan={2} className="text-center py-12 text-slate-400">
+                  <td colSpan={2} className="text-center py-12 text-[#57606a]">
                     サービス割当がありません。新規作成してください。
                   </td>
                 </tr>
@@ -64,11 +64,11 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
                 assignments.map(a => (
                   <tr
                     key={a.id}
-                    className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"
+                    className="border-b border-[#e2e6ec] hover:bg-[#f6f8fa]/30 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-800">
+                    <td className="px-4 py-3 font-medium text-[#24292f]">
                       {a.service_type}
-                      <span className="ml-1 text-slate-400 font-normal text-xs">
+                      <span className="ml-1 text-[#57606a] font-normal text-xs">
                         （{a.user_count}名）
                       </span>
                     </td>
@@ -76,7 +76,7 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
                       <div className="flex justify-end gap-1">
                         <Link
                           href={`${basePath}/${a.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[#57606a] hover:text-[#FD7601] hover:bg-[#f6f8fa] transition-colors"
                         >
                           <Pencil className="w-4 h-4" />
                           詳細・編集

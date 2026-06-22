@@ -35,9 +35,9 @@ export function EmployeeAssignSelect({
       disabled={isPending}
       className={`
         text-xs px-2 py-1 border rounded-md bg-white
-        focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
+        focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none
         transition-all cursor-pointer
-        ${isPending ? 'opacity-50 cursor-wait' : 'border-slate-300 hover:border-blue-400'}
+        ${isPending ? 'opacity-50 cursor-wait' : 'border-[#e2e6ec] hover:border-[#FD7601]'}
       `}
     >
       <option value="">未所属</option>

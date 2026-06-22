@@ -22,16 +22,16 @@ interface OrgHealthMatrixHeatmapProps {
 }
 
 function healthRiskColor(v: number | null): string {
-  if (v == null) return 'bg-slate-100 text-slate-400'
+  if (v == null) return 'bg-[#f6f8fa] text-[#57606a]'
   if (v >= 120) return 'bg-rose-500 text-white'
   if (v >= 110) return 'bg-orange-300 text-orange-900'
   if (v >= 100) return 'bg-amber-100 text-amber-800'
   if (v >= 90) return 'bg-emerald-100 text-emerald-800'
-  return 'bg-blue-100 text-blue-800'
+  return 'bg-[#FD7601]-10 text-[#FD7601]'
 }
 
 function highStressColor(v: number | null): string {
-  if (v == null) return 'bg-slate-100 text-slate-400'
+  if (v == null) return 'bg-[#f6f8fa] text-[#57606a]'
   if (v >= 15) return 'bg-rose-500 text-white'
   if (v >= 10) return 'bg-orange-300 text-orange-900'
   if (v >= 5) return 'bg-amber-100 text-amber-800'
@@ -39,7 +39,7 @@ function highStressColor(v: number | null): string {
 }
 
 function relativeColor(v: number | null, min: number, max: number, highIsBad: boolean): string {
-  if (v == null || max === min) return 'bg-slate-100 text-slate-400'
+  if (v == null || max === min) return 'bg-[#f6f8fa] text-[#57606a]'
   const ratio = (v - min) / (max - min)
   if (highIsBad) {
     if (ratio > 0.75) return 'bg-rose-500 text-white'
@@ -111,9 +111,9 @@ export default function OrgHealthMatrixHeatmap({
   function SortIcon({ col }: { col: SortKey }) {
     if (sortKey !== col) return <ChevronsUpDown className="h-3 w-3 opacity-40" />
     return sortDir === 'asc' ? (
-      <ChevronUp className="h-3 w-3 text-indigo-500" />
+      <ChevronUp className="h-3 w-3 text-[#FD7601]" />
     ) : (
-      <ChevronDown className="h-3 w-3 text-indigo-500" />
+      <ChevronDown className="h-3 w-3 text-[#FD7601]" />
     )
   }
 
@@ -121,9 +121,9 @@ export default function OrgHealthMatrixHeatmap({
     <div className="space-y-3">
       {/* カラー凡例 */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-slate-500 font-medium shrink-0">健康リスク:</span>
+        <span className="text-[#57606a] font-medium shrink-0">健康リスク:</span>
         {[
-          { label: '< 90 良好', cls: 'bg-blue-100 text-blue-800' },
+          { label: '< 90 良好', cls: 'bg-[#FD7601]-10 text-[#FD7601]' },
           { label: '90–99', cls: 'bg-emerald-100 text-emerald-800' },
           { label: '100–109', cls: 'bg-amber-100 text-amber-800' },
           { label: '110–119 注意', cls: 'bg-orange-300 text-orange-900' },
@@ -136,17 +136,17 @@ export default function OrgHealthMatrixHeatmap({
       </div>
 
       {/* テーブル */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-[#e2e6ec] shadow-sm">
         <table className="min-w-full text-sm border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
+            <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
               {COLUMNS.map(({ key, label }) => (
                 <th
                   key={key}
                   onClick={() => handleSort(key)}
-                  className={`px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:bg-slate-100 transition-colors ${
+                  className={`px-3 py-3 text-xs font-semibold text-[#57606a] uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:bg-[#f6f8fa] transition-colors ${
                     key === 'name'
-                      ? 'sticky left-0 bg-slate-50 z-10 text-left min-w-[140px]'
+                      ? 'sticky left-0 bg-[#f6f8fa] z-10 text-left min-w-[140px]'
                       : 'text-center min-w-[90px]'
                   }`}
                 >
@@ -160,7 +160,7 @@ export default function OrgHealthMatrixHeatmap({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[#e2e6ec]">
             {sorted.map(group => {
               const suppressed = group.is_suppressed
               const isSelected = group.division_id === selectedDivisionId
@@ -172,24 +172,24 @@ export default function OrgHealthMatrixHeatmap({
                   onClick={() => onSelect(group)}
                   className={`cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-indigo-50 outline outline-2 outline-indigo-400 outline-offset-[-2px]'
+                      ? 'bg-[#f6f8fa] outline outline-2 outline-indigo-400 outline-offset-[-2px]'
                       : isHighRisk
                         ? 'bg-rose-50 hover:bg-rose-100'
-                        : 'hover:bg-slate-50'
+                        : 'hover:bg-[#f6f8fa]'
                   }`}
                 >
                   {/* 部署名（sticky） */}
                   <td
                     className={`sticky left-0 px-3 py-2.5 z-10 ${
                       isSelected
-                        ? 'bg-indigo-50'
+                        ? 'bg-[#f6f8fa]'
                         : isHighRisk
                           ? 'bg-rose-50 border-l-4 border-rose-500'
                           : 'bg-white'
                     }`}
                   >
-                    <div className="font-medium text-slate-800 leading-tight">{group.name}</div>
-                    <div className="text-xs text-slate-400">{group.member_count}名</div>
+                    <div className="font-medium text-[#24292f] leading-tight">{group.name}</div>
+                    <div className="text-xs text-[#57606a]">{group.member_count}名</div>
                   </td>
 
                   {/* 高ストレス率 */}
@@ -291,7 +291,7 @@ export default function OrgHealthMatrixHeatmap({
         </table>
 
         {groups.length === 0 && (
-          <div className="py-12 text-center text-slate-400 text-sm">
+          <div className="py-12 text-center text-[#57606a] text-sm">
             表示できるデータがありません
           </div>
         )}
@@ -325,7 +325,7 @@ function CellValue({
 function CellSuppressed() {
   return (
     <div className="flex justify-center">
-      <span className="inline-block px-2 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-400 min-w-[3.5rem] text-center">
+      <span className="inline-block px-2 py-1 rounded-lg text-xs font-medium bg-[#f6f8fa] text-[#57606a] min-w-[3.5rem] text-center">
         —
       </span>
     </div>

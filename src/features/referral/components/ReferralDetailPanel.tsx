@@ -50,56 +50,56 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
       {/* 2カラム情報セクション */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 左：候補者情報 */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
+        <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-[#57606a] uppercase tracking-wide mb-4">
             候補者情報
           </h2>
           <dl className="space-y-3">
             {/* 氏名 */}
             <div className="flex items-start gap-3">
-              <User className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+              <User className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
               <div>
-                <dt className="text-xs text-slate-400 leading-none mb-0.5">氏名</dt>
-                <dd className="text-sm font-semibold text-slate-900">{nomination.nominee_name}</dd>
+                <dt className="text-xs text-[#57606a] leading-none mb-0.5">氏名</dt>
+                <dd className="text-sm font-semibold text-[#24292f]">{nomination.nominee_name}</dd>
               </div>
             </div>
             {/* メールアドレス */}
             {nomination.nominee_email && (
               <div className="flex items-start gap-3">
-                <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <Mail className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-slate-400 leading-none mb-0.5">メールアドレス</dt>
-                  <dd className="text-sm text-slate-700">{nomination.nominee_email}</dd>
+                  <dt className="text-xs text-[#57606a] leading-none mb-0.5">メールアドレス</dt>
+                  <dd className="text-sm text-[#24292f]">{nomination.nominee_email}</dd>
                 </div>
               </div>
             )}
             {/* 電話番号 */}
             {nomination.nominee_phone && (
               <div className="flex items-start gap-3">
-                <Phone className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <Phone className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-slate-400 leading-none mb-0.5">電話番号</dt>
-                  <dd className="text-sm text-slate-700">{nomination.nominee_phone}</dd>
+                  <dt className="text-xs text-[#57606a] leading-none mb-0.5">電話番号</dt>
+                  <dd className="text-sm text-[#24292f]">{nomination.nominee_phone}</dd>
                 </div>
               </div>
             )}
             {/* 関係性 */}
             {nomination.relationship && (
               <div className="flex items-start gap-3">
-                <Link2 className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <Link2 className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-slate-400 leading-none mb-0.5">関係性</dt>
-                  <dd className="text-sm text-slate-700">{nomination.relationship}</dd>
+                  <dt className="text-xs text-[#57606a] leading-none mb-0.5">関係性</dt>
+                  <dd className="text-sm text-[#24292f]">{nomination.relationship}</dd>
                 </div>
               </div>
             )}
             {/* 推薦理由 */}
             {nomination.nomination_reason && (
               <div className="flex items-start gap-3">
-                <FileText className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <FileText className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-slate-400 leading-none mb-0.5">推薦理由</dt>
-                  <dd className="text-sm text-slate-700 whitespace-pre-wrap">
+                  <dt className="text-xs text-[#57606a] leading-none mb-0.5">推薦理由</dt>
+                  <dd className="text-sm text-[#24292f] whitespace-pre-wrap">
                     {nomination.nomination_reason}
                   </dd>
                 </div>
@@ -111,23 +111,23 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
         {/* 右：推薦者情報 + 求人情報 */}
         <div className="space-y-4">
           {/* 推薦者情報 */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
+          <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-[#57606a] uppercase tracking-wide mb-4">
               推薦者情報
             </h2>
             <dl className="space-y-3">
               <div className="flex items-start gap-3">
-                <User className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <User className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-slate-400 leading-none mb-0.5">氏名</dt>
-                  <dd className="text-sm font-semibold text-slate-900">
+                  <dt className="text-xs text-[#57606a] leading-none mb-0.5">氏名</dt>
+                  <dd className="text-sm font-semibold text-[#24292f]">
                     {nomination.referrer?.name ?? '—'}
                   </dd>
                 </div>
               </div>
               <div>
-                <dt className="text-xs text-slate-400 leading-none mb-0.5">推薦日</dt>
-                <dd className="text-sm text-slate-700">
+                <dt className="text-xs text-[#57606a] leading-none mb-0.5">推薦日</dt>
+                <dd className="text-sm text-[#24292f]">
                   {new Date(nomination.created_at).toLocaleDateString('ja-JP', {
                     year: 'numeric',
                     month: '2-digit',
@@ -136,7 +136,7 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-400 leading-none mb-0.5">現在のステータス</dt>
+                <dt className="text-xs text-[#57606a] leading-none mb-0.5">現在のステータス</dt>
                 <dd className="mt-1">
                   <ReferralStatusBadge status={nomination.status} />
                 </dd>
@@ -146,14 +146,14 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
 
           {/* 求人情報 */}
           {nomination.referral_posting && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
+            <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-[#57606a] uppercase tracking-wide mb-4">
                 対象求人
               </h2>
               <div className="flex items-start gap-3">
-                <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <Briefcase className="h-4 w-4 text-[#57606a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-[#24292f]">
                     {nomination.referral_posting.title}
                   </p>
                   <p className="text-xs text-[#ff6b00] font-bold mt-1">
@@ -167,14 +167,14 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
       </div>
 
       {/* ステータス更新フォーム */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
+      <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-[#57606a] uppercase tracking-wide mb-4">
           ステータス更新
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ステータス選択 */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="status" className="block text-sm font-medium text-[#24292f] mb-1">
               ステータス
             </label>
             <select
@@ -182,7 +182,7 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
               name="status"
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value as NominationStatus)}
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
             >
               {Object.entries(NOMINATION_STATUS_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -195,7 +195,7 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
           {/* 入社日（入社確定時のみ表示） */}
           {selectedStatus === 'hired' && (
             <div>
-              <label htmlFor="hired_at" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="hired_at" className="block text-sm font-medium text-[#24292f] mb-1">
                 入社日
               </label>
               <input
@@ -203,16 +203,16 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
                 name="hired_at"
                 type="date"
                 defaultValue={nomination.hired_at ?? ''}
-                className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           )}
 
           {/* 人事メモ */}
           <div>
-            <label htmlFor="hr_notes" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="hr_notes" className="block text-sm font-medium text-[#24292f] mb-1">
               人事メモ{' '}
-              <span className="text-slate-400 text-xs font-normal">任意（候補者には非公開）</span>
+              <span className="text-[#57606a] text-xs font-normal">任意（候補者には非公開）</span>
             </label>
             <textarea
               id="hr_notes"
@@ -220,7 +220,7 @@ export function ReferralDetailPanel({ nomination }: ReferralDetailPanelProps) {
               rows={3}
               defaultValue={nomination.hr_notes ?? ''}
               placeholder="選考メモ、面接フィードバック等"
-              className="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              className="border border-[#e2e6ec] rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             />
           </div>
 

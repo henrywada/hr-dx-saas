@@ -113,7 +113,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="flex shrink-0 items-center justify-between bg-indigo-600 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between bg-[#FD7601] px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-white">スキルレベルマスタの編集</h2>
             <p className="mt-0.5 text-xs text-white/80">テナント共通のレベル一覧を管理します</p>
@@ -125,7 +125,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {/* 追加フォーム */}
-          <div className="mb-5 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
+          <div className="mb-5 rounded-xl border border-[#e2e6ec] bg-[#f6f8fa]/50 p-4">
             <h3 className="mb-3 text-xs font-semibold text-gray-700">＋ レベルを追加</h3>
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -133,7 +133,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
                 onChange={e => setAddName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
                 placeholder="レベル名 *（例: 1年未満, 上級, Lv.3）"
-                className="min-w-40 flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
+                className="min-w-40 flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-[#FD7601] focus:ring-2 focus:ring-indigo-200"
               />
               <div className="flex gap-1">
                 {PRESET_COLORS.map(c => (
@@ -153,7 +153,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
                 type="button"
                 onClick={handleAdd}
                 disabled={isPending || !addName.trim()}
-                className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-lg bg-[#FD7601] px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
               >
                 追加
               </button>
@@ -194,7 +194,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
                             <input
                               value={editState.name}
                               onChange={e => setEditState({ ...editState, name: e.target.value })}
-                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-indigo-400"
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-[#FD7601]"
                               autoFocus
                             />
                           </td>
@@ -261,7 +261,7 @@ export function SkillLevelsEditModal({ onClose }: Props) {
                                 type="button"
                                 onClick={() => startEdit(level)}
                                 disabled={isPending}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-[#e2e6ec] hover:bg-[#f6f8fa] hover:text-[#FD7601] disabled:opacity-50"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>

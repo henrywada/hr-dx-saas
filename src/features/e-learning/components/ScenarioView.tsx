@@ -59,7 +59,7 @@ export function ScenarioView({
       <div className="space-y-3">
         {branches.map((branch, idx) => {
           const isChosen = chosenId === branch.id
-          let cls = 'border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+          let cls = 'border-gray-200 bg-white text-gray-700 hover:border-[#FD7601] hover:bg-[#f6f8fa]'
 
           if (answered) {
             if (branch.is_recommended) {

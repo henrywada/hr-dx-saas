@@ -38,7 +38,7 @@ export function MilestoneTimeline({
         {isManager && (
           <button
             onClick={onProposeMilestone}
-            className="text-xs text-primary border border-primary rounded px-2 py-1 hover:bg-blue-50 transition-colors"
+            className="text-xs text-primary border border-primary rounded px-2 py-1 hover:bg-[#f6f8fa] transition-colors"
           >
             ＋ ステップ変更・追加
           </button>

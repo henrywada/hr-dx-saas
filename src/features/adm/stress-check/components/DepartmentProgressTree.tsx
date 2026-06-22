@@ -84,9 +84,9 @@ function TreeNodeRow({
                 aria-label={isExpanded ? '折りたたむ' : '展開する'}
               >
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-slate-500" />
+                  <ChevronDown className="w-4 h-4 text-[#57606a]" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <ChevronRight className="w-4 h-4 text-[#57606a]" />
                 )}
               </button>
             ) : (
@@ -94,12 +94,12 @@ function TreeNodeRow({
             )}
             {hasChildren ? (
               isExpanded ? (
-                <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
+                <FolderOpen className="w-4 h-4 text-[#FD7601] shrink-0" />
               ) : (
-                <Folder className="w-4 h-4 text-blue-400 shrink-0" />
+                <Folder className="w-4 h-4 text-[#FD7601] shrink-0" />
               )
             ) : (
-              <Folder className="w-4 h-4 text-blue-400 shrink-0" />
+              <Folder className="w-4 h-4 text-[#FD7601] shrink-0" />
             )}
             <span>{dept.name}</span>
           </div>

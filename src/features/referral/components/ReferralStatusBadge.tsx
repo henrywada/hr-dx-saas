@@ -25,15 +25,15 @@ function getColorClass(status: NominationStatus): string {
       return 'bg-yellow-100 text-yellow-700'
     case 'reviewing':
     case 'interview':
-      return 'bg-blue-100 text-blue-700'
+      return 'bg-[#FD7601]-10 text-[#FD7601]'
     case 'offered':
       return 'bg-purple-100 text-purple-700'
     case 'hired':
       return 'bg-green-100 text-green-700'
     case 'rejected':
     case 'withdrawn':
-      return 'bg-slate-100 text-slate-500'
+      return 'bg-[#f6f8fa] text-[#57606a]'
     default:
-      return 'bg-slate-100 text-slate-500'
+      return 'bg-[#f6f8fa] text-[#57606a]'
   }
 }

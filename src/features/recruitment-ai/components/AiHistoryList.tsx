@@ -24,9 +24,9 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
 
   if (!logs || logs.length === 0) {
     return (
-      <Card className="p-8 text-center bg-slate-50 border-dashed border-slate-200">
-        <p className="text-slate-500 font-medium">過去の生成履歴はありません。</p>
-        <p className="text-sm text-slate-400 mt-1">「AI求人メーカー」で新しく作成してみましょう。</p>
+      <Card className="p-8 text-center bg-[#f6f8fa] border-dashed border-[#e2e6ec]">
+        <p className="text-[#57606a] font-medium">過去の生成履歴はありません。</p>
+        <p className="text-sm text-[#57606a] mt-1">「AI求人メーカー」で新しく作成してみましょう。</p>
       </Card>
     );
   }
@@ -34,42 +34,42 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
   return (
     <div className="space-y-4">
       {logs.map((log) => (
-        <Card key={log.id} className="overflow-hidden border border-slate-200 shadow-sm transition-all hover:border-slate-300">
+        <Card key={log.id} className="overflow-hidden border border-[#e2e6ec] shadow-sm transition-all hover:border-[#e2e6ec]">
           <button 
-            className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50/80 transition-colors text-left focus:outline-none"
+            className="w-full flex items-center justify-between p-4 bg-white hover:bg-[#f6f8fa]/80 transition-colors text-left focus:outline-none"
             onClick={() => setOpenId(openId === log.id ? null : log.id)}
           >
             <div className="flex-1 pr-4">
-              <div className="text-xs font-medium tracking-wide text-slate-400 mb-1.5 flex items-center gap-2">
+              <div className="text-xs font-medium tracking-wide text-[#57606a] mb-1.5 flex items-center gap-2">
                 <span>{formatDateTimeInJST(log.created_at)}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f6f8fa]"></span>
                 <span>作成者: {log.created_by ? '登録ユーザー' : '不明'}</span>
               </div>
-              <h3 className="text-base font-bold text-slate-800 line-clamp-1">
+              <h3 className="text-base font-bold text-[#24292f] line-clamp-1">
                 {formatValue(log.ai_catchphrase) || log.title || 'タイトル未設定'}
               </h3>
             </div>
-            <div className={`p-2 rounded-full transition-colors ${openId === log.id ? 'bg-slate-100' : ''}`}>
-              <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${openId === log.id ? 'rotate-180' : ''}`} />
+            <div className={`p-2 rounded-full transition-colors ${openId === log.id ? 'bg-[#f6f8fa]' : ''}`}>
+              <ChevronDown className={`w-5 h-5 text-[#57606a] transition-transform duration-200 ${openId === log.id ? 'rotate-180' : ''}`} />
             </div>
           </button>
           
           {openId === log.id && (
-            <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="p-5 border-t border-[#e2e6ec] bg-[#f6f8fa]/50 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
               
               {/* 入力内容 */}
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-500 tracking-wider uppercase">📝 入力した課題・期待</p>
-                <div className="text-sm text-slate-700 bg-white p-4 rounded-lg border border-slate-200 shadow-sm leading-relaxed">
-                  <p><strong className="text-slate-800">解決したい課題：</strong> {log.description}</p>
-                  <p className="mt-2"><strong className="text-slate-800">期待すること：</strong> {log.requirements}</p>
+                <p className="text-xs font-bold text-[#57606a] tracking-wider uppercase">📝 入力した課題・期待</p>
+                <div className="text-sm text-[#24292f] bg-white p-4 rounded-lg border border-[#e2e6ec] shadow-sm leading-relaxed">
+                  <p><strong className="text-[#24292f]">解決したい課題：</strong> {log.description}</p>
+                  <p className="mt-2"><strong className="text-[#24292f]">期待すること：</strong> {log.requirements}</p>
                 </div>
               </div>
 
               {/* キャッチコピー */}
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-500 tracking-wider uppercase">✨ AI キャッチコピー</p>
-                <div className="text-lg font-bold text-slate-800 bg-white p-4 rounded-lg border border-slate-200 shadow-sm whitespace-pre-wrap">
+                <p className="text-xs font-bold text-[#57606a] tracking-wider uppercase">✨ AI キャッチコピー</p>
+                <div className="text-lg font-bold text-[#24292f] bg-white p-4 rounded-lg border border-[#e2e6ec] shadow-sm whitespace-pre-wrap">
                   {formatValue(log.ai_catchphrase) || 'なし'}
                 </div>
               </div>
@@ -77,10 +77,10 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* スカウト文 */}
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-blue-600 flex items-center gap-1.5 tracking-wider">
+                  <p className="text-xs font-bold text-[#FD7601] flex items-center gap-1.5 tracking-wider">
                     <MessageSquareText className="w-4 h-4" /> AI スカウト文
                   </p>
-                  <div className="text-sm text-slate-700 bg-blue-50/50 p-4 rounded-lg border border-blue-100 whitespace-pre-wrap leading-relaxed shadow-sm">
+                  <div className="text-sm text-[#24292f] bg-[#f6f8fa]/50 p-4 rounded-lg border border-[#e2e6ec] whitespace-pre-wrap leading-relaxed shadow-sm">
                     {formatValue(log.ai_scout_text) || '生成されていません'}
                   </div>
                 </div>
@@ -90,7 +90,7 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
                   <p className="text-xs font-bold text-teal-600 flex items-center gap-1.5 tracking-wider">
                     <ClipboardList className="w-4 h-4" /> AI 面接ガイド
                   </p>
-                  <div className="text-sm text-slate-700 bg-teal-50/50 p-4 rounded-lg border border-teal-100 whitespace-pre-wrap leading-relaxed shadow-sm">
+                  <div className="text-sm text-[#24292f] bg-teal-50/50 p-4 rounded-lg border border-teal-100 whitespace-pre-wrap leading-relaxed shadow-sm">
                     {formatValue(log.ai_interview_guide) || '生成されていません'}
                   </div>
                 </div>
@@ -101,7 +101,7 @@ export function AiHistoryList({ logs }: { logs: any[] }) {
                 <p className="text-xs font-bold text-orange-600 flex items-center gap-1.5 tracking-wider uppercase">
                   <Lightbulb className="w-4 h-4" /> 💡 AIからの掲載メディア・アドバイス
                 </p>
-                <div className="text-sm text-slate-700 bg-orange-50/50 p-4 rounded-lg border border-orange-100 shadow-sm leading-relaxed whitespace-pre-wrap">
+                <div className="text-sm text-[#24292f] bg-orange-50/50 p-4 rounded-lg border border-orange-100 shadow-sm leading-relaxed whitespace-pre-wrap">
                   {log.media_advice ? formatValue(log.media_advice) : '※このデータが生成された時点では、メディア・アドバイス機能はまだ利用できませんでした。'}
                 </div>
               </div>

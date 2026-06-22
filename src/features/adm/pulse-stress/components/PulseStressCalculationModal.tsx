@@ -28,35 +28,35 @@ export function PulseStressCalculationModal({ open, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="pulse-stress-calc-modal-title"
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[min(90vh,720px)] flex flex-col border border-slate-200"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[min(90vh,720px)] flex flex-col border border-[#e2e6ec]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <HelpCircle className="w-5 h-5 text-blue-600 shrink-0" />
-            <h2 id="pulse-stress-calc-modal-title" className="text-base font-bold text-slate-900 truncate">
+            <HelpCircle className="w-5 h-5 text-[#FD7601] shrink-0" />
+            <h2 id="pulse-stress-calc-modal-title" className="text-base font-bold text-[#24292f] truncate">
               この画面の見方（数字の意味）
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+            className="p-1.5 rounded-lg hover:bg-[#f6f8fa] text-[#57606a] hover:text-[#57606a] transition-colors shrink-0"
             aria-label="閉じる"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 py-4 text-sm text-slate-700 leading-relaxed space-y-5">
+        <div className="overflow-y-auto px-5 py-4 text-sm text-[#24292f] leading-relaxed space-y-5">
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">この画面でしていること</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">この画面でしていること</h3>
             <p>
               毎月の職場の調査（Echo）の結果と、年に一度のストレスチェックの結果を、同じ画面で照らし合わせています。グラフに載るのは、「いま対象になっているストレスチェックに回答済みの方」に限ります。
             </p>
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">左のグラフ（時系列）</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">左のグラフ（時系列）</h3>
             <ul className="list-disc pl-5 space-y-1.5">
               <li>
                 <strong>横（左から右）</strong>：Echo の回答がある月を、古い順に並べています。
@@ -71,7 +71,7 @@ export function PulseStressCalculationModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">右のグラフ（部署ごとの散布図）</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">右のグラフ（部署ごとの散布図）</h3>
             <ul className="list-disc pl-5 space-y-1.5">
               <li>
                 <strong>縦（下から上）</strong>：直近 3 か月の Echo について、一人ひとりの月ごとの平均点を出し、回答があった月だけを使って平均します。そのうえで、部署の中の人数でもう一度平均しています。回答が少ない部署は、真ん中付近の値に寄りやすくなります。
@@ -83,7 +83,7 @@ export function PulseStressCalculationModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="font-bold text-slate-900 mb-2">下の「要注意リスト」</h3>
+            <h3 className="font-bold text-[#24292f] mb-2">下の「要注意リスト」</h3>
             <p className="mb-2">
               次の<strong>両方</strong>に当てはまる方だけが一覧に出ます。
             </p>
@@ -103,11 +103,11 @@ export function PulseStressCalculationModal({ open, onClose }: Props) {
           </section>
         </div>
 
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/80 shrink-0 flex justify-end">
+        <div className="px-5 py-3 border-t border-[#e2e6ec] bg-[#f6f8fa]/80 shrink-0 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] transition-colors"
           >
             閉じる
           </button>
@@ -125,7 +125,7 @@ export function PulseStressCalculationModalTrigger() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors shrink-0"
+        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-[#FD7601] bg-[#f6f8fa] hover:bg-[#FD7601]-10 border border-[#e2e6ec] rounded-xl transition-colors shrink-0"
       >
         <HelpCircle className="w-4 h-4" />
         見方・説明

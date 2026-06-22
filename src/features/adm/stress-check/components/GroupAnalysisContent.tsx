@@ -82,11 +82,11 @@ export default function GroupAnalysisContent({
 
       <Card className="p-4">
         <GroupAnalysisToolbar mode={mode} layer={layer} layers={layers} />
-        <p className="text-xs text-slate-400 mt-3">
+        <p className="text-xs text-[#57606a] mt-3">
           拠点マスタ・最低人数設定は{' '}
           <Link
             href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
-            className="text-blue-600 hover:underline"
+            className="text-[#FD7601] hover:underline"
           >
             拠点（事業場）設定
           </Link>
@@ -103,7 +103,7 @@ export default function GroupAnalysisContent({
         <Card className="p-6">
           <p className="text-sm text-gray-500">平均健康リスク</p>
           <div className="flex items-baseline gap-2 flex-wrap">
-            <p className="text-4xl font-bold text-blue-600">
+            <p className="text-4xl font-bold text-[#FD7601]">
               {totalMembers > 0 ? currentAvgRisk.toFixed(1) : '—'}
             </p>
             {riskDiff != null && (
@@ -157,7 +157,7 @@ export default function GroupAnalysisContent({
               </p>
               <GroupRadarChart data={selectedDivision} />
               <div className="text-center mt-6">
-                <div className="text-5xl font-bold text-blue-600">
+                <div className="text-5xl font-bold text-[#FD7601]">
                   {selectedDivision.is_suppressed || selectedDivision.health_risk == null
                     ? '—'
                     : selectedDivision.health_risk}
@@ -192,7 +192,7 @@ export default function GroupAnalysisContent({
                   onClick={() => setSelectedDivision(g)}
                   className={`flex justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
                     isSelected
-                      ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-200'
+                      ? 'ring-2 ring-blue-400 bg-[#f6f8fa] border-[#e2e6ec]'
                       : 'hover:bg-red-50'
                   }`}
                 >

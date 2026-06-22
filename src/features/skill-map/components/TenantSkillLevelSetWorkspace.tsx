@@ -329,7 +329,7 @@ export function TenantSkillLevelSetWorkspace({
           {lv.courseMappings.map(mapping => (
             <span
               key={mapping.id}
-              className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700"
+              className="inline-flex items-center gap-1 rounded-full bg-[#f6f8fa] px-2 py-0.5 text-xs text-[#FD7601]"
             >
               {mapping.course.title}
               <button
@@ -337,7 +337,7 @@ export function TenantSkillLevelSetWorkspace({
                 disabled={isPending}
                 onClick={() => handleRemoveCourseLink(mapping.id)}
                 aria-label="コースリンクを削除"
-                className="ml-0.5 text-blue-400 hover:text-blue-700 disabled:opacity-50"
+                className="ml-0.5 text-[#FD7601] hover:text-[#FD7601] disabled:opacity-50"
               >
                 ×
               </button>
@@ -600,7 +600,7 @@ export function TenantSkillLevelSetWorkspace({
                           </tr>
 
                           {addingForSetId === set.id && (
-                            <tr className="border-b border-gray-100 bg-blue-50/40">
+                            <tr className="border-b border-gray-100 bg-[#f6f8fa]/40">
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2" />
                               <td className="px-3 py-2 align-top text-center">
@@ -908,7 +908,7 @@ export function TenantSkillLevelSetWorkspace({
                           </td>
                         </tr>
                         {addingForSaId === lv.id && (
-                          <tr className="border-b border-gray-100 bg-blue-50/40">
+                          <tr className="border-b border-gray-100 bg-[#f6f8fa]/40">
                             <td className="px-3 py-2" />
                             <td className="px-3 py-2" />
                             <td className="px-3 py-2 align-top text-center">

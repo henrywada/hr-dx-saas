@@ -27,12 +27,12 @@ export function HelloWorkInstructionModal({ isOpen, onClose }: Props) {
         <div className="p-6 space-y-8">
           {/* Step 1 */}
           <div className="flex gap-4">
-            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-600 font-bold mb-auto">
+            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-[#FD7601]-10 text-[#FD7601] font-bold mb-auto">
               1
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-2">
-                <Download size={18} className="text-blue-500" />
+                <Download size={18} className="text-[#FD7601]" />
                 当システムからCSVをダウンロードする
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">

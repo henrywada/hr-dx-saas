@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_PALETTE = [
-  'bg-blue-100 text-blue-700',
+  'bg-orange-100 text-orange-700',
   'bg-orange-100 text-orange-700',
   'bg-green-100 text-green-700',
   'bg-purple-100 text-purple-700',
@@ -81,7 +81,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
             onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === t
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-[#FD7601] text-[#FD7601]'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -96,7 +96,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
           <select
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
           >
             <option value="">すべてのカテゴリ</option>
             {categories.map(c => (
@@ -112,7 +112,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
                 setEditCourse(null)
                 setShowForm(true)
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg"
             >
               <Plus className="w-4 h-4" />
               コース作成
@@ -122,7 +122,7 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
       </div>
 
       {tab === 'template' && (
-        <p className="text-sm text-gray-500 bg-blue-50 rounded-lg px-4 py-2.5">
+        <p className="text-sm text-gray-500 bg-[#f6f8fa] rounded-lg px-4 py-2.5">
           テンプレートコースを「コピー」すると、自社コースとして編集できます。
         </p>
       )}
@@ -137,96 +137,96 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
           {filtered.map(course => {
             const pubRange = formatPublicationRangeJa(course)
             return (
-            <div
-              key={course.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCategoryColor(course.category)}`}
-                >
-                  {course.category}
-                </span>
-                {tab === 'tenant' ? (
-                  <select
-                    aria-label="コースの公開ステータス"
-                    value={course.status}
-                    onChange={e =>
-                      handleCourseStatusChange(course.id, e.target.value as CourseStatus)
-                    }
-                    disabled={isPending}
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium border border-transparent cursor-pointer max-w-36 ${STATUS_COLORS[course.status]}`}
-                  >
-                    {COURSE_STATUS_OPTIONS.map(s => (
-                      <option key={s} value={s}>
-                        {COURSE_STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
+              <div
+                key={course.id}
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[course.status]}`}
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCategoryColor(course.category)}`}
                   >
-                    {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
+                    {course.category}
                   </span>
-                )}
-                {pubRange && (
-                  <span className="text-xs text-gray-600 self-center">{pubRange}</span>
-                )}
-              </div>
-
-              <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
-                {course.title}
-              </h3>
-              {course.description && (
-                <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.description}</p>
-              )}
-              {course.estimated_minutes && (
-                <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
-              )}
-
-              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
-                {tab === 'template' ? (
-                  <button
-                    onClick={() => handleCopy(course.id)}
-                    disabled={isPending}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    自社コースにコピー
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditCourse(course)
-                        setShowForm(true)
-                      }}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      タイトル・公開期間
-                    </button>
-                    <a
-                      href={`/adm/el-courses/${course.id}`}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      学習内容の編集
-                    </a>
-                    <button
-                      onClick={() => handleDelete(course.id)}
+                  {tab === 'tenant' ? (
+                    <select
+                      aria-label="コースの公開ステータス"
+                      value={course.status}
+                      onChange={e =>
+                        handleCourseStatusChange(course.id, e.target.value as CourseStatus)
+                      }
                       disabled={isPending}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium border border-transparent cursor-pointer max-w-36 ${STATUS_COLORS[course.status]}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      削除
-                    </button>
-                  </>
+                      {COURSE_STATUS_OPTIONS.map(s => (
+                        <option key={s} value={s}>
+                          {COURSE_STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[course.status]}`}
+                    >
+                      {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
+                    </span>
+                  )}
+                  {pubRange && (
+                    <span className="text-xs text-gray-600 self-center">{pubRange}</span>
+                  )}
+                </div>
+
+                <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
+                  {course.title}
+                </h3>
+                {course.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.description}</p>
                 )}
+                {course.estimated_minutes && (
+                  <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
+                )}
+
+                <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+                  {tab === 'template' ? (
+                    <button
+                      onClick={() => handleCopy(course.id)}
+                      disabled={isPending}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] rounded-lg disabled:opacity-50"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      自社コースにコピー
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCourse(course)
+                          setShowForm(true)
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        タイトル・公開期間
+                      </button>
+                      <a
+                        href={`/adm/el-courses/${course.id}`}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] rounded-lg"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        学習内容の編集
+                      </a>
+                      <button
+                        onClick={() => handleDelete(course.id)}
+                        disabled={isPending}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        削除
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
             )
           })}
         </div>

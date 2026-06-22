@@ -74,17 +74,17 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
       </div>
 
       {!isManager && hasProposedGoal && (
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3 flex items-center justify-between">
+        <div className="bg-[#f6f8fa] border-b border-[#e2e6ec] px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-800">上司から目標提案が届きました</p>
+            <p className="text-sm font-semibold text-[#FD7601]">上司から目標提案が届きました</p>
             {data.goal?.message && (
-              <p className="text-xs text-blue-600 mt-0.5">{data.goal.message}</p>
+              <p className="text-xs text-[#FD7601] mt-0.5">{data.goal.message}</p>
             )}
           </div>
           <button
             onClick={handleConfirmGoal}
             disabled={submitting}
-            className="bg-primary text-white text-sm rounded px-4 py-1.5 hover:bg-blue-600 disabled:opacity-50"
+            className="bg-primary text-white text-sm rounded px-4 py-1.5 hover:bg-[#FD7601] disabled:opacity-50"
           >
             承認する
           </button>
@@ -110,7 +110,7 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
                 <span>達成率</span>
                 <span className="font-bold text-primary">{data.achievement_rate}%</span>
               </div>
-              <div className="bg-blue-100 rounded-full h-2 overflow-hidden">
+              <div className="bg-[#FD7601]-10 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-primary h-2 rounded-full transition-all"
                   style={{ width: `${data.achievement_rate}%` }}
@@ -216,7 +216,7 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
                 <button
                   onClick={handleSendAdvice}
                   disabled={submitting || !adviceText.trim()}
-                  className="bg-primary text-white text-sm rounded px-4 py-2 hover:bg-blue-600 disabled:opacity-50 self-end"
+                  className="bg-primary text-white text-sm rounded px-4 py-2 hover:bg-[#FD7601] disabled:opacity-50 self-end"
                 >
                   送信
                 </button>

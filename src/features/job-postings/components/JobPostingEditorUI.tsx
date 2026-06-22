@@ -126,7 +126,7 @@ export function JobPostingEditorUI({
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          className="w-full h-32 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full h-32 p-3 border rounded-md focus:ring-2 focus:ring-[#FD7601] outline-none"
           placeholder={fromOnboarding ? "例：営業担当。BtoB経験者。コミュニケーション能力重視" : "現場からの箇条書きメモを入力してください... (※現在はローカルのstate管理のみです)"}
           disabled={isPending}
         />
@@ -134,7 +134,7 @@ export function JobPostingEditorUI({
           <button
             onClick={handleGenerate}
             disabled={isPending || !jobId}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded shadow hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-orange-600 text-white font-semibold rounded shadow hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50"
           >
             {isPending ? (
               <>
@@ -161,7 +161,7 @@ export function JobPostingEditorUI({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2.5 border rounded-md bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full p-2.5 border rounded-md bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#FD7601] outline-none"
             placeholder="AIによってタイトルが生成されます"
           />
         </div>
@@ -171,7 +171,7 @@ export function JobPostingEditorUI({
           <label className="block text-sm font-semibold text-gray-700">求人詳細文 (HTML)</label>
           <button 
             onClick={() => setIsPreview(!isPreview)}
-            className="text-xs text-blue-600 border border-blue-600 px-3 py-1 rounded bg-white hover:bg-blue-50"
+            className="text-xs text-[#FD7601] border border-[#FD7601] px-3 py-1 rounded bg-white hover:bg-[#f6f8fa]"
           >
             {isPreview ? 'HTMLを編集する' : 'プレビューを見る'}
           </button>
@@ -189,7 +189,7 @@ export function JobPostingEditorUI({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full h-96 p-4 border rounded-md font-mono text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full h-96 p-4 border rounded-md font-mono text-sm bg-white focus:ring-2 focus:ring-[#FD7601] outline-none"
             placeholder="<p>ここにHTMLを入力...</p>"
           />
         )}
@@ -201,7 +201,7 @@ export function JobPostingEditorUI({
             className={`px-5 py-2.5 font-semibold rounded shadow transition disabled:opacity-50 ${
               status === 'published' 
                 ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-[#FD7601] hover:bg-[#FD7601] text-white'
             }`}
           >
             {isPublishing ? '更新中...' : status === 'published' ? '⏸ 公開を停止して下書きに戻す' : '🚀 求人サイト等へ公開する'}

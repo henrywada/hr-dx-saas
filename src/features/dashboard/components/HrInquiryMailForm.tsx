@@ -32,7 +32,7 @@ export function HrInquiryMailForm() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[#57606a]">
         AI の回答で解決しない場合、人事担当へメールでお問い合わせいただけます。返信は人事の業務状況により数日かかる場合があります。
       </p>
 
@@ -44,7 +44,7 @@ export function HrInquiryMailForm() {
 
       <form onSubmit={onSubmit} className="space-y-3">
         <div>
-          <label htmlFor="hr-inquiry-subject" className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor="hr-inquiry-subject" className="block text-sm font-medium text-[#24292f] mb-1">
             件名
           </label>
           <input
@@ -56,12 +56,12 @@ export function HrInquiryMailForm() {
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             disabled={loading}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-lg border border-[#e2e6ec] px-3 py-2 text-sm text-[#24292f] focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601]"
             placeholder="例：育休からの復職手続きについて"
           />
         </div>
         <div>
-          <label htmlFor="hr-inquiry-body" className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor="hr-inquiry-body" className="block text-sm font-medium text-[#24292f] mb-1">
             本文
           </label>
           <textarea
@@ -73,7 +73,7 @@ export function HrInquiryMailForm() {
             onChange={(e) => setBody(e.target.value)}
             disabled={loading}
             rows={8}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[140px]"
+            className="w-full rounded-lg border border-[#e2e6ec] px-3 py-2 text-sm text-[#24292f] focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] min-h-[140px]"
             placeholder="ご質問・ご依頼の内容を具体的にご記入ください。"
           />
         </div>

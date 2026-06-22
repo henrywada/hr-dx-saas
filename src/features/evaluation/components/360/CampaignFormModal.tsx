@@ -53,44 +53,44 @@ export function CampaignFormModal({ campaign, onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800">
+        <h2 className="text-lg font-semibold text-[#24292f]">
           {isEdit ? 'キャンペーンを編集' : '新規キャンペーン作成'}
         </h2>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[#24292f] mb-1">
               キャンペーン名 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={e => handleChange('name', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="例：2026年上期 管理職360度評価"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">説明</label>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">説明</label>
             <textarea
               value={form.description}
               onChange={e => handleChange('description', e.target.value)}
               rows={3}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="任意のメモ"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[#24292f] mb-1">
               回答期限 <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               value={form.deadline}
               onChange={e => handleChange('deadline', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full border border-[#e2e6ec] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -102,7 +102,7 @@ export function CampaignFormModal({ campaign, onClose }: Props) {
               onChange={e => handleChange('is_anonymous', e.target.checked)}
               className="w-4 h-4 accent-primary"
             />
-            <label htmlFor="is_anonymous" className="text-sm text-slate-700">
+            <label htmlFor="is_anonymous" className="text-sm text-[#24292f]">
               匿名回答オプションを有効にする
             </label>
           </div>
@@ -113,7 +113,7 @@ export function CampaignFormModal({ campaign, onClose }: Props) {
         <div className="flex justify-end gap-2 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50"
+            className="px-4 py-2 text-sm border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa]"
           >
             キャンセル
           </button>

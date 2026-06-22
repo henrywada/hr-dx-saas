@@ -32,13 +32,13 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[min(90vh,900px)] flex flex-col p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-1 shrink-0">テンプレートからコピー</h2>
-        <p className="text-sm text-slate-500 mb-4 shrink-0">
+        <h2 className="text-lg font-bold text-[#24292f] mb-1 shrink-0">テンプレートからコピー</h2>
+        <p className="text-sm text-[#57606a] mb-4 shrink-0">
           使用するテンプレートを選択してください。コピー後に設問をカスタマイズできます。
         </p>
 
         {templates.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-[#57606a]">
             <FileText size={40} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">利用できるテンプレートがありません。</p>
           </div>
@@ -50,7 +50,7 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
                 className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedId === t.id
                     ? 'border-primary bg-primary/5'
-                    : 'border-slate-200 hover:border-slate-300'
+                    : 'border-[#e2e6ec] hover:border-[#e2e6ec]'
                 }`}
               >
                 <input
@@ -62,11 +62,11 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
                   className="mt-0.5 accent-primary"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{t.title}</p>
+                  <p className="text-sm font-medium text-[#24292f]">{t.title}</p>
                   {t.description && (
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">{t.description}</p>
+                    <p className="text-xs text-[#57606a] mt-0.5 truncate">{t.description}</p>
                   )}
-                  <p className="text-xs text-slate-400 mt-0.5">{t.question_count} 問</p>
+                  <p className="text-xs text-[#57606a] mt-0.5">{t.question_count} 問</p>
                 </div>
               </label>
             ))}
@@ -78,7 +78,7 @@ export default function TenantEchoCopyModal({ templates, onCopied, onClose }: Pr
         <div className="flex justify-end gap-2 shrink-0 mt-auto pt-1">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+            className="px-4 py-2 text-sm text-[#57606a] hover:bg-[#f6f8fa] rounded-lg"
           >
             キャンセル
           </button>

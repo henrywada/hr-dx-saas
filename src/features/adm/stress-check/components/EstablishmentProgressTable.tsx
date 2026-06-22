@@ -10,8 +10,8 @@ const periodStatusClass = (status: string) =>
   status === 'active'
     ? 'text-emerald-700 font-semibold'
     : status === 'draft'
-      ? 'text-slate-600'
-      : 'text-slate-400'
+      ? 'text-[#57606a]'
+      : 'text-[#57606a]'
 
 const periodStatusLabel: Record<string, string> = {
   draft: '準備中',
@@ -26,14 +26,13 @@ type Props = {
 
 /** 拠点別進捗：各拠点の1行目に実施期間（タイトル・年度・質問・状態・期間）、2行目に進捗指標 */
 export default function EstablishmentProgressTable({ periodId, rows }: Props) {
-  const [selectedEstablishment, setSelectedEstablishment] = useState<EstablishmentProgressTableRow | null>(
-    null,
-  )
+  const [selectedEstablishment, setSelectedEstablishment] =
+    useState<EstablishmentProgressTableRow | null>(null)
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-        <Building2 className="w-10 h-10 text-slate-300 mb-3" />
+      <div className="flex flex-col items-center justify-center py-12 text-[#57606a]">
+        <Building2 className="w-10 h-10 text-[#57606a] mb-3" />
         <p className="text-sm font-medium">拠点データがありません</p>
       </div>
     )
@@ -42,17 +41,23 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/70">
-            <tr className="border-b border-slate-100">
+        <table className="min-w-full divide-y divide-[#e2e6ec]">
+          <thead className="bg-[#f6f8fa]">
+            <tr className="border-b border-[#e2e6ec]">
               <th colSpan={8} className="p-0 text-left">
-                <table className="w-full table-fixed text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <table className="w-full table-fixed text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                   <thead>
-                    <tr className="bg-slate-50/90">
+                    <tr className="bg-[#f6f8fa]">
                       <th className="py-2 px-6 pr-2 font-semibold w-[28%] text-left">タイトル</th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">年度</th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[3.5rem] text-left">質問</th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">状態</th>
+                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
+                        年度
+                      </th>
+                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[3.5rem] text-left">
+                        質問
+                      </th>
+                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
+                        状態
+                      </th>
                       <th className="py-2 px-2 font-semibold min-w-0 text-left">期間</th>
                       <th className="py-2 px-2 text-left" colSpan={3}>
                         {' '}
@@ -63,34 +68,34 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
               </th>
             </tr>
             <tr>
-              <th className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 拠点
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 対象者
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 受検済み
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 未受検
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 否提出
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 受検率
               </th>
-              <th className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider w-56">
+              <th className="px-6 py-3 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider w-56">
                 進捗
               </th>
-              <th className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 未受検者
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-50">
-            {rows.map((establishment) => {
+          <tbody className="bg-white divide-y divide-[#e2e6ec]">
+            {rows.map(establishment => {
               const p = establishment.stressCheckPeriod
               return (
                 <Fragment key={establishment.id}>
@@ -99,13 +104,13 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                       <table className="w-full table-fixed">
                         <tbody>
                           <tr>
-                            <td className="py-2.5 px-6 pr-2 text-slate-800 font-medium break-words w-[28%] align-top">
+                            <td className="py-2.5 px-6 pr-2 text-[#24292f] font-medium break-words w-[28%] align-top">
                               {p?.title ?? '—'}
                             </td>
-                            <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap w-[4.5rem] align-top">
+                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap w-[4.5rem] align-top">
                               {p ? p.fiscal_year : '—'}
                             </td>
-                            <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap w-[3.5rem] align-top">
+                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap w-[3.5rem] align-top">
                               {p ? `${p.questionnaire_type}問` : '—'}
                             </td>
                             <td className="py-2.5 px-2 whitespace-nowrap w-[4.5rem] align-top">
@@ -114,10 +119,10 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                                   {periodStatusLabel[p.status] ?? p.status}
                                 </span>
                               ) : (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-[#57606a]">—</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-2 text-slate-600 whitespace-nowrap align-top">
+                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap align-top">
                               {p
                                 ? `${String(p.start_date).split('T')[0]} 〜 ${String(p.end_date).split('T')[0]}`
                                 : '—'}
@@ -128,21 +133,21 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                       </table>
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-50/60 transition-colors border-b border-slate-100">
+                  <tr className="hover:bg-[#f6f8fa] transition-colors border-b border-[#e2e6ec]">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
                           <Building2 className="w-4 h-4" />
                         </span>
                         <div>
-                          <p className="text-sm font-bold text-slate-900">{establishment.name}</p>
+                          <p className="text-sm font-bold text-[#24292f]">{establishment.name}</p>
                           {establishment.id === 'unassigned' && (
                             <p className="text-xs text-amber-600 mt-0.5">拠点設定の見直し対象</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-slate-700 tabular-nums">
+                    <td className="px-6 py-4 text-sm text-center font-semibold text-[#24292f] tabular-nums">
                       {establishment.total}
                     </td>
                     <td className="px-6 py-4 text-sm text-center font-semibold text-emerald-600 tabular-nums">
@@ -154,11 +159,11 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                     <td className="px-6 py-4 text-sm text-center font-semibold text-amber-600 tabular-nums">
                       {establishment.inProgress}
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-bold text-slate-900 tabular-nums">
+                    <td className="px-6 py-4 text-sm text-center font-bold text-[#24292f] tabular-nums">
                       {establishment.rate}%
                     </td>
                     <td className="px-6 py-4">
-                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="w-full h-2.5 bg-[#f6f8fa] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 ease-out ${
                             establishment.rate >= 80
@@ -176,7 +181,7 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                         type="button"
                         disabled={establishment.notSubmitted === 0}
                         onClick={() => setSelectedEstablishment(establishment)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#24292f] shadow-sm hover:bg-[#f6f8fa] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Users className="w-3.5 h-3.5" />
                         一覧
@@ -197,9 +202,7 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
         periodId={periodId}
         establishmentId={selectedEstablishment?.id}
         title={
-          selectedEstablishment
-            ? `${selectedEstablishment.name}の未受検者一覧`
-            : '未受検者一覧'
+          selectedEstablishment ? `${selectedEstablishment.name}の未受検者一覧` : '未受検者一覧'
         }
       />
     </>

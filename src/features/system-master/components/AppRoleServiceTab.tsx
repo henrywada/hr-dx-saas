@@ -126,7 +126,7 @@ export default function AppRoleServiceTab({
     <div className="space-y-4 w-full">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">ロール × サービス 権限マトリクス</h3>
-        {loading && <span className="text-blue-600 animate-pulse font-bold">更新中...</span>}
+        {loading && <span className="text-[#FD7601] animate-pulse font-bold">更新中...</span>}
       </div>
 
       <div className="overflow-x-auto border rounded-lg shadow-sm">
@@ -156,7 +156,7 @@ export default function AppRoleServiceTab({
                       checked={columnAllEnabled(role.id)}
                       onChange={(e) => handleBulkColumn(role.id, e.target.checked)}
                       disabled={loading || admServices.length === 0}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-4 w-4 rounded border-gray-300 text-[#FD7601] focus:ring-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label={`「${role.name}」列の権限をすべて有効または無効にする`}
                     />
                     <span className="leading-tight">{role.name}</span>

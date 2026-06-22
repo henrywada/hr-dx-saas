@@ -22,7 +22,7 @@ export default function GroupAnalysisHeatMap({
         const suppressed = group.is_suppressed || group.health_risk == null
         const risk = group.health_risk ?? 0
         const getColorClass = () => {
-          if (suppressed) return 'bg-slate-300 text-slate-700 border-slate-400 hover:bg-slate-400'
+          if (suppressed) return 'bg-[#f6f8fa] text-[#24292f] border-[#e2e6ec] hover:bg-[#f6f8fa]'
           if (risk >= highlightThreshold) return 'bg-red-600 text-white border-red-700 hover:bg-red-700'
           if (risk >= 110) return 'bg-orange-500 text-white border-orange-600 hover:bg-orange-600'
           return 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600'

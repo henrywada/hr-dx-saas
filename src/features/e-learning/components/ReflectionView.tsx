@@ -15,8 +15,8 @@ export function ReflectionView({ slide }: Props) {
       )}
 
       {slide.content && (
-        <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-5 space-y-2">
-          <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
+        <div className="rounded-2xl bg-[#f6f8fa] border border-[#e2e6ec] p-5 space-y-2">
+          <div className="flex items-center gap-2 text-[#FD7601] font-semibold text-sm">
             <BookOpen className="w-4 h-4 shrink-0" />
             振り返り・解説
           </div>

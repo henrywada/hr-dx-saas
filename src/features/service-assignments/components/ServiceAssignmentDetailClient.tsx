@@ -94,7 +94,7 @@ export function ServiceAssignmentDetailClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-[#57606a]">
         <Link href={basePath} className="hover:underline flex items-center gap-1">
           <ArrowLeft className="w-4 h-4" />
           サービス対象者管理
@@ -104,10 +104,10 @@ export function ServiceAssignmentDetailClient({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">
           サービス割当の編集
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-[#57606a] mt-1">
           サービス種別と対象ユーザーを管理します
         </p>
       </div>
@@ -122,20 +122,20 @@ export function ServiceAssignmentDetailClient({
       )}
 
       {/* サービス種別編集 */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <h2 className="text-sm font-semibold text-slate-700 mb-3">サービス種別</h2>
+      <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm p-6">
+        <h2 className="text-sm font-semibold text-[#24292f] mb-3">サービス種別</h2>
         <div className="flex gap-3">
           <input
             type="text"
             value={serviceType}
             onChange={e => setServiceType(e.target.value)}
-            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="flex-1 px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
             placeholder="例: pulse_survey"
           />
           <button
             onClick={handleSaveServiceType}
             disabled={isPending || serviceType.trim() === assignment.service_type}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? '保存中...' : '保存'}
           </button>
@@ -143,13 +143,13 @@ export function ServiceAssignmentDetailClient({
       </div>
 
       {/* 対象ユーザー同期 */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
+      <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/50 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-medium text-slate-600">
+            <Users className="w-4 h-4 text-[#FD7601]" />
+            <span className="text-sm font-medium text-[#57606a]">
               対象ユーザー一覧
-              <span className="text-xs text-slate-400 ml-2">({users.length}件)</span>
+              <span className="text-xs text-[#57606a] ml-2">({users.length}件)</span>
             </span>
           </div>
           <button
@@ -161,20 +161,20 @@ export function ServiceAssignmentDetailClient({
             対象ユーザーを同期
           </button>
         </div>
-        <p className="px-5 py-2 text-xs text-slate-500 bg-slate-50/30 border-b border-slate-100">
+        <p className="px-5 py-2 text-xs text-[#57606a] bg-[#f6f8fa]/30 border-b border-[#e2e6ec]">
           同期ボタンで、test/developer/company_doctor 以外のロールを持つ従業員のうち、未登録分を一括追加します。
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/30">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+              <tr className="border-b border-[#e2e6ec] bg-[#f6f8fa]/30">
+                <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   従業員名
                 </th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+                <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   有効/無効
                 </th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">
+                <th className="text-right px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   操作
                 </th>
               </tr>
@@ -182,7 +182,7 @@ export function ServiceAssignmentDetailClient({
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="text-center py-12 text-slate-400">
+                  <td colSpan={3} className="text-center py-12 text-[#57606a]">
                     対象ユーザーがありません。「対象ユーザーを同期」で追加してください。
                   </td>
                 </tr>
@@ -190,9 +190,9 @@ export function ServiceAssignmentDetailClient({
                 users.map(u => (
                   <tr
                     key={u.id}
-                    className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors"
+                    className="border-b border-[#e2e6ec] hover:bg-[#f6f8fa]/30 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-800">
+                    <td className="px-4 py-3 font-medium text-[#24292f]">
                       {u.employee_name || '（名前なし）'}
                     </td>
                     <td className="px-4 py-3">
@@ -205,7 +205,7 @@ export function ServiceAssignmentDetailClient({
                           ${
                             u.is_available
                               ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              : 'bg-[#f6f8fa] text-[#57606a] hover:bg-[#f6f8fa]'
                           }
                         `}
                       >
@@ -215,7 +215,7 @@ export function ServiceAssignmentDetailClient({
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setDeleteTarget(u)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-[#57606a] hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="削除"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -236,9 +236,9 @@ export function ServiceAssignmentDetailClient({
             className="fixed inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setDeleteTarget(null)}
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-[#e2e6ec]">
             <div className="p-6 space-y-4">
-              <h3 className="text-lg font-bold text-slate-900">対象ユーザーを削除</h3>
+              <h3 className="text-lg font-bold text-[#24292f]">対象ユーザーを削除</h3>
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm text-red-800">
                   <span className="font-bold">{deleteTarget.employee_name || '（名前なし）'}</span>
@@ -249,7 +249,7 @@ export function ServiceAssignmentDetailClient({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[#57606a] bg-white border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] transition-colors"
                 >
                   キャンセル
                 </button>

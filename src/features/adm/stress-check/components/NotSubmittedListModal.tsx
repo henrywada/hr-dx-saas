@@ -83,43 +83,43 @@ export default function NotSubmittedListModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#232a33]/60 backdrop-blur-sm">
       <div
         className="fixed inset-0"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-          <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-[#e2e6ec]">
+        <div className="p-4 border-b border-[#e2e6ec] flex justify-between items-center shrink-0">
+          <h3 className="font-bold text-[#24292f] text-lg flex items-center gap-2">
             <Users className="w-5 h-5 text-amber-500" />
             {title ?? '未受検者一覧'}
           </h3>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg text-[#57606a] hover:text-[#57606a] hover:bg-[#f6f8fa] transition-colors"
             aria-label="閉じる"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 border-b border-slate-100 space-y-3 shrink-0">
+        <div className="p-4 border-b border-[#e2e6ec] space-y-3 shrink-0">
           <div className="flex flex-wrap gap-2">
             <div className="relative flex-1 min-w-[160px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57606a]" />
               <input
                 type="text"
                 placeholder="氏名・社員番号で検索"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#e2e6ec] focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               />
             </div>
             <select
               value={filterDivision}
               onChange={(e) => setFilterDivision(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              className="px-3 py-2 text-sm rounded-lg border border-[#e2e6ec] focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
             >
               <option value="">部署で絞り込み</option>
               {divisions.map((d) => (
@@ -139,41 +139,41 @@ export default function NotSubmittedListModal({
           ) : error ? (
             <div className="p-6 text-center text-red-600 text-sm">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-              <Users className="w-12 h-12 text-slate-300 mb-3" />
+            <div className="flex flex-col items-center justify-center py-16 text-[#57606a]">
+              <Users className="w-12 h-12 text-[#57606a] mb-3" />
               <p className="text-sm font-medium">未受検者はおりません</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-slate-100">
-              <thead className="bg-slate-50/80 sticky top-0">
+            <table className="min-w-full divide-y divide-[#e2e6ec]">
+              <thead className="bg-[#f6f8fa]/80 sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                     氏名
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                     社員番号
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                     部署
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                     役職
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-50">
+              <tbody className="bg-white divide-y divide-[#e2e6ec]">
                 {filtered.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                  <tr key={emp.id} className="hover:bg-[#f6f8fa]/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-[#24292f]">
                       {emp.name || '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className="px-4 py-3 text-sm text-[#57606a]">
                       {emp.employee_no || '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className="px-4 py-3 text-sm text-[#57606a]">
                       {emp.division_name || '未配属'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className="px-4 py-3 text-sm text-[#57606a]">
                       {emp.job_title || '—'}
                     </td>
                   </tr>
@@ -183,7 +183,7 @@ export default function NotSubmittedListModal({
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 shrink-0">
+        <div className="px-4 py-3 border-t border-[#e2e6ec] bg-[#f6f8fa]/50 text-xs text-[#57606a] shrink-0">
           {!loading && !error && filtered.length > 0 && (
             <span>
               {filtered.length !== employees.length

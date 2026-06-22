@@ -51,7 +51,7 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
         )
       case 'closed':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f6f8fa] text-[#24292f]">
             終了
           </span>
         )
@@ -79,10 +79,10 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 border-b-2 border-green-500 pb-2 inline-block">
+          <h1 className="text-2xl font-bold tracking-tight text-[#24292f] border-b-2 border-green-500 pb-2 inline-block">
             実施グループの管理
           </h1>
-          <p className="text-sm text-slate-500 mt-2">
+          <p className="text-sm text-[#57606a] mt-2">
             対象部署を指定してストレスチェックの実施グループを設定します。
           </p>
         </div>
@@ -95,11 +95,11 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
         </button>
       </div>
 
-      <div className="bg-white border text-sm border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border text-sm border-[#e2e6ec] rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
+              <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec] text-[#57606a]">
                 <th className="px-6 py-4 font-semibold">タイトル</th>
                 <th className="px-6 py-4 font-semibold">対象部署</th>
                 <th className="px-6 py-4 font-semibold text-center">対象年度</th>
@@ -109,25 +109,25 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
                 <th className="px-6 py-4 font-semibold text-center">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e2e6ec]">
               {periods.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-[#57606a]">
                     登録されている実施グループはありません。
                   </td>
                 </tr>
               ) : (
                 periods.map(period => (
-                  <tr key={period.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">
+                  <tr key={period.id} className="hover:bg-[#f6f8fa] transition-colors">
+                    <td className="px-6 py-4 font-medium text-[#24292f]">
                       {period.title}
                       {period.comment && (
-                        <p className="text-xs text-slate-400 font-normal mt-0.5 truncate max-w-50">
+                        <p className="text-xs text-[#57606a] font-normal mt-0.5 truncate max-w-50">
                           {period.comment}
                         </p>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 max-w-55">
+                    <td className="px-6 py-4 text-[#57606a] max-w-55">
                       <span
                         className="truncate block"
                         title={period.divisionIds
@@ -137,14 +137,14 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
                         {getDivisionSummary(period.divisionIds)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center text-slate-600">
+                    <td className="px-6 py-4 text-center text-[#57606a]">
                       {period.fiscal_year}年度
                     </td>
-                    <td className="px-6 py-4 text-center text-slate-600">
+                    <td className="px-6 py-4 text-center text-[#57606a]">
                       {period.questionnaire_type}問
                     </td>
                     <td className="px-6 py-4 text-center">{getStatusLabel(period.status)}</td>
-                    <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                    <td className="px-6 py-4 text-[#57606a] whitespace-nowrap">
                       {period.start_date.split('T')[0]} ～ {period.end_date.split('T')[0]}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
@@ -158,7 +158,7 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
                         </button>
                         <button
                           onClick={() => handleEdit(period)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1.5 text-[#FD7601] hover:bg-[#f6f8fa] rounded transition-colors"
                           title="編集"
                         >
                           <Edit2 className="w-4 h-4" />

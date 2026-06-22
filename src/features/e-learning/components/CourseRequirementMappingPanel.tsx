@@ -82,7 +82,7 @@ export function CourseRequirementMappingPanel({ courseId, mappings, allRequireme
           type="button"
           onClick={handleAdd}
           disabled={isPending || !selectedReqId}
-          className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-[#FD7601] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
         >
           追加
         </button>

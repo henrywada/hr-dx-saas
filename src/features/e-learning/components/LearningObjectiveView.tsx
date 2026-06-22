@@ -30,14 +30,14 @@ export function LearningObjectiveView({ slide, course }: Props) {
       )}
 
       {objectives.length > 0 && (
-        <div className="rounded-2xl bg-blue-50 border border-blue-200 p-5 space-y-3">
-          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+        <div className="rounded-2xl bg-[#f6f8fa] border border-[#e2e6ec] p-5 space-y-3">
+          <p className="text-xs font-semibold text-[#FD7601] uppercase tracking-wide">
             この講座で学ぶこと
           </p>
           <ul className="space-y-2">
             {objectives.map((obj, idx) => (
               <li key={idx} className="flex items-start gap-2.5 text-sm text-gray-700">
-                <CheckCircle className="w-4 h-4 mt-0.5 text-blue-500 shrink-0" />
+                <CheckCircle className="w-4 h-4 mt-0.5 text-[#FD7601] shrink-0" />
                 <span className="leading-snug">{obj}</span>
               </li>
             ))}

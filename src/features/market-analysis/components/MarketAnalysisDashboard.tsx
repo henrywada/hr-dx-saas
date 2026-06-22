@@ -275,7 +275,7 @@ export default function MarketAnalysisDashboard() {
                             href={jobUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:text-blue-700 hover:underline inline-flex items-center gap-1 transition-colors cursor-pointer font-medium"
+                            className="text-primary hover:text-[#FD7601] hover:underline inline-flex items-center gap-1 transition-colors cursor-pointer font-medium"
                             onClick={e => e.stopPropagation()}
                           >
                             {job.via}
@@ -315,7 +315,7 @@ export default function MarketAnalysisDashboard() {
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               isSalary
                                 ? 'bg-orange-100 text-orange-800'
-                                : 'bg-blue-50 text-blue-700'
+                                : 'bg-[#f6f8fa] text-[#FD7601]'
                             }`}
                           >
                             {ext}

@@ -1,0 +1,123 @@
+/* ============================================================
+   HR-DX — Color tokens
+   Brand: HR-DX (HR Digital Transformation SaaS, Japan)
+   Ink #202020 · Brand orange #FD7601 → #FF5E03
+   Enterprise-console palette: cool neutrals, blue links, clear
+   semantic states. Sampled from the HR-DX wordmark + AWS-console
+   reference UI.
+   ============================================================ */
+:root {
+  /* ---- Brand orange (primary actions, brand accents) ---- */
+  --brand-50: #fff3e9;
+  --brand-100: #ffe2c9;
+  --brand-200: #ffc89a;
+  --brand-300: #ffa761;
+  --brand-400: #ff8a1e;
+  --brand-500: #fd7601; /* primary */
+  --brand-600: #e85f00;
+  --brand-700: #c24c00;
+  --brand-800: #8f3800;
+  --brand-gradient: linear-gradient(90deg, #ff8a1e 0%, #ff5e03 100%); /* @kind other */
+  --brand-gradient-soft: linear-gradient(135deg, #fff3e9 0%, #ffe2c9 100%); /* @kind other */
+
+  /* ---- Neutrals (cool gray, console-grade) ---- */
+  --gray-0: #ffffff;
+  --gray-25: #fbfcfd;
+  --gray-50: #f6f8fa;
+  --gray-100: #eef1f5;
+  --gray-200: #e2e6ec;
+  --gray-300: #d0d6df;
+  --gray-400: #aeb6c2;
+  --gray-500: #7d8794;
+  --gray-600: #5b6573;
+  --gray-700: #3d4653;
+  --gray-800: #232a33; /* console chrome */
+  --gray-900: #161b22;
+  --ink: #202020; /* wordmark black */
+
+  /* ---- Link / info blue (navigation, hyperlinks) ---- */
+  --blue-50: #eaf3fc;
+  --blue-100: #cfe3f8;
+  --blue-300: #6ba8e6;
+  --blue-500: #0a6fd4;
+  --blue-600: #0a5bb0;
+  --blue-700: #084a8f;
+
+  /* ---- Success green ---- */
+  --green-50: #e9f6ee;
+  --green-100: #c8e9d4;
+  --green-500: #1a8754;
+  --green-600: #14703f;
+  --green-700: #0f5a32;
+
+  /* ---- Warning amber ---- */
+  --amber-50: #fff6e6;
+  --amber-100: #ffe7b8;
+  --amber-500: #e08a00;
+  --amber-600: #b25b00;
+  --amber-700: #8a4500;
+
+  /* ---- Danger red ---- */
+  --red-50: #fdece9;
+  --red-100: #f8cfc8;
+  --red-500: #d92d20;
+  --red-600: #b42318;
+  --red-700: #8f1c13;
+
+  /* =========================================================
+     Semantic aliases — reference these in product code
+     ========================================================= */
+
+  /* Text */
+  --text-primary: var(--ink);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --text-disabled: var(--gray-400);
+  --text-link: var(--blue-500);
+  --text-link-hover: var(--blue-700);
+  --text-brand: var(--brand-600);
+  --text-inverse: var(--gray-0);
+  --text-on-brand: #ffffff;
+
+  /* Surfaces */
+  --surface-page: var(--gray-50);
+  --surface-card: var(--gray-0);
+  --surface-sunken: var(--gray-100);
+  --surface-hover: var(--gray-50);
+  --surface-selected: var(--brand-50);
+  --surface-console: var(--gray-800); /* dark top nav / app chrome */
+  --surface-console-2: var(--gray-900);
+  --surface-overlay: rgba(22, 27, 34, 0.55);
+
+  /* Borders */
+  --border-subtle: var(--gray-100);
+  --border-default: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --border-focus: var(--brand-500);
+  --border-console: #2f3946;
+
+  /* Brand actions */
+  --brand: var(--brand-500);
+  --brand-hover: var(--brand-600);
+  --brand-active: var(--brand-700);
+  --brand-bg: var(--brand-50);
+  --brand-ring: rgba(253, 118, 1, 0.32);
+
+  /* Semantic states */
+  --success: var(--green-500);
+  --success-bg: var(--green-50);
+  --success-border: var(--green-100);
+  --warning: var(--amber-500);
+  --warning-bg: var(--amber-50);
+  --warning-border: var(--amber-100);
+  --danger: var(--red-500);
+  --danger-hover: var(--red-600);
+  --danger-bg: var(--red-50);
+  --danger-border: var(--red-100);
+  --info: var(--blue-500);
+  --info-bg: var(--blue-50);
+  --info-border: var(--blue-100);
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px var(--brand-ring);
+}

@@ -164,7 +164,7 @@ export function ProposeGoalForm({ employeeId, employeeName, tenantSkills }: Prop
         <button
           type="submit"
           disabled={submitting}
-          className="text-sm bg-primary text-white rounded px-5 py-2 hover:bg-blue-600 disabled:opacity-50"
+          className="text-sm bg-primary text-white rounded px-5 py-2 hover:bg-[#FD7601] disabled:opacity-50"
         >
           {submitting ? '送信中...' : '提案を送る'}
         </button>

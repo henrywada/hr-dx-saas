@@ -113,18 +113,18 @@ export default function ReminderComposeModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#232a33]/60 backdrop-blur-sm">
       <div className="fixed inset-0" onClick={handleClose} aria-hidden="true" />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col border border-[#e2e6ec]">
+        <div className="p-4 border-b border-[#e2e6ec] flex justify-between items-center">
+          <h3 className="font-bold text-[#24292f] text-lg flex items-center gap-2">
             <Bell className="w-5 h-5 text-amber-500" />
             リマインドメール送信
           </h3>
           <button
             type="button"
             onClick={handleClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg text-[#57606a] hover:text-[#57606a] hover:bg-[#f6f8fa] transition-colors"
             aria-label="閉じる"
           >
             <X className="w-5 h-5" />
@@ -156,7 +156,7 @@ export default function ReminderComposeModal({
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <fieldset className="space-y-3 border-0 p-0 m-0">
-              <legend className="text-xs font-bold text-slate-700 mb-2">送信対象</legend>
+              <legend className="text-xs font-bold text-[#24292f] mb-2">送信対象</legend>
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -165,9 +165,9 @@ export default function ReminderComposeModal({
                   checked={targetScope === 'all'}
                   onChange={() => handleScopeChange('all')}
                 />
-                <span className="text-sm text-slate-700">
+                <span className="text-sm text-[#24292f]">
                   <span className="font-medium">未受検者全員</span>
-                  <span className="block text-xs text-slate-500 mt-0.5">
+                  <span className="block text-xs text-[#57606a] mt-0.5">
                     対象 {notSubmittedCount} 名（メール登録がある方のみ送信）
                   </span>
                 </span>
@@ -182,10 +182,10 @@ export default function ReminderComposeModal({
                   disabled={selectableEstablishments.length === 0}
                 />
                 <span
-                  className={`text-sm ${selectableEstablishments.length === 0 ? 'text-slate-400' : 'text-slate-700'}`}
+                  className={`text-sm ${selectableEstablishments.length === 0 ? 'text-[#57606a]' : 'text-[#24292f]'}`}
                 >
                   <span className="font-medium">指定拠点の未受検者</span>
-                  <span className="block text-xs text-slate-500 mt-0.5">
+                  <span className="block text-xs text-[#57606a] mt-0.5">
                     拠点ごとに未受検の従業員へ送ります
                   </span>
                 </span>
@@ -194,11 +194,11 @@ export default function ReminderComposeModal({
 
             {targetScope === 'establishment' && (
               <div>
-                <label htmlFor="reminder-establishment" className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label htmlFor="reminder-establishment" className="block text-xs font-bold text-[#24292f] mb-1.5">
                   拠点を選択
                 </label>
                 {selectableEstablishments.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-2">
+                  <p className="text-xs text-[#57606a] py-2">
                     未受検者がいる拠点がありません（進捗画面の拠点マスタを確認してください）。
                   </p>
                 ) : (
@@ -206,7 +206,7 @@ export default function ReminderComposeModal({
                     id="reminder-establishment"
                     value={selectedEstablishmentId}
                     onChange={(e) => setSelectedEstablishmentId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-[#e2e6ec] bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                   >
                     {selectableEstablishments.map((opt) => (
                       <option key={opt.id} value={opt.id}>
@@ -218,8 +218,8 @@ export default function ReminderComposeModal({
               </div>
             )}
 
-            <p className="text-sm text-slate-600 border-t border-slate-100 pt-3">
-              未受検者 <span className="font-semibold text-slate-800">{effectiveRecipientCount}</span>{' '}
+            <p className="text-sm text-[#57606a] border-t border-[#e2e6ec] pt-3">
+              未受検者 <span className="font-semibold text-[#24292f]">{effectiveRecipientCount}</span>{' '}
               名を対象にリマインドメールを送信します。
               メールアドレスが登録されている従業員のみ送信されます。
             </p>
@@ -227,28 +227,28 @@ export default function ReminderComposeModal({
             {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">件名</label>
+              <label className="block text-xs font-bold text-[#24292f] mb-1.5">件名</label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="件名を入力"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-[#e2e6ec] focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">メッセージ</label>
+              <label className="block text-xs font-bold text-[#24292f] mb-1.5">メッセージ</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="メッセージを入力"
                 rows={8}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 resize-y"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-[#e2e6ec] focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 resize-y"
                 required
               />
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-[10px] text-[#57606a] mt-1">
                 ※ {'{{name}}'} は各受信者の氏名に置き換わります
               </p>
             </div>
@@ -257,7 +257,7 @@ export default function ReminderComposeModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[#57606a] bg-[#f6f8fa] rounded-lg hover:bg-[#f6f8fa] transition-colors"
               >
                 キャンセル
               </button>

@@ -309,14 +309,14 @@ export function QrPunchSupervisorClient() {
         )}
 
         <div
-          className={`grid grid-cols-2 gap-3 rounded-2xl p-1.5 ${theme === 'in' ? 'bg-blue-950/40' : 'bg-orange-950/40'}`}
+          className={`grid grid-cols-2 gap-3 rounded-2xl p-1.5 ${theme === 'in' ? 'bg-[#24292f]/40' : 'bg-orange-950/40'}`}
         >
           <button
             type="button"
             onClick={() => handlePurposeChange('punch_in')}
             className={`min-h-14 rounded-xl text-lg font-bold transition ${
               purpose === 'punch_in'
-                ? 'bg-white text-blue-700 shadow-lg'
+                ? 'bg-white text-[#FD7601] shadow-lg'
                 : 'bg-transparent text-white/80 hover:bg-white/10'
             }`}
           >
@@ -341,7 +341,7 @@ export function QrPunchSupervisorClient() {
           disabled={loadingQr || regenerating}
           className={`min-h-16 w-full rounded-2xl text-xl font-bold shadow-xl transition active:scale-[0.98] disabled:opacity-60 ${
             theme === 'in'
-              ? 'bg-white text-blue-700 hover:bg-blue-50'
+              ? 'bg-white text-[#FD7601] hover:bg-[#f6f8fa]'
               : 'bg-white text-orange-800 hover:bg-orange-50'
           }`}
         >
@@ -358,11 +358,11 @@ export function QrPunchSupervisorClient() {
         )}
 
         {token && !regenerating && (
-          <div className="rounded-2xl bg-white p-4 text-center text-slate-900 shadow-2xl">
+          <div className="rounded-2xl bg-white p-4 text-center text-[#24292f] shadow-2xl">
             <div className="flex justify-center py-2">
               <QRCodeSVG value={token} size={qrSize} level="M" includeMargin />
             </div>
-            <p className="mt-3 text-xs text-slate-500">従業員がこの QR をスキャンすると打刻されます</p>
+            <p className="mt-3 text-xs text-[#57606a]">従業員がこの QR をスキャンすると打刻されます</p>
           </div>
         )}
 

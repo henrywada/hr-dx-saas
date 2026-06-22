@@ -25,7 +25,7 @@ export function TemplateSelector({ templates, value, onChange }: Props) {
             onClick={() => onChange(theme)}
             className={`rounded-full border px-3 py-1 text-sm transition-colors ${
               value === theme
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                ? 'border-[#FD7601] bg-[#f6f8fa] text-[#FD7601]'
                 : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -38,7 +38,7 @@ export function TemplateSelector({ templates, value, onChange }: Props) {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="または自由入力..."
-        className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
       />
     </div>
   )

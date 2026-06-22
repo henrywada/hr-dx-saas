@@ -42,7 +42,7 @@ export function OneOnOneDashboard({ data, employees }: Props) {
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#FD7601] transition-colors"
           >
             + 記録する
           </button>

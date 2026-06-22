@@ -27,7 +27,7 @@ export default function GroupRadarChart({ data }: GroupRadarChartProps) {
   const hasAnyMetric = radarData.some((d) => d.value != null)
   if (!hasAnyMetric || data.is_suppressed) {
     return (
-      <div className="h-[340px] w-full flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-600 px-6 text-center">
+      <div className="h-[340px] w-full flex items-center justify-center rounded-xl border border-dashed border-[#e2e6ec] bg-[#f6f8fa] text-sm text-[#57606a] px-6 text-center">
         このグループは回答者数が少ないため、職場環境尺度の集団値を表示していません（マスキング）。
       </div>
     )

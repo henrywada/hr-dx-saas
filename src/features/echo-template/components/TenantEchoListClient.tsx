@@ -143,8 +143,8 @@ export default function TenantEchoListClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">パルスサーベイ（Echo） 設問管理</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-[#24292f]">パルスサーベイ（Echo） 設問管理</h1>
+          <p className="text-sm text-[#57606a] mt-1">
             パルスサーベイ（Echo）で使用する設問セットを管理します。
           </p>
         </div>
@@ -167,28 +167,28 @@ export default function TenantEchoListClient({
       )}
 
       {questionnaires.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="text-center py-16 text-[#57606a]">
           <FileText size={48} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">設問セットがありません。</p>
           <p className="text-xs mt-1">「テンプレートからコピー」して設問を作成してください。</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e6ec] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
               <tr>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">設問セット名</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">設問数</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">状態</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">実施間隔</th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">操作</th>
+                <th className="text-left px-5 py-3 font-medium text-[#57606a]">設問セット名</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">設問数</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">状態</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">実施間隔</th>
+                <th className="text-center px-4 py-3 font-medium text-[#57606a]">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e2e6ec]">
               {questionnaires.map(q => {
                 const isActive = q.status === 'active'
                 return (
-                  <tr key={q.id} className={isActive ? 'bg-primary/5' : 'hover:bg-slate-50'}>
+                  <tr key={q.id} className={isActive ? 'bg-primary/5' : 'hover:bg-[#f6f8fa]'}>
                     <td className="px-5 py-3 min-w-48">
                       {editingNameId === q.id ? (
                         <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +202,7 @@ export default function TenantEchoListClient({
                             type="text"
                             value={editingNameValue}
                             onChange={e => setEditingNameValue(e.target.value)}
-                            className="flex-1 min-w-32 max-w-md rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="flex-1 min-w-32 max-w-md rounded-lg border border-[#e2e6ec] px-2.5 py-1.5 text-sm font-medium text-[#24292f] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                             autoFocus
                             disabled={isPending}
                             onKeyDown={e => {
@@ -225,7 +225,7 @@ export default function TenantEchoListClient({
                             type="button"
                             onClick={cancelEditingName}
                             disabled={isPending}
-                            className="shrink-0 rounded-lg px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                            className="shrink-0 rounded-lg px-2.5 py-1 text-xs text-[#57606a] hover:bg-[#f6f8fa] disabled:opacity-50"
                           >
                             取消
                           </button>
@@ -238,7 +238,7 @@ export default function TenantEchoListClient({
                               className="text-accent-orange fill-accent-orange shrink-0"
                             />
                           )}
-                          <span className="font-medium text-slate-800 truncate min-w-0">
+                          <span className="font-medium text-[#24292f] truncate min-w-0">
                             {q.title}
                           </span>
                           <button
@@ -249,7 +249,7 @@ export default function TenantEchoListClient({
                               setEditingNameValue(q.title)
                             }}
                             disabled={isPending}
-                            className="shrink-0 inline-flex items-center gap-0.5 rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
+                            className="shrink-0 inline-flex items-center gap-0.5 rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium text-[#57606a] hover:border-[#e2e6ec] hover:bg-[#f6f8fa] hover:text-[#24292f] disabled:opacity-50"
                             title="設問セット名を変更"
                           >
                             <Pencil size={12} />
@@ -258,14 +258,14 @@ export default function TenantEchoListClient({
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-600">{q.question_count}</td>
+                    <td className="px-4 py-3 text-center text-[#57606a]">{q.question_count}</td>
                     <td className="px-4 py-3 text-center">
                       {isActive ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           本番稼働中
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f6f8fa] text-[#57606a]">
                           下書き
                         </span>
                       )}
@@ -279,7 +279,7 @@ export default function TenantEchoListClient({
                           {cadenceLabel(currentPulseCadence)}
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-[#57606a]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -287,7 +287,7 @@ export default function TenantEchoListClient({
                         <button
                           onClick={() => handleOpenEdit(q.id)}
                           disabled={isPending}
-                          className="flex items-center gap-1 px-3 py-1 text-xs text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-[#57606a] border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa] disabled:opacity-50"
                         >
                           <Pencil size={12} />
                           編集
@@ -328,7 +328,7 @@ export default function TenantEchoListClient({
                                 </button>
                                 <button
                                   onClick={() => setDeleteConfirmId(null)}
-                                  className="px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
+                                  className="px-3 py-1 text-xs text-[#57606a] hover:bg-[#f6f8fa] rounded-lg"
                                 >
                                   戻る
                                 </button>
@@ -362,9 +362,9 @@ export default function TenantEchoListClient({
             aria-label="閉じる"
             onClick={() => !isPending && setActivateTargetId(null)}
           />
-          <div className="relative bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <div className="relative bg-white rounded-2xl shadow-xl border border-[#e2e6ec] w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e6ec] bg-[#f6f8fa]">
+              <h3 className="text-base font-bold text-[#24292f] flex items-center gap-2">
                 <Star className="text-accent-orange shrink-0" size={18} />
                 本番指定
               </h3>
@@ -372,20 +372,20 @@ export default function TenantEchoListClient({
                 type="button"
                 disabled={isPending}
                 onClick={() => setActivateTargetId(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50"
+                className="p-1.5 rounded-lg text-[#57606a] hover:bg-[#f6f8fa] hover:text-[#24292f] disabled:opacity-50"
               >
                 <X size={18} />
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-[#57606a]">
                 パルスサーベイの実施間隔を選んでから本番にします。期間キーは「パルス調査期間管理」で{' '}
                 {activateCadence === 'monthly' ? 'YYYY-MM' : 'YYYY-Www'} 形式で登録してください。
               </p>
               <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-800">実施間隔</span>
+                <span className="text-sm font-medium text-[#24292f]">実施間隔</span>
                 <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-[#24292f]">
                     <input
                       type="radio"
                       name="activate_pulse_cadence"
@@ -396,7 +396,7 @@ export default function TenantEchoListClient({
                     />
                     月1回（期間キー: YYYY-MM）
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-[#24292f]">
                     <input
                       type="radio"
                       name="activate_pulse_cadence"
@@ -414,7 +414,7 @@ export default function TenantEchoListClient({
                   type="button"
                   disabled={isPending}
                   onClick={() => setActivateTargetId(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50"
+                  className="px-4 py-2 text-sm font-medium text-[#57606a] border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa]"
                 >
                   キャンセル
                 </button>

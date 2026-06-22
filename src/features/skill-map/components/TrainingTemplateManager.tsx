@@ -221,7 +221,7 @@ export function TrainingTemplateManager({ templates, availableCourses, jobRoles 
               <div
                 key={t.id}
                 onClick={() => setSelectedTemplateId(t.id)}
-                className={`flex cursor-pointer items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 ${selectedTemplateId === t.id ? 'bg-blue-50' : idx % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}`}
+                className={`flex cursor-pointer items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 ${selectedTemplateId === t.id ? 'bg-[#f6f8fa]' : idx % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}`}
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900">{t.name}</p>

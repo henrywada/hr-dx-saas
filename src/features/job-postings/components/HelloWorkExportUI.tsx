@@ -91,7 +91,7 @@ export function HelloWorkExportUI({ jobs }: Props) {
         <button
           onClick={handleExport}
           disabled={isPending || selectedIds.size === 0}
-          className="bg-indigo-600 text-white px-5 py-2 rounded shadow shrink-0 hover:bg-indigo-700 disabled:opacity-50 font-medium transition"
+          className="bg-[#FD7601] text-white px-5 py-2 rounded shadow shrink-0 hover:bg-orange-700 disabled:opacity-50 font-medium transition"
         >
           {isPending ? '生成中...' : `選択した求人をCSV出力 (${selectedIds.size}件)`}
         </button>
@@ -106,7 +106,7 @@ export function HelloWorkExportUI({ jobs }: Props) {
                   type="checkbox"
                   checked={jobs.length > 0 && selectedIds.size === jobs.length}
                   onChange={toggleAll}
-                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="w-4 h-4 text-[#FD7601] rounded border-gray-300 focus:ring-[#FD7601]"
                 />
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">ステータス</th>
@@ -131,7 +131,7 @@ export function HelloWorkExportUI({ jobs }: Props) {
                       type="checkbox"
                       checked={selectedIds.has(job.id)}
                       onChange={() => toggleOne(job.id)}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-[#FD7601] rounded border-gray-300 focus:ring-[#FD7601]"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

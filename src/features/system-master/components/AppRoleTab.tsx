@@ -97,7 +97,7 @@ export default function AppRoleTab({ initialRoles }: Props) {
         <button
           onClick={handleCreate}
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 font-bold"
+          className="bg-[#FD7601] text-white px-6 py-2 rounded hover:bg-[#FD7601] disabled:opacity-50 font-bold"
         >
           新規登録
         </button>
@@ -127,7 +127,7 @@ export default function AppRoleTab({ initialRoles }: Props) {
                     />
                   ) : role.name}
                 </td>
-                <td className="px-6 py-4 font-mono text-sm text-blue-600">
+                <td className="px-6 py-4 font-mono text-sm text-[#FD7601]">
                   {editingId === role.id ? (
                     <input
                       className="border p-2 w-full rounded"
@@ -140,12 +140,12 @@ export default function AppRoleTab({ initialRoles }: Props) {
                   <div className="flex justify-center gap-4">
                     {editingId === role.id ? (
                       <>
-                        <button onClick={() => handleSave(role.id)} className="text-blue-600 font-bold">保存</button>
+                        <button onClick={() => handleSave(role.id)} className="text-[#FD7601] font-bold">保存</button>
                         <button onClick={() => setEditingId(null)} className="text-gray-500">取消</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => {setEditingId(role.id); setEditData({[role.id]: role});}} className="text-blue-500 text-xl">✏️</button>
+                        <button onClick={() => {setEditingId(role.id); setEditData({[role.id]: role});}} className="text-[#FD7601] text-xl">✏️</button>
                         <button onClick={() => handleDelete(role.id, role.name)} className="text-red-500 text-xl">🗑️</button>
                       </>
                     )}

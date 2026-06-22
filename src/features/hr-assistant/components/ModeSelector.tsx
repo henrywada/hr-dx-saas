@@ -32,8 +32,8 @@ export function ModeSelector({ value, onChange, disabled }: Props) {
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
             value === mode
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+              ? 'bg-[#FD7601] text-white shadow-sm'
+              : 'bg-[#f6f8fa] text-[#57606a] hover:bg-[#f6f8fa]',
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         >

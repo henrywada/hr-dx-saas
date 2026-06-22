@@ -14,7 +14,7 @@ import { HrInquiryMailForm } from './HrInquiryMailForm'
 import { cn } from '@/lib/utils'
 
 const triggerClassName =
-  'inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors shrink-0 hover:bg-slate-50 hover:border-indigo-200 hover:text-indigo-700'
+  'inline-flex items-center rounded-lg border border-[#e2e6ec] bg-white px-3 py-1.5 text-sm font-semibold text-[#24292f] shadow-sm transition-colors shrink-0 hover:bg-[#f6f8fa] hover:border-[#e2e6ec] hover:text-[#FD7601]'
 
 type Tab = 'chat' | 'mail'
 
@@ -87,7 +87,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
                     'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
                     !aiChatEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
                     aiChatEnabled && tab === 'chat'
-                      ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700'
+                      ? 'border-b-2 border-[#FD7601] bg-[#f6f8fa]/50 text-[#FD7601]'
                       : aiChatEnabled && 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
                   )}
                 >
@@ -106,7 +106,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
                     'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
                     !hrMailEnabled && 'cursor-not-allowed opacity-45 text-neutral-400',
                     hrMailEnabled && tab === 'mail'
-                      ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700'
+                      ? 'border-b-2 border-[#FD7601] bg-[#f6f8fa]/50 text-[#FD7601]'
                       : hrMailEnabled && 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
                   )}
                 >
@@ -136,7 +136,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]">
             <p className="text-sm leading-relaxed text-neutral-600">{descriptionText}</p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            <p className="mt-3 text-sm leading-relaxed text-[#57606a]">
               制度文書（AI チャット）の登録、または「基本設定」での人事宛メールの登録が必要です。
             </p>
           </div>

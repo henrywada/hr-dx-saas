@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   const displayName = user?.name || 'ゲスト'
 
   return (
-    <div className="space-y-8 w-full">
+    <div className="space-y-4 w-full px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
       {/* 1. Welcome Area */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="animate-in fade-in slide-in-from-left-4 duration-500">
@@ -80,99 +80,97 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. Top Priority Task (To-Do) - 従業員専用のパルスサーベイ未回答タスク */}
-      {importantTask && importantTask.isPending && (
-        <div className="relative overflow-hidden bg-white rounded-2xl border-t-2 border-t-orange-400 border border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">
-          <div className="absolute -top-10 -right-10 p-4 opacity-[0.03] pointer-events-none text-orange-900">
-            <AlertCircle size={200} />
-          </div>
-          <div className="relative p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+      {/* 2. Top Priority Tasks - 2-Column Grid */}
+      {(importantTask?.isPending || showStressCheckTask) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Important Task Card */}
+          {importantTask && importantTask.isPending && (
+            <div className="relative overflow-hidden bg-white rounded-2xl border-t-4 border-t-orange-500 border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-t-orange-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">
+              <div className="p-6 flex flex-col justify-between h-full">
+                <div className="space-y-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800">
                     <AlertCircle className="w-3.5 h-3.5 mr-1" />
                     重要タスク
                   </span>
-                  <span className="text-sm font-semibold text-slate-500 flex items-center">
-                    <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
-                    {importantTask.deadlineLabel}
-                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                      {importantTask.title}
+                    </h3>
+                    {importantTask.description && (
+                      <p className="text-slate-600 text-sm mt-2 line-clamp-2">
+                        {importantTask.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Calendar className="w-4 h-4" />
+                    <span>{importantTask.deadlineLabel}</span>
+                  </div>
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  【未回答】{importantTask.title}
-                </h2>
-                {importantTask.description && (
-                  <p className="text-slate-600 text-sm max-w-2xl leading-relaxed bg-white/50">
-                    {importantTask.description}
-                  </p>
-                )}
-              </div>
-              <div className="w-full sm:w-auto shrink-0 z-10">
-                <Link
-                  href={importantTask.linkPath}
-                  className="flex items-center justify-center w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm shadow-orange-500/20 group h-10 px-4 rounded-lg text-sm transition-colors"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5 opacity-90" />
-                  今すぐ回答する
-                  <ChevronRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                <div className="mt-4">
+                  <Link
+                    href={importantTask.linkPath}
+                    className="text-orange-500 hover:text-orange-600 font-semibold text-sm flex items-center gap-1 group"
+                  >
+                    今すぐ回答する
+                    <ChevronRight className="w-4 h-4 opacity-60 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* ストレスチェック受検タスク */}
-      {showStressCheckTask && (
-        <div className="relative overflow-hidden bg-white rounded-2xl border-t-2 border-t-teal-500 border border-slate-200 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-backwards">
-          <div className="relative p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+          {/* Stress Check Card */}
+          {showStressCheckTask && (
+            <div className="relative overflow-hidden bg-white rounded-2xl border-t-4 border-t-teal-500 border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-t-teal-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-backwards">
+              <div className="p-6 flex flex-col justify-between h-full">
+                <div className="space-y-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
                     <ClipboardList className="w-3.5 h-3.5 mr-1" />
                     ストレスチェック
                   </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                      {stressCheckAlreadyAnswered
+                        ? '✅ 回答済み'
+                        : `${activePeriod?.title ?? 'ストレスチェック'}`}
+                    </h3>
+                    {activePeriod?.comment && !stressCheckAlreadyAnswered && (
+                      <p className="text-slate-600 text-sm mt-2 line-clamp-2">
+                        {activePeriod.comment}
+                      </p>
+                    )}
+                  </div>
                   {activePeriod?.end_date && (
-                    <span className="text-sm font-semibold text-slate-500 flex items-center">
-                      <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
-                      {String(activePeriod.end_date).split('T')[0].replace(/-/g, '/')} まで
-                    </span>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {String(activePeriod.end_date).split('T')[0].replace(/-/g, '/')} まで
+                      </span>
+                    </div>
                   )}
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {stressCheckAlreadyAnswered
-                    ? '✅ 回答済み'
-                    : `【未回答】${activePeriod?.title ?? 'ストレスチェック'}`}
-                </h2>
-                {activePeriod?.comment && (
-                  <p className="text-slate-600 text-sm max-w-2xl leading-relaxed">
-                    {activePeriod.comment}
-                  </p>
-                )}
-              </div>
-              <div className="w-full sm:w-auto shrink-0 z-10">
-                <Link
-                  href="/stress-check"
-                  className={`flex items-center justify-center w-full sm:w-auto font-semibold shadow-sm group h-10 px-4 rounded-lg text-sm transition-colors ${
-                    stressCheckAlreadyAnswered
-                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-500/20'
-                  }`}
-                >
-                  <ClipboardList className="w-4 h-4 mr-1.5 opacity-90" />
-                  {stressCheckAlreadyAnswered ? '結果を確認する' : '今すぐ回答する'}
-                  <ChevronRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                <div className="mt-4">
+                  <Link
+                    href="/stress-check"
+                    className={`font-semibold text-sm flex items-center gap-1 group ${
+                      stressCheckAlreadyAnswered
+                        ? 'text-slate-500 hover:text-slate-600'
+                        : 'text-teal-600 hover:text-teal-700'
+                    }`}
+                  >
+                    {stressCheckAlreadyAnswered ? '結果を確認する' : '今すぐ回答する'}
+                    <ChevronRight className="w-4 h-4 opacity-60 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* 3. 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Notices */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
           <div className="px-6 py-5 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
@@ -223,16 +221,18 @@ export default async function DashboardPage() {
         </div>
 
         {/* Right: Shortcuts */}
-        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
+          <div className="px-6 py-5 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
             <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg shadow-inner">
               <Zap className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-slate-800">クイックアクセス</h2>
+            <h3 className="font-bold text-lg text-slate-800">クイックアクセス</h3>
           </div>
-          <div className="flex flex-col gap-3">
-            <QuickAccessCards />
-            <MobileNavSection />
+          <div className="p-6 flex-1">
+            <div className="flex flex-col gap-3">
+              <QuickAccessCards />
+              <MobileNavSection />
+            </div>
           </div>
         </div>
       </div>

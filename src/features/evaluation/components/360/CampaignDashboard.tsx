@@ -28,9 +28,9 @@ interface Props {
 type AdminTab = 'questions' | 'subjects' | 'report'
 
 const STATUS_BADGE: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-600',
+  draft: 'bg-[#f6f8fa] text-[#57606a]',
   open: 'bg-green-100 text-green-700',
-  closed: 'bg-slate-200 text-slate-500',
+  closed: 'bg-[#f6f8fa] text-[#57606a]',
 }
 
 export function CampaignDashboard({ campaigns, employees }: Props) {
@@ -79,8 +79,8 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">360度評価</h1>
-          <p className="text-sm text-slate-500">キャンペーン管理・フィードバックレポート</p>
+          <h1 className="text-xl font-bold text-[#24292f]">360度評価</h1>
+          <p className="text-sm text-[#57606a]">キャンペーン管理・フィードバックレポート</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -92,9 +92,9 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-1 space-y-2">
-          <h2 className="text-sm font-semibold text-slate-600 px-1">キャンペーン一覧</h2>
+          <h2 className="text-sm font-semibold text-[#57606a] px-1">キャンペーン一覧</h2>
           {campaigns.length === 0 && (
-            <p className="text-sm text-slate-400 py-4 text-center">キャンペーンがありません</p>
+            <p className="text-sm text-[#57606a] py-4 text-center">キャンペーンがありません</p>
           )}
           {campaigns.map(c => (
             <div
@@ -103,35 +103,35 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
               className={`p-3 rounded-xl border cursor-pointer transition-colors ${
                 selectedCampaign?.id === c.id
                   ? 'border-primary bg-primary/5'
-                  : 'border-slate-200 hover:bg-slate-50'
+                  : 'border-[#e2e6ec] hover:bg-[#f6f8fa]'
               }`}
             >
               <div className="flex items-start justify-between gap-1">
-                <p className="text-sm font-medium text-slate-800">{c.name}</p>
+                <p className="text-sm font-medium text-[#24292f]">{c.name}</p>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[c.status] ?? ''}`}
                 >
                   {CAMPAIGN_STATUS_LABELS[c.status]}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">期限: {c.deadline}</p>
+              <p className="text-xs text-[#57606a] mt-1">期限: {c.deadline}</p>
             </div>
           ))}
         </div>
 
         <div className="col-span-2">
           {!selectedCampaign && (
-            <div className="flex items-center justify-center h-48 text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
+            <div className="flex items-center justify-center h-48 text-[#57606a] text-sm border border-dashed border-[#e2e6ec] rounded-xl">
               左のキャンペーンを選択してください
             </div>
           )}
 
           {selectedCampaign && (
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="bg-slate-50 px-4 py-3 flex items-center justify-between">
+            <div className="border border-[#e2e6ec] rounded-xl overflow-hidden">
+              <div className="bg-[#f6f8fa] px-4 py-3 flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-800">{selectedCampaign.name}</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="text-sm font-semibold text-[#24292f]">{selectedCampaign.name}</h3>
+                  <p className="text-xs text-[#57606a]">
                     期限: {selectedCampaign.deadline}
                     {selectedCampaign.is_anonymous && ' · 匿名有効'}
                   </p>
@@ -141,7 +141,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
                     <>
                       <button
                         onClick={() => setEditingCampaign(selectedCampaign)}
-                        className="text-xs px-3 py-1 border border-slate-300 rounded-lg hover:bg-slate-100"
+                        className="text-xs px-3 py-1 border border-[#e2e6ec] rounded-lg hover:bg-[#f6f8fa]"
                       >
                         編集
                       </button>
@@ -158,7 +158,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
                     <button
                       onClick={() => handleStatusChange(selectedCampaign.id, 'closed')}
                       disabled={isPending}
-                      className="text-xs px-3 py-1 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                      className="text-xs px-3 py-1 bg-[#f6f8fa] text-white rounded-lg hover:bg-[#f6f8fa] disabled:opacity-50"
                     >
                       クローズ
                     </button>
@@ -168,7 +168,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
 
               {statusError && <p className="px-4 py-2 text-red-500 text-sm">{statusError}</p>}
 
-              <div className="flex border-b border-slate-200">
+              <div className="flex border-b border-[#e2e6ec]">
                 {(
                   [
                     ['questions', '設問管理'],
@@ -182,7 +182,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
                     className={`px-4 py-2 text-sm transition-colors ${
                       activeTab === tab
                         ? 'border-b-2 border-primary text-primary font-medium'
-                        : 'text-slate-500 hover:text-slate-700'
+                        : 'text-[#57606a] hover:text-[#24292f]'
                     }`}
                   >
                     {label}
@@ -192,7 +192,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
 
               <div className="p-4">
                 {loading && (
-                  <p className="text-sm text-slate-400 py-8 text-center">読み込み中…</p>
+                  <p className="text-sm text-[#57606a] py-8 text-center">読み込み中…</p>
                 )}
                 {!loading && detail && (
                   <>

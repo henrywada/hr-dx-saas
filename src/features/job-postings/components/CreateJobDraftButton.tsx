@@ -28,7 +28,7 @@ export function CreateJobDraftButton() {
     <button 
       onClick={handleCreateDraft} 
       disabled={isPending}
-      className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded shadow-sm disabled:opacity-50 transition"
+      className="bg-[#FD7601] hover:bg-[#FD7601] text-white font-medium px-4 py-2 rounded shadow-sm disabled:opacity-50 transition"
     >
       {isPending ? '作成中...' : '+ 新規求人を作成'}
     </button>

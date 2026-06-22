@@ -341,7 +341,7 @@ export function EmployeeSkillMatrixModal({
                             <button
                               type="button"
                               onClick={() => setShowRecommendModal(r.requirementId)}
-                              className="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                              className="px-2 py-1 text-[10px] font-bold text-[#FD7601] bg-[#f6f8fa] hover:bg-[#FD7601]-10 border border-[#e2e6ec] rounded-md transition-colors"
                             >
                               🎓 推薦
                             </button>
@@ -488,7 +488,7 @@ export function EmployeeSkillMatrixModal({
                     alert('推薦設定に失敗しました: ' + (res as any).error)
                   }
                 }}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                className="px-3 py-2 bg-[#FD7601] text-white rounded-lg font-semibold hover:bg-[#FD7601] disabled:opacity-50 cursor-pointer"
               >
                 推薦を設定する
               </button>

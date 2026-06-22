@@ -14,7 +14,7 @@ const statusLabel: Record<string, string> = {
 }
 
 const statusClass: Record<string, string> = {
-  in_progress: 'bg-blue-100 text-blue-700',
+  in_progress: 'bg-[#FD7601]-10 text-[#FD7601]',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-gray-100 text-gray-500',
 }

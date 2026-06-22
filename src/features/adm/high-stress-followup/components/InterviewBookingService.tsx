@@ -52,37 +52,37 @@ export function InterviewBookingService() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative border border-slate-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#232a33]/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative border border-[#e2e6ec]">
+            <div className="p-4 border-b border-[#e2e6ec] flex justify-between items-center bg-[#f6f8fa]/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-lg">産業医面談の予約</h3>
-                  <p className="text-[10px] text-slate-500 font-medium tracking-wider">ご希望の日時を選択して予約を確定させてください</p>
+                  <h3 className="font-bold text-[#24292f] text-lg">産業医面談の予約</h3>
+                  <p className="text-[10px] text-[#57606a] font-medium tracking-wider">ご希望の日時を選択して予約を確定させてください</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-all"
+                className="text-[#57606a] hover:text-[#57606a] p-2 rounded-xl hover:bg-[#f6f8fa] transition-all"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 bg-slate-50/30 flex flex-col gap-4">
+            <div className="flex-1 overflow-auto p-4 bg-[#f6f8fa]/30 flex flex-col gap-4">
               {/* Doctor Selector Area - Show only if multiple doctors exist */}
               {periodId && doctors.length > 1 && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-500">
+                <div className="bg-white p-4 rounded-xl border border-[#e2e6ec] shadow-sm flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-500">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-700 whitespace-nowrap">担当産業医の選択:</span>
+                    <span className="text-sm font-bold text-[#24292f] whitespace-nowrap">担当産業医の選択:</span>
                   </div>
                   <select
                     value={doctorId || ''}
                     onChange={(e) => setDoctorId(e.target.value)}
-                    className="flex-1 max-w-xs h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all cursor-pointer hover:border-emerald-300"
+                    className="flex-1 max-w-xs h-10 px-3 rounded-lg border border-[#e2e6ec] bg-[#f6f8fa] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all cursor-pointer hover:border-emerald-300"
                   >
                     {doctors.map((doc) => (
                       <option key={doc.id} value={doc.id}>
@@ -95,20 +95,20 @@ export function InterviewBookingService() {
 
 
               {loading ? (
-                <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-[#57606a]">
                   <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm font-medium">読み込み中...</p>
                 </div>
               ) : !periodId ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-white rounded-xl border border-dashed border-slate-200 m-8">
+                <div className="flex flex-col items-center justify-center h-full text-[#57606a] bg-white rounded-xl border border-dashed border-[#e2e6ec] m-8">
                   <p>現在、予約可能なストレスチェック期間がありません。</p>
                 </div>
               ) : !doctorId ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-white rounded-xl border border-dashed border-slate-200 m-8">
+                <div className="flex flex-col items-center justify-center h-full text-[#57606a] bg-white rounded-xl border border-dashed border-[#e2e6ec] m-8">
                   <p>予約可能な産業医が見つかりませんでした。管理者にお問い合わせください。</p>
                 </div>
               ) : (
-                <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
+                <div className="flex-1 bg-white rounded-xl shadow-sm border border-[#e2e6ec] overflow-hidden min-h-[500px]">
                   <InterviewCalendar
                     periodId={periodId}
                     highStressList={[]} // 従業員モードでは不要

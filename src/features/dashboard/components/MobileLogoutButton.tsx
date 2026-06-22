@@ -7,7 +7,7 @@ import { APP_ROUTES } from '@/config/routes';
 import { writeAuditLog } from '@/lib/log/actions';
 
 const linkClass =
-  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-slate-600 hover:bg-white hover:text-accent-orange hover:shadow-sm';
+  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative text-[#57606a] hover:bg-white hover:text-accent-orange hover:shadow-sm';
 
 export function MobileLogoutButton() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export function MobileLogoutButton() {
 
   return (
     <button onClick={handleLogout} className={linkClass}>
-      <LogOut className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+      <LogOut className="w-5 h-5 text-[#57606a] group-hover:text-[#57606a]" />
       <span className="flex-1 text-left">ログアウト</span>
     </button>
   );

@@ -67,36 +67,36 @@ export function EstablishmentPeriodsPanel({ tenantId, establishmentId }: Props) 
   }
 
   return (
-    <div className="mt-6 pt-5 border-t border-blue-200/60 space-y-3">
+    <div className="mt-6 pt-5 border-t border-[#e2e6ec]/60 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-          <CalendarRange className="w-4 h-4 text-blue-600" />
+        <h3 className="text-sm font-bold text-[#24292f] flex items-center gap-2">
+          <CalendarRange className="w-4 h-4 text-[#FD7601]" />
           ストレスチェック実施期間（この拠点）
         </h3>
         <button
           type="button"
           disabled={isPending}
           onClick={openCreate}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#24292f] text-white text-xs font-semibold hover:bg-[#232a33] disabled:opacity-50"
         >
           <Plus className="w-3.5 h-3.5" />
           期間を追加
         </button>
       </div>
-      <p className="text-xs text-slate-600 leading-relaxed">
+      <p className="text-xs text-[#57606a] leading-relaxed">
         タイトル・対象年度・質問数（57/23）・ステータス・開始日・終了日を拠点単位で管理します。従業員画面では所属拠点に紐づく「実施中」期間が表示されます。
       </p>
       {loadError && <p className="text-xs text-rose-600">{loadError}</p>}
 
       {periods.length === 0 && !loadError ? (
-        <p className="text-xs text-slate-500 bg-white/60 rounded-lg px-3 py-2 border border-slate-200">
+        <p className="text-xs text-[#57606a] bg-white/60 rounded-lg px-3 py-2 border border-[#e2e6ec]">
           未登録です。「期間を追加」から登録してください。
         </p>
       ) : (
-        <div className="rounded-lg border border-slate-200 bg-white/80 overflow-x-auto">
+        <div className="rounded-lg border border-[#e2e6ec] bg-white/80 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-100">
+              <tr className="text-left text-[#57606a] border-b border-[#e2e6ec]">
                 <th className="py-2 px-3 font-semibold">タイトル</th>
                 <th className="py-2 px-3 font-semibold whitespace-nowrap">年度</th>
                 <th className="py-2 px-3 font-semibold whitespace-nowrap">質問</th>
@@ -105,26 +105,26 @@ export function EstablishmentPeriodsPanel({ tenantId, establishmentId }: Props) 
                 <th className="py-2 px-3 w-20 text-right font-semibold">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e2e6ec]">
               {periods.map((p) => (
                 <tr key={p.id}>
-                  <td className="py-2 px-3 text-slate-800 font-medium">{p.title}</td>
-                  <td className="py-2 px-3 text-slate-600 whitespace-nowrap">{p.fiscal_year}</td>
-                  <td className="py-2 px-3 text-slate-600 whitespace-nowrap">{p.questionnaire_type}問</td>
+                  <td className="py-2 px-3 text-[#24292f] font-medium">{p.title}</td>
+                  <td className="py-2 px-3 text-[#57606a] whitespace-nowrap">{p.fiscal_year}</td>
+                  <td className="py-2 px-3 text-[#57606a] whitespace-nowrap">{p.questionnaire_type}問</td>
                   <td className="py-2 px-3">
                     <span
                       className={
                         p.status === 'active'
                           ? 'text-emerald-700 font-semibold'
                           : p.status === 'draft'
-                            ? 'text-slate-600'
-                            : 'text-slate-400'
+                            ? 'text-[#57606a]'
+                            : 'text-[#57606a]'
                       }
                     >
                       {statusLabel[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="py-2 px-3 text-slate-600 whitespace-nowrap">
+                  <td className="py-2 px-3 text-[#57606a] whitespace-nowrap">
                     {String(p.start_date).split('T')[0]} 〜 {String(p.end_date).split('T')[0]}
                   </td>
                   <td className="py-2 px-3 text-right whitespace-nowrap">
@@ -132,7 +132,7 @@ export function EstablishmentPeriodsPanel({ tenantId, establishmentId }: Props) 
                       type="button"
                       title="編集"
                       onClick={() => openEdit(p)}
-                      className="inline-flex p-1 rounded text-slate-500 hover:bg-slate-100"
+                      className="inline-flex p-1 rounded text-[#57606a] hover:bg-[#f6f8fa]"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>

@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2, UserPlus, Users } from 'lucide-react'
+import { Plus, Trash2, Users } from 'lucide-react'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { removeAssignment } from '../actions'
-import { COURSE_STATUS_LABELS } from '../constants'
 import { AssignmentModal } from './AssignmentModal'
 import type { ElAssignment, ElCourse } from '../types'
 
@@ -18,7 +18,6 @@ interface Employee {
 interface Props {
   assignments: ElAssignment[]
   employees: Employee[]
-  /** 未割り当て時に「コースを選んで割り当て」一覧へ使う自社コース */
   tenantCourses: ElCourse[]
 }
 
@@ -27,6 +26,7 @@ export function AssignmentListClient({ assignments, employees, tenantCourses }: 
   const [isPending, startTransition] = useTransition()
   const [showModal, setShowModal] = useState(false)
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const handleRemove = (id: string) => {
     if (!confirm('アサインを解除しますか？')) return
@@ -41,131 +41,161 @@ export function AssignmentListClient({ assignments, employees, tenantCourses }: 
     setShowModal(true)
   }
 
-  const grouped = assignments.reduce<Record<string, ElAssignment[]>>((acc, a) => {
-    const key = a.course_id
-    if (!acc[key]) acc[key] = []
-    acc[key].push(a)
-    return acc
-  }, {})
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`${selectedIds.size}件のアサインを削除しますか？`)) return
+    startTransition(async () => {
+      for (const id of selectedIds) {
+        await removeAssignment(id)
+      }
+      router.refresh()
+    })
+  }
 
-  return (
-    <div className="space-y-6">
-      {Object.entries(grouped).length === 0 ? (
-        <div className="space-y-6">
-          <div className="flex flex-col items-center py-10 text-gray-400">
-            <Users className="w-10 h-10 mb-3" />
-            <p className="text-sm text-gray-600">まだ受講割り当てがありません</p>
-            <p className="text-xs mt-2 text-center text-gray-500 max-w-md">
-              下の一覧からコースを選び、受講者を指定してください。
-              <br />
-              ステータスが「下書き」でも割り当ては可能ですが、受講開始前に
-              <Link href="/adm/el-courses" className="text-blue-600 hover:underline mx-0.5">
-                コース管理
-              </Link>
-              で「公開中」にすると運用しやすくなります。
-            </p>
+  const columns: Column<ElAssignment>[] = [
+    {
+      key: 'employee_id' as keyof ElAssignment,
+      label: 'ユーザー名',
+      sortable: true,
+      render: (_, item) => (
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-[#f6f8fa] flex items-center justify-center text-xs font-medium text-[#57606a] flex-shrink-0">
+            {item.employee?.name?.[0] ?? '?'}
           </div>
-
-          {tenantCourses.length === 0 ? (
-            <div className="text-center text-sm text-gray-500">
-              自社コースがありません。
-              <Link href="/adm/el-courses" className="text-blue-600 hover:underline ml-1">
-                コースを作成
-              </Link>
-            </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h2 className="text-sm font-semibold text-gray-800">コースを選んで割り当て</h2>
-              </div>
-              <ul className="divide-y divide-gray-100">
-                {tenantCourses.map(course => {
-                  const disabled = course.status === 'archived'
-                  return (
-                    <li
-                      key={course.id}
-                      className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50/80"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          <span className="text-xs text-gray-500">{course.category}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                            {COURSE_STATUS_LABELS[course.status]}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => !disabled && openAssign(course.id)}
-                        disabled={disabled}
-                        className="flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-40 disabled:pointer-events-none"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        割り当て
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
+          <p className="text-sm font-medium text-[#24292f]">
+            {item.employee?.name ?? item.employee_id}
+          </p>
         </div>
-      ) : (
-        Object.entries(grouped).map(([courseId, list]) => {
-          const course = list[0].course
-          return (
-            <div
-              key={courseId}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-800 text-sm">
-                    {course?.title ?? courseId}
-                  </h3>
-                  {course?.status && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                      {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => openAssign(courseId)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  受講者を追加
-                </button>
-              </div>
+      ),
+    },
+    {
+      key: 'course_id' as keyof ElAssignment,
+      label: 'コース',
+      render: (_, item) => (
+        <div className="text-sm font-medium text-[#24292f]">
+          {item.course?.title ?? item.course_id}
+        </div>
+      ),
+    },
+    {
+      key: 'due_date' as keyof ElAssignment,
+      label: '期限',
+      render: (_, item) => <div className="text-sm text-[#57606a]">{item.due_date ?? '-'}</div>,
+    },
+    {
+      key: 'id' as keyof ElAssignment,
+      label: '操作',
+      width: 'w-12',
+      render: (_, item) => (
+        <button
+          onClick={() => handleRemove(item.id)}
+          disabled={isPending}
+          className="text-red-500 hover:text-red-700 disabled:opacity-30 inline-flex"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      ),
+    },
+  ]
 
-              <div className="divide-y divide-gray-100">
-                {list.map(a => (
-                  <div key={a.id} className="flex items-center justify-between px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-700">
-                        {a.employee?.name?.[0] ?? '?'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">
-                          {a.employee?.name ?? a.employee_id}
-                        </p>
-                        {a.due_date && <p className="text-xs text-gray-400">期限: {a.due_date}</p>}
+  if (assignments.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col items-center py-10 text-gray-400">
+          <Users className="w-10 h-10 mb-3" />
+          <p className="text-sm text-gray-600">まだ受講割り当てがありません</p>
+          <p className="text-xs mt-2 text-center text-gray-500 max-w-md">
+            下のコース一覧から選び、受講者を指定してください。
+            <br />
+            ステータスが「下書き」でも割り当ては可能ですが、受講開始前に
+            <Link href="/adm/el-courses" className="text-[#FD7601] hover:underline mx-0.5">
+              コース管理
+            </Link>
+            で「公開中」にすると運用しやすくなります。
+          </p>
+        </div>
+
+        {tenantCourses.length === 0 ? (
+          <div className="text-center text-sm text-gray-500">
+            自社コースがありません。
+            <Link href="/adm/el-courses" className="text-[#FD7601] hover:underline ml-1">
+              コースを作成
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#e2e6ec] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-[#f6f8fa] border-b border-[#e2e6ec]">
+              <h2 className="text-sm font-semibold text-gray-800">コースを選んで割り当て</h2>
+            </div>
+            <ul className="divide-y divide-[#e2e6ec]">
+              {tenantCourses.map(course => {
+                const disabled = course.status === 'archived'
+                return (
+                  <li
+                    key={course.id}
+                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f6f8fa] transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span className="text-xs text-gray-500">{course.category}</span>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemove(a.id)}
-                      disabled={isPending}
-                      className="text-red-400 hover:text-red-600 disabled:opacity-30"
+                      type="button"
+                      onClick={() => !disabled && openAssign(course.id)}
+                      disabled={disabled}
+                      className="flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40 disabled:pointer-events-none"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
+                      割り当て
                     </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => openAssign(tenantCourses[0]?.id || '')}
+          disabled={tenantCourses.length === 0}
+          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40"
+        >
+          <Plus className="w-4 h-4" />
+          新規割り当て
+        </button>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={assignments}
+        searchable
+        searchPlaceholder="ユーザー名で検索..."
+        searchKey="employee_id"
+        selectable
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
+        getRowId={item => item.id}
+      />
+
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-[#FD7601] bg-opacity-10 border border-[#FD7601] rounded-lg">
+          <p className="text-sm font-medium text-[#FD7601]">{selectedIds.size} 件を選択</p>
+          <button
+            onClick={handleBulkDelete}
+            disabled={isPending}
+            className="ml-auto px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg disabled:opacity-50"
+          >
+            選択項目を削除
+          </button>
+        </div>
       )}
 
       {showModal && selectedCourseId && (

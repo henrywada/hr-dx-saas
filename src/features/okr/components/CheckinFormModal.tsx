@@ -113,7 +113,7 @@ export function CheckinFormModal({
                   value={currentValue}
                   onChange={e => setCurrentValue(e.target.value)}
                   placeholder="0"
-                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
                 />
                 {unit && <span className="text-sm text-gray-500 flex-shrink-0">{unit}</span>}
               </div>
@@ -130,7 +130,7 @@ export function CheckinFormModal({
               onChange={e => setComment(e.target.value)}
               rows={3}
               placeholder="進捗状況・課題・次のアクションを記入"
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
             />
           </div>
 
@@ -141,7 +141,7 @@ export function CheckinFormModal({
               type="date"
               value={checkinDate}
               onChange={e => setCheckinDate(e.target.value)}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
 

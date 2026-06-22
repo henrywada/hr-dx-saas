@@ -122,7 +122,7 @@ export function ConsultationForm({ history }: ConsultationFormProps) {
                       c.status === 'resolved'
                         ? 'bg-green-100 text-green-600'
                         : c.status === 'replied'
-                          ? 'bg-blue-100 text-blue-600'
+                          ? 'bg-[#FD7601]-10 text-[#FD7601]'
                           : 'bg-yellow-100 text-yellow-600'
                     }`}
                   >
@@ -135,8 +135,8 @@ export function ConsultationForm({ history }: ConsultationFormProps) {
                 </div>
                 {c.message && <p className="text-sm text-gray-700 mb-1">{c.message}</p>}
                 {c.manager_reply && (
-                  <div className="bg-blue-50 rounded p-2 mt-1">
-                    <p className="text-xs text-blue-600 font-semibold mb-0.5">上司の返答</p>
+                  <div className="bg-[#f6f8fa] rounded p-2 mt-1">
+                    <p className="text-xs text-[#FD7601] font-semibold mb-0.5">上司の返答</p>
                     <p className="text-xs text-gray-700">{c.manager_reply}</p>
                   </div>
                 )}

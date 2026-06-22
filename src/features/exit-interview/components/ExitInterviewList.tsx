@@ -35,7 +35,7 @@ export function ExitInterviewList({ records, employees }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-700">面談記録一覧</h2>
+        <h2 className="text-sm font-semibold text-[#24292f]">面談記録一覧</h2>
         <button
           onClick={() => setShowForm(true)}
           className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary/90"
@@ -47,19 +47,19 @@ export function ExitInterviewList({ records, employees }: Props) {
       {deleteError && <p className="text-red-500 text-sm">{deleteError}</p>}
 
       {records.length === 0 && (
-        <p className="text-sm text-slate-400 py-8 text-center">記録がありません</p>
+        <p className="text-sm text-[#57606a] py-8 text-center">記録がありません</p>
       )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left">
-              <th className="py-2 pr-3 font-medium text-slate-600 whitespace-nowrap">退職日</th>
-              <th className="py-2 pr-3 font-medium text-slate-600">退職者</th>
-              <th className="py-2 pr-3 font-medium text-slate-600">部署</th>
-              <th className="py-2 pr-3 font-medium text-slate-600 whitespace-nowrap">在籍期間</th>
-              <th className="py-2 pr-3 font-medium text-slate-600 whitespace-nowrap">主な理由</th>
-              <th className="py-2 font-medium text-slate-600"></th>
+            <tr className="border-b border-[#e2e6ec] text-left">
+              <th className="py-2 pr-3 font-medium text-[#57606a] whitespace-nowrap">退職日</th>
+              <th className="py-2 pr-3 font-medium text-[#57606a]">退職者</th>
+              <th className="py-2 pr-3 font-medium text-[#57606a]">部署</th>
+              <th className="py-2 pr-3 font-medium text-[#57606a] whitespace-nowrap">在籍期間</th>
+              <th className="py-2 pr-3 font-medium text-[#57606a] whitespace-nowrap">主な理由</th>
+              <th className="py-2 font-medium text-[#57606a]"></th>
             </tr>
           </thead>
           <tbody>
@@ -71,11 +71,11 @@ export function ExitInterviewList({ records, employees }: Props) {
                   ? `${tenureYears}年${tenureRem > 0 ? `${tenureRem}ヶ月` : ''}`
                   : `${r.tenure_months}ヶ月`
               return (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-2 pr-3 text-slate-700 whitespace-nowrap">{r.exit_date}</td>
-                  <td className="py-2 pr-3 font-medium text-slate-800">{r.employee_name}</td>
-                  <td className="py-2 pr-3 text-slate-600">{r.department_name ?? '—'}</td>
-                  <td className="py-2 pr-3 text-slate-600 whitespace-nowrap">{tenureLabel}</td>
+                <tr key={r.id} className="border-b border-[#e2e6ec] hover:bg-[#f6f8fa]">
+                  <td className="py-2 pr-3 text-[#24292f] whitespace-nowrap">{r.exit_date}</td>
+                  <td className="py-2 pr-3 font-medium text-[#24292f]">{r.employee_name}</td>
+                  <td className="py-2 pr-3 text-[#57606a]">{r.department_name ?? '—'}</td>
+                  <td className="py-2 pr-3 text-[#57606a] whitespace-nowrap">{tenureLabel}</td>
                   <td className="py-2 pr-3">
                     <span
                       className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
@@ -87,14 +87,14 @@ export function ExitInterviewList({ records, employees }: Props) {
                   <td className="py-2 flex gap-2">
                     <button
                       onClick={() => setEditing(r)}
-                      className="text-xs text-slate-500 hover:text-primary"
+                      className="text-xs text-[#57606a] hover:text-primary"
                     >
                       編集
                     </button>
                     <button
                       onClick={() => handleDelete(r.id, r.employee_name)}
                       disabled={isPending}
-                      className="text-xs text-slate-400 hover:text-red-500"
+                      className="text-xs text-[#57606a] hover:text-red-500"
                     >
                       削除
                     </button>

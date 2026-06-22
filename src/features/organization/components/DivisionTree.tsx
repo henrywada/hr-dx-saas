@@ -102,18 +102,18 @@ function TreeNodeComponent({
     <div className="select-none">
       {/* Division Row */}
       <div
-        className="group flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-blue-50/60 transition-colors cursor-pointer"
+        className="group flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-[#f6f8fa]/60 transition-colors cursor-pointer"
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
       >
         {/* Expand/Collapse */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-0.5 rounded hover:bg-blue-100 transition-colors shrink-0"
+          className="p-0.5 rounded hover:bg-[#FD7601]-10 transition-colors shrink-0"
         >
           {(hasChildren || hasEmployees) ? (
             expanded
-              ? <ChevronDown className="w-4 h-4 text-slate-500" />
-              : <ChevronRight className="w-4 h-4 text-slate-400" />
+              ? <ChevronDown className="w-4 h-4 text-[#57606a]" />
+              : <ChevronRight className="w-4 h-4 text-[#57606a]" />
           ) : (
             <span className="w-4 h-4 inline-block" />
           )}
@@ -121,13 +121,13 @@ function TreeNodeComponent({
 
         {/* Folder Icon */}
         {expanded && (hasChildren || hasEmployees)
-          ? <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
-          : <Folder className="w-4 h-4 text-blue-400 shrink-0" />
+          ? <FolderOpen className="w-4 h-4 text-[#FD7601] shrink-0" />
+          : <Folder className="w-4 h-4 text-[#FD7601] shrink-0" />
         }
 
         {/* 部署名（レイヤー番号） */}
         <span
-          className="text-sm font-medium text-slate-800 truncate flex-1"
+          className="text-sm font-medium text-[#24292f] truncate flex-1"
           onClick={() => setExpanded(!expanded)}
         >
           {node.name || '名前未設定'}
@@ -135,7 +135,7 @@ function TreeNodeComponent({
         </span>
 
         {/* Employee Count Badge */}
-        <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full shrink-0">
+        <span className="inline-flex items-center gap-1 text-xs text-[#57606a] bg-[#f6f8fa] px-1.5 py-0.5 rounded-full shrink-0">
           <Users className="w-3 h-3" />
           {node.totalEmployeeCount}
         </span>
@@ -145,21 +145,21 @@ function TreeNodeComponent({
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDialog('edit', node); }}
             title="編集"
-            className="p-1 rounded hover:bg-blue-100 text-slate-400 hover:text-blue-600 transition-colors"
+            className="p-1 rounded hover:bg-[#FD7601]-10 text-[#57606a] hover:text-[#FD7601] transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDialog('create', undefined, node); }}
             title="子部署を追加"
-            className="p-1 rounded hover:bg-green-100 text-slate-400 hover:text-green-600 transition-colors"
+            className="p-1 rounded hover:bg-green-100 text-[#57606a] hover:text-green-600 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onOpenDialog('delete', node); }}
             title="削除"
-            className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+            className="p-1 rounded hover:bg-red-100 text-[#57606a] hover:text-red-600 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -175,17 +175,17 @@ function TreeNodeComponent({
               {node.employees.map(emp => (
                 <div
                   key={emp.id}
-                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-[#f6f8fa] transition-colors"
                 >
-                  <User className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                  <span className="text-xs text-slate-400 font-mono w-14 shrink-0">
+                  <User className="w-3.5 h-3.5 text-[#57606a] shrink-0" />
+                  <span className="text-xs text-[#57606a] font-mono w-14 shrink-0">
                     {emp.employee_no || '---'}
                   </span>
-                  <span className="text-sm text-slate-600 flex-1 truncate">
+                  <span className="text-sm text-[#57606a] flex-1 truncate">
                     {emp.name || '名前未設定'}
                   </span>
                   {emp.job_title && (
-                    <span className="text-xs text-slate-400 shrink-0 hidden md:inline">
+                    <span className="text-xs text-[#57606a] shrink-0 hidden md:inline">
                       {emp.job_title}
                     </span>
                   )}
@@ -265,12 +265,12 @@ export function DivisionTree({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">部署管理</h1>
-          <p className="text-sm text-slate-500 mt-1">組織構造をツリー形式で管理できます</p>
+          <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">部署管理</h1>
+          <p className="text-sm text-[#57606a] mt-1">組織構造をツリー形式で管理できます</p>
         </div>
         <button
           onClick={() => openDialog('create')}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
           部署を追加
@@ -278,12 +278,12 @@ export function DivisionTree({
       </div>
 
       {/* Tree Card */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-            <FolderOpen className="w-4 h-4 text-blue-500" />
+      <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/50">
+          <div className="flex items-center gap-2 text-sm font-medium text-[#57606a]">
+            <FolderOpen className="w-4 h-4 text-[#FD7601]" />
             組織構造
-            <span className="text-xs text-slate-400 ml-1">
+            <span className="text-xs text-[#57606a] ml-1">
               ({divisions.length}部署 · {employees.length + unassignedEmployees.length}名)
             </span>
           </div>
@@ -291,12 +291,12 @@ export function DivisionTree({
 
         <div className="p-3 min-h-[200px]">
           {tree.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-12 text-[#57606a]">
               <Folder className="w-10 h-10 mb-3" />
               <p className="text-sm">部署が登録されていません</p>
               <button
                 onClick={() => openDialog('create')}
-                className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="mt-3 text-sm text-[#FD7601] hover:text-[#FD7601] font-medium"
               >
                 最初の部署を追加する
               </button>

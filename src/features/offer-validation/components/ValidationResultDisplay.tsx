@@ -20,8 +20,8 @@ export const ValidationResultDisplay: React.FC<Props> = ({ result }) => {
       }
     if (score >= 3.5)
       return {
-        color: 'text-blue-600',
-        bg: 'bg-blue-100',
+        color: 'text-[#FD7601]',
+        bg: 'bg-[#FD7601]-10',
         label: '十分な競争力',
         variant: 'teal' as const,
       }
@@ -47,7 +47,7 @@ export const ValidationResultDisplay: React.FC<Props> = ({ result }) => {
       <Card className="border-t-4 border-t-indigo-500 shadow-md">
         <div className="pb-3 border-b border-gray-100 mb-4">
           <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800">
-            <TrendingUpIcon className="h-6 w-6 text-indigo-500" />
+            <TrendingUpIcon className="h-6 w-6 text-[#FD7601]" />
             AIによるオファー妥当性評価
           </h3>
         </div>
@@ -68,8 +68,8 @@ export const ValidationResultDisplay: React.FC<Props> = ({ result }) => {
 
           {/* 総評 */}
           <div className="space-y-2">
-            <h4 className="flex items-center gap-2 font-semibold text-indigo-700">
-              <InfoIcon className="h-4 w-4 text-indigo-500" />
+            <h4 className="flex items-center gap-2 font-semibold text-[#FD7601]">
+              <InfoIcon className="h-4 w-4 text-[#FD7601]" />
               総評
             </h4>
             <p className="text-gray-600 text-sm">{result.summary}</p>
@@ -94,19 +94,19 @@ export const ValidationResultDisplay: React.FC<Props> = ({ result }) => {
                           href={site.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-semibold text-indigo-700 hover:text-indigo-500 hover:underline transition-colors"
+                          className="font-semibold text-[#FD7601] hover:text-[#FD7601] hover:underline transition-colors"
                         >
                           {site.name}
                         </a>
                       ) : (
-                        <span className="font-semibold text-indigo-700">{site.name}</span>
+                        <span className="font-semibold text-[#FD7601]">{site.name}</span>
                       )}
                       {site.url && (
                         <a
                           href={site.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-indigo-500 transition-colors"
+                          className="text-gray-400 hover:text-[#FD7601] transition-colors"
                         >
                           <ExternalLinkIcon className="h-4 w-4" />
                         </a>

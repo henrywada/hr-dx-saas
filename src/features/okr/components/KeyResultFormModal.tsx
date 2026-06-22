@@ -110,7 +110,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
               placeholder={
                 krType === 'quantitative' ? '例: 新規契約件数 50件' : '例: 全顧客にヒアリング完了'
               }
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               required
             />
           </div>
@@ -124,7 +124,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
                   type="number"
                   value={startValue}
                   onChange={e => setStartValue(e.target.value)}
-                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -134,7 +134,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
                   value={targetValue}
                   onChange={e => setTargetValue(e.target.value)}
                   placeholder="50"
-                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -144,7 +144,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
                   value={unit}
                   onChange={e => setUnit(e.target.value)}
                   placeholder="件"
-                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
                 />
               </div>
             </div>
@@ -160,7 +160,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
                 onChange={e => setWeight(e.target.value)}
                 min={0}
                 max={100}
-                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <div>
@@ -169,7 +169,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
                 type="date"
                 value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
-                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
           </div>
@@ -181,7 +181,7 @@ export function KeyResultFormModal({ open, onClose, objectiveId, editTarget }: P
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
-              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+              className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FD7601] focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
             />
           </div>
 

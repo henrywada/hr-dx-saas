@@ -48,7 +48,7 @@ export function TenantPortalSettingsForm({ initialHrInquiryEmail }: Props) {
   }
 
   const inputClass =
-    'mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+    'mt-1 w-full rounded-lg border border-[#e2e6ec] bg-white px-3 py-2 text-sm text-[#24292f] shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
 
   return (
     <div className="space-y-6">
@@ -65,9 +65,9 @@ export function TenantPortalSettingsForm({ initialHrInquiryEmail }: Props) {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-xl border border-[#e2e6ec] bg-white p-6 shadow-sm space-y-4">
         <div>
-          <label htmlFor="hr_inquiry_email" className="text-sm font-medium text-slate-700">
+          <label htmlFor="hr_inquiry_email" className="text-sm font-medium text-[#24292f]">
             お問合せ先の人事メールアドレス
           </label>
           <input
@@ -82,7 +82,7 @@ export function TenantPortalSettingsForm({ initialHrInquiryEmail }: Props) {
             disabled={saving}
           />
           {fieldError && <p className="mt-1 text-xs text-red-600">{fieldError}</p>}
-          <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+          <p className="mt-2 text-xs text-[#57606a] leading-relaxed">
             従業員がポータル「人事へのお問合せ」の「人事へメール」から送信するときの宛先です。未登録のときはメールタブは利用できません。
           </p>
         </div>

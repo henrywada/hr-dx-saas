@@ -154,7 +154,7 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
     <div className="space-y-6">
       {/* ヘッダー */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center space-x-2 bg-indigo-50 text-indigo-700 px-5 py-2 rounded-full text-sm font-semibold">
+        <div className="inline-flex items-center space-x-2 bg-[#f6f8fa] text-[#FD7601] px-5 py-2 rounded-full text-sm font-semibold">
           <BarChart3 size={16} />
           <span>ストレスチェック結果</span>
         </div>
@@ -262,14 +262,14 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
           {/* ストレッサー */}
           {stressorMsgs.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-bold text-blue-700 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#FD7601] flex items-center gap-2">
                 <Brain className="h-4 w-4" />
                 ストレスの原因（ストレッサー）
               </h3>
               <ul className="space-y-1.5 ml-6">
                 {stressorMsgs.map((msg, i) => (
                   <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                    <span className="text-blue-400 mt-1.5">•</span>
+                    <span className="text-[#FD7601] mt-1.5">•</span>
                     <span>{msg}</span>
                   </li>
                 ))}

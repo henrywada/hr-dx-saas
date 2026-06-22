@@ -27,7 +27,7 @@ export function SlideProgressBar({ total, current, completedIds, slideIds }: Pro
             <div
               key={id}
               className={`h-2 flex-1 rounded-full transition-colors ${
-                isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-200'
+                isCompleted ? 'bg-green-500' : isCurrent ? 'bg-[#f6f8fa]0' : 'bg-gray-200'
               }`}
             />
           )

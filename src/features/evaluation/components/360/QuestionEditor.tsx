@@ -66,7 +66,7 @@ export function QuestionEditor({ campaignId, initialQuestions, disabled }: Props
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">評価設問一覧</h3>
+        <h3 className="text-sm font-semibold text-[#24292f]">評価設問一覧</h3>
         {!disabled && (
           <button
             onClick={addQuestion}
@@ -78,16 +78,16 @@ export function QuestionEditor({ campaignId, initialQuestions, disabled }: Props
       </div>
 
       {questions.length === 0 && (
-        <p className="text-sm text-slate-400 py-4 text-center">設問がありません</p>
+        <p className="text-sm text-[#57606a] py-4 text-center">設問がありません</p>
       )}
 
       <div className="space-y-2">
         {questions.map((q, i) => (
           <div
             key={i}
-            className="flex gap-2 items-start border border-slate-200 rounded-lg p-3 bg-slate-50"
+            className="flex gap-2 items-start border border-[#e2e6ec] rounded-lg p-3 bg-[#f6f8fa]"
           >
-            <span className="text-xs text-slate-400 mt-2 w-5 shrink-0">{i + 1}</span>
+            <span className="text-xs text-[#57606a] mt-2 w-5 shrink-0">{i + 1}</span>
             <div className="flex-1 space-y-2">
               <input
                 type="text"
@@ -95,13 +95,13 @@ export function QuestionEditor({ campaignId, initialQuestions, disabled }: Props
                 onChange={e => updateQuestion(i, 'question_text', e.target.value)}
                 disabled={disabled}
                 placeholder="評価設問を入力"
-                className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:bg-white disabled:text-slate-500"
+                className="w-full border border-[#e2e6ec] rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:bg-white disabled:text-[#57606a]"
               />
               <select
                 value={q.category}
                 onChange={e => updateQuestion(i, 'category', e.target.value)}
                 disabled={disabled}
-                className="border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none disabled:bg-white"
+                className="border border-[#e2e6ec] rounded px-2 py-1 text-xs focus:outline-none disabled:bg-white"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{QUESTION_CATEGORY_LABELS[c]}</option>
@@ -111,7 +111,7 @@ export function QuestionEditor({ campaignId, initialQuestions, disabled }: Props
             {!disabled && (
               <button
                 onClick={() => removeQuestion(i)}
-                className="text-slate-400 hover:text-red-500 text-xs mt-1"
+                className="text-[#57606a] hover:text-red-500 text-xs mt-1"
               >
                 削除
               </button>

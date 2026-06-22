@@ -132,7 +132,7 @@ export default function TenantServiceTab({
           id="tenant-select"
           value={selectedTenantId}
           onChange={(e) => setSelectedTenantId(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-gray-50"
+          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-sm rounded-md bg-gray-50"
         >
           {tenants.map(t => (
             <option key={t.id} value={t.id}>{t.name}</option>
@@ -174,7 +174,7 @@ export default function TenantServiceTab({
                         checked={allRowsEnabled}
                         onChange={handleBulkToggle}
                         disabled={loading || displayServices.length === 0}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="h-4 w-4 rounded border-gray-300 text-[#FD7601] focus:ring-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="表示中のサービスをすべて有効または無効にする"
                       />
                       <span className="text-[11px] font-medium text-gray-600">すべて</span>
@@ -192,7 +192,7 @@ export default function TenantServiceTab({
                       {rowIndex + 1}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                      <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-[#f6f8fa] text-[#FD7601] border border-[#e2e6ec]">
                         {service.target_audience ?? 'all_users'}
                       </span>
                     </td>
@@ -213,8 +213,8 @@ export default function TenantServiceTab({
                         disabled={loading}
                         className={`
                           relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
-                          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                          ${enabled ? 'bg-blue-600' : 'bg-gray-200'}
+                          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-2
+                          ${enabled ? 'bg-[#FD7601]' : 'bg-gray-200'}
                           ${loading ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
                         role="switch"
@@ -229,7 +229,7 @@ export default function TenantServiceTab({
                           `}
                         >
                           {enabled && (
-                            <Check className="absolute inset-0 h-full w-full text-blue-600 p-1" />
+                            <Check className="absolute inset-0 h-full w-full text-[#FD7601] p-1" />
                           )}
                         </span>
                       </button>

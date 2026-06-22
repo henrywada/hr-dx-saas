@@ -87,19 +87,19 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
           placeholder="表示順 (任意)"
           value={newSortOrder}
           onChange={(e) => setNewSortOrder(e.target.value)}
-          className="border px-3 py-2 rounded w-32 sm:w-40 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="border px-3 py-2 rounded w-32 sm:w-40 focus:ring-2 focus:ring-[#FD7601] outline-none"
         />
         <input
           type="text"
           placeholder="新しいカテゴリ名を入力"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          className="border px-3 py-2 rounded flex-1 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="border px-3 py-2 rounded flex-1 focus:ring-2 focus:ring-[#FD7601] outline-none"
         />
         <button
           onClick={handleCreate}
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
+          className="bg-[#FD7601] text-white px-6 py-2 rounded hover:bg-[#FD7601] disabled:opacity-50 font-medium"
         >
           {loading ? '登録中...' : '新規登録'}
         </button>
@@ -124,7 +124,7 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
                   {editingId === cat.id ? (
                     <input
                       type="number"
-                      className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="border p-2 w-full rounded focus:ring-2 focus:ring-[#FD7601] outline-none"
                       value={editData[cat.id]?.sort_order ?? ''}
                       onChange={(e) =>
                         setEditData({
@@ -140,7 +140,7 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
                 <td className="px-6 py-4">
                   {editingId === cat.id ? (
                     <input
-                      className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="border p-2 w-full rounded focus:ring-2 focus:ring-[#FD7601] outline-none"
                       value={editData[cat.id]?.name || ''}
                       onChange={(e) =>
                         setEditData({
@@ -157,7 +157,7 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
                   <div className="flex justify-center gap-4">
                     {editingId === cat.id ? (
                       <>
-                        <button onClick={() => handleSave(cat.id)} className="text-blue-600 font-bold hover:underline">保存</button>
+                        <button onClick={() => handleSave(cat.id)} className="text-[#FD7601] font-bold hover:underline">保存</button>
                         <button onClick={() => setEditingId(null)} className="text-gray-500 hover:underline">取消</button>
                       </>
                     ) : (
@@ -167,7 +167,7 @@ export default function ServiceCategoryTab({ initialCategories }: Props) {
                             setEditingId(cat.id);
                             setEditData({ [cat.id]: cat });
                           }}
-                          className="text-blue-500 hover:text-blue-700 text-xl"
+                          className="text-[#FD7601] hover:text-[#FD7601] text-xl"
                           title="編集"
                         >
                           ✏️

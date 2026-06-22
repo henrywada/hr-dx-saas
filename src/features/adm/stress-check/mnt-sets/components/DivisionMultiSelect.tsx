@@ -65,11 +65,11 @@ export function DivisionMultiSelect({
     return (
       <div key={div.id}>
         <label
-          className={`flex items-center gap-2 py-1 rounded cursor-pointer hover:bg-slate-50 transition-colors ${implicitlyCovered ? 'opacity-50' : ''}`}
+          className={`flex items-center gap-2 py-1 rounded cursor-pointer hover:bg-[#f6f8fa] transition-colors ${implicitlyCovered ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
         >
           {children.length > 0 ? (
-            <ChevronRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
+            <ChevronRight className="w-3 h-3 text-[#57606a] flex-shrink-0" />
           ) : (
             <span className="w-3 flex-shrink-0" />
           )}
@@ -78,15 +78,15 @@ export function DivisionMultiSelect({
             checked={isSelected}
             disabled={implicitlyCovered}
             onChange={() => toggle(div.id)}
-            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+            className="rounded border-[#e2e6ec] text-[#FD7601] focus:ring-[#FD7601] flex-shrink-0"
           />
           <span
-            className={`text-sm ${implicitlyCovered ? 'text-slate-400 italic' : 'text-slate-700'}`}
+            className={`text-sm ${implicitlyCovered ? 'text-[#57606a] italic' : 'text-[#24292f]'}`}
           >
             {div.name ?? '名前未設定'}
-            {div.code && <span className="text-xs text-slate-400 ml-1">({div.code})</span>}
+            {div.code && <span className="text-xs text-[#57606a] ml-1">({div.code})</span>}
           </span>
-          {implicitlyCovered && <span className="text-xs text-slate-400">親が選択済み</span>}
+          {implicitlyCovered && <span className="text-xs text-[#57606a]">親が選択済み</span>}
         </label>
         {children.map(child => renderNode(child, depth + 1))}
       </div>
@@ -96,16 +96,16 @@ export function DivisionMultiSelect({
   const roots = childrenMap.get(null) ?? []
 
   if (roots.length === 0) {
-    return <p className="text-sm text-slate-400 py-2">部署情報がありません</p>
+    return <p className="text-sm text-[#57606a] py-2">部署情報がありません</p>
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white">
+    <div className="border border-[#e2e6ec] rounded-lg bg-white">
       <div className="max-h-56 overflow-y-auto px-1 py-1">
         {roots.map(root => renderNode(root, 0))}
       </div>
       {selectedIds.length > 0 && (
-        <div className="border-t border-slate-100 px-3 py-2 bg-blue-50 text-xs text-blue-700 rounded-b-lg">
+        <div className="border-t border-[#e2e6ec] px-3 py-2 bg-[#f6f8fa] text-xs text-[#FD7601] rounded-b-lg">
           {selectedIds.length} 件の部署を選択中 — 配下の部署も自動的に対象になります
         </div>
       )}

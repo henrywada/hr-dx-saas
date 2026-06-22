@@ -43,7 +43,7 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
         <p className="text-sm text-gray-500">重要ポジションがまだ登録されていません。</p>
         <button
           onClick={onAddPosition}
-          className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className="mt-4 rounded-lg bg-[#FD7601] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#FD7601]"
         >
           + ポジションを追加
         </button>
@@ -159,7 +159,7 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
 
               <button
                 onClick={() => setAddingCandidateTo(position)}
-                className="rounded-lg border border-dashed border-blue-300 px-3 py-1.5 text-xs text-blue-600 transition-colors hover:bg-blue-50"
+                className="rounded-lg border border-dashed border-[#e2e6ec] px-3 py-1.5 text-xs text-[#FD7601] transition-colors hover:bg-[#f6f8fa]"
               >
                 + 候補者を追加
               </button>

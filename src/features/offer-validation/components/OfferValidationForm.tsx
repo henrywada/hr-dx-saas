@@ -39,7 +39,7 @@ export const OfferValidationForm = () => {
       <Card className="shadow-sm border border-gray-100 p-0 overflow-hidden">
         <div className="bg-linear-to-r from-blue-50 to-indigo-50 border-b border-gray-100 p-6">
           <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2 m-0">
-            <SearchIcon className="h-6 w-6 text-indigo-600" />
+            <SearchIcon className="h-6 w-6 text-[#FD7601]" />
             オファー条件を入力
           </h3>
           <p className="text-gray-600 mt-2">
@@ -85,13 +85,13 @@ export const OfferValidationForm = () => {
                       required
                       min={0}
                       placeholder="例: 800"
-                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md sm:text-sm border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md sm:text-sm border border-gray-300 focus:ring-indigo-500 focus:border-[#FD7601]"
                       disabled={isPending}
                     />
                     <select
                       id="salaryUnit"
                       name="salaryUnit"
-                      className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm focus:ring-indigo-500 focus:border-[#FD7601]"
                       disabled={isPending}
                     >
                       <option value="万円">万円（年収/月収）</option>

@@ -41,13 +41,13 @@ export function ReferralPostingCard({
   return (
     <div
       className={`rounded-xl border bg-white p-5 shadow-sm transition-opacity ${
-        posting.is_active ? 'border-slate-200' : 'border-slate-100 opacity-60'
+        posting.is_active ? 'border-[#e2e6ec]' : 'border-[#e2e6ec] opacity-60'
       }`}
     >
       {/* ヘッダー：タイトル + トグル */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-bold text-slate-900 leading-snug">{posting.title}</h3>
+          <h3 className="text-base font-bold text-[#24292f] leading-snug">{posting.title}</h3>
         </div>
         {showToggle && (
           <button
@@ -55,7 +55,7 @@ export function ReferralPostingCard({
             onClick={handleToggleActive}
             disabled={isPending}
             aria-label={posting.is_active ? '募集を停止する' : '募集を再開する'}
-            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-[#57606a] hover:text-[#24292f] disabled:opacity-50 transition-colors"
           >
             {posting.is_active ? (
               <>
@@ -64,7 +64,7 @@ export function ReferralPostingCard({
               </>
             ) : (
               <>
-                <ToggleLeft className="h-5 w-5 text-slate-400" />
+                <ToggleLeft className="h-5 w-5 text-[#57606a]" />
                 <span>停止中</span>
               </>
             )}
@@ -75,13 +75,13 @@ export function ReferralPostingCard({
       {/* バッジ行：部署 / 雇用形態 / 推薦件数 */}
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         {posting.department && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#f6f8fa] px-2.5 py-0.5 text-xs font-medium text-[#57606a]">
             <Briefcase className="h-3 w-3" />
             {posting.department}
           </span>
         )}
         {posting.employment_type && (
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <span className="inline-flex items-center rounded-full bg-[#f6f8fa] px-2.5 py-0.5 text-xs font-medium text-[#FD7601]">
             {EMPLOYMENT_TYPE_LABELS[posting.employment_type]}
           </span>
         )}
@@ -99,13 +99,13 @@ export function ReferralPostingCard({
           ¥{posting.reward_amount.toLocaleString('ja-JP')}
         </p>
         {posting.reward_condition && (
-          <p className="mt-0.5 text-xs text-slate-400">{posting.reward_condition}</p>
+          <p className="mt-0.5 text-xs text-[#57606a]">{posting.reward_condition}</p>
         )}
       </div>
 
       {/* 締切日 */}
       {formattedDeadline && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+        <div className="mt-2 flex items-center gap-1 text-xs text-[#57606a]">
           <Clock className="h-3.5 w-3.5" />
           <span>締切: {formattedDeadline}</span>
         </div>
@@ -113,16 +113,16 @@ export function ReferralPostingCard({
 
       {/* 概要 */}
       {posting.description && (
-        <p className="mt-3 text-sm text-slate-600 line-clamp-2">{posting.description}</p>
+        <p className="mt-3 text-sm text-[#57606a] line-clamp-2">{posting.description}</p>
       )}
 
       {/* 推薦ボタン（従業員ビューのみ） */}
       {onNominate && (
-        <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="mt-4 pt-4 border-t border-[#e2e6ec]">
           <button
             type="button"
             onClick={() => onNominate(posting.id)}
-            className="w-full rounded-lg bg-[#0055ff] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            className="w-full rounded-lg bg-[#0055ff] px-4 py-2 text-sm font-semibold text-white hover:bg-[#FD7601] transition-colors"
           >
             この求人で推薦する
           </button>

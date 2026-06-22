@@ -45,24 +45,24 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
   })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">SaaS管理</h1>
+        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">SaaS管理</h1>
       </div>
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card, index) => {
           const Icon = card.icon as React.ElementType
           return (
             <div
               key={index}
-              className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group"
+              className="bg-white rounded-xl border border-[#e2e6ec] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between group"
             >
               {/* 左側：タイトルと数値 */}
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1.5">{card.title}</p>
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{card.value}</h3>
+                <p className="text-xs font-medium text-[#57606a] mb-1.5">{card.title}</p>
+                <h3 className="text-xl font-bold text-[#24292f] tracking-tight">{card.value}</h3>
               </div>
 
               {/* 右側：アイコン */}
@@ -76,11 +76,11 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* チャート */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm min-h-[300px]">
-          <h3 className="font-bold text-lg mb-4 text-slate-800">日次アクティビティ</h3>
-          <div className="h-64 bg-white rounded-lg border border-dashed border-slate-300 p-2">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-[#e2e6ec] p-6 shadow-sm min-h-[300px]">
+          <h3 className="font-bold text-lg mb-4 text-[#24292f]">日次アクティビティ</h3>
+          <div className="h-64 bg-white rounded-lg border border-dashed border-[#e2e6ec] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={activityData}>
                 <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
@@ -94,12 +94,12 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
         </div>
 
         {/* テナント明細テーブル */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-slate-800">テナント明細</h3>
+        <div className="bg-white rounded-xl border border-[#e2e6ec] p-6 shadow-sm">
+          <h3 className="font-bold text-lg mb-4 text-[#24292f]">テナント明細</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-slate-500">
+                <tr className="border-b text-[#57606a]">
                   <th className="text-left py-2 font-medium">テナント名</th>
                   <th className="text-center py-2 font-medium">アクセス数</th>
                   <th className="text-center py-2 font-medium">登録数</th>
@@ -110,14 +110,16 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
                 {tenants.map(t => (
                   <tr
                     key={t.id}
-                    className="border-b last:border-0 hover:bg-slate-50 transition-colors"
+                    className="border-b last:border-0 hover:bg-[#f6f8fa] transition-colors"
                   >
-                    <td className="py-3 font-medium text-slate-700">{t.name}</td>
+                    <td className="py-3 font-medium text-[#24292f]">{t.name}</td>
                     <td className="py-3 text-center text-emerald-600 font-bold">
                       {t.accessCount.toLocaleString()}
                     </td>
-                    <td className="py-3 text-center text-blue-600 font-bold">{t.actual_count}名</td>
-                    <td className="py-3 text-right text-slate-500">
+                    <td className="py-3 text-center text-[#FD7601] font-bold">
+                      {t.actual_count}名
+                    </td>
+                    <td className="py-3 text-right text-[#57606a]">
                       {t.contract_limit != null ? `${t.contract_limit}名` : '無制限'}
                     </td>
                   </tr>

@@ -47,7 +47,7 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">SaaS管理</h1>
+        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">⚙️SaaS管理</h1>
       </div>
 
       {/* 統計カード */}

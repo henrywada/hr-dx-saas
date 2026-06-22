@@ -64,7 +64,7 @@ export default async function QuickAccessCards() {
     const { ids: peerIds, error: peerFetchErr } = await fetchEmployeeIdsInDivision(
       supabase,
       tenantId,
-      user.division_id,
+      user.division_id
     )
     if (!peerFetchErr && peerIds.length > 0) {
       const blockingStatuses = [...MONTHLY_CLOSURE_STATUSES_BLOCKING_OVERTIME_APPROVAL]
@@ -87,7 +87,7 @@ export default async function QuickAccessCards() {
         console.error('QuickAccess overtime_applications pending', pendingErr)
       } else {
         const blockedYearMonthFirstDays = new Set(
-          (closureRows ?? []).map((r) => r.year_month).filter((ym): ym is string => Boolean(ym)),
+          (closureRows ?? []).map(r => r.year_month).filter((ym): ym is string => Boolean(ym))
         )
         let n = 0
         for (const row of pendingRows ?? []) {
@@ -114,6 +114,8 @@ export default async function QuickAccessCards() {
           icon={Clock}
           iconBoxClass="bg-sky-100 text-sky-700"
           titleHoverClass="group-hover:text-sky-600"
+          showExternalLinkIcon={true}
+          hideChevron={true}
         />
       )}
       {showQrAdminCard && (
@@ -124,6 +126,8 @@ export default async function QuickAccessCards() {
           icon={QrCode}
           iconBoxClass="bg-violet-100 text-violet-700"
           titleHoverClass="group-hover:text-violet-600"
+          showExternalLinkIcon={true}
+          hideChevron={true}
         />
       )}
       {user.is_manager === true && (
@@ -135,6 +139,8 @@ export default async function QuickAccessCards() {
           iconBoxClass="bg-orange-50 text-orange-700"
           titleHoverClass="group-hover:text-orange-700"
           badgeLabel={overtimePendingBadgeLabel}
+          showExternalLinkIcon={true}
+          hideChevron={true}
         />
       )}
     </>

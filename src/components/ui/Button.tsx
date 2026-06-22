@@ -37,10 +37,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     'inline-flex items-center justify-center gap-1.5 font-medium rounded-md transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variantStyles = {
-    primary:
-      'bg-primary text-white shadow-sm hover:bg-primary-dark focus-visible:ring-primary/40',
+    primary: 'bg-primary text-white shadow-sm hover:bg-primary-dark focus-visible:ring-primary/40',
     secondary:
-      'bg-accent-teal text-white shadow-sm hover:opacity-90 focus-visible:ring-accent-teal/40',
+      'bg-accent-teal text-slate-900 shadow-sm hover:bg-slate-200 focus-visible:ring-accent-teal/40',
     warning:
       'bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300 focus-visible:ring-red-300',
     outline:

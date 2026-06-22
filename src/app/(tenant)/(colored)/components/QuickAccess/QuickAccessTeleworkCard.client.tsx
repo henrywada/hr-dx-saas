@@ -69,6 +69,8 @@ export function QuickAccessTeleworkCard() {
       icon={Laptop}
       iconBoxClass="bg-indigo-100 text-indigo-700"
       titleHoverClass="group-hover:text-indigo-600"
+      showExternalLinkIcon={true}
+      hideChevron={true}
     />
   )
 }

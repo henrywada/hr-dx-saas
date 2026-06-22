@@ -10,8 +10,8 @@ import {
   TrendingUp,
   LineChart,
   BookOpen,
-  ChevronRight,
   Zap,
+  ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
 import { APP_ROUTES } from '@/config/routes'
@@ -22,7 +22,7 @@ export default function HrDashboardPage() {
       {/* 1. Header Area */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-[#161b22] tracking-tight">
-          💡ダッシュボード
+          💡管理ダッシュボード
         </h1>
         <p className="text-sm text-[#57606a] mt-2">
           本日のタスクと採用状況のサマリーを確認できます。
@@ -227,12 +227,14 @@ export default function HrDashboardPage() {
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="flex-1 space-y-1 min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#FD7601] transition-colors">
-                    AI求人・募集文メーカー
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
+                      AI求人・募集文メーカー
+                    </h3>
+                    <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />
+                  </div>
                   <p className="text-xs text-slate-600">新規で求人票やスカウト文を作成する</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#FD7601] shrink-0 mt-0.5 transition-colors" />
               </div>
             </li>
 
@@ -246,12 +248,14 @@ export default function HrDashboardPage() {
                   <LineChart className="w-5 h-5" />
                 </div>
                 <div className="flex-1 space-y-1 min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#FD7601] transition-colors">
-                    採用市場・競合を分析する
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
+                      採用市場・競合を分析する
+                    </h3>
+                    <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />
+                  </div>
                   <p className="text-xs text-slate-600">最新の市況データを確認できます</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#FD7601] shrink-0 mt-0.5 transition-colors" />
               </button>
             </li>
 
@@ -265,12 +269,14 @@ export default function HrDashboardPage() {
                   <Activity className="w-5 h-5" />
                 </div>
                 <div className="flex-1 space-y-1 min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-slate-700 transition-colors">
-                    出勤・退勤データの明細一覧
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
+                      出勤・退勤データの明細一覧
+                    </h3>
+                    <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />
+                  </div>
                   <p className="text-xs text-slate-600">残業・アラート・従業員別一覧（人事）</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-600 shrink-0 mt-0.5 transition-colors" />
               </Link>
             </li>
 
@@ -284,12 +290,14 @@ export default function HrDashboardPage() {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div className="flex-1 space-y-1 min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
-                    マニュアル集
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
+                      マニュアル集
+                    </h3>
+                    <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />
+                  </div>
                   <p className="text-xs text-slate-600">システムの説明・利用方法等を説明</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-600 shrink-0 mt-0.5 transition-colors" />
               </Link>
             </li>
           </ul>

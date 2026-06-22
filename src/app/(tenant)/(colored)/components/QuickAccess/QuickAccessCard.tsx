@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight, ExternalLink, type LucideIcon } from 'lucide-react'
 
 type Props = {
   href: string
@@ -14,6 +14,10 @@ type Props = {
   badgeLabel?: string | null
   /** 指定時は右端を矢印のみではなく「{trailingLabel}」＋矢印にする */
   trailingLabel?: string | null
+  /** 指定時はタイトル後に ExternalLink アイコンを表示（外部リンク表示） */
+  showExternalLinkIcon?: boolean
+  /** 指定時は右側の ChevronRight を非表示 */
+  hideChevron?: boolean
 }
 
 /**
@@ -28,6 +32,8 @@ export function QuickAccessCard({
   titleHoverClass,
   badgeLabel,
   trailingLabel,
+  showExternalLinkIcon = false,
+  hideChevron = false,
 }: Props) {
   return (
     <Link
@@ -41,10 +47,15 @@ export function QuickAccessCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h4
-              className={`text-sm font-semibold text-slate-800 transition-colors m-0 ${titleHoverClass}`}
+              className={`text-sm font-semibold transition-colors m-0 ${
+                showExternalLinkIcon
+                  ? 'text-blue-600! group-hover:text-blue-700!'
+                  : `text-slate-800 ${titleHoverClass}`
+              }`}
             >
               {title}
             </h4>
+            {showExternalLinkIcon && <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />}
             {badgeLabel ? (
               <span
                 className="relative inline-flex shrink-0 items-center rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-red-800/20 before:pointer-events-none before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:border-y-[5px] before:border-r-[6px] before:border-l-0 before:border-solid before:border-y-transparent before:border-r-red-600 before:content-['']"
@@ -57,13 +68,17 @@ export function QuickAccessCard({
           <p className="text-slate-500 text-xs mt-0.5 leading-tight">{subtitle}</p>
         </div>
       </div>
-      {trailingLabel ? (
-        <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-slate-500 group-hover:text-indigo-500 transition-colors whitespace-nowrap">
-          {trailingLabel}
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </span>
-      ) : (
-        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+      {!hideChevron && (
+        <>
+          {trailingLabel ? (
+            <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-slate-500 group-hover:text-indigo-500 transition-colors whitespace-nowrap">
+              {trailingLabel}
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+          )}
+        </>
       )}
     </Link>
   )

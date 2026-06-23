@@ -14,7 +14,7 @@ import type {
   OvertimeApplication,
   OvertimeApplicationSource,
   OvertimeApplicationStatus,
-} from '@/app/(tenant)/(default)/(overtime)/approval/types'
+} from '@/app/(tenant)/(tenant-users)/(overtime)/approval/types'
 import {
   buildEmployeeWarningsMap,
   MONTHLY_WARNING_STATUSES,
@@ -33,7 +33,12 @@ type WtrLite = {
 }
 
 /** URL ステータスフィルタで受け付ける値（「未申請」は一覧生成専用） */
-const FILTERABLE_STATUSES = ['申請中', '承認済', '却下', '修正依頼'] as const satisfies readonly string[]
+const FILTERABLE_STATUSES = [
+  '申請中',
+  '承認済',
+  '却下',
+  '修正依頼',
+] as const satisfies readonly string[]
 
 /** 部署全員モード時の申請取得上限（超えた分は集計・行に含めない） */
 const ALL_DIVISION_APPS_LIMIT = 2000
@@ -44,20 +49,18 @@ function mapWtrSourceToDisplay(source: string | null | undefined): OvertimeAppli
 }
 
 /** supervisor_comment が無い旧データ向けに修正履歴の理由をフォールバック */
-function resolveSupervisorComment(
-  row: {
-    supervisor_comment?: string | null
-    overtime_corrections?:
-      | { correction_reason?: string | null; corrected_at?: string | null }[]
-      | null
-  },
-): string | undefined {
+function resolveSupervisorComment(row: {
+  supervisor_comment?: string | null
+  overtime_corrections?:
+    | { correction_reason?: string | null; corrected_at?: string | null }[]
+    | null
+}): string | undefined {
   const direct = row.supervisor_comment?.trim()
   if (direct) return direct
   const cors = row.overtime_corrections
   if (!Array.isArray(cors) || cors.length === 0) return undefined
   const sorted = [...cors].sort((a, b) =>
-    (b.corrected_at ?? '').localeCompare(a.corrected_at ?? ''),
+    (b.corrected_at ?? '').localeCompare(a.corrected_at ?? '')
   )
   const reason = sorted[0]?.correction_reason?.trim()
   return reason || undefined
@@ -65,7 +68,7 @@ function resolveSupervisorComment(
 
 /** 警告用: employee_id ごとの requested_hours 合計 */
 function sumRequestedHoursByEmployee(
-  rows: { employee_id: string; requested_hours: number | null }[] | null,
+  rows: { employee_id: string; requested_hours: number | null }[] | null
 ): Map<string, number> {
   const m = new Map<string, number>()
   for (const r of rows ?? []) {
@@ -96,7 +99,7 @@ function buildApplicationRow(
   },
   employeeName: string,
   wtr: WtrLite | undefined,
-  employeeNo?: string | null,
+  employeeNo?: string | null
 ): OvertimeApplication {
   return {
     id: row.id,
@@ -105,8 +108,8 @@ function buildApplicationRow(
     employee_name: employeeName,
     employee_no: employeeNo ?? undefined,
     work_date: row.work_date,
-    clock_in: wtr?.start_time ? formatTimeInJSTFromIso(wtr.start_time) ?? undefined : undefined,
-    clock_out: wtr?.end_time ? formatTimeInJSTFromIso(wtr.end_time) ?? undefined : undefined,
+    clock_in: wtr?.start_time ? (formatTimeInJSTFromIso(wtr.start_time) ?? undefined) : undefined,
+    clock_out: wtr?.end_time ? (formatTimeInJSTFromIso(wtr.end_time) ?? undefined) : undefined,
     is_holiday: wtr?.is_holiday === true,
     overtime_start: row.overtime_start,
     overtime_end: row.overtime_end,
@@ -122,7 +125,7 @@ function buildApplicationRow(
 
 export async function handleOvertimeApplicationsList(
   request: Request,
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient<Database>
 ): Promise<NextResponse> {
   const ctx = await getOvertimeListContext(supabase)
   if ('error' in ctx) {
@@ -200,7 +203,7 @@ export async function handleOvertimeApplicationsList(
   const { ids: peerIds, error: peerErr } = await fetchEmployeeIdsInDivision(
     supabase,
     ctx.tenantId,
-    ctx.divisionId,
+    ctx.divisionId
   )
   if (peerErr) {
     return NextResponse.json({ error: peerErr }, { status: 500 })
@@ -219,7 +222,7 @@ export async function handleOvertimeApplicationsList(
   }
 
   const month_closure_blocks_overtime_approval = monthlyClosureBlocksOvertimeApproval(
-    closureForMonth?.status,
+    closureForMonth?.status
   )
 
   if (peerIds.length === 0) {
@@ -247,7 +250,7 @@ export async function handleOvertimeApplicationsList(
   const statuses: OvertimeApplicationStatus[] =
     statusParams.length > 0
       ? (statusParams.filter((s): s is OvertimeApplicationStatus =>
-          (FILTERABLE_STATUSES as readonly string[]).includes(s),
+          (FILTERABLE_STATUSES as readonly string[]).includes(s)
         ) as OvertimeApplicationStatus[])
       : []
 
@@ -419,8 +422,8 @@ export async function handleOvertimeApplicationsList(
     const wtrMap = buildWtrMap(wtrRows)
     const peers = peersRes.peers ?? []
     const allRows = (appsRes.data ?? []) as RowWithEmployee[]
-    const peerById = new Map(peers.map((p) => [p.id, p]))
-    const hasApp = new Set(allRows.map((r) => r.employee_id))
+    const peerById = new Map(peers.map(p => [p.id, p]))
+    const hasApp = new Set(allRows.map(r => r.employee_id))
 
     const merged: OvertimeApplication[] = []
     for (const row of allRows) {
@@ -501,7 +504,7 @@ export async function handleOvertimeApplicationsList(
 
     const wtrMap = buildWtrMap(wtrRows)
     total = count ?? 0
-    items = ((rows ?? []) as RowWithEmployee[]).map((row) => {
+    items = ((rows ?? []) as RowWithEmployee[]).map(row => {
       const emp = row.employee
       const name = emp?.name?.trim() || '（氏名未設定）'
       const empNo = emp?.employee_no?.trim() || null
@@ -532,23 +535,19 @@ export async function handleOvertimeApplicationsList(
     return NextResponse.json({ error: '閾値判定用の集計に失敗しました' }, { status: 500 })
   }
 
-  const thresholds = resolveOvertimeThresholds(
-    overtimeSettingsErr ? null : overtimeSettingsData,
-  )
+  const thresholds = resolveOvertimeThresholds(overtimeSettingsErr ? null : overtimeSettingsData)
   const monthlyByEmployee = sumRequestedHoursByEmployee(monthlyWarnRows)
   const ytdByEmployee = sumRequestedHoursByEmployee(ytdApprovedRows)
   const employeeOvertimeWarnings = buildEmployeeWarningsMap(
     thresholds,
     peerIds,
     monthlyByEmployee,
-    ytdByEmployee,
+    ytdByEmployee
   )
 
-  const pageEmployeeIds = [...new Set(items.map((i) => i.employee_id))]
-  const employeeOvertimeAggs: Record<
-    string,
-    { monthly_requested: number; ytd_approved: number }
-  > = {}
+  const pageEmployeeIds = [...new Set(items.map(i => i.employee_id))]
+  const employeeOvertimeAggs: Record<string, { monthly_requested: number; ytd_approved: number }> =
+    {}
   for (const id of pageEmployeeIds) {
     employeeOvertimeAggs[id] = {
       monthly_requested: Math.round((monthlyByEmployee.get(id) ?? 0) * 100) / 100,
@@ -558,13 +557,13 @@ export async function handleOvertimeApplicationsList(
 
   const monthApprovedHoursTotal = (approvedHourRows ?? []).reduce(
     (acc, r) => acc + Number(r.requested_hours ?? 0),
-    0,
+    0
   )
   const monthApprovedHoursRounded = Math.round(monthApprovedHoursTotal * 100) / 100
 
   const monthUnapprovedHoursTotal = (unapprovedHourRows ?? []).reduce(
     (acc, r) => acc + Number(r.requested_hours ?? 0),
-    0,
+    0
   )
   const monthUnapprovedHoursRounded = Math.round(monthUnapprovedHoursTotal * 100) / 100
 

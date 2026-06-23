@@ -165,25 +165,25 @@ export default function ServiceTab({ initialServices, categories }: Props) {
       : row.service_category_id;
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-3 w-full">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">サービス一覧</h3>
-        <button onClick={handleAddNew} className="px-4 py-2 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold">+ 新規追加</button>
+        <button onClick={handleAddNew} className="px-4 py-1.5 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold">+ 新規追加</button>
       </div>
 
-      <div className="overflow-x-auto border rounded-lg shadow-sm">
+      <div className="overflow-x-auto border rounded-md shadow-xs">
         <table className="min-w-full bg-white border-collapse">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 border-b text-sm font-bold w-16 text-center">No</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-48">カテゴリ</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-20 text-center">順序</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-96">name</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-32">対象(Audience)</th>
-              <th className="px-4 py-3 border-b text-sm font-bold">タイトル</th>
-              <th className="px-4 py-3 border-b text-sm font-bold">ルート</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-24 text-center">ステータス</th>
-              <th className="px-4 py-3 border-b text-sm font-bold w-48 text-center">操作</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-16 text-center">No</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-48">カテゴリ</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-20 text-center">順序</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-96">name</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-32">対象(Audience)</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold">タイトル</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold">ルート</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-24 text-center">ステータス</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-48 text-center">操作</th>
             </tr>
           </thead>
           {services.map((item, index) => {
@@ -203,27 +203,27 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       : 'hover:bg-gray-50'
                   }
                 >
-                  <td className="px-4 py-2 text-center align-middle">{index + 1}</td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-1.5 text-center align-middle">{index + 1}</td>
+                  <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <select value={data.service_category_id || ''} onChange={(e) => handleChange(item.id, 'service_category_id', e.target.value)} className="w-full border p-1 rounded text-sm">
+                      <select value={data.service_category_id || ''} onChange={(e) => handleChange(item.id, 'service_category_id', e.target.value)} className="w-full border p-1 rounded text-xs">
                         {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                       </select>
                     ) : (categories.find(c => c.id === item.service_category_id)?.name || '-')}
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
+                  <td className="px-4 py-1.5 text-center align-middle">
                     {isEditing ? (
                       <input type="number" value={data.sort_order || 0} onChange={(e) => handleChange(item.id, 'sort_order', e.target.value)} className="w-full border p-1 rounded text-center" />
                     ) : item.sort_order}
                   </td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <input type="text" value={data.name || ''} onChange={(e) => handleChange(item.id, 'name', e.target.value)} className="w-full border p-1 rounded text-sm" />
+                      <input type="text" value={data.name || ''} onChange={(e) => handleChange(item.id, 'name', e.target.value)} className="w-full border p-1 rounded text-xs" />
                     ) : item.name}
                   </td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <select value={data.target_audience || 'all_users'} onChange={(e) => handleChange(item.id, 'target_audience', e.target.value)} className="w-full border p-1 rounded text-sm">
+                      <select value={data.target_audience || 'all_users'} onChange={(e) => handleChange(item.id, 'target_audience', e.target.value)} className="w-full border p-1 rounded text-xs">
                         <option value="all_users">all_users</option>
                         <option value="adm">adm</option>
                         <option value="saas_adm">saas_adm</option>
@@ -232,19 +232,19 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{item.target_audience}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 align-middle text-center">
+                  <td className="px-4 py-1.5 align-middle text-center">
                     {isEditing ? (
-                      <input type="text" value={data.title || ''} onChange={(e) => handleChange(item.id, 'title', e.target.value)} className="w-full border p-1 rounded text-sm text-left" />
+                      <input type="text" value={data.title || ''} onChange={(e) => handleChange(item.id, 'title', e.target.value)} className="w-full border p-1 rounded text-xs text-left" />
                     ) : (String(item.title ?? '').trim() ? '●' : '-')}
                   </td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <input type="text" value={data.route_path || ''} onChange={(e) => handleChange(item.id, 'route_path', e.target.value)} className="w-full border p-1 rounded text-sm" />
+                      <input type="text" value={data.route_path || ''} onChange={(e) => handleChange(item.id, 'route_path', e.target.value)} className="w-full border p-1 rounded text-xs" />
                     ) : item.route_path}
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
+                  <td className="px-4 py-1.5 text-center align-middle">
                     {isEditing ? (
-                      <select value={data.release_status || '下書き'} onChange={(e) => handleChange(item.id, 'release_status', e.target.value)} className="border p-1 rounded text-sm">
+                      <select value={data.release_status || '下書き'} onChange={(e) => handleChange(item.id, 'release_status', e.target.value)} className="border p-1 rounded text-xs">
                         <option value="下書き">下書き</option>
                         <option value="公開">公開</option>
                       </select>
@@ -252,12 +252,12 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       <span className={`px-2 py-1 rounded text-[10px] font-bold ${item.release_status === '公開' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.release_status}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
+                  <td className="px-4 py-1.5 text-center align-middle">
                     <div className="flex justify-center gap-3 items-center">
                       {isEditing ? (
                         <>
-                          <button onClick={() => handleSave(item.id)} disabled={loading} className="text-[#FD7601] font-bold hover:underline text-sm">{loading ? '...' : '保存'}</button>
-                          <button onClick={() => {setEditingId(null);}} className="text-gray-500 hover:underline text-sm">取消</button>
+                          <button onClick={() => handleSave(item.id)} disabled={loading} className="text-[#FD7601] font-bold hover:underline text-xs">{loading ? '...' : '保存'}</button>
+                          <button onClick={() => {setEditingId(null);}} className="text-gray-500 hover:underline text-xs">取消</button>
                         </>
                       ) : (
                         <>
@@ -277,9 +277,9 @@ export default function ServiceTab({ initialServices, categories }: Props) {
 
       {/* 詳細変更モーダル */}
       {modalServiceId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-1.5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900">
                 『{services.find(s => s.id === modalServiceId)?.name}』の詳細変更
               </h3>
@@ -293,7 +293,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
             
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   タイトル
                 </label>
                 <input
@@ -301,19 +301,19 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                   value={modalTitle}
                   onChange={(e) => setModalTitle(e.target.value)}
                   placeholder="ユーザーに表示されるサービスのキャッチフレーズ..."
-                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
+                  className="w-full border border-gray-300 rounded-md p-2.5 text-xs focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   説明 (description)
                 </label>
                 <textarea
                   value={modalDescription}
                   onChange={(e) => setModalDescription(e.target.value)}
                   placeholder="サービスの詳しい機能や目的を入力..."
-                  className="w-full border border-gray-300 rounded-lg p-3 min-h-[160px] text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none resize-y"
+                  className="w-full border border-gray-300 rounded-md p-3 min-h-[160px] text-xs focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none resize-y"
                 />
               </div>
 
@@ -321,7 +321,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                 <button
                   onClick={handleAiAdvice}
                   disabled={isAiLoading || loading}
-                  className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-sm rounded-lg hover:opacity-90 transition-opacity shadow-sm ${
+                  className={`flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-xs rounded-md hover:opacity-90 transition-opacity shadow-xs ${
                     isAiLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
@@ -331,18 +331,18 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+            <div className="px-6 py-1.5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
               <button
                 onClick={() => setModalServiceId(null)}
                 disabled={loading || isAiLoading}
-                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
+                className="px-5 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSaveModal}
                 disabled={loading || isAiLoading}
-                className="px-5 py-2 text-sm font-bold text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-1 disabled:opacity-50 min-w-[100px]"
+                className="px-5 py-1.5 text-xs font-bold text-white bg-[#FD7601] rounded-md hover:bg-[#FD7601] focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-1 disabled:opacity-50 min-w-[100px]"
               >
                 {loading ? '保存中...' : '保存して閉じる'}
               </button>

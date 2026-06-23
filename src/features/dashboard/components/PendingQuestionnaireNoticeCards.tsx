@@ -23,13 +23,13 @@ export function PendingQuestionnaireNoticeCards({ pending }: Props) {
         <li key={q.assignment_id} className="group hover:bg-[#f6f8fa]/80 transition-colors">
           <Link
             href={`${APP_ROUTES.TENANT.SURVEY_ANSWERS}?id=${encodeURIComponent(q.assignment_id)}`}
-            className="flex items-start gap-4 p-5 sm:px-6 outline-none focus:bg-[#f6f8fa]"
+            className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-[#f6f8fa]"
           >
-            <div className="p-2 bg-sky-100 text-sky-700 rounded-lg shrink-0 mt-0.5">
-              <ClipboardList className="w-4 h-4" />
+            <div className="p-1.5 bg-sky-100 text-sky-700 rounded-md shrink-0 mt-0.5">
+              <ClipboardList className="w-3.5 h-3.5" />
             </div>
-            <div className="flex-1 min-w-0 space-y-1">
-              <p className="text-sm font-semibold text-[#24292f] group-hover:text-sky-700 transition-colors">
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <p className="text-xs font-semibold text-[#24292f] group-hover:text-sky-700 transition-colors">
                 {q.title}
               </p>
               {periodSubtitle(q.period_start_date, q.period_end_date) && (
@@ -43,9 +43,9 @@ export function PendingQuestionnaireNoticeCards({ pending }: Props) {
                 </p>
               )}
             </div>
-            <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-[#57606a] group-hover:text-sky-600 transition-colors mt-0.5">
+            <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#57606a] group-hover:text-sky-600 transition-colors mt-0.5">
               回答する
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </span>
           </Link>
         </li>

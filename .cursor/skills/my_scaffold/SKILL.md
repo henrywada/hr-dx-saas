@@ -73,8 +73,8 @@ export async function create<Domain>(input: Create<Domain>Input) {
 
 | 対象ユーザー | 配置先 |
 |------------|--------|
-| `employee` | `src/app/(tenant)/(default)/<ドメイン>/` |
-| `admin` | `src/app/(tenant)/(colored)/adm/<ドメイン>/` |
+| `employee` | `src/app/(tenant)/(tenant-users)/<ドメイン>/` |
+| `admin` | `src/app/(tenant)/(tenant-admin)/adm/<ドメイン>/` |
 | `saas` | `src/app/(saas-admin)/saas_adm/<ドメイン>/` |
 
 **page.tsx**

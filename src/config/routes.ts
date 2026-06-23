@@ -25,7 +25,7 @@ export const APP_ROUTES = {
     ADMIN_CSV_ATENDANCE: '/adm/csv_atendance',
     /** 残業閾値設定（ルートグループ (qr_atendance)、URL は /adm/overtime-settings） */
     ADMIN_OVERTIME_SETTINGS: '/adm/overtime-settings',
-    /** テレワーク端末登録申請（(default) ポータル、URL は /device-pairing） */
+    /** テレワーク端末登録申請（(tenant-users) ポータル、URL は /device-pairing） */
     PORTAL_DEVICE_PAIRING: '/device-pairing',
     /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
     ADMIN_APPROVE_PC: '/adm/approve_pc',
@@ -35,7 +35,7 @@ export const APP_ROUTES = {
     ADMIN_ATTENDANCE_DASHBOARD: '/adm/attendance/dashboard',
     /** 勤務状況分析（残業集計・リスク・乖離） */
 
-    /** 残業申請の承認（上長・同一部署）— (default)/(overtime) */
+    /** 残業申請の承認（上長・同一部署）— (tenant-users)/(overtime) */
     OVERTIME_APPROVAL: '/approval',
     /** 管理：人事ナレッジ（文書取り込み） */
     ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',

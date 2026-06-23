@@ -38,16 +38,16 @@ export function QuickAccessCard({
   return (
     <Link
       href={href}
-      className="w-full text-left px-6 py-2 flex items-center justify-between gap-4 group hover:bg-slate-50/80 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 -mx-6 border-b border-slate-200 last:border-b-0"
+      className="w-full text-left px-5 py-1.5 flex items-center justify-between gap-3 group hover:bg-slate-50/80 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 -mx-5 border-b border-slate-200 last:border-b-0"
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className={`p-2 rounded-lg shrink-0 ${iconBoxClass}`}>
-          <Icon className="w-5 h-5" />
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className={`p-1.5 rounded-md shrink-0 ${iconBoxClass}`}>
+          <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <h4
-              className={`text-sm font-semibold transition-colors m-0 ${
+              className={`text-xs font-semibold transition-colors m-0 ${
                 showExternalLinkIcon
                   ? 'text-blue-600! group-hover:text-blue-700!'
                   : `text-slate-800 ${titleHoverClass}`
@@ -55,10 +55,12 @@ export function QuickAccessCard({
             >
               {title}
             </h4>
-            {showExternalLinkIcon && <ExternalLink className="w-4 h-4 text-blue-600 shrink-0" />}
+            {showExternalLinkIcon && (
+              <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            )}
             {badgeLabel ? (
               <span
-                className="relative inline-flex shrink-0 items-center rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-red-800/20 before:pointer-events-none before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:border-y-[5px] before:border-r-[6px] before:border-l-0 before:border-solid before:border-y-transparent before:border-r-red-600 before:content-['']"
+                className="relative inline-flex shrink-0 items-center rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-red-800/20 before:pointer-events-none before:absolute before:-left-1 before:top-1/2 before:-translate-y-1/2 before:border-y-4 before:border-r-[5px] before:border-l-0 before:border-solid before:border-y-transparent before:border-r-red-600 before:content-['']"
                 aria-label={`承認待ち: ${badgeLabel}`}
               >
                 {badgeLabel}
@@ -76,7 +78,7 @@ export function QuickAccessCard({
               <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </span>
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
           )}
         </>
       )}

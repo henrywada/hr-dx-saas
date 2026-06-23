@@ -94,8 +94,8 @@ hr-dx-saas/
 │   ├── app/
 │   │   ├── (auth)/              # 未認証ユーザー向け
 │   │   ├── (tenant)/
-│   │   │   ├── (default)/       # 一般従業員向け
-│   │   │   └── (colored)/adm/   # テナント管理者向け
+│   │   │   ├── (tenant-users)/  # 一般従業員向け
+│   │   │   └── (tenant-admin)/adm/ # テナント管理者向け
 │   │   ├── (saas-admin)/        # SaaS 運営者向け
 │   │   └── p/                   # パブリックページ
 │   ├── features/                # 機能ドメイン（実装の集約先）

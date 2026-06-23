@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@/config/routes'
 import DeviceRegistrationForm from './components/DeviceRegistrationForm'
 
 /**
- * テレワーク用 PC の登録申請（/device-pairing、(default) ポータルレイアウト）
+ * テレワーク用 PC の登録申請（/device-pairing、(tenant-users) ポータルレイアウト）
  */
 export default async function DevicePairingPage() {
   const user = await getServerUser()
@@ -15,9 +15,7 @@ export default async function DevicePairingPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          テレワーク端末ペアリング
-        </h1>
+        <h1 className="text-2xl font-bold text-slate-900">テレワーク端末ペアリング</h1>
         <p className="text-sm text-slate-500 mt-1">
           社用PCの登録申請を行います。申請後は人事が承認するとテレワーク打刻用の端末認証が有効になります。
         </p>

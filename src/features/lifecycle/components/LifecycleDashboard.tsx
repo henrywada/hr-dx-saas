@@ -1,6 +1,6 @@
 'use client'
 
-// page.tsx (src/app/(tenant)/(colored)/adm/(lifecycle)/lifecycle/page.tsx) から import される
+// page.tsx (src/app/(tenant)/(tenant-admin)/adm/(lifecycle)/lifecycle/page.tsx) から import される
 
 import { useState } from 'react'
 import type { LifecycleDashboardData, InstanceRow } from '../types'

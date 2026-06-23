@@ -119,9 +119,9 @@ export default function TenantServiceTab({
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
       {/* テナント選択 */}
-      <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm max-w-2xl">
+      <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
         <div className="mb-4">
           <h2 className="text-lg font-medium text-gray-900">テナント×サービス管理</h2>
         </div>
@@ -132,7 +132,7 @@ export default function TenantServiceTab({
           id="tenant-select"
           value={selectedTenantId}
           onChange={(e) => setSelectedTenantId(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-sm rounded-md bg-gray-50"
+          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
         >
           {tenants.map(t => (
             <option key={t.id} value={t.id}>{t.name}</option>
@@ -145,26 +145,26 @@ export default function TenantServiceTab({
 
       {/* サービス一覧（縦並び） */}
       {selectedTenantId ? (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-md border border-gray-200 overflow-hidden shadow-xs">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-3 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12 min-w-12">
+                <th scope="col" className="px-3 py-1.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12 min-w-12">
                   No
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   対象(Audience)
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   カテゴリー
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   サービス名
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                   パス
                 </th>
-                <th scope="col" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-36">
+                <th scope="col" className="px-6 py-1.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-36">
                   <div className="flex flex-col items-center gap-2">
                     <span>有効 / 無効</span>
                     <label className="flex cursor-pointer items-center gap-1.5 font-normal normal-case tracking-normal">
@@ -188,26 +188,26 @@ export default function TenantServiceTab({
                 const enabled = isEnabled(service.id);
                 return (
                   <tr key={service.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-600 tabular-nums">
+                    <td className="px-3 py-1.5 whitespace-nowrap text-center text-xs text-gray-600 tabular-nums">
                       {rowIndex + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-700">
                       <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-[#f6f8fa] text-[#FD7601] border border-[#e2e6ec]">
                         {service.target_audience ?? 'all_users'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-700">
                       {categoryMap.get(service.service_category_id) || '未設定'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-1.5 whitespace-nowrap text-xs font-medium text-gray-900">
                       {service.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-500">
                       <span className="px-2.5 py-1 rounded bg-gray-100 text-xs text-gray-600 font-mono">
                         {service.route_path || '設定なし'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-6 py-1.5 whitespace-nowrap text-center">
                       <button
                         onClick={() => handleToggle(service.id, enabled)}
                         disabled={loading}
@@ -239,7 +239,7 @@ export default function TenantServiceTab({
               })}
               {services.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-xs text-gray-500">
                     サービスが登録されていません。
                   </td>
                 </tr>
@@ -248,7 +248,7 @@ export default function TenantServiceTab({
           </table>
         </div>
       ) : (
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center text-sm text-gray-500">
+        <div className="bg-gray-50 p-6 rounded-md border border-gray-200 text-center text-xs text-gray-500">
           設定を行うテナントを選択してください。
         </div>
       )}

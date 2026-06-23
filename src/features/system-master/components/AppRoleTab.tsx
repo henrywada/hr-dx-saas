@@ -77,67 +77,67 @@ export default function AppRoleTab({ initialRoles }: Props) {
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-3 w-full">
       {/* 新規登録フォーム */}
-      <div className="flex gap-2 items-center bg-gray-50 p-4 rounded-lg border">
+      <div style={{ gap: 'var(--space-2)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }} className="flex items-center bg-gray-50 border border-gray-200">
         <input
           type="text"
           placeholder="ロール名 (例: 人事マネージャー)"
           value={newRoleName}
           onChange={(e) => setNewRoleName(e.target.value)}
-          className="border px-3 py-2 rounded w-64"
+          className="border px-3 py-1.5 rounded w-64"
         />
         <input
           type="text"
           placeholder="コード (例: hr_manager)"
           value={newRoleCode}
           onChange={(e) => setNewRoleCode(e.target.value)}
-          className="border px-3 py-2 rounded w-64"
+          className="border px-3 py-1.5 rounded w-64"
         />
         <button
           onClick={handleCreate}
           disabled={loading}
-          className="bg-[#FD7601] text-white px-6 py-2 rounded hover:bg-[#FD7601] disabled:opacity-50 font-bold"
+          className="bg-[#FD7601] text-white px-6 py-1.5 rounded hover:bg-[#FD7601] disabled:opacity-50 font-bold"
         >
           新規登録
         </button>
       </div>
 
       {/* 一覧テーブル */}
-      <div className="overflow-hidden border rounded-lg shadow-sm">
+      <div className="overflow-hidden border rounded-md shadow-xs">
         <table className="min-w-full bg-white">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-3 py-3 border-b text-center text-sm font-bold text-gray-700 w-12 min-w-12">No</th>
-              <th className="px-6 py-3 border-b text-left text-sm font-bold text-gray-700">ロール名</th>
-              <th className="px-6 py-3 border-b text-left text-sm font-bold text-gray-700">コード (app_role)</th>
-              <th className="px-6 py-3 border-b text-center text-sm font-bold text-gray-700 w-40">操作</th>
+              <th className="px-3 py-1.5 border-b text-center text-xs font-bold text-gray-700 w-12 min-w-12">No</th>
+              <th className="px-6 py-1.5 border-b text-left text-xs font-bold text-gray-700">ロール名</th>
+              <th className="px-6 py-1.5 border-b text-left text-xs font-bold text-gray-700">コード (app_role)</th>
+              <th className="px-6 py-1.5 border-b text-center text-xs font-bold text-gray-700 w-40">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {roles.map((role, rowIndex) => (
               <tr key={role.id} className="hover:bg-gray-50">
-                <td className="px-3 py-4 text-center text-sm text-gray-600 tabular-nums">{rowIndex + 1}</td>
+                <td className="px-3 py-1.5 text-center text-xs text-gray-600 tabular-nums">{rowIndex + 1}</td>
                 <td className="px-6 py-4">
                   {editingId === role.id ? (
                     <input
-                      className="border p-2 w-full rounded"
+                      className="border p-1 w-full rounded"
                       value={editData[role.id]?.name || ''}
                       onChange={(e) => setEditData({...editData, [role.id]: {...editData[role.id], name: e.target.value}})}
                     />
                   ) : role.name}
                 </td>
-                <td className="px-6 py-4 font-mono text-sm text-[#FD7601]">
+                <td className="px-6 py-1.5 font-mono text-xs text-[#FD7601]">
                   {editingId === role.id ? (
                     <input
-                      className="border p-2 w-full rounded"
+                      className="border p-1 w-full rounded"
                       value={editData[role.id]?.app_role || ''}
                       onChange={(e) => setEditData({...editData, [role.id]: {...editData[role.id], app_role: e.target.value}})}
                     />
                   ) : role.app_role}
                 </td>
-                <td className="px-6 py-4 text-center">
-                  <div className="flex justify-center gap-4">
+                <td className="px-6 py-1.5 text-center">
+                  <div className="flex justify-center gap-3">
                     {editingId === role.id ? (
                       <>
                         <button onClick={() => handleSave(role.id)} className="text-[#FD7601] font-bold">保存</button>

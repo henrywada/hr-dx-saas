@@ -75,11 +75,25 @@ description: HR-DX SaaS フォーム実装ガイド — 標準幅・レイアウ
 
 ---
 
+## フォーム設計デフォルト値（AWS 風シャープ設計）
+
+| 要素 | 値 | 説明 |
+|------|-----|------|
+| **コンテナ上下パディング** | `py-5` | 20px（コンパクト） |
+| **コンテナ左右パディング** | `px-4 sm:px-6 lg:px-8` | レスポンシブ |
+| **フォーム内ギャップ** | `gap-3` | 12px（コンパクト） |
+| **入力フィールドパディング** | `px-2.5 py-1.5` | 10px × 6px（小） |
+| **ボタンパディング** | `px-3 py-1.5` | 12px × 6px（小） |
+| **ボーダーラウンド** | `rounded-lg` | 8px（シャープ） |
+| **フォント** | `text-xs` (ラベル) / `text-sm` (入力) | 11px / 14px（コンパクト） |
+
 ## フォーム幅チェックリスト
 
 新規フォーム実装時は以下を確認：
 
-- [ ] フォームコンテナに `px-4 sm:px-6 lg:px-8` が適用されている
+- [ ] コンテナに `px-4 sm:px-6 lg:px-8 py-5` が適用されている
+- [ ] フォーム内ギャップが `gap-3` である
+- [ ] 入力フィールド / ボタンが `rounded-lg` である
 - [ ] モバイル (320px) での表示が詰まっていない
 - [ ] タブレット (768px) での表示が標準的
 - [ ] デスクトップ (1024px) での左右余白が適切
@@ -87,25 +101,25 @@ description: HR-DX SaaS フォーム実装ガイド — 標準幅・レイアウ
 
 ## フォーム実装パターン
 
-### 検索フォーム
+### 検索フォーム（AWS 風シャープ設計）
 
 ```tsx
 export function SearchForm({ onSearch }: { onSearch: (query: string) => void }) {
   const [query, setQuery] = useState('')
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6">
-      <form onSubmit={(e) => { e.preventDefault(); onSearch(query) }} className="flex gap-2">
+    <div className="px-4 sm:px-6 lg:px-8 py-5">
+      <form onSubmit={(e) => { e.preventDefault(); onSearch(query) }} className="flex gap-3">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="検索..."
-          className="flex-1 px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm"
+          className="flex-1 px-2.5 py-1.5 border border-[#e2e6ec] rounded-lg text-xs"
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-[#FD7601] text-white rounded-lg text-sm font-medium hover:bg-orange-700"
+          className="px-3 py-1.5 bg-[#FD7601] text-white rounded-lg text-xs font-medium hover:bg-orange-700"
         >
           検索
         </button>
@@ -115,18 +129,18 @@ export function SearchForm({ onSearch }: { onSearch: (query: string) => void }) 
 }
 ```
 
-### フィルタフォーム
+### フィルタフォーム（AWS 風シャープ設計）
 
 ```tsx
 export function FilterForm({ filters, onFilterChange }: FilterFormProps) {
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 bg-white border-b border-[#e2e6ec]">
-      <div className="space-y-4">
-        <div className="flex gap-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-5 bg-white border-b border-[#e2e6ec]">
+      <div className="space-y-3">
+        <div className="flex gap-3">
           <select
             value={filters.division}
             onChange={(e) => onFilterChange({ ...filters, division: e.target.value })}
-            className="px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm"
+            className="px-2.5 py-1.5 border border-[#e2e6ec] rounded-lg text-xs"
           >
             <option value="">全部署</option>
             {/* オプション */}
@@ -135,7 +149,7 @@ export function FilterForm({ filters, onFilterChange }: FilterFormProps) {
           <select
             value={filters.status}
             onChange={(e) => onFilterChange({ ...filters, status: e.target.value })}
-            className="px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm"
+            className="px-2.5 py-1.5 border border-[#e2e6ec] rounded-lg text-xs"
           >
             <option value="">全ステータス</option>
             {/* オプション */}
@@ -147,31 +161,31 @@ export function FilterForm({ filters, onFilterChange }: FilterFormProps) {
 }
 ```
 
-### モーダルフォーム
+### モーダルフォーム（AWS 風シャープ設計）
 
 ```tsx
 export function CreateUserModal({ onClose, onSubmit }: Props) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <h2 className="text-xl font-bold mb-4">ユーザー作成</h2>
+        <div className="px-4 sm:px-6 lg:px-8 py-5">
+          <h2 className="text-sm font-bold mb-3">ユーザー作成</h2>
           
-          <form onSubmit={onSubmit} className="space-y-4">
-            <input type="text" placeholder="名前" className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg" />
-            <input type="email" placeholder="メール" className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg" />
+          <form onSubmit={onSubmit} className="space-y-3">
+            <input type="text" placeholder="名前" className="w-full px-2.5 py-1.5 border border-[#e2e6ec] rounded-lg text-xs" />
+            <input type="email" placeholder="メール" className="w-full px-2.5 py-1.5 border border-[#e2e6ec] rounded-lg text-xs" />
             
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-[#e2e6ec] rounded-lg text-sm font-medium hover:bg-[#f6f8fa]"
+                className="px-3 py-1.5 border border-[#e2e6ec] rounded-lg text-xs font-medium hover:bg-[#f6f8fa]"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#FD7601] text-white rounded-lg text-sm font-medium hover:bg-orange-700"
+                className="px-3 py-1.5 bg-[#FD7601] text-white rounded-lg text-xs font-medium hover:bg-orange-700"
               >
                 作成
               </button>
@@ -261,4 +275,10 @@ src/features/[domain]/components/SearchForm.tsx を作成してください
 
 ## 更新履歴
 
+- 2026-06-23：AWS 風シャープ設計をデフォルト化
+  - コンテナ上下パディング：`py-6` → `py-5`
+  - フォーム内ギャップ：`gap-4`/`gap-2` → `gap-3`
+  - 入力フィールド：`px-3 py-2` → `px-2.5 py-1.5`、`text-sm` → `text-xs`
+  - ボタン：`px-4 py-2` → `px-3 py-1.5`、`text-sm` → `text-xs`
+  - 見出し：`text-xl` → `text-sm`
 - 2026-06-22：初版作成。フォーム幅指示パターンの標準化

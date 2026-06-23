@@ -1,52 +1,47 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Calendar, X } from 'lucide-react';
-import { InterviewCalendar } from '@/app/(tenant)/(colored)/adm/(company_doctor)/high-stress-followup/components/InterviewCalendar';
-import { 
-  fetchTenantDoctors, 
-  fetchMyLatestStressResultId, 
-  fetchLatestActivePeriod 
-} from '@/features/adm/high-stress-followup/actions';
-import { useAuth } from '@/lib/auth/context';
+import { useState, useEffect } from 'react'
+import { Calendar, X } from 'lucide-react'
+import { InterviewCalendar } from '@/app/(tenant)/(tenant-admin)/adm/(company_doctor)/high-stress-followup/components/InterviewCalendar'
+import {
+  fetchTenantDoctors,
+  fetchMyLatestStressResultId,
+  fetchLatestActivePeriod,
+} from '@/features/adm/high-stress-followup/actions'
+import { useAuth } from '@/lib/auth/context'
 
 export function InterviewBookingService() {
-  const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([]);
-  const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [stressResultId, setStressResultId] = useState<string | null>(null);
-  const [periodId, setPeriodId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
+  const [doctorId, setDoctorId] = useState<string | null>(null)
+  const [stressResultId, setStressResultId] = useState<string | null>(null)
+  const [periodId, setPeriodId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      setLoading(true);
-      Promise.all([
-        fetchTenantDoctors(),
-        fetchMyLatestStressResultId(),
-        fetchLatestActivePeriod()
-      ]).then(([docs, resId, pId]) => {
-        setDoctors(docs);
-        if (docs.length > 0) {
-          // すでに選択済みでなければ1人目をセット
-          if (!doctorId) setDoctorId(docs[0].id);
-        }
-        setStressResultId(resId);
-        setPeriodId(pId);
-      }).finally(() => setLoading(false));
+      setLoading(true)
+      Promise.all([fetchTenantDoctors(), fetchMyLatestStressResultId(), fetchLatestActivePeriod()])
+        .then(([docs, resId, pId]) => {
+          setDoctors(docs)
+          if (docs.length > 0) {
+            // すでに選択済みでなければ1人目をセット
+            if (!doctorId) setDoctorId(docs[0].id)
+          }
+          setStressResultId(resId)
+          setPeriodId(pId)
+        })
+        .finally(() => setLoading(false))
     }
-  }, [isOpen, doctorId]);
+  }, [isOpen, doctorId])
 
-  const buttonStyle = "inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-emerald-200/50 group shrink-0";
+  const buttonStyle =
+    'inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-emerald-200/50 group shrink-0'
 
   return (
     <>
-      <button 
-        type="button" 
-        onClick={() => setIsOpen(true)}
-        className={buttonStyle}
-      >
+      <button type="button" onClick={() => setIsOpen(true)} className={buttonStyle}>
         <Calendar className="w-4 h-4 mr-1.5 opacity-80 group-hover:scale-110 transition-transform" />
         産業医面談予約
       </button>
@@ -61,7 +56,9 @@ export function InterviewBookingService() {
                 </div>
                 <div>
                   <h3 className="font-bold text-[#24292f] text-lg">産業医面談の予約</h3>
-                  <p className="text-[10px] text-[#57606a] font-medium tracking-wider">ご希望の日時を選択して予約を確定させてください</p>
+                  <p className="text-[10px] text-[#57606a] font-medium tracking-wider">
+                    ご希望の日時を選択して予約を確定させてください
+                  </p>
                 </div>
               </div>
               <button
@@ -77,14 +74,16 @@ export function InterviewBookingService() {
               {periodId && doctors.length > 1 && (
                 <div className="bg-white p-4 rounded-xl border border-[#e2e6ec] shadow-sm flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-500">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-[#24292f] whitespace-nowrap">担当産業医の選択:</span>
+                    <span className="text-sm font-bold text-[#24292f] whitespace-nowrap">
+                      担当産業医の選択:
+                    </span>
                   </div>
                   <select
                     value={doctorId || ''}
-                    onChange={(e) => setDoctorId(e.target.value)}
+                    onChange={e => setDoctorId(e.target.value)}
                     className="flex-1 max-w-xs h-10 px-3 rounded-lg border border-[#e2e6ec] bg-[#f6f8fa] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all cursor-pointer hover:border-emerald-300"
                   >
-                    {doctors.map((doc) => (
+                    {doctors.map(doc => (
                       <option key={doc.id} value={doc.id}>
                         {doc.name} 先生
                       </option>
@@ -92,7 +91,6 @@ export function InterviewBookingService() {
                   </select>
                 </div>
               )}
-
 
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 text-[#57606a]">
@@ -117,8 +115,8 @@ export function InterviewBookingService() {
                     employeeId={user?.employee_id}
                     stressResultId={stressResultId ?? undefined}
                     onSaved={() => {
-                      alert('予約が完了しました。');
-                      setIsOpen(false);
+                      alert('予約が完了しました。')
+                      setIsOpen(false)
                     }}
                   />
                 </div>
@@ -128,5 +126,5 @@ export function InterviewBookingService() {
         </div>
       )}
     </>
-  );
+  )
 }

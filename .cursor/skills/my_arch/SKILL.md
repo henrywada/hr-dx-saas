@@ -19,9 +19,9 @@ hr-dx-saas には **3 種類のルートグループ** があり、URL に応じ
 ```
 src/app/
 ├── (tenant)/
-│   ├── (default)/         → variant="portal"  白背景 (#F9FAFB)
+│   ├── (tenant-users)/    → variant="portal"  白背景 (#F9FAFB)
 │   │   └── top/page.tsx   ← 一般従業員 TOP（URL: /top）
-│   └── (colored)/
+│   └── (tenant-admin)/
 │       └── adm/page.tsx   ← テナント管理者 TOP（URL: /adm）
 │           layout.tsx     → variant="admin"   グリーン背景 (#f2f8f8)
 └── (saas-admin)/
@@ -29,7 +29,7 @@ src/app/
         layout.tsx         → variant="saas" + ロールガード
 ```
 
-**ルートグループの () は URL に現れない。** `/top` は `(tenant)/(default)/top/` にある。
+**ルートグループの () は URL に現れない。** `/top` は `(tenant)/(tenant-users)/top/` にある。
 
 ### 3 つの variant とその違い
 

@@ -1,39 +1,46 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useSystemMaster } from '../hooks/useSystemMaster';
+import { useState, useEffect } from 'react'
+import { useSystemMaster } from '../hooks/useSystemMaster'
 
 interface Props {
-  initialServices: any[];
-  categories: any[];
+  initialServices: any[]
+  categories: any[]
 }
 
 export default function ServiceTab({ initialServices, categories }: Props) {
-  const { updateService, createService, deleteService, generateAiAdvice } = useSystemMaster();
-  
-  const [services, setServices] = useState<any[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
-  
+  const { updateService, createService, deleteService, generateAiAdvice } = useSystemMaster()
+
+  const [services, setServices] = useState<any[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(false)
+
+  // 検索条件（カテゴリ・対象・ステータス）
+  const [filterCategoryId, setFilterCategoryId] = useState('')
+  const [filterAudience, setFilterAudience] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+
   // モーダル用状態（詳細変更）
-  const [modalServiceId, setModalServiceId] = useState<string | null>(null);
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalDescription, setModalDescription] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [modalServiceId, setModalServiceId] = useState<string | null>(null)
+  const [modalTitle, setModalTitle] = useState('')
+  const [modalDescription, setModalDescription] = useState('')
+  const [isAiLoading, setIsAiLoading] = useState(false)
 
   useEffect(() => {
     // Propsの変更に合わせてstateを同期し、デフォルト値を適用する
-    setServices((initialServices || []).map((s: any) => ({
-      ...s,
-      description: s.description ?? '',
-      target_audience: s.target_audience ?? 'all_users',
-    })));
-  }, [initialServices]);
+    setServices(
+      (initialServices || []).map((s: any) => ({
+        ...s,
+        description: s.description ?? '',
+        target_audience: s.target_audience ?? 'all_users',
+      }))
+    )
+  }, [initialServices])
 
   const handleAddNew = () => {
-    const newId = 'new-' + Date.now();
+    const newId = 'new-' + Date.now()
     const newItem = {
       id: newId,
       name: '',
@@ -44,21 +51,21 @@ export default function ServiceTab({ initialServices, categories }: Props) {
       release_status: '下書き',
       service_category_id: categories[0]?.id || '',
       sort_order: services.length + 1,
-      isNew: true
-    };
-    setServices([newItem, ...services]);
-    setEditingId(newId);
-    setEditData({ [newId]: newItem });
-  };
+      isNew: true,
+    }
+    setServices([newItem, ...services])
+    setEditingId(newId)
+    setEditData({ [newId]: newItem })
+  }
 
   const handleEdit = (item: any) => {
-    setEditingId(item.id);
-    setEditData({ [item.id]: { ...item } });
-  };
+    setEditingId(item.id)
+    setEditData({ [item.id]: { ...item } })
+  }
 
   const handleSave = async (id: string) => {
-    const item = editData[id];
-    setLoading(true);
+    const item = editData[id]
+    setLoading(true)
     try {
       const payload = {
         name: String(item.name || ''),
@@ -67,108 +74,166 @@ export default function ServiceTab({ initialServices, categories }: Props) {
         route_path: String(item.route_path || ''),
         release_status: String(item.release_status || '下書き'),
         service_category_id: String(item.service_category_id),
-        sort_order: Number(item.sort_order) || 0
-      };
-      let result;
+        sort_order: Number(item.sort_order) || 0,
+      }
+      let result
       if (item.isNew) {
-        result = await createService({ ...payload, description: item.description || '' });
+        result = await createService({ ...payload, description: item.description || '' })
       } else {
-        result = await updateService(id, payload);
+        result = await updateService(id, payload)
       }
       if (result.success) {
-        setEditingId(null);
+        setEditingId(null)
       } else {
-        alert(`保存エラー: ${JSON.stringify(result.error)}`);
+        alert(`保存エラー: ${JSON.stringify(result.error)}`)
       }
     } catch (err: any) {
-      alert(`通信エラー: ${err.message}`);
+      alert(`通信エラー: ${err.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // 詳細変更（モーダル保存）
   const handleSaveModal = async () => {
-    if (!modalServiceId) return;
-    setLoading(true);
+    if (!modalServiceId) return
+    setLoading(true)
     try {
       const result = await updateService(modalServiceId, {
         title: String(modalTitle),
         description: String(modalDescription),
-      });
+      })
       if (result.success) {
-        setModalServiceId(null);
+        setModalServiceId(null)
       } else {
-        alert(`保存エラー: ${JSON.stringify(result.error)}`);
+        alert(`保存エラー: ${JSON.stringify(result.error)}`)
       }
     } catch (err: any) {
-      alert(`通信エラー: ${err.message}`);
+      alert(`通信エラー: ${err.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleAiAdvice = async () => {
-    if (!modalServiceId) return;
-    setIsAiLoading(true);
+    if (!modalServiceId) return
+    setIsAiLoading(true)
     try {
-      const svc = services.find(s => s.id === modalServiceId);
-      const cat = categories.find(c => c.id === svc?.service_category_id);
-      
+      const svc = services.find(s => s.id === modalServiceId)
+      const cat = categories.find(c => c.id === svc?.service_category_id)
+
       const result = await generateAiAdvice(
         svc?.name || '',
         cat?.name || '',
         modalTitle,
         modalDescription
-      );
-      
+      )
+
       if (result.success && result.data) {
-        setModalTitle(result.data.title);
-        setModalDescription(result.data.description);
+        setModalTitle(result.data.title)
+        setModalDescription(result.data.description)
       } else {
-        alert(`AIアドバイスの取得に失敗しました。`);
+        alert(`AIアドバイスの取得に失敗しました。`)
       }
     } catch (err: any) {
-      alert(`AIエラー: ${err.message}`);
+      alert(`AIエラー: ${err.message}`)
     } finally {
-      setIsAiLoading(false);
+      setIsAiLoading(false)
     }
-  };
+  }
 
   const openModal = (id: string) => {
-    const svc = services.find(s => s.id === id);
-    if (!svc) return;
-    setModalTitle(svc.title || '');
-    setModalDescription(svc.description || '');
-    setModalServiceId(id);
-  };
+    const svc = services.find(s => s.id === id)
+    if (!svc) return
+    setModalTitle(svc.title || '')
+    setModalDescription(svc.description || '')
+    setModalServiceId(id)
+  }
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`サービス「${name}」を削除しますか？`)) return;
-    setLoading(true);
+    if (!confirm(`サービス「${name}」を削除しますか？`)) return
+    setLoading(true)
     try {
-      await deleteService(id);
+      await deleteService(id)
     } catch (err: any) {
-      alert(`削除エラー: ${err.message}`);
+      alert(`削除エラー: ${err.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleChange = (id: string, field: string, value: any) => {
-    setEditData(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-  };
+    setEditData(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
 
   const categoryIdForRow = (row: any) =>
     editingId === row.id && editData[row.id]
-      ? editData[row.id].service_category_id ?? row.service_category_id
-      : row.service_category_id;
+      ? (editData[row.id].service_category_id ?? row.service_category_id)
+      : row.service_category_id
+
+  const filteredServices = services.filter(item => {
+    if (filterCategoryId && item.service_category_id !== filterCategoryId) return false
+    if (filterAudience && item.target_audience !== filterAudience) return false
+    if (filterStatus && item.release_status !== filterStatus) return false
+    return true
+  })
 
   return (
     <div className="space-y-3 w-full">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">サービス一覧</h3>
-        <button onClick={handleAddNew} className="px-4 py-1.5 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold">+ 新規追加</button>
+        <button
+          onClick={handleAddNew}
+          className="px-4 py-1.5 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold"
+        >
+          + 新規追加
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-3 items-center bg-gray-50 border rounded-md p-3">
+        <select
+          value={filterCategoryId}
+          onChange={e => setFilterCategoryId(e.target.value)}
+          className="border p-1.5 rounded text-xs bg-white"
+        >
+          <option value="">カテゴリ：すべて</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterAudience}
+          onChange={e => setFilterAudience(e.target.value)}
+          className="border p-1.5 rounded text-xs bg-white"
+        >
+          <option value="">対象：すべて</option>
+          <option value="all_users">all_users</option>
+          <option value="adm">adm</option>
+          <option value="saas_adm">saas_adm</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="border p-1.5 rounded text-xs bg-white"
+        >
+          <option value="">ステータス：すべて</option>
+          <option value="下書き">下書き</option>
+          <option value="公開">公開</option>
+        </select>
+        {(filterCategoryId || filterAudience || filterStatus) && (
+          <button
+            onClick={() => {
+              setFilterCategoryId('')
+              setFilterAudience('')
+              setFilterStatus('')
+            }}
+            className="text-xs text-gray-500 hover:underline"
+          >
+            条件をクリア
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto border rounded-md shadow-xs">
@@ -182,95 +247,187 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               <th className="px-4 py-1.5 border-b text-xs font-bold w-32">対象(Audience)</th>
               <th className="px-4 py-1.5 border-b text-xs font-bold">タイトル</th>
               <th className="px-4 py-1.5 border-b text-xs font-bold">ルート</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-24 text-center">ステータス</th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-24 text-center">
+                ステータス
+              </th>
+              <th className="px-4 py-1.5 border-b text-xs font-bold w-28 text-center">作成日</th>
               <th className="px-4 py-1.5 border-b text-xs font-bold w-48 text-center">操作</th>
             </tr>
           </thead>
-          {services.map((item, index) => {
-            const isEditing = editingId === item.id;
-            const data = isEditing ? editData[item.id] : item;
-            const prev = index > 0 ? services[index - 1] : null;
-            const currCat = categoryIdForRow(item);
-            const prevCat = prev ? categoryIdForRow(prev) : null;
-            const isCategoryStart = index === 0 || currCat !== prevCat;
+          {filteredServices.map((item, index) => {
+            const isEditing = editingId === item.id
+            const data = isEditing ? editData[item.id] : item
+            const prev = index > 0 ? filteredServices[index - 1] : null
+            const currCat = categoryIdForRow(item)
+            const prevCat = prev ? categoryIdForRow(prev) : null
+            const isCategoryStart = index === 0 || currCat !== prevCat
 
             return (
               <tbody key={item.id} className="border-b">
                 <tr
                   className={
-                    isCategoryStart
-                      ? 'bg-green-50 hover:bg-green-100/70'
-                      : 'hover:bg-gray-50'
+                    isCategoryStart ? 'bg-green-50 hover:bg-green-100/70' : 'hover:bg-gray-50'
                   }
                 >
                   <td className="px-4 py-1.5 text-center align-middle">{index + 1}</td>
                   <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <select value={data.service_category_id || ''} onChange={(e) => handleChange(item.id, 'service_category_id', e.target.value)} className="w-full border p-1 rounded text-xs">
-                        {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                      <select
+                        value={data.service_category_id || ''}
+                        onChange={e => handleChange(item.id, 'service_category_id', e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                      >
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
                       </select>
-                    ) : (categories.find(c => c.id === item.service_category_id)?.name || '-')}
+                    ) : (
+                      categories.find(c => c.id === item.service_category_id)?.name || '-'
+                    )}
                   </td>
                   <td className="px-4 py-1.5 text-center align-middle">
                     {isEditing ? (
-                      <input type="number" value={data.sort_order || 0} onChange={(e) => handleChange(item.id, 'sort_order', e.target.value)} className="w-full border p-1 rounded text-center" />
-                    ) : item.sort_order}
+                      <input
+                        type="number"
+                        value={data.sort_order || 0}
+                        onChange={e => handleChange(item.id, 'sort_order', e.target.value)}
+                        className="w-full border p-1 rounded text-center"
+                      />
+                    ) : (
+                      item.sort_order
+                    )}
                   </td>
                   <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <input type="text" value={data.name || ''} onChange={(e) => handleChange(item.id, 'name', e.target.value)} className="w-full border p-1 rounded text-xs" />
-                    ) : item.name}
+                      <input
+                        type="text"
+                        value={data.name || ''}
+                        onChange={e => handleChange(item.id, 'name', e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                      />
+                    ) : (
+                      item.name
+                    )}
                   </td>
                   <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <select value={data.target_audience || 'all_users'} onChange={(e) => handleChange(item.id, 'target_audience', e.target.value)} className="w-full border p-1 rounded text-xs">
+                      <select
+                        value={data.target_audience || 'all_users'}
+                        onChange={e => handleChange(item.id, 'target_audience', e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                      >
                         <option value="all_users">all_users</option>
                         <option value="adm">adm</option>
                         <option value="saas_adm">saas_adm</option>
                       </select>
                     ) : (
-                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{item.target_audience}</span>
+                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                        {item.target_audience}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-1.5 align-middle text-center">
                     {isEditing ? (
-                      <input type="text" value={data.title || ''} onChange={(e) => handleChange(item.id, 'title', e.target.value)} className="w-full border p-1 rounded text-xs text-left" />
-                    ) : (String(item.title ?? '').trim() ? '●' : '-')}
+                      <input
+                        type="text"
+                        value={data.title || ''}
+                        onChange={e => handleChange(item.id, 'title', e.target.value)}
+                        className="w-full border p-1 rounded text-xs text-left"
+                      />
+                    ) : String(item.title ?? '').trim() ? (
+                      '●'
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td className="px-4 py-1.5 align-middle">
                     {isEditing ? (
-                      <input type="text" value={data.route_path || ''} onChange={(e) => handleChange(item.id, 'route_path', e.target.value)} className="w-full border p-1 rounded text-xs" />
-                    ) : item.route_path}
+                      <input
+                        type="text"
+                        value={data.route_path || ''}
+                        onChange={e => handleChange(item.id, 'route_path', e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                      />
+                    ) : (
+                      item.route_path
+                    )}
                   </td>
                   <td className="px-4 py-1.5 text-center align-middle">
                     {isEditing ? (
-                      <select value={data.release_status || '下書き'} onChange={(e) => handleChange(item.id, 'release_status', e.target.value)} className="border p-1 rounded text-xs">
+                      <select
+                        value={data.release_status || '下書き'}
+                        onChange={e => handleChange(item.id, 'release_status', e.target.value)}
+                        className="border p-1 rounded text-xs"
+                      >
                         <option value="下書き">下書き</option>
                         <option value="公開">公開</option>
                       </select>
                     ) : (
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold ${item.release_status === '公開' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.release_status}</span>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] font-bold ${item.release_status === '公開' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+                      >
+                        {item.release_status}
+                      </span>
                     )}
+                  </td>
+                  <td className="px-4 py-1.5 text-center align-middle text-xs text-gray-600">
+                    {item.created_at
+                      ? new Date(item.created_at).toLocaleDateString('ja-JP', {
+                          timeZone: 'Asia/Tokyo',
+                        })
+                      : '-'}
                   </td>
                   <td className="px-4 py-1.5 text-center align-middle">
                     <div className="flex justify-center gap-3 items-center">
                       {isEditing ? (
                         <>
-                          <button onClick={() => handleSave(item.id)} disabled={loading} className="text-[#FD7601] font-bold hover:underline text-xs">{loading ? '...' : '保存'}</button>
-                          <button onClick={() => {setEditingId(null);}} className="text-gray-500 hover:underline text-xs">取消</button>
+                          <button
+                            onClick={() => handleSave(item.id)}
+                            disabled={loading}
+                            className="text-[#FD7601] font-bold hover:underline text-xs"
+                          >
+                            {loading ? '...' : '保存'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null)
+                            }}
+                            className="text-gray-500 hover:underline text-xs"
+                          >
+                            取消
+                          </button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => handleEdit(item)} className="text-[#FD7601] text-lg hover:scale-110 transition-transform" title="編集">✏️</button>
-                          <button onClick={() => openModal(item.id)} className="text-[#FD7601] text-xs border border-[#e2e6ec] px-3 py-1.5 rounded bg-[#f6f8fa] hover:bg-[#f6f8fa] transition-colors font-bold">詳細変更</button>
-                          <button onClick={() => handleDelete(item.id, item.name)} className="text-red-500 text-lg hover:scale-110 transition-transform" title="削除">🗑️</button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="text-[#FD7601] text-lg hover:scale-110 transition-transform"
+                            title="編集"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => openModal(item.id)}
+                            className="text-[#FD7601] text-xs border border-[#e2e6ec] px-3 py-1.5 rounded bg-[#f6f8fa] hover:bg-[#f6f8fa] transition-colors font-bold"
+                          >
+                            詳細変更
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id, item.name)}
+                            className="text-red-500 text-lg hover:scale-110 transition-transform"
+                            title="削除"
+                          >
+                            🗑️
+                          </button>
                         </>
                       )}
                     </div>
                   </td>
                 </tr>
               </tbody>
-            );
+            )
           })}
         </table>
       </div>
@@ -283,23 +440,21 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               <h3 className="text-lg font-bold text-gray-900">
                 『{services.find(s => s.id === modalServiceId)?.name}』の詳細変更
               </h3>
-              <button 
+              <button
                 onClick={() => setModalServiceId(null)}
                 className="text-gray-400 hover:text-gray-600 focus:outline-none"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  タイトル
-                </label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">タイトル</label>
                 <input
                   type="text"
                   value={modalTitle}
-                  onChange={(e) => setModalTitle(e.target.value)}
+                  onChange={e => setModalTitle(e.target.value)}
                   placeholder="ユーザーに表示されるサービスのキャッチフレーズ..."
                   className="w-full border border-gray-300 rounded-md p-2.5 text-xs focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
                 />
@@ -311,7 +466,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                 </label>
                 <textarea
                   value={modalDescription}
-                  onChange={(e) => setModalDescription(e.target.value)}
+                  onChange={e => setModalDescription(e.target.value)}
                   placeholder="サービスの詳しい機能や目的を入力..."
                   className="w-full border border-gray-300 rounded-md p-3 min-h-[160px] text-xs focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none resize-y"
                 />
@@ -330,7 +485,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                 </button>
               </div>
             </div>
-            
+
             <div className="px-6 py-1.5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
               <button
                 onClick={() => setModalServiceId(null)}
@@ -351,5 +506,5 @@ export default function ServiceTab({ initialServices, categories }: Props) {
         </div>
       )}
     </div>
-  );
+  )
 }

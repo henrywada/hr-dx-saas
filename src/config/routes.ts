@@ -31,6 +31,8 @@ export const APP_ROUTES = {
     ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */
     ADMIN_MANUAL: '/adm/manual',
+    /** 自動配信ルール（(toolBox) グループ、Web検索→AI要約→メール配信） */
+    ADMIN_AUTO_DISTRIBUTION: '/adm/auto-distribution',
     /** 人事向け 出勤・退勤データの明細一覧（/adm/attendance/dashboard） */
     ADMIN_ATTENDANCE_DASHBOARD: '/adm/attendance/dashboard',
     /** 勤務状況分析（残業集計・リスク・乖離） */

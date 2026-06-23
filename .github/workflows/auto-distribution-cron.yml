@@ -1,0 +1,16 @@
+name: Auto Distribution Cron
+
+on:
+  schedule:
+    # 毎日 4:00 JST（UTC 19:00。日本にDSTなし）
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-due-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger auto distribution run
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/auto-distribution/run-due" \
+            -H "x-cron-secret: ${{ secrets.DISTRIBUTION_CRON_SECRET }}"

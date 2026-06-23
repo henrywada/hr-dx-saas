@@ -208,6 +208,123 @@ export type Database = {
           },
         ]
       }
+      auto_distribution_logs: {
+        Row: {
+          article_count: number
+          articles: Json
+          error_message: string | null
+          executed_at: string
+          id: string
+          rule_id: string
+          status: string
+          tenant_id: string
+          triggered_by: string
+        }
+        Insert: {
+          article_count?: number
+          articles?: Json
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          rule_id: string
+          status: string
+          tenant_id: string
+          triggered_by?: string
+        }
+        Update: {
+          article_count?: number
+          articles?: Json
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          rule_id?: string
+          status?: string
+          tenant_id?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_distribution_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "auto_distribution_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_distribution_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auto_distribution_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          max_articles: number
+          name: string
+          recipient_emails: string[]
+          schedule_day_of_month: number | null
+          schedule_day_of_week: number | null
+          schedule_type: string
+          search_theme: string
+          target_urls: string[] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_articles?: number
+          name: string
+          recipient_emails: string[]
+          schedule_day_of_month?: number | null
+          schedule_day_of_week?: number | null
+          schedule_type: string
+          search_theme: string
+          target_urls?: string[] | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_articles?: number
+          name?: string
+          recipient_emails?: string[]
+          schedule_day_of_month?: number | null
+          schedule_day_of_week?: number | null
+          schedule_type?: string
+          search_theme?: string
+          target_urls?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_distribution_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_distribution_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_pulses: {
         Row: {
           candidate_name: string
@@ -5430,6 +5547,7 @@ export type Database = {
           app_role_group_id: string | null
           app_role_group_uuid: string | null
           category: string | null
+          created_at: string
           description: string | null
           id: string
           name: string | null
@@ -5444,6 +5562,7 @@ export type Database = {
           app_role_group_id?: string | null
           app_role_group_uuid?: string | null
           category?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name?: string | null
@@ -5458,6 +5577,7 @@ export type Database = {
           app_role_group_id?: string | null
           app_role_group_uuid?: string | null
           category?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name?: string | null

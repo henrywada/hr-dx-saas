@@ -21,6 +21,7 @@ export type Service = {
   app_role_group_uuid: string | null
   target_audience: string | null
   release_status: string | null
+  created_at: string
 }
 
 export type AppRole = {

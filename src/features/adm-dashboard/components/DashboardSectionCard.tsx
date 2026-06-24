@@ -33,7 +33,7 @@ export function DashboardSectionCard({
       <div className="flex items-center gap-2">
         <div className={`shrink-0 rounded-md p-1.5 ${iconClassName}`}>{icon}</div>
         <h3 className="text-sm font-bold text-[#161b22]">{title}</h3>
-        <Badge variant="teal" className="ml-auto px-2 py-0.5 text-[10px]">
+        <Badge variant="primary" className="ml-auto px-2 py-0.5 text-[10px]">
           NEW
         </Badge>
       </div>

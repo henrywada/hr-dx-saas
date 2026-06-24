@@ -22,6 +22,8 @@ export interface RetentionKpi {
   turnoverRatePercent: number | null
   /** 平均在籍年数（月単位、activeな従業員のhired_dateから算出） */
   avgTenureMonths: number | null
+  /** 当月の入社者数（active_status='active' かつ hired_date が当月） */
+  hiredThisMonth: number
 }
 
 /** 生産性KPI */

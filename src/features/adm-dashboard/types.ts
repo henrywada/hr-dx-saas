@@ -39,8 +39,6 @@ export interface AdmDashboardSummary {
     publishedCourseCount: number
     /** 受講中（未完了）の割り当て数 */
     inProgressAssignmentCount: number
-    /** 研修完了率（%）— skillDevelopment と同じ値（eラーニング割り当て全体の完了率） */
-    completionRatePercent: number | null
   }
   questionnaire: {
     /** 実施中（status='active'）のアンケート件数 */

@@ -81,12 +81,12 @@ export default async function HrDashboardPage() {
             icon={<HeartPulse className="h-4 w-4" />}
             iconClassName="bg-rose-50 text-rose-600"
             title="パルスサーベイ"
-            description="毎週・隔週・月次で短いアンケートを自動配信。eNPS・エンゲージメントスコアをリアルタイム追跡。"
+            description="毎週・隔週・月次で短いアンケートを自動配信。エンゲージメントスコアをリアルタイム追跡。"
             href={APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE}
             stats={[
               { label: '回答率', value: formatPercent(summary.pulseSurvey.responseRatePercent) },
               {
-                label: 'eNPS',
+                label: 'エンゲージメントスコア',
                 value: summary.pulseSurvey.score === null ? '—' : `${summary.pulseSurvey.score}`,
               },
             ]}
@@ -115,7 +115,7 @@ export default async function HrDashboardPage() {
             description="マネージャーと部下の1on1を記録・可視化。アジェンダテンプレート・アクションアイテム管理・次回日程スケジュール。"
             href={APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE}
             stats={[
-              { label: '今月実施件数', value: `${summary.oneOnOne.sessionsLast30Days}件` },
+              { label: '直近30日の対象者数', value: `${summary.oneOnOne.sessionsLast30Days}件` },
               { label: '未実施', value: `${summary.oneOnOne.overdueCount}名` },
             ]}
           />

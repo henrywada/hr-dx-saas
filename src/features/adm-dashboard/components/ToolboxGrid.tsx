@@ -47,7 +47,7 @@ export function ToolboxGrid() {
           return (
             <div
               key={tool.label}
-              className="flex cursor-default items-center gap-2 rounded-lg border border-[#e2e6ec] bg-white p-3 text-left"
+              className="flex cursor-default items-center gap-2 rounded-lg border border-[#e2e6ec] bg-white p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#FD7601]/30 hover:shadow-md"
             >
               <Icon className="h-4 w-4 shrink-0 text-[#57606a]" />
               <div className="flex flex-col gap-1">

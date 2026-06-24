@@ -51,7 +51,7 @@ export default async function HrDashboardPage() {
     <div className="mx-auto w-full max-w-[1200px] space-y-4 px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-[#161b22] sm:text-3xl">
-          人事ダッシュボード
+          管理：人事ダッシュボード
         </h1>
         <Link
           href={APP_ROUTES.TENANT.ADMIN_MANUAL}

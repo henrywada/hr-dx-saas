@@ -85,35 +85,43 @@ async function fetchRetentionKpi(
   const startOfMonth = `${yearMonth}-01`
   const endOfMonth = lastDayOfMonth(yearMonth)
 
-  const [activeRes, turnoverRes, tenureRes, hiredThisMonthRes] = await Promise.all([
-    supabase
-      .from('employees')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('active_status', 'active'),
-    supabase
-      .from('employees')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('active_status', 'inactive')
-      .gte('updated_at', since),
-    supabase
-      .from('employees')
-      .select('hired_date')
-      .eq('tenant_id', tenantId)
-      .eq('active_status', 'active')
-      .not('hired_date', 'is', null),
-    supabase
-      .from('employees')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('active_status', 'active')
-      .gte('hired_date', startOfMonth)
-      .lte('hired_date', endOfMonth),
-  ])
+  const [activeRes, turnoverRes, tenureRes, hiredThisMonthRes, companyDoctorRes] =
+    await Promise.all([
+      supabase
+        .from('employees')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'active'),
+      supabase
+        .from('employees')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'inactive')
+        .gte('updated_at', since),
+      supabase
+        .from('employees')
+        .select('hired_date')
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'active')
+        .not('hired_date', 'is', null),
+      supabase
+        .from('employees')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'active')
+        .gte('hired_date', startOfMonth)
+        .lte('hired_date', endOfMonth),
+      supabase
+        .from('employees')
+        .select('id, app_role:app_role_id!inner(app_role)', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'active')
+        .eq('app_role.app_role', 'company_doctor'),
+    ])
 
   const totalActive = activeRes.count ?? 0
   const turnover = turnoverRes.count ?? 0
+  const companyDoctorCount = companyDoctorRes.count ?? 0
   const denominator = totalActive + turnover
 
   const turnoverRatePercent =
@@ -135,6 +143,7 @@ async function fetchRetentionKpi(
   return {
     turnoverCountLast12Months: turnover,
     totalActiveEmployees: totalActive,
+    companyDoctorCount,
     turnoverRatePercent,
     avgTenureMonths,
     hiredThisMonth: hiredThisMonthRes.count ?? 0,

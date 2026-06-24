@@ -21,19 +21,25 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
 
-  const [kpiResult, oneOnOneData, activeStressPeriod, publishedCourses, questionnaires, inProgressRes] =
-    await Promise.all([
-      getHrKpiBundle(),
-      getOneOnOneDashboardData(),
-      getActiveStressCheckPeriod(tenantId),
-      getCourses({ status: 'published' }),
-      getQuestionnaires(tenantId),
-      supabase
-        .from('el_assignments')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
-        .is('completed_at', null),
-    ])
+  const [
+    kpiResult,
+    oneOnOneData,
+    activeStressPeriod,
+    publishedCourses,
+    questionnaires,
+    inProgressRes,
+  ] = await Promise.all([
+    getHrKpiBundle(),
+    getOneOnOneDashboardData(),
+    getActiveStressCheckPeriod(tenantId),
+    getCourses({ status: 'published' }),
+    getQuestionnaires(tenantId),
+    supabase
+      .from('el_assignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .is('completed_at', null),
+  ])
 
   if (!kpiResult.ok) return null
   const kpi = kpiResult.data
@@ -58,7 +64,8 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
 
   return {
     headcount: {
-      activeEmployees: kpi.retention.totalActiveEmployees,
+      activeEmployees: kpi.retention.totalActiveEmployees - kpi.retention.companyDoctorCount,
+      companyDoctorCount: kpi.retention.companyDoctorCount,
       hiredThisMonth: kpi.retention.hiredThisMonth,
       turnoverRatePercent: kpi.retention.turnoverRatePercent,
       openJobPostings: kpi.recruit.openJobPostings,

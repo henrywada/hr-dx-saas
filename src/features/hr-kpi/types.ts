@@ -18,6 +18,8 @@ export interface RetentionKpi {
   turnoverCountLast12Months: number
   /** 在籍従業員総数 */
   totalActiveEmployees: number
+  /** 在籍中の産業医数（app_role.app_role='company_doctor'） */
+  companyDoctorCount: number
   /** 離職率（%、直近12ヶ月） */
   turnoverRatePercent: number | null
   /** 平均在籍年数（月単位、activeな従業員のhired_dateから算出） */

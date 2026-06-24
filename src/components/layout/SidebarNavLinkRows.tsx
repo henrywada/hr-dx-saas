@@ -3,7 +3,45 @@
 import React from 'react'
 import Link, { useLinkStatus } from 'next/link'
 import type { LucideIcon } from 'lucide-react'
-import { ChevronRight, Briefcase, LayoutDashboard, Loader2 } from 'lucide-react'
+import {
+  ChevronRight,
+  Briefcase,
+  LayoutDashboard,
+  Loader2,
+  HeartPulse,
+  Stethoscope,
+  HeartHandshake,
+  GraduationCap,
+  BookOpen,
+  ClipboardList,
+  Clock,
+  UserPlus,
+  UserCog,
+  Wrench,
+  Settings,
+  Workflow,
+} from 'lucide-react'
+
+/** カテゴリ名のキーワードに応じてふさわしいアイコンを返す（最初にマッチしたルールを採用） */
+const CATEGORY_ICON_RULES: [RegExp, LucideIcon][] = [
+  [/ストレスチェック/, HeartPulse],
+  [/産業医|保健師/, Stethoscope],
+  [/健康経営/, HeartHandshake],
+  [/スキル|能力向上/, GraduationCap],
+  [/研修|eラーニング/, BookOpen],
+  [/アンケート/, ClipboardList],
+  [/勤退|勤怠/, Clock],
+  [/採用/, UserPlus],
+  [/人事情報登録/, UserCog],
+  [/ツールボックス/, Wrench],
+  [/基本登録|基本設定/, Settings],
+  [/業務処理/, Workflow],
+]
+
+function getCategoryIcon(categoryName: string): LucideIcon {
+  const rule = CATEGORY_ICON_RULES.find(([pattern]) => pattern.test(categoryName))
+  return rule ? rule[1] : Briefcase
+}
 
 type DashboardRowProps = {
   href: string
@@ -60,6 +98,7 @@ type CategoryRowProps = {
 
 function CategoryLinkInner({ active, categoryName }: { active: boolean; categoryName: string }) {
   const { pending } = useLinkStatus()
+  const Icon = getCategoryIcon(categoryName)
   return (
     <>
       {active && (
@@ -71,7 +110,7 @@ function CategoryLinkInner({ active, categoryName }: { active: boolean; category
           aria-hidden
         />
       ) : (
-        <Briefcase
+        <Icon
           className={`w-5 h-5 transition-colors ${
             active ? 'text-[#FD7601]' : 'text-[#57606a] group-hover:text-[#24292f]'
           }`}

@@ -26,6 +26,14 @@ function formatPercent(value: number | null): string {
   return value === null ? '—' : `${value}%`
 }
 
+function formatPercentValue(value: number | null): string {
+  return value === null ? '—' : `${value}`
+}
+
+function formatActiveEmployeesSub(companyDoctorCount: number): string {
+  return companyDoctorCount === 0 ? '名' : `名（産業医：${companyDoctorCount}名）`
+}
+
 export default async function HrDashboardPage() {
   const summary = await getAdmDashboardSummary()
 
@@ -58,18 +66,23 @@ export default async function HrDashboardPage() {
         <KpiSummaryCard
           label="在籍社員数"
           value={`${summary.headcount.activeEmployees}`}
-          sub="名"
+          sub={formatActiveEmployeesSub(summary.headcount.companyDoctorCount)}
+          subClassName="text-gray-900"
           icon={<Users className="h-4 w-4" />}
+          align="right"
         />
         <KpiSummaryCard
           label="今月入社"
           value={`${summary.headcount.hiredThisMonth}`}
           sub="名"
           icon={<UserPlus className="h-4 w-4" />}
+          align="right"
         />
         <KpiSummaryCard
           label="離職率（年換算）"
-          value={formatPercent(summary.headcount.turnoverRatePercent)}
+          value={formatPercentValue(summary.headcount.turnoverRatePercent)}
+          sub={summary.headcount.turnoverRatePercent === null ? undefined : '%'}
+          subClassName="text-gray-900"
           status={
             summary.headcount.turnoverRatePercent !== null &&
             summary.headcount.turnoverRatePercent >= 10
@@ -77,12 +90,14 @@ export default async function HrDashboardPage() {
               : 'normal'
           }
           icon={<TrendingDown className="h-4 w-4" />}
+          align="right"
         />
         <KpiSummaryCard
           label="採用中ポジション"
           value={`${summary.headcount.openJobPostings}`}
           sub="件"
           icon={<Briefcase className="h-4 w-4" />}
+          align="right"
         />
       </div>
 

@@ -1,8 +1,10 @@
 /** /adm メインダッシュボードに表示する集約データ */
 export interface AdmDashboardSummary {
   headcount: {
-    /** 在籍社員数 */
+    /** 在籍社員数（産業医を除く） */
     activeEmployees: number
+    /** 在籍中の産業医数 */
+    companyDoctorCount: number
     /** 今月入社の社員数 */
     hiredThisMonth: number
     /** 離職率（年換算、%） */

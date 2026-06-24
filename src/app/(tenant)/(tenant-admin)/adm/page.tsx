@@ -1,308 +1,179 @@
-import React from 'react'
 import {
-  Sparkles,
-  FileText,
+  Users,
+  UserPlus,
+  TrendingDown,
   Briefcase,
+  HeartPulse,
+  GraduationCap,
+  MessageCircle,
   Activity,
-  AlertTriangle,
-  Lightbulb,
-  ArrowRight,
-  TrendingUp,
-  LineChart,
   BookOpen,
-  Zap,
-  ExternalLink,
+  ClipboardList,
+  Wrench,
 } from 'lucide-react'
-import Link from 'next/link'
+import { KpiSummaryCard } from '@/features/hr-kpi/components/KpiSummaryCard'
+import { DashboardSectionCard } from '@/features/adm-dashboard/components/DashboardSectionCard'
+import { ToolboxGrid } from '@/features/adm-dashboard/components/ToolboxGrid'
+import { getAdmDashboardSummary } from '@/features/adm-dashboard/queries'
 import { APP_ROUTES } from '@/config/routes'
 
-export default function HrDashboardPage() {
-  return (
-    <div className="space-y-4 w-full px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
-      {/* 1. Header Area */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#161b22] tracking-tight">
-          💡管理ダッシュボード
-        </h1>
-        <p className="text-sm text-[#57606a] mt-2">
-          本日のタスクと採用状況のサマリーを確認できます。
+function formatPercent(value: number | null): string {
+  return value === null ? '—' : `${value}%`
+}
+
+export default async function HrDashboardPage() {
+  const summary = await getAdmDashboardSummary()
+
+  if (!summary) {
+    return (
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
+        <p className="text-sm text-[#57606a]">
+          テナント情報を取得できませんでした。再度ログインしてください。
         </p>
       </div>
+    )
+  }
 
-      {/* 2. Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Card 1: AI Generation Tickets */}
-        <div className="bg-white rounded-lg border border-[#e2e6ec] p-4 shadow-xs transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Sparkles size={80} className="text-[#FD7601]" />
-          </div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-[#fff3e6] text-[#FD7601] rounded-md">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#fff3e6] text-[#FD7601]">
-              利用中
-            </span>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-[#57606a] mb-1">AI生成チケット</p>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-baseline gap-1">
-                <h3 className="text-2xl font-bold font-mono text-[#161b22]">8</h3>
-                <span className="text-sm font-medium text-[#57606a]">/ 10回</span>
-              </div>
-              <div className="w-full bg-[#f6f8fa] rounded-full h-2 mt-1">
-                <div className="bg-[#FD7601] h-2 rounded-full" style={{ width: '80%' }}></div>
-              </div>
-              <p className="text-[10px] text-[#57606a] mt-1">※今月の残り回数（毎月1日リセット）</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Saved Drafts */}
-        <div className="bg-white rounded-lg border border-[#e2e6ec] p-4 shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-md">
-              <FileText className="w-4 h-4" />
-            </div>
-            <Link
-              href="#"
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center transition-colors"
-            >
-              アーカイブを見る <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-[#57606a] mb-1">保存済みの求人原稿</p>
-            <div className="flex items-baseline gap-1">
-              <h3 className="text-2xl font-bold font-mono text-[#161b22]">15</h3>
-              <span className="text-sm font-medium text-[#57606a]">件</span>
-            </div>
-            <div className="flex items-center gap-1.5 mt-3 text-xs text-[#57606a]">
-              <span className="flex items-center text-emerald-600 font-medium">
-                <TrendingUp className="w-3 h-3 mr-0.5" /> +2
-              </span>
-              <span>先週比</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Active Jobs */}
-        <div className="bg-white rounded-lg border border-[#e2e6ec] p-4 shadow-xs transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-[#f6f8fa] text-[#FD7601] rounded-md">
-              <Briefcase className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#e8f0fe] text-[#1a56db]">
-              公開中
-            </span>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-[#57606a] mb-1">公開中の求人数</p>
-            <div className="flex items-baseline gap-1">
-              <h3 className="text-2xl font-bold font-mono text-[#161b22]">3</h3>
-              <span className="text-sm font-medium text-[#57606a]">件</span>
-            </div>
-            <p className="text-xs text-[#57606a] mt-3 flex items-center gap-1">
-              <span>エンジニア職、営業職など</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Organization Health */}
-        <div className="bg-white rounded-lg border border-[#e2e6ec] p-4 shadow-xs transition-shadow relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-md">
-              <Activity className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-[#57606a] mb-1">組織の健康度（平均）</p>
-            <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-bold font-mono text-[#161b22]">良好</h3>
-              <span className="text-sm font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                B判定
-              </span>
-            </div>
-            <p className="text-xs text-[#57606a] mt-3 flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-              概ね安定しています
-            </p>
-          </div>
-        </div>
+  return (
+    <div className="mx-auto w-full max-w-[1200px] space-y-4 px-4 py-6 sm:px-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-[#161b22] sm:text-3xl">
+          人事ダッシュボード
+        </h1>
       </div>
 
-      {/* 3. Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Left Column: AI Insights & Alerts */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
-            <div className="p-1.5 bg-[#fff3e6] text-[#FD7601] rounded-md shadow-inner">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <h3 className="font-bold text-sm text-slate-800">AIからの採用インサイト ＆ アラート</h3>
-          </div>
-
-          <ul className="divide-y divide-[#ebebeb]">
-            {/* Alert / Task */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <div className="flex items-start gap-3 py-2 px-4 sm:px-5 outline-none focus:bg-slate-50">
-                <div className="p-1.5 bg-rose-100 text-rose-600 rounded-md shadow-inner shrink-0">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded-full">
-                      タスク
-                    </span>
-                    <span className="text-xs text-[#57606a] font-medium">1時間前</span>
-                  </div>
-                  <p className="text-xs font-medium text-slate-900 leading-relaxed">
-                    今月の組織度アンケート（Echo）、未回答の従業員が{' '}
-                    <span className="text-rose-600 font-bold">12名</span> います。
-                  </p>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    回答期限は明日までです。対象者へリマインドを送信しますか？
-                  </p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded transition-colors shadow-sm"
-                    >
-                      リマインドメールを作成
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </li>
-
-            {/* Insight / Suggestion */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <div className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50">
-                <div className="p-1.5 bg-[#fff3e6] text-[#FD7601] rounded-md shadow-inner shrink-0">
-                  <Lightbulb className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-bold text-[#FD7601] bg-[#fff3e6] px-1.5 py-0.5 rounded-full">
-                      市場動向
-                    </span>
-                    <span className="text-xs text-[#57606a] font-medium">本日</span>
-                  </div>
-                  <p className="text-xs font-medium text-slate-900 leading-relaxed">
-                    現在、『エンジニア 東京』の採用競合が激化しています。
-                  </p>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    他社の提示給与水準が上昇傾向にあります。AI求人メーカーを使用して、自社の魅力をより強く打ち出すスカウト文に見直してみませんか？
-                  </p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-[#FD7601] bg-white border border-[#e2e6ec] hover:bg-[#fff3e6] px-3 py-1.5 rounded transition-colors shadow-sm flex items-center"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      改善案をAIに生成させる
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        {/* Right Column: Quick Actions */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
-            <div className="p-1.5 bg-[#fff3e6] text-[#FD7601] rounded-md shadow-inner">
-              <Zap className="w-4 h-4" />
-            </div>
-            <h3 className="font-bold text-sm text-slate-800">クイックアクション</h3>
-          </div>
-
-          <ul className="divide-y divide-[#ebebeb]">
-            {/* Action 1: AI求人・募集文メーカー */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <div className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50">
-                <div className="p-1.5 bg-[#FD7601] text-white rounded-md shadow-inner shrink-0">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
-                      AI求人・募集文メーカー
-                    </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  </div>
-                  <p className="text-xs text-slate-600">新規で求人票やスカウト文を作成する</p>
-                </div>
-              </div>
-            </li>
-
-            {/* Action 2: 採用市場・競合を分析する */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <button
-                type="button"
-                className="w-full text-left flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50"
-              >
-                <div className="p-1.5 bg-[#fff3e6] text-[#FD7601] rounded-md shadow-inner shrink-0">
-                  <LineChart className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
-                      採用市場・競合を分析する
-                    </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  </div>
-                  <p className="text-xs text-slate-600">最新の市況データを確認できます</p>
-                </div>
-              </button>
-            </li>
-
-            {/* Action 3: 出勤・退勤データの明細一覧 */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <Link
-                href={APP_ROUTES.TENANT.ADMIN_ATTENDANCE_DASHBOARD}
-                className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50"
-              >
-                <div className="p-1.5 bg-slate-100 text-slate-700 rounded-md shadow-inner shrink-0">
-                  <Activity className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
-                      出勤・退勤データの明細一覧
-                    </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  </div>
-                  <p className="text-xs text-slate-600">残業・アラート・従業員別一覧（人事）</p>
-                </div>
-              </Link>
-            </li>
-
-            {/* Action 4: マニュアル集 */}
-            <li className="group hover:bg-slate-50/80 transition-colors">
-              <Link
-                href={APP_ROUTES.TENANT.ADMIN_MANUAL}
-                className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50"
-              >
-                <div className="p-1.5 bg-amber-50 text-amber-700 rounded-md shadow-inner shrink-0">
-                  <BookOpen className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-bold text-blue-600! group-hover:text-blue-700! transition-colors">
-                      マニュアル集
-                    </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  </div>
-                  <p className="text-xs text-slate-600">システムの説明・利用方法等を説明</p>
-                </div>
-              </Link>
-            </li>
-          </ul>
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiSummaryCard
+          label="在籍社員数"
+          value={`${summary.headcount.activeEmployees}`}
+          sub="名"
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiSummaryCard
+          label="今月入社"
+          value={`${summary.headcount.hiredThisMonth}`}
+          sub="名"
+          icon={<UserPlus className="h-4 w-4" />}
+        />
+        <KpiSummaryCard
+          label="離職率（年換算）"
+          value={formatPercent(summary.headcount.turnoverRatePercent)}
+          status={
+            summary.headcount.turnoverRatePercent !== null &&
+            summary.headcount.turnoverRatePercent >= 10
+              ? 'danger'
+              : 'normal'
+          }
+          icon={<TrendingDown className="h-4 w-4" />}
+        />
+        <KpiSummaryCard
+          label="採用中ポジション"
+          value={`${summary.headcount.openJobPostings}`}
+          sub="件"
+          icon={<Briefcase className="h-4 w-4" />}
+        />
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-[#161b22]">サーベイ・ウェルビーイング</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DashboardSectionCard
+            icon={<HeartPulse className="h-4 w-4" />}
+            iconClassName="bg-rose-50 text-rose-600"
+            title="パルスサーベイ"
+            description="毎週・隔週・月次で短いアンケートを自動配信。eNPS・エンゲージメントスコアをリアルタイム追跡。"
+            href={APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE}
+            stats={[
+              { label: '回答率', value: formatPercent(summary.pulseSurvey.responseRatePercent) },
+              {
+                label: 'eNPS',
+                value: summary.pulseSurvey.score === null ? '—' : `${summary.pulseSurvey.score}`,
+              },
+            ]}
+          />
+          <DashboardSectionCard
+            icon={<GraduationCap className="h-4 w-4" />}
+            iconClassName="bg-emerald-50 text-emerald-600"
+            title="スキル・能力向上"
+            description="社員ごとのスキルマップ管理。研修履歴・資格取得状況、不足スキルのギャップ分析も。"
+            href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP}
+            stats={[
+              {
+                label: '研修完了率',
+                value: formatPercent(summary.skillDevelopment.elCompletionRatePercent),
+              },
+              {
+                label: 'スキルギャップ率',
+                value: formatPercent(summary.skillDevelopment.skillGapRatePercent),
+              },
+            ]}
+          />
+          <DashboardSectionCard
+            icon={<MessageCircle className="h-4 w-4" />}
+            iconClassName="bg-sky-50 text-sky-600"
+            title="1on1/フォローアップ"
+            description="マネージャーと部下の1on1を記録・可視化。アジェンダテンプレート・アクションアイテム管理・次回日程スケジュール。"
+            href={APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE}
+            stats={[
+              { label: '今月実施件数', value: `${summary.oneOnOne.sessionsLast30Days}件` },
+              { label: '未実施', value: `${summary.oneOnOne.overdueCount}名` },
+            ]}
+          />
+          <DashboardSectionCard
+            icon={<Activity className="h-4 w-4" />}
+            iconClassName="bg-amber-50 text-amber-600"
+            title="ストレスチェック"
+            description="法定57項目を電子実施。高ストレス者の自動判定・産業医連携・集団分析レポートで労働局提出まで対応。"
+            href={APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_GROUP_ANALYSIS}
+            stats={[
+              {
+                label: '実施率',
+                value: formatPercent(summary.stressCheck.submissionRatePercent),
+              },
+              { label: '高ストレス者', value: `${summary.stressCheck.highStressCount}名` },
+            ]}
+          />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-[#161b22]">学習・成長</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DashboardSectionCard
+            icon={<BookOpen className="h-4 w-4" />}
+            iconClassName="bg-violet-50 text-violet-600"
+            title="eラーニング"
+            description="コース作成・受講管理・修了証発行を一元化。スキル・能力向上と連動し、不足スキルに対応した研修を自動配信。"
+            href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
+            stats={[
+              { label: '公開コース', value: `${summary.eLearning.publishedCourseCount}件` },
+              { label: '受講中', value: `${summary.eLearning.inProgressAssignmentCount}件` },
+            ]}
+          />
+          <DashboardSectionCard
+            icon={<ClipboardList className="h-4 w-4" />}
+            iconClassName="bg-slate-100 text-slate-700"
+            title="アンケート（汎用）"
+            description="パルスサーベイ・ストレスチェック以外の自由形式アンケートを作成・配信・集計。入社後・退職理由・研修評価など。"
+            href={APP_ROUTES.TENANT.ADMIN_SURVEY}
+            stats={[
+              { label: '実施中', value: `${summary.questionnaire.activeCount}件` },
+              {
+                label: '平均回答率',
+                value: formatPercent(summary.questionnaire.averageResponseRatePercent),
+              },
+            ]}
+          />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-[#161b22]">
+          <Wrench className="h-4 w-4" />
+          ツールボックス
+        </h2>
+        <ToolboxGrid />
+      </section>
     </div>
   )
 }

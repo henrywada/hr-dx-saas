@@ -45,6 +45,44 @@ async function performDelete(table: string, id: string) {
   return { success: true }
 }
 
+// --- Service Class ---
+export async function createServiceClass(item: any) {
+  return performCreate('service_class', item)
+}
+export async function updateServiceClass(id: string, updates: any) {
+  return performUpdate('service_class', id, updates)
+}
+export async function deleteServiceClass(id: string) {
+  return performDelete('service_class', id)
+}
+
+// --- Service Class Index（サービスカテゴリ ⇔ クラス の紐付け）---
+export async function setServiceCategoryClass(categoryId: string, classId: string | null) {
+  const supabase = createAdminClient()
+
+  const { error: delError } = await supabase
+    .from('service_class_index')
+    .delete()
+    .eq('service_category_id', categoryId)
+  if (delError) {
+    console.error('setServiceCategoryClass delete error:', delError)
+    return { success: false, error: delError.message }
+  }
+
+  if (classId) {
+    const { error: insError } = await supabase
+      .from('service_class_index')
+      .insert({ service_category_id: categoryId, service_class_id: classId })
+    if (insError) {
+      console.error('setServiceCategoryClass insert error:', insError)
+      return { success: false, error: insError.message }
+    }
+  }
+
+  revalidatePath('/saas_adm/system-master')
+  return { success: true }
+}
+
 // --- Service Category ---
 export async function createServiceCategory(item: any) {
   return performCreate('service_category', item)

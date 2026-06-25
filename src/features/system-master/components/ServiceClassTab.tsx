@@ -5,77 +5,33 @@ import { useState, useEffect } from 'react'
 import { useSystemMaster } from '../hooks/useSystemMaster'
 
 interface Props {
-  initialCategories: any[]
   initialClasses: any[]
-  initialClassIndex: any[]
 }
 
-export default function ServiceCategoryTab({
-  initialCategories,
-  initialClasses,
-  initialClassIndex,
-}: Props) {
-  const {
-    createServiceCategory,
-    updateServiceCategory,
-    deleteServiceCategory,
-    setServiceCategoryClass,
-  } = useSystemMaster()
+export default function ServiceClassTab({ initialClasses }: Props) {
+  const { createServiceClass, updateServiceClass, deleteServiceClass } = useSystemMaster()
 
   // プロパティとして受け取ったデータをそのまま使用 (revalidatePath で更新されるため)
   // 変更直後にUIを同期させるために useState を使うが、propsが変わったら追従させる
-  const [categories, setCategories] = useState<any[]>(initialCategories)
+  const [classes, setClasses] = useState<any[]>(initialClasses)
   const [newName, setNewName] = useState('')
   const [newSortOrder, setNewSortOrder] = useState<number | string>('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editData, setEditData] = useState<any>({})
   const [loading, setLoading] = useState(false)
 
-  // カテゴリID → クラスID のマッピング（service_class_index）
-  const [classIndexMap, setClassIndexMap] = useState<Record<string, string>>(
-    Object.fromEntries(
-      initialClassIndex.map((row: any) => [row.service_category_id, row.service_class_id])
-    )
-  )
-  const [classChanging, setClassChanging] = useState<string | null>(null)
-
   useEffect(() => {
-    setCategories(initialCategories)
-  }, [initialCategories])
-
-  useEffect(() => {
-    setClassIndexMap(
-      Object.fromEntries(
-        initialClassIndex.map((row: any) => [row.service_category_id, row.service_class_id])
-      )
-    )
-  }, [initialClassIndex])
-
-  // クラス紐付けの変更
-  const handleClassChange = async (categoryId: string, classId: string) => {
-    setClassChanging(categoryId)
-    try {
-      const result = await setServiceCategoryClass(categoryId, classId || null)
-      if (result.success) {
-        setClassIndexMap(prev => ({ ...prev, [categoryId]: classId }))
-      } else {
-        alert(`クラス紐付けエラー: ${result.error}`)
-      }
-    } catch (err: any) {
-      alert(`クラス紐付けエラー: ${err.message}`)
-    } finally {
-      setClassChanging(null)
-    }
-  }
+    setClasses(initialClasses)
+  }, [initialClasses])
 
   // 新規登録
   const handleCreate = async () => {
-    if (!newName.trim()) return alert('カテゴリ名を入力してください')
+    if (!newName.trim()) return alert('クラス名を入力してください')
     setLoading(true)
     try {
-      const result = await createServiceCategory({
+      const result = await createServiceClass({
         name: newName,
-        sort_order: newSortOrder === '' ? categories.length + 1 : Number(newSortOrder),
+        sort_order: newSortOrder === '' ? classes.length + 1 : Number(newSortOrder),
       })
       if (result.success) {
         setNewName('')
@@ -93,7 +49,7 @@ export default function ServiceCategoryTab({
   const handleSave = async (id: string) => {
     setLoading(true)
     try {
-      const result = await updateServiceCategory(id, editData[id])
+      const result = await updateServiceClass(id, editData[id])
       if (result.success) {
         setEditingId(null)
       }
@@ -108,19 +64,19 @@ export default function ServiceCategoryTab({
   const handleDelete = async (id: string, name: string) => {
     if (
       !confirm(
-        `カテゴリ「${name}」を削除してもよろしいですか？\n※このカテゴリに紐づくサービスがある場合、エラーになる可能性があります。`
+        `クラス「${name}」を削除してもよろしいですか？\n※このクラスに紐づくカテゴリがある場合、エラーになる可能性があります。`
       )
     ) {
       return
     }
     setLoading(true)
     try {
-      const result = await deleteServiceCategory(id)
+      const result = await deleteServiceClass(id)
       if (result.success) {
         // revalidatePath で props 更新
       }
     } catch (err: any) {
-      alert(`削除エラー: ${err.message}\n(サービスが紐づいている可能性があります)`)
+      alert(`削除エラー: ${err.message}\n(カテゴリが紐づいている可能性があります)`)
     } finally {
       setLoading(false)
     }
@@ -147,7 +103,7 @@ export default function ServiceCategoryTab({
         />
         <input
           type="text"
-          placeholder="新しいカテゴリ名を入力"
+          placeholder="新しいクラス名を入力"
           value={newName}
           onChange={e => setNewName(e.target.value)}
           style={{ padding: 'var(--space-2) var(--space-4)', borderRadius: 'var(--radius-sm)' }}
@@ -190,13 +146,7 @@ export default function ServiceCategoryTab({
                 style={{ padding: `var(--space-2) var(--space-3)` }}
                 className="text-left text-xs font-semibold text-gray-700"
               >
-                カテゴリ名
-              </th>
-              <th
-                style={{ padding: `var(--space-2) var(--space-3)` }}
-                className="text-left text-xs font-semibold text-gray-700 w-44"
-              >
-                クラス
+                クラス名
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
@@ -207,8 +157,8 @@ export default function ServiceCategoryTab({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {categories.map((cat, rowIndex) => (
-              <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors">
+            {classes.map((cls, rowIndex) => (
+              <tr key={cls.id} className="hover:bg-gray-50/50 transition-colors">
                 <td
                   style={{ padding: `var(--space-2) var(--space-2)` }}
                   className="text-center text-xs text-gray-600 tabular-nums"
@@ -216,7 +166,7 @@ export default function ServiceCategoryTab({
                   {rowIndex + 1}
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }}>
-                  {editingId === cat.id ? (
+                  {editingId === cls.id ? (
                     <input
                       type="number"
                       style={{
@@ -224,63 +174,44 @@ export default function ServiceCategoryTab({
                         borderRadius: 'var(--radius-sm)',
                       }}
                       className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs"
-                      value={editData[cat.id]?.sort_order ?? ''}
+                      value={editData[cls.id]?.sort_order ?? ''}
                       onChange={e =>
                         setEditData({
                           ...editData,
-                          [cat.id]: { ...editData[cat.id], sort_order: Number(e.target.value) },
+                          [cls.id]: { ...editData[cls.id], sort_order: Number(e.target.value) },
                         })
                       }
                     />
                   ) : (
-                    <span className="text-gray-800 text-xs">{cat.sort_order}</span>
+                    <span className="text-gray-800 text-xs">{cls.sort_order}</span>
                   )}
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }}>
-                  {editingId === cat.id ? (
+                  {editingId === cls.id ? (
                     <input
                       style={{
                         padding: `var(--space-1) var(--space-2)`,
                         borderRadius: 'var(--radius-sm)',
                       }}
                       className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs"
-                      value={editData[cat.id]?.name || ''}
+                      value={editData[cls.id]?.name || ''}
                       onChange={e =>
                         setEditData({
                           ...editData,
-                          [cat.id]: { ...editData[cat.id], name: e.target.value },
+                          [cls.id]: { ...editData[cls.id], name: e.target.value },
                         })
                       }
                     />
                   ) : (
-                    <span className="text-gray-800 text-xs">{cat.name}</span>
+                    <span className="text-gray-800 text-xs">{cls.name}</span>
                   )}
-                </td>
-                <td style={{ padding: `var(--space-2) var(--space-3)` }}>
-                  <select
-                    value={classIndexMap[cat.id] ?? ''}
-                    disabled={classChanging === cat.id}
-                    onChange={e => handleClassChange(cat.id, e.target.value)}
-                    style={{
-                      padding: `var(--space-1) var(--space-2)`,
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                    className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs disabled:opacity-50"
-                  >
-                    <option value="">未設定</option>
-                    {initialClasses.map(cls => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }} className="text-center">
                   <div style={{ gap: 'var(--space-3)' }} className="flex justify-center">
-                    {editingId === cat.id ? (
+                    {editingId === cls.id ? (
                       <>
                         <button
-                          onClick={() => handleSave(cat.id)}
+                          onClick={() => handleSave(cls.id)}
                           className="text-[#FD7601] font-bold hover:underline text-xs"
                         >
                           保存
@@ -296,8 +227,8 @@ export default function ServiceCategoryTab({
                       <>
                         <button
                           onClick={() => {
-                            setEditingId(cat.id)
-                            setEditData({ [cat.id]: cat })
+                            setEditingId(cls.id)
+                            setEditData({ [cls.id]: cls })
                           }}
                           className="text-[#FD7601] hover:text-orange-700 text-sm"
                           title="編集"
@@ -305,7 +236,7 @@ export default function ServiceCategoryTab({
                           ✏️
                         </button>
                         <button
-                          onClick={() => handleDelete(cat.id, cat.name)}
+                          onClick={() => handleDelete(cls.id, cls.name)}
                           className="text-red-500 hover:text-red-700 text-sm"
                           title="削除"
                         >

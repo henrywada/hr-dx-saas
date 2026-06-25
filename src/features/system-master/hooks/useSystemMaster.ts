@@ -1,6 +1,10 @@
-'use client';
+'use client'
 
 import {
+  createServiceClass,
+  updateServiceClass,
+  deleteServiceClass,
+  setServiceCategoryClass,
   createServiceCategory,
   updateServiceCategory,
   deleteServiceCategory,
@@ -17,30 +21,36 @@ import {
   bulkSetTenantServices,
   getTenantServices,
   generateAiAdvice,
-} from '../actions';
+} from '../actions'
 
 export function useSystemMaster() {
   return {
+    // Service Class
+    createServiceClass,
+    updateServiceClass,
+    deleteServiceClass,
+    setServiceCategoryClass,
+
     // Service Category
     createServiceCategory,
     updateServiceCategory,
     deleteServiceCategory,
-    
+
     // Service
     createService,
     updateService,
     deleteService,
-    
+
     // App Role
     createAppRole,
     updateAppRole,
     deleteAppRole,
-    
+
     // App Role Service
     toggleAppRoleService,
     bulkSetAppRoleServiceColumn,
     getAppRoleServices,
-    
+
     // Tenant Service
     toggleTenantService,
     bulkSetTenantServices,
@@ -48,5 +58,5 @@ export function useSystemMaster() {
 
     // AI Advice
     generateAiAdvice,
-  };
+  }
 }

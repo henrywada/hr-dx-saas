@@ -7,9 +7,20 @@ import { useSystemMaster } from '../hooks/useSystemMaster'
 interface Props {
   initialServices: any[]
   categories: any[]
+  classes: any[]
+  classIndex: any[]
 }
 
-export default function ServiceTab({ initialServices, categories }: Props) {
+export default function ServiceTab({ initialServices, categories, classes, classIndex }: Props) {
+  // カテゴリID → クラスID のマッピング（service_class_index）
+  const classIdForCategory: Record<string, string> = Object.fromEntries(
+    classIndex.map((row: any) => [row.service_category_id, row.service_class_id])
+  )
+  const classNameForCategory = (categoryId: string | null | undefined) => {
+    if (!categoryId) return '-'
+    const classId = classIdForCategory[categoryId]
+    return classes.find(cls => cls.id === classId)?.name || '-'
+  }
   const { updateService, createService, deleteService, generateServiceAiAdvice } = useSystemMaster()
 
   const [services, setServices] = useState<any[]>([])
@@ -192,7 +203,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
         <h3 className="text-lg font-semibold">サービス一覧</h3>
         <button
           onClick={handleAddNew}
-          className="px-4 py-1.5 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold"
+          className="px-4 py-1 bg-[#FD7601] text-white rounded hover:bg-[#FD7601] font-bold"
         >
           + 新規追加
         </button>
@@ -244,22 +255,40 @@ export default function ServiceTab({ initialServices, categories }: Props) {
         )}
       </div>
 
-      <div className="overflow-x-auto border rounded-md shadow-xs">
+      <div className="overflow-x-auto border border-[#e2e6ec] rounded-xl">
         <table className="min-w-full bg-white border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-16 text-center">No</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-48">カテゴリ</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-20 text-center">順序</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-96">name</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-32">対象(Audience)</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold">タイトル</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold">ルート</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-24 text-center">
+          <thead>
+            <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-16 text-center">
+                No
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-32">
+                クラス
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-48">
+                カテゴリ
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-20 text-center">
+                順序
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-96">
+                name
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-32">
+                対象(Audience)
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider">
+                タイトル
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider">
+                ルート
+              </th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-24 text-center">
                 ステータス
               </th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-28 text-center">作成日</th>
-              <th className="px-4 py-1.5 border-b text-xs font-bold w-48 text-center">操作</th>
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-48 text-center">
+                操作
+              </th>
             </tr>
           </thead>
           {filteredServices.map((item, index) => {
@@ -271,14 +300,19 @@ export default function ServiceTab({ initialServices, categories }: Props) {
             const isCategoryStart = index === 0 || currCat !== prevCat
 
             return (
-              <tbody key={item.id} className="border-b">
+              <tbody key={item.id} className="border-b border-[#e2e6ec]">
                 <tr
                   className={
-                    isCategoryStart ? 'bg-green-50 hover:bg-green-100/70' : 'hover:bg-gray-50'
+                    isCategoryStart
+                      ? 'bg-green-50 hover:bg-green-100/70'
+                      : 'bg-white hover:bg-[#f6f8fa] transition-colors'
                   }
                 >
-                  <td className="px-4 py-1.5 text-center align-middle">{index + 1}</td>
-                  <td className="px-4 py-1.5 align-middle">
+                  <td className="px-4 py-1 text-center align-middle">{index + 1}</td>
+                  <td className="px-4 py-1 align-middle text-xs text-gray-600">
+                    {classNameForCategory(categoryIdForRow(item))}
+                  </td>
+                  <td className="px-4 py-1 align-middle">
                     {isEditing ? (
                       <select
                         value={data.service_category_id || ''}
@@ -295,7 +329,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       categories.find(c => c.id === item.service_category_id)?.name || '-'
                     )}
                   </td>
-                  <td className="px-4 py-1.5 text-center align-middle">
+                  <td className="px-4 py-1 text-center align-middle">
                     {isEditing ? (
                       <input
                         type="number"
@@ -307,7 +341,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       item.sort_order
                     )}
                   </td>
-                  <td className="px-4 py-1.5 align-middle">
+                  <td className="px-4 py-1 align-middle">
                     {isEditing ? (
                       <input
                         type="text"
@@ -319,7 +353,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       item.name
                     )}
                   </td>
-                  <td className="px-4 py-1.5 align-middle">
+                  <td className="px-4 py-1 align-middle">
                     {isEditing ? (
                       <select
                         value={data.target_audience || 'all_users'}
@@ -336,7 +370,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-1.5 align-middle text-center">
+                  <td className="px-4 py-1 align-middle text-center">
                     {isEditing ? (
                       <input
                         type="text"
@@ -350,7 +384,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       '-'
                     )}
                   </td>
-                  <td className="px-4 py-1.5 align-middle">
+                  <td className="px-4 py-1 align-middle">
                     {isEditing ? (
                       <input
                         type="text"
@@ -362,7 +396,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       item.route_path
                     )}
                   </td>
-                  <td className="px-4 py-1.5 text-center align-middle">
+                  <td className="px-4 py-1 text-center align-middle">
                     {isEditing ? (
                       <select
                         value={data.release_status || '下書き'}
@@ -380,14 +414,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-1.5 text-center align-middle text-xs text-gray-600">
-                    {item.created_at
-                      ? new Date(item.created_at).toLocaleDateString('ja-JP', {
-                          timeZone: 'Asia/Tokyo',
-                        })
-                      : '-'}
-                  </td>
-                  <td className="px-4 py-1.5 text-center align-middle">
+                  <td className="px-4 py-1 text-center align-middle">
                     <div className="flex justify-center gap-3 items-center">
                       {isEditing ? (
                         <>
@@ -489,7 +516,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
                       ? undefined
                       : '対応するページが見つからないため自動生成できません'
                   }
-                  className={`flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-xs rounded-md hover:opacity-90 transition-opacity shadow-xs ${
+                  className={`flex items-center gap-2 px-4 py-1 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-xs rounded-md hover:opacity-90 transition-opacity shadow-xs ${
                     isAiLoading || !aiAdviceAvailable ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >

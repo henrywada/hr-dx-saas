@@ -84,7 +84,12 @@ export default function SystemMasterTabs({
           />
         )}
         {activeTab === 'service' && (
-          <ServiceTab initialServices={initialServices} categories={initialCategories} />
+          <ServiceTab
+            initialServices={initialServices}
+            categories={initialCategories}
+            classes={initialClasses}
+            classIndex={initialClassIndex}
+          />
         )}
         {activeTab === 'app_role' && <AppRoleTab initialRoles={initialRoles} />}
         {activeTab === 'role_service' && (

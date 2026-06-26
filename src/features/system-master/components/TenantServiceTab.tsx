@@ -1,122 +1,118 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
+'use client'
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSystemMaster } from '../hooks/useSystemMaster';
-import { Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSystemMaster } from '../hooks/useSystemMaster'
+import { Check } from 'lucide-react'
 
 interface Props {
-  initialTenants: any[];
-  initialServices: any[];
-  initialTenantServices: any[];
-  initialCategories: any[];
+  initialTenants: any[]
+  initialServices: any[]
+  initialTenantServices: any[]
+  initialCategories: any[]
 }
 
 export default function TenantServiceTab({
   initialTenants,
   initialServices,
   initialTenantServices,
-  initialCategories
+  initialCategories,
 }: Props) {
-  const router = useRouter();
-  const { toggleTenantService, bulkSetTenantServices } = useSystemMaster();
-  const headerCheckboxRef = useRef<HTMLInputElement>(null);
-  const [tenants, setTenants] = useState<any[]>(initialTenants);
-  const [services, setServices] = useState<any[]>(initialServices);
-  const [tenantServices, setTenantServices] = useState<any[]>(initialTenantServices);
-  const [selectedTenantId, setSelectedTenantId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const { toggleTenantService, bulkSetTenantServices } = useSystemMaster()
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
+  const [tenants, setTenants] = useState<any[]>(initialTenants)
+  const [services, setServices] = useState<any[]>(initialServices)
+  const [tenantServices, setTenantServices] = useState<any[]>(initialTenantServices)
+  const [selectedTenantId, setSelectedTenantId] = useState<string>('')
+  const [loading, setLoading] = useState(false)
 
   // カテゴリIDから名前を引くマップ
-  const categoryMap = new Map<string, string>();
+  const categoryMap = new Map<string, string>()
   initialCategories.forEach((cat: any) => {
-    categoryMap.set(cat.id, cat.name);
-  });
+    categoryMap.set(cat.id, cat.name)
+  })
 
   useEffect(() => {
-    setTenants(initialTenants);
-    setServices(initialServices);
-    setTenantServices(initialTenantServices);
+    setTenants(initialTenants)
+    setServices(initialServices)
+    setTenantServices(initialTenantServices)
     // 初回ロード時やテナント一覧が更新された時に、未選択なら最初のテナントを選択する
     if (initialTenants.length > 0 && !selectedTenantId) {
-      setSelectedTenantId(initialTenants[0].id);
+      setSelectedTenantId(initialTenants[0].id)
     }
-  }, [initialTenants, initialServices, initialTenantServices, selectedTenantId]);
+  }, [initialTenants, initialServices, initialTenantServices, selectedTenantId])
 
   const handleToggle = async (serviceId: string, currentEnabled: boolean) => {
-    if (loading || !selectedTenantId) return;
-    setLoading(true);
+    if (loading || !selectedTenantId) return
+    setLoading(true)
 
     try {
-      const result = await toggleTenantService(selectedTenantId, serviceId, !currentEnabled);
+      const result = await toggleTenantService(selectedTenantId, serviceId, !currentEnabled)
 
       if (!result.success) {
-        alert(`更新に失敗しました: ${result.error}`);
+        alert(`更新に失敗しました: ${result.error}`)
       }
     } catch (error: any) {
-      alert(`エラーが発生しました: ${error.message}`);
+      alert(`エラーが発生しました: ${error.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const isEnabled = (serviceId: string) => {
     return tenantServices.some(
-      (ts) => ts.tenant_id === selectedTenantId && ts.service_id === serviceId
-    );
-  };
+      ts => ts.tenant_id === selectedTenantId && ts.service_id === serviceId
+    )
+  }
 
   // SaaS 管理専用サービスは一覧から除外（getServices と同じ並び）
-  const displayServices = services.filter(s => s.target_audience !== 'saas_adm');
-  const allRowsEnabled =
-    displayServices.length > 0 && displayServices.every((s) => isEnabled(s.id));
-  const noRowsEnabled =
-    displayServices.length === 0 || displayServices.every((s) => !isEnabled(s.id));
+  const displayServices = services.filter(s => s.target_audience !== 'saas_adm')
+  const allRowsEnabled = displayServices.length > 0 && displayServices.every(s => isEnabled(s.id))
+  const noRowsEnabled = displayServices.length === 0 || displayServices.every(s => !isEnabled(s.id))
 
   useEffect(() => {
-    const el = headerCheckboxRef.current;
-    if (!el) return;
-    el.indeterminate = !allRowsEnabled && !noRowsEnabled && displayServices.length > 0;
-  }, [allRowsEnabled, noRowsEnabled, displayServices.length]);
+    const el = headerCheckboxRef.current
+    if (!el) return
+    el.indeterminate = !allRowsEnabled && !noRowsEnabled && displayServices.length > 0
+  }, [allRowsEnabled, noRowsEnabled, displayServices.length])
 
   const handleBulkToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const wantOn = e.target.checked;
-    if (loading || !selectedTenantId || displayServices.length === 0) return;
-    setLoading(true);
+    const wantOn = e.target.checked
+    if (loading || !selectedTenantId || displayServices.length === 0) return
+    setLoading(true)
     try {
-      const ids = displayServices.map((s) => s.id);
-      const result = await bulkSetTenantServices(selectedTenantId, ids, wantOn);
+      const ids = displayServices.map(s => s.id)
+      const result = await bulkSetTenantServices(selectedTenantId, ids, wantOn)
       if (!result.success) {
-        alert(`更新に失敗しました: ${result.error}`);
-        return;
+        alert(`更新に失敗しました: ${result.error}`)
+        return
       }
-      setTenantServices((prev) => {
+      setTenantServices(prev => {
         if (wantOn) {
-          const keys = new Set(prev.map((ts) => `${ts.tenant_id}:${ts.service_id}`));
-          const next = [...prev];
+          const keys = new Set(prev.map(ts => `${ts.tenant_id}:${ts.service_id}`))
+          const next = [...prev]
           for (const s of displayServices) {
-            const k = `${selectedTenantId}:${s.id}`;
+            const k = `${selectedTenantId}:${s.id}`
             if (!keys.has(k)) {
-              next.push({ tenant_id: selectedTenantId, service_id: s.id });
-              keys.add(k);
+              next.push({ tenant_id: selectedTenantId, service_id: s.id })
+              keys.add(k)
             }
           }
-          return next;
+          return next
         }
-        const idSet = new Set(displayServices.map((s) => s.id));
-        return prev.filter(
-          (ts) => !(ts.tenant_id === selectedTenantId && idSet.has(ts.service_id))
-        );
-      });
-      router.refresh();
+        const idSet = new Set(displayServices.map(s => s.id))
+        return prev.filter(ts => !(ts.tenant_id === selectedTenantId && idSet.has(ts.service_id)))
+      })
+      router.refresh()
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      alert(`エラーが発生しました: ${message}`);
+      const message = error instanceof Error ? error.message : String(error)
+      alert(`エラーが発生しました: ${message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
@@ -131,40 +127,58 @@ export default function TenantServiceTab({
         <select
           id="tenant-select"
           value={selectedTenantId}
-          onChange={(e) => setSelectedTenantId(e.target.value)}
+          onChange={e => setSelectedTenantId(e.target.value)}
           className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
         >
           {tenants.map(t => (
-            <option key={t.id} value={t.id}>{t.name}</option>
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
           ))}
-          {tenants.length === 0 && (
-            <option value="">テナントが存在しません</option>
-          )}
+          {tenants.length === 0 && <option value="">テナントが存在しません</option>}
         </select>
       </div>
 
       {/* サービス一覧（縦並び） */}
       {selectedTenantId ? (
-        <div className="bg-white rounded-md border border-gray-200 overflow-hidden shadow-xs">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-3 py-1.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12 min-w-12">
+        <div className="bg-white rounded-xl border border-[#e2e6ec] overflow-hidden">
+          <table className="min-w-full">
+            <thead>
+              <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider w-12 min-w-12"
+                >
                   No
                 </th>
-                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider"
+                >
                   対象(Audience)
                 </th>
-                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider"
+                >
                   カテゴリー
                 </th>
-                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider"
+                >
                   サービス名
                 </th>
-                <th scope="col" className="px-6 py-1.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider"
+                >
                   パス
                 </th>
-                <th scope="col" className="px-6 py-1.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-36">
+                <th
+                  scope="col"
+                  className="px-4 py-1 text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider w-36"
+                >
                   <div className="flex flex-col items-center gap-2">
                     <span>有効 / 無効</span>
                     <label className="flex cursor-pointer items-center gap-1.5 font-normal normal-case tracking-normal">
@@ -183,36 +197,39 @@ export default function TenantServiceTab({
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody>
               {displayServices.map((service, rowIndex) => {
-                const enabled = isEnabled(service.id);
+                const enabled = isEnabled(service.id)
                 return (
-                  <tr key={service.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-1.5 whitespace-nowrap text-center text-xs text-gray-600 tabular-nums">
+                  <tr
+                    key={service.id}
+                    className="bg-white hover:bg-[#f6f8fa] border-b border-[#e2e6ec] transition-colors"
+                  >
+                    <td className="px-4 py-1 whitespace-nowrap text-center text-xs text-gray-600 tabular-nums">
                       {rowIndex + 1}
                     </td>
-                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-700">
+                    <td className="px-4 py-1 whitespace-nowrap text-xs text-gray-700">
                       <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-[#f6f8fa] text-[#FD7601] border border-[#e2e6ec]">
                         {service.target_audience ?? 'all_users'}
                       </span>
                     </td>
-                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-700">
+                    <td className="px-4 py-1 whitespace-nowrap text-xs text-gray-700">
                       {categoryMap.get(service.service_category_id) || '未設定'}
                     </td>
-                    <td className="px-6 py-1.5 whitespace-nowrap text-xs font-medium text-gray-900">
+                    <td className="px-4 py-1 whitespace-nowrap text-sm font-medium text-[#24292f]">
                       {service.name}
                     </td>
-                    <td className="px-6 py-1.5 whitespace-nowrap text-xs text-gray-500">
+                    <td className="px-4 py-1 whitespace-nowrap text-xs text-gray-500">
                       <span className="px-2.5 py-1 rounded bg-gray-100 text-xs text-gray-600 font-mono">
                         {service.route_path || '設定なし'}
                       </span>
                     </td>
-                    <td className="px-6 py-1.5 whitespace-nowrap text-center">
+                    <td className="px-4 py-1 whitespace-nowrap text-center">
                       <button
                         onClick={() => handleToggle(service.id, enabled)}
                         disabled={loading}
                         className={`
-                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
                           transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-2
                           ${enabled ? 'bg-[#FD7601]' : 'bg-gray-200'}
                           ${loading ? 'opacity-50 cursor-not-allowed' : ''}
@@ -223,7 +240,7 @@ export default function TenantServiceTab({
                         <span
                           aria-hidden="true"
                           className={`
-                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
                             transition duration-200 ease-in-out
                             ${enabled ? 'translate-x-5' : 'translate-x-0'}
                           `}
@@ -235,11 +252,11 @@ export default function TenantServiceTab({
                       </button>
                     </td>
                   </tr>
-                );
+                )
               })}
               {services.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-xs text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
                     サービスが登録されていません。
                   </td>
                 </tr>
@@ -253,5 +270,5 @@ export default function TenantServiceTab({
         </div>
       )}
     </div>
-  );
+  )
 }

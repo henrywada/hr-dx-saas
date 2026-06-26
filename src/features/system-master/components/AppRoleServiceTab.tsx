@@ -185,11 +185,11 @@ export default function AppRoleServiceTab({
         {loading && <span className="text-[#FD7601] animate-pulse font-bold">更新中...</span>}
       </div>
 
-      <div className="overflow-x-auto border rounded-md shadow-xs">
+      <div className="overflow-x-auto border border-[#e2e6ec] rounded-xl">
         <table className="min-w-full bg-white border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-2 py-1.5 border text-center text-xs font-bold text-gray-700 bg-gray-100 sticky left-0 z-20 w-12 min-w-12">
+          <thead>
+            <tr className="bg-[#f6f8fa] border-b border-[#e2e6ec]">
+              <th className="px-2 py-1 border-[#e2e6ec] text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider bg-[#f6f8fa] sticky left-0 z-20 w-12 min-w-12">
                 <div className="flex flex-col items-center gap-1">
                   <input
                     ref={allCheckboxRef}
@@ -204,19 +204,19 @@ export default function AppRoleServiceTab({
                   <span className="leading-tight text-[10px]">すべて</span>
                 </div>
               </th>
-              <th className="px-4 py-1.5 border text-left text-xs font-bold text-gray-700 bg-gray-100 sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <th className="px-4 py-1 border-[#e2e6ec] text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider bg-[#f6f8fa] sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                 サービス \ ロール
               </th>
 
               {/* target_audience 列（ロール列の左側） */}
-              <th className="px-4 py-1.5 border text-center text-xs font-bold text-gray-700 min-w-[140px]">
+              <th className="px-4 py-1 border-[#e2e6ec] text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider min-w-[140px]">
                 対象 (Audience)
               </th>
 
               {matrixRoles.map(role => (
                 <th
                   key={role.id}
-                  className="px-4 py-1.5 border text-center text-xs font-bold text-gray-700 min-w-[120px]"
+                  className="px-4 py-1 border-[#e2e6ec] text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider min-w-[120px]"
                 >
                   <div className="flex flex-col items-center gap-1.5">
                     <input
@@ -237,18 +237,21 @@ export default function AppRoleServiceTab({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {admServices.map((service, rowIndex) => (
-              <tr key={service.id} className="hover:bg-gray-50">
-                <td className="px-2 py-1.5 border text-center text-xs text-gray-600 tabular-nums bg-white sticky left-0 z-20">
+              <tr
+                key={service.id}
+                className="bg-white hover:bg-[#f6f8fa] border-b border-[#e2e6ec] transition-colors"
+              >
+                <td className="px-2 py-1 border-[#e2e6ec] text-center text-xs text-gray-600 tabular-nums bg-white sticky left-0 z-20">
                   {rowIndex + 1}
                 </td>
-                <td className="px-4 py-1.5 border font-medium text-gray-800 bg-white sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <td className="px-4 py-1 border-[#e2e6ec] text-sm font-medium text-[#24292f] bg-white sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   {service.name}
                 </td>
 
                 {/* ここに target_audience を表示（null の場合は all_users を表示） */}
-                <td className="px-4 py-1.5 border text-center">
+                <td className="px-4 py-1 border-[#e2e6ec] text-center">
                   <span className="inline-block px-2 py-1 text-xs font-mono bg-gray-100 rounded">
                     {service.target_audience ?? 'all_users'}
                   </span>
@@ -258,7 +261,10 @@ export default function AppRoleServiceTab({
                   const isEnabled = isCellEnabled(role.id, service.id)
 
                   return (
-                    <td key={`${role.id}-${service.id}`} className="px-4 py-1.5 border text-center">
+                    <td
+                      key={`${role.id}-${service.id}`}
+                      className="px-4 py-1 border-[#e2e6ec] text-center"
+                    >
                       <div className="flex justify-center items-center h-full">
                         <input
                           type="checkbox"

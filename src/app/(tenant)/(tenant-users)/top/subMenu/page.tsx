@@ -55,6 +55,7 @@ async function PortalSubMenuCategoryContent({ categoryId }: { categoryId: string
       .select('*')
       .eq('service_category_id', categoryId)
       .eq('release_status', '公開')
+      .eq('target_audience', 'all_users')
       .in('id', tenantServiceIds)
       .order('sort_order', { ascending: true })
     services = data
@@ -70,7 +71,7 @@ async function PortalSubMenuCategoryContent({ categoryId }: { categoryId: string
   ]
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 slide-in-from-bottom-4 px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
+    <div className="space-y-4 animate-in fade-in duration-500 slide-in-from-bottom-4 px-4 sm:px-6 py-6 mx-auto max-w-300">
       <div className="relative pl-5">
         <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-linear-to-b from-blue-500 to-blue-600 rounded-full" />
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -99,6 +100,7 @@ async function PortalSubMenuCategoryContent({ categoryId }: { categoryId: string
                 title={service.title}
                 name={service.name}
                 description={service.description}
+                serviceName={service.name}
               />
             )
           })}

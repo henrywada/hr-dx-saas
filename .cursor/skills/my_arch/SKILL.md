@@ -10,6 +10,18 @@ description: >-
 
 このスキルを読み込んだら、以下を **声に出して確認** し、理解を示してから開発に進む。
 
+**正典は CLAUDE.md。** アーキテクチャ・権限モデル・基本要件（目標・ペルソナ・app_role定義・メニュー制御テーブル・divisions階層）の詳細な記述はすべて `CLAUDE.md` に集約されている。このスキルはCursor上で開発を始める前に声に出して確認するための要点のみを保持する（重複する詳細表は持たない）。
+
+---
+
+## 0. 基本要件（要点・詳細はCLAUDE.mdの「基本要件」参照）
+
+- **目標**：IT部門に余裕のない中小企業へSaaSを販売し、組織の活性化を支援する。「人を大切に、コミュニケーションを大切に、従業員の能力を活かす組織形成」が理念。
+- **ペルソナ**：日本の中小企業（従業員50〜1000名）の経営者・人事責任者
+- **権限判定**：`app_role.app_role = 'employee'` → テナントユーザ（管理操作不可） ／ `<> 'employee'` → テナント管理者（役割区分あり） ／ `= 'developer'`（コード上は `user.role === 'supaUser'` とのOR条件もある）→ SaaS管理者
+- **メニュー制御**：`service_class` → `service_category` → `services` を `tenant_service`・`app_role_service` の **両方** でフィルタして表示する
+- **組織階層**：`divisions`（`layer` / `parent_id`）。集計SQL・フルパス表示等の詳細は `/my_divisions` を使う
+
 ---
 
 ## 1. 画面の種類とルーティング
@@ -24,6 +36,7 @@ src/app/
 │   └── (tenant-admin)/
 │       └── adm/page.tsx   ← テナント管理者 TOP（URL: /adm）
 │           layout.tsx     → variant="admin"   グリーン背景 (#f2f8f8)
+│                            ロールガードあり（employeeは/topへリダイレクト）
 └── (saas-admin)/
     └── saas_adm/page.tsx  ← SaaS管理者 TOP（URL: /saas_adm）
         layout.tsx         → variant="saas" + ロールガード
@@ -31,15 +44,7 @@ src/app/
 
 **ルートグループの () は URL に現れない。** `/top` は `(tenant)/(tenant-users)/top/` にある。
 
-### 3 つの variant とその違い
-
-| variant | 対象ユーザー | 背景色 | ロールガード |
-|---------|------------|--------|------------|
-| `"portal"` | 一般従業員 | 白 `#F9FAFB` | なし（middleware で認証済み） |
-| `"admin"` | テナント管理者 | グリーン `#f2f8f8` | なし（ページ/クエリレベルで制御） |
-| `"saas"` | SaaS管理者 | グリーン `#f2f8f8` | layout で `supaUser`/`developer` のみ許可 |
-
-**新機能追加時、対象ユーザーに合ったルートグループに `page.tsx` を配置する。**
+**新機能追加時、対象ユーザーに合ったルートグループに `page.tsx` を配置する。**（配置先の対応は上記「0. 基本要件」参照）
 
 ---
 
@@ -72,84 +77,18 @@ AuthProvider（useAuth() フック用）
 
 ## 3. 認証とユーザー情報（getServerUser）
 
-**すべての Server Component は `getServerUser()` でユーザーを取得する。**
-
-```typescript
-// src/lib/auth/server-user.ts
-const user = await getServerUser()
-// user が null → 未認証（middleware が /login にリダイレクト）
-```
-
-`getServerUser()` が返す `AppUser` 型:
-
-| フィールド | 内容 | 用途例 |
-|-----------|------|--------|
-| `id` | auth.users の UUID | Supabase RLS |
-| `role` | `'member'` / `'supaUser'` など | SaaS管理者判定 |
-| `appRole` | `app_role.app_role` コード | 権限制御 |
-| `appRoleName` | 日本語の役割名 | 画面表示 |
-| `tenant_id` | テナント ID | RLS・データ取得 |
-| `tenant_name` | テナント名 | 表示 |
-| `employee_id` | `employees.id` | 紐付けクエリ |
-| `division_id` | 所属部署 ID | 部署フィルタ |
-| `is_manager` | 上長フラグ | 承認フロー |
-| `planType` | `'free'` / `'pro'` / `'enterprise'` | プラン制御 |
+**すべての Server Component は `src/lib/auth/server-user.ts` の `getServerUser()` でユーザーを取得する。** 返り値（`AppUser` 型の各フィールド：`appRole` / `tenant_id` / `planType` / `employee_id` / `division_id` / `is_manager` 等）の詳細は CLAUDE.md の「ユーザー情報（AppUser 型）」表を参照する（重複保持しない）。
 
 ---
 
 ## 4. データアクセスパターン（厳守）
 
 ```
-page.tsx（Server Component）
-  → src/features/[domain]/queries.ts    # SELECT のみ
-  → 結果を Client Component に Props で渡す
-
-Client Component
-  → src/features/[domain]/actions.ts    # INSERT / UPDATE / DELETE
+page.tsx（Server Component） → src/features/[domain]/queries.ts（SELECT のみ） → Client Component へ Props で渡す
+Client Component → src/features/[domain]/actions.ts（INSERT/UPDATE/DELETE, Server Actions）
 ```
 
-### queries.ts の書き方
-
-```typescript
-import { createClient } from '@/lib/supabase/server'
-
-export async function getSomethingList() {
-  const supabase = await createClient()   // ← RLS 有効
-  const { data, error } = await supabase
-    .from('some_table')
-    .select('*')
-  if (error) throw error
-  return data
-}
-```
-
-### actions.ts の書き方
-
-```typescript
-'use server'
-import { createClient } from '@/lib/supabase/server'
-import { getServerUser } from '@/lib/auth/server-user'
-import { revalidatePath } from 'next/cache'
-
-export async function createSomething(input: Input) {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const supabase = await createClient()
-  const { error } = await supabase.from('some_table').insert({ ...input })
-  if (error) throw error
-
-  revalidatePath('/adm/some-path')
-}
-```
-
-### Supabase クライアントの使い分け
-
-| クライアント | インポート元 | 用途 |
-|-------------|------------|------|
-| `createClient()` | `@/lib/supabase/server` | 一般ユーザー・管理者（RLS 有効） |
-| `createClient()` | `@/lib/supabase/client` | ブラウザ用（RLS 有効） |
-| `createAdminClient()` | `@/lib/supabase/admin` | SaaS管理者・バッチ専用（RLS バイパス） |
+ボイラープレートのコード例は `/my_scaffold` を使う。Supabaseクライアントの使い分け（`createClient()` / `createAdminClient()`）はCLAUDE.mdの「Supabaseクライアントの使い分け」参照。
 
 **⚠️ エンドユーザーが触れる actions.ts で `createAdminClient()` を絶対に使わない。**
 
@@ -159,10 +98,10 @@ export async function createSomething(input: Input) {
 
 ```
 □ src/config/routes.ts に APP_ROUTES 定数を追加したか
-□ 正しいルートグループ（default/colored/saas-admin）に page.tsx を配置したか
-□ features/[domain]/ に queries.ts / actions.ts / types.ts を作成したか
+□ 正しいルートグループ（portal/admin/saas-admin）に page.tsx を配置したか
+□ features/[domain]/ に queries.ts / actions.ts / types.ts を作成したか（/my_scaffold で生成可）
 □ page.tsx の中で直接 supabase.from() を呼んでいないか
-□ 新テーブルに RLS ポリシーを設定したか
+□ 新テーブルに RLS ポリシーを設定したか（/my_migration で生成可）
 □ URL をハードコードせず APP_ROUTES を使っているか
 □ loading.tsx と error.tsx を配置したか
 □ コードコメントは日本語で書いているか
@@ -172,14 +111,7 @@ export async function createSomething(input: Input) {
 
 ## 6. 絶対禁止事項（要確認）
 
-| 禁止 | 理由 |
-|------|------|
-| `supabase db reset` の実行 | ローカルデータ消滅 |
-| エンドユーザー向け actions.ts で `createAdminClient()` | RLS バイパス・データ漏洩リスク |
-| RLS なしの新テーブル | 他社データ漏洩の直接原因 |
-| `app/api/` に不要なAPI Route | 外部連携以外は Server Actions に集約 |
-| URL のハードコード | `APP_ROUTES` 定数を使う |
-| `npx supabase` | グローバルインストール版の `supabase` を使う |
+詳細・理由はCLAUDE.mdの「絶対禁止」表を参照（同一内容を重複保持しない）。要点：`supabase db reset` 禁止／エンドユーザー向け`actions.ts`で`createAdminClient()`禁止／RLSなし新テーブル禁止／`app/api/`への不要なAPI Route追加禁止／URLハードコード禁止／`npx supabase`禁止。
 
 ---
 
@@ -203,9 +135,10 @@ export async function createSomething(input: Input) {
 
 このスキルを読み込んだ後、以下を確認してから開発を始める：
 
-1. **作業対象のページはどのルートグループに属するか？** （default / colored / saas-admin）
-2. **対象ユーザーは誰か？** （一般従業員 / テナント管理者 / SaaS管理者）
-3. **データ取得は queries.ts、書き込みは actions.ts に分離されているか？**
-4. **新テーブルを作る場合、RLS ポリシーは設定したか？**
+1. **基本要件（目標・ペルソナ・権限モデル）を理解したか？**
+2. **作業対象のページはどのルートグループに属するか？** （portal / admin / saas-admin）
+3. **対象ユーザーは誰か？** （一般従業員 / テナント管理者 / SaaS管理者）
+4. **データ取得は queries.ts、書き込みは actions.ts に分離されているか？**
+5. **新テーブルを作る場合、RLS ポリシーは設定したか？**
 
 確認後、「アーキテクチャ確認完了。[作業内容] を開始します。」と宣言してから作業に入る。

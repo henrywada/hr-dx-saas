@@ -14,11 +14,16 @@ import { writeAuditLog } from '@/lib/log/actions'
 import { useMobileMenu } from '@/components/layout/MobileMenuContext'
 
 interface SidebarNavProps {
-  dynamicCategories: {
+  classGroups: {
     id: string
     name: string
-    sort_order: number
+    categories: {
+      id: string
+      name: string
+      sort_order: number
+    }[]
   }[]
+  overviewLabel: string
   tenantName?: string
   isSaaSAdmin?: boolean
   basePath?: string
@@ -29,7 +34,8 @@ interface SidebarNavProps {
 }
 
 export function SidebarNav({
-  dynamicCategories,
+  classGroups,
+  overviewLabel,
   tenantName,
   isSaaSAdmin = false,
   basePath = `${APP_ROUTES.TENANT.PORTAL}/subMenu`,
@@ -78,7 +84,7 @@ export function SidebarNav({
   }
 
   const navLinkBase =
-    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative'
+    'flex items-center gap-3 px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 group relative'
   const navLinkInactive = 'text-[#24292f] hover:bg-[#f6f8fa]'
   const navLinkActive = 'bg-[#fff3e6] text-[#FD7601] border-l-2 border-[#FD7601]'
 
@@ -95,44 +101,49 @@ export function SidebarNav({
       <aside
         className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 bg-white border-r border-[#e2e6ec] flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
       >
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
-          {/* Main Navigation */}
-          <div>
-            <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wider mb-3 px-3">
-              メインメニュー
-            </h3>
-            <nav className="space-y-1">
-              <SidebarDashboardLinkRow
-                href={dashboardHref}
-                isActive={isActive(dashboardHref)}
-                onNavigate={() => setIsMobileMenuOpen(false)}
-                linkClassName={`${navLinkBase} ${
-                  isActive(dashboardHref) ? navLinkActive : navLinkInactive
-                }`}
-              />
-            </nav>
-          </div>
-
+        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           {/* Dynamic Business Menu & Logout */}
           <div>
-            <nav className="space-y-1">
-              {dynamicCategories.length > 0 &&
-                dynamicCategories.map(category => {
-                  const categoryPath = `${basePath}?service_category_id=${category.id}`
-                  const active = isActive(basePath, category.id)
+            {/* Overview Group */}
+            <div>
+              <h3 className="text-[11px] font-medium text-[#57606a] mb-2 px-3">{overviewLabel}</h3>
+              <nav className="space-y-0 pb-2 mb-2 border-b border-[#e2e6ec]">
+                <SidebarDashboardLinkRow
+                  href={dashboardHref}
+                  isActive={isActive(dashboardHref)}
+                  onNavigate={() => setIsMobileMenuOpen(false)}
+                  linkClassName={`${navLinkBase} ${
+                    isActive(dashboardHref) ? navLinkActive : navLinkInactive
+                  }`}
+                />
+              </nav>
+            </div>
 
-                  return (
-                    <SidebarCategoryLinkRow
-                      key={category.id}
-                      href={categoryPath}
-                      categoryName={category.name}
-                      active={active}
-                      onNavigate={() => setIsMobileMenuOpen(false)}
-                      linkClassName={`${navLinkBase} ${active ? navLinkActive : navLinkInactive}`}
-                    />
-                  )
-                })}
+            {/* Class Groups */}
+            {classGroups.map(group => (
+              <div key={group.id}>
+                <h3 className="text-[11px] font-medium text-[#57606a] mb-2 px-3">{group.name}</h3>
+                <nav className="space-y-0 pb-2 mb-2 border-b border-[#e2e6ec]">
+                  {group.categories.map(category => {
+                    const categoryPath = `${basePath}?service_category_id=${category.id}`
+                    const active = isActive(basePath, category.id)
 
+                    return (
+                      <SidebarCategoryLinkRow
+                        key={category.id}
+                        href={categoryPath}
+                        categoryName={category.name}
+                        active={active}
+                        onNavigate={() => setIsMobileMenuOpen(false)}
+                        linkClassName={`${navLinkBase} ${active ? navLinkActive : navLinkInactive}`}
+                      />
+                    )
+                  })}
+                </nav>
+              </div>
+            ))}
+
+            <nav className="space-y-0">
               {/* Logout / Return Button */}
               {isSaaSAdmin && !showLogoutInsteadOfPortal ? (
                 <SidebarPlainNavLink
@@ -153,7 +164,7 @@ export function SidebarNav({
 
               {/* Login Tenant Display */}
               {tenantName && (
-                <div className="mt-6 pt-4 border-t border-[#e2e6ec] px-2">
+                <div className="mt-2 pt-2 border-t border-[#e2e6ec] px-2">
                   <p className="text-xs font-semibold text-[#57606a] truncate">{tenantName}</p>
                 </div>
               )}

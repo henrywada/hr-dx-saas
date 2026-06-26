@@ -1,7 +1,8 @@
 'use client'
 
 import Link, { useLinkStatus } from 'next/link'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Loader2, ArrowRight, LucideIcon } from 'lucide-react'
+import { getServiceIcon } from './getServiceIcon'
 
 export type SubMenuCardVariant = {
   bar: string
@@ -17,6 +18,7 @@ type Props = {
   title: string | null
   name: string
   description: string | null
+  serviceName?: string | null
   /** admin: 管理サブメニュー。portal / saas: ラベル小さめ・説明は line-clamp */
   layout: SubMenuServiceCardLayout
 }
@@ -44,14 +46,18 @@ function SubMenuServiceCardInner({
   title,
   name,
   description,
+  serviceName,
   layout,
 }: Omit<Props, 'href'>) {
   const { pending } = useLinkStatus()
+  const Icon = getServiceIcon(null, serviceName)
 
   return (
     <>
       {/* AIスロップ（サイドストライプ）を排除し、スマートな上部アクセントバーを採用。グループホバー時に太さが自然に変化するマイクロインタラクション */}
-      <div className={`absolute left-0 right-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5 ${variant.bar}`} />
+      <div
+        className={`absolute left-0 right-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5 ${variant.bar}`}
+      />
 
       {pending ? (
         <div
@@ -74,13 +80,20 @@ function SubMenuServiceCardInner({
           <div className="h-4 mb-1.5" />
         )}
 
-        <h3 className={`text-base sm:text-lg font-bold text-slate-900 mb-1.5 transition-colors ${variant.hover}`}>
-          {name}
-        </h3>
+        <div className="flex items-start gap-2.5">
+          {Icon ? (
+            <Icon className={`w-5 h-5 mt-0.5 shrink-0 transition-colors ${variant.text}`} />
+          ) : null}
+          <div className="flex-1">
+            <h3
+              className={`text-base sm:text-lg font-bold text-slate-900 mb-1.5 transition-colors ${variant.hover}`}
+            >
+              {name}
+            </h3>
 
-        {description ? (
-          <p className={descriptionClass(layout)}>{description}</p>
-        ) : null}
+            {description ? <p className={descriptionClass(layout)}>{description}</p> : null}
+          </div>
+        </div>
 
         {/* ホバー時に美しくスライドして現れる右向きアロー */}
         <div className="mt-auto pt-4 flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
@@ -91,7 +104,15 @@ function SubMenuServiceCardInner({
   )
 }
 
-export function SubMenuServiceCard({ href, variant, title, name, description, layout }: Props) {
+export function SubMenuServiceCard({
+  href,
+  variant,
+  title,
+  name,
+  description,
+  serviceName,
+  layout,
+}: Props) {
   return (
     <Link
       href={href}
@@ -107,6 +128,7 @@ export function SubMenuServiceCard({ href, variant, title, name, description, la
         title={title}
         name={name}
         description={description}
+        serviceName={serviceName}
         layout={layout}
       />
     </Link>

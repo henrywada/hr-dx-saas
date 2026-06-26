@@ -1,0 +1,1 @@
+`.cursor/skills/my_scaffold/SKILL.md` を読み込み、その手順に従って実行する。

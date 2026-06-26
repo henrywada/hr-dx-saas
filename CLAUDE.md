@@ -9,8 +9,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **HR-DX SaaS** — 日本の人事領域向けマルチテナント SaaS プラットフォーム。テナント企業の人事 DX（採用・勤怠・ストレスチェック・組織管理等）を一元化する。
 
 - テナント分離：Supabase RLS による行レベルセキュリティ（物理・論理の両面で完全隔離）
-- ユーザー種別：一般従業員 / テナント管理者（人事）/ SaaS 管理者（supaUser）
+- ユーザー種別：一般従業員 / テナント管理者（人事）/ SaaS 管理者（権限モデルの詳細は下記「基本要件」参照）
 - 主要機能：ストレスチェック・QR 出退勤・AI 採用支援・残業管理・組織診断・パルスサーベイ・eラーニング
+
+---
+
+## 基本要件（プロダクトビジョン・権限モデル）
+
+### 目標
+
+1. IT部門に余裕のない中小企業へSaaSを販売し、組織の活性化を支援する
+2. 「人を大切に、コミュニケーションを大切に、従業員の能力を活かす組織形成」を重視したシステムとする
+
+### ペルソナ
+
+日本の中小企業（従業員50〜1000名）の経営者・人事責任者
+
+### 権限モデル（app_role テーブル）
+
+`app_role` は「テナントユーザの権限・役割」と「役割ごとに有効な機能（services）」を定義するマスタテーブル。`employees.app_role_id` で各従業員に割り当てる。
+
+| 区分 | 判定条件 | 説明 |
+| --- | --- | --- |
+| テナントユーザ（従業員） | `app_role.app_role = 'employee'` | テナント内の一般アクセス権限のみ。管理操作不可 |
+| テナント管理者 | `app_role.app_role <> 'employee'` | テナント内データの管理権限。`app_role.app_role` の値ごとに有効な機能が異なる（役割区分） |
+| SaaS管理者 | `app_role.app_role = 'developer'` | 全テナントデータへのアクセス可（テナント作成等の運用業務）。コード上は `user.role === 'supaUser'`（レガシーの user_metadata 判定）とのOR条件で許可している箇所がある（`src/app/(saas-admin)/layout.tsx`）。新規実装では `appRole === 'developer'` を優先して判定する |
+
+コンポーネント配置（権限別、下記「ルートグループ構造」と対応）：
+- テナントユーザ → `src/app/(tenant)/(tenant-users)/`
+- テナント管理者 → `src/app/(tenant)/(tenant-admin)/adm/`
+- SaaS管理者 → `src/app/(saas-admin)/saas_adm/`
+
+### 組織階層（divisions）
+
+`divisions` テーブルで `layer`（階層番号、Top階層は `1`）と `parent_id`（親組織ID、Top階層は `NULL`）により組織ツリーを定義する。従業員の所属組織は `employees.division_id` で参照する（未配属は `null`）。
+
+### メニュー構成とサービス機能制御
+
+メニュー画面は「サイドメニュー（大分類）」＋「サービス機能メニュー（カードボタン一覧）」の2階層で構成される。
+
+| テーブル | 役割 |
+| --- | --- |
+| `service_class` | `service_category` を分類する大分類 |
+| `service_category` | サイドメニュー表示用のサービス機能分類キー |
+| `services` | サービス機能の定義（遷移先URL等） |
+| `tenant_service` | テナント単位で有効な機能を定義 |
+| `app_role_service` | 役割（`app_role`）単位で有効な機能を定義 |
+
+管理画面メニューは `tenant_service` と `app_role_service` の **両方** の条件でフィルタする（テナント未契約の機能、または役割に許可されていない機能は表示しない）。
+
+---
 
 **技術スタック：** Next.js 16（App Router）+ React 19、TypeScript 5（strict: false）、Supabase（PostgreSQL + RLS + Auth）、Tailwind CSS v4、Zod v4、Recharts、SWR、OpenAI SDK、date-fns
 

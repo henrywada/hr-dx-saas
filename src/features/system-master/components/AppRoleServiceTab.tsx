@@ -19,6 +19,7 @@ export default function AppRoleServiceTab({
   const router = useRouter()
   const { toggleAppRoleService, bulkSetAppRoleServiceColumn } = useSystemMaster()
   const headerCheckboxRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const allCheckboxRef = useRef<HTMLInputElement | null>(null)
   const [roles, setRoles] = useState<any[]>(initialRoles)
   const [services, setServices] = useState<any[]>(initialServices)
   const [roleServices, setRoleServices] = useState<any[]>(initialRoleServices)
@@ -46,6 +47,15 @@ export default function AppRoleServiceTab({
   const columnNoneEnabled = (roleId: string) =>
     admServices.length === 0 || admServices.every(s => !isCellEnabled(roleId, s.id))
 
+  const allMatrixEnabled = () =>
+    matrixRoles.length > 0 &&
+    admServices.length > 0 &&
+    matrixRoles.every(role => admServices.every(s => isCellEnabled(role.id, s.id)))
+  const noneMatrixEnabled = () =>
+    matrixRoles.length === 0 ||
+    admServices.length === 0 ||
+    matrixRoles.every(role => admServices.every(s => !isCellEnabled(role.id, s.id)))
+
   useEffect(() => {
     matrixRoles.forEach(role => {
       const el = headerCheckboxRefs.current[role.id]
@@ -62,6 +72,14 @@ export default function AppRoleServiceTab({
         )
       el.indeterminate = !all && !none && admServices.length > 0
     })
+
+    // 全選択チェックボックスの状態を更新
+    const allEl = allCheckboxRef.current
+    if (!allEl) return
+    const all = allMatrixEnabled()
+    const none = noneMatrixEnabled()
+    allEl.checked = all
+    allEl.indeterminate = !all && !none
   }, [matrixRoles, admServices, roleServices])
 
   const handleBulkColumn = async (roleId: string, wantOn: boolean) => {
@@ -89,6 +107,50 @@ export default function AppRoleServiceTab({
         }
         const idSet = new Set(admServices.map(s => s.id))
         return prev.filter(rs => !(rs.app_role_id === roleId && idSet.has(rs.service_id)))
+      })
+      router.refresh()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      alert(`エラーが発生しました: ${message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBulkAll = async (wantOn: boolean) => {
+    if (loading || matrixRoles.length === 0 || admServices.length === 0) return
+    setLoading(true)
+    try {
+      const promises = matrixRoles.map(role => {
+        const serviceIds = admServices.map(s => s.id)
+        return bulkSetAppRoleServiceColumn(role.id, serviceIds, wantOn)
+      })
+      const results = await Promise.all(promises)
+      const hasError = results.some(r => !r.success)
+      if (hasError) {
+        alert('一部の更新に失敗しました')
+        return
+      }
+      setRoleServices(prev => {
+        if (wantOn) {
+          const keys = new Set(prev.map(rs => `${rs.app_role_id}:${rs.service_id}`))
+          const next = [...prev]
+          for (const role of matrixRoles) {
+            for (const s of admServices) {
+              const k = `${role.id}:${s.id}`
+              if (!keys.has(k)) {
+                next.push({ app_role_id: role.id, service_id: s.id })
+                keys.add(k)
+              }
+            }
+          }
+          return next
+        }
+        const roleIdSet = new Set(matrixRoles.map(r => r.id))
+        const serviceIdSet = new Set(admServices.map(s => s.id))
+        return prev.filter(
+          rs => !(roleIdSet.has(rs.app_role_id) && serviceIdSet.has(rs.service_id))
+        )
       })
       router.refresh()
     } catch (error: unknown) {
@@ -128,7 +190,19 @@ export default function AppRoleServiceTab({
           <thead className="bg-gray-100">
             <tr>
               <th className="px-2 py-1.5 border text-center text-xs font-bold text-gray-700 bg-gray-100 sticky left-0 z-20 w-12 min-w-12">
-                No
+                <div className="flex flex-col items-center gap-1">
+                  <input
+                    ref={allCheckboxRef}
+                    type="checkbox"
+                    checked={allMatrixEnabled()}
+                    onChange={e => handleBulkAll(e.target.checked)}
+                    disabled={loading || matrixRoles.length === 0 || admServices.length === 0}
+                    className="h-4 w-4 rounded border-gray-300 text-[#FD7601] focus:ring-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="全てのロール×サービス権限を有効または無効にする"
+                    title="全て"
+                  />
+                  <span className="leading-tight text-[10px]">すべて</span>
+                </div>
               </th>
               <th className="px-4 py-1.5 border text-left text-xs font-bold text-gray-700 bg-gray-100 sticky left-12 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                 サービス \ ロール

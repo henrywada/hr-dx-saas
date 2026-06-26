@@ -5706,6 +5706,57 @@ export type Database = {
         }
         Relationships: []
       }
+      service_class: {
+        Row: {
+          id: string
+          name: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      service_class_index: {
+        Row: {
+          id: string
+          service_category_id: string | null
+          service_class_id: string | null
+        }
+        Insert: {
+          id?: string
+          service_category_id?: string | null
+          service_class_id?: string | null
+        }
+        Update: {
+          id?: string
+          service_category_id?: string | null
+          service_class_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_class_index_service_category_id_fkey"
+            columns: ["service_category_id"]
+            isOneToOne: false
+            referencedRelation: "service_category"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_class_index_service_class_id_fkey"
+            columns: ["service_class_id"]
+            isOneToOne: false
+            referencedRelation: "service_class"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_assigned_members: {
         Row: {
           created_at: string

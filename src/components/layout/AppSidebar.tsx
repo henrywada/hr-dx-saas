@@ -4,6 +4,53 @@ import { SidebarNav } from './SidebarNav'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 
+interface ServiceClass {
+  id: string
+  name: string
+  sort_order: number
+}
+
+interface Category {
+  id: string
+  name: string
+  sort_order: number
+}
+
+interface ClassGroup {
+  id: string
+  name: string
+  categories: Category[]
+}
+
+function groupCategoriesByClass(
+  categories: Category[],
+  serviceClasses: ServiceClass[],
+  classIndexMap: Map<string, string>
+): ClassGroup[] {
+  const classMap = new Map(serviceClasses.map(sc => [sc.id, sc]))
+  const groups = new Map<string, { class: ServiceClass; categories: Category[] }>()
+
+  for (const category of categories) {
+    if (category.name === 'ダッシュボード') continue
+    const classId = classIndexMap.get(category.id)
+    if (!classId || !classMap.has(classId)) continue
+
+    const serviceClass = classMap.get(classId)!
+    if (!groups.has(classId)) {
+      groups.set(classId, { class: serviceClass, categories: [] })
+    }
+    groups.get(classId)!.categories.push(category)
+  }
+
+  return Array.from(groups.values())
+    .sort((a, b) => a.class.sort_order - b.class.sort_order)
+    .map(g => ({
+      id: g.class.id,
+      name: g.class.name,
+      categories: g.categories.sort((a, b) => a.sort_order - b.sort_order),
+    }))
+}
+
 export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 'saas' }) {
   const supabase = await createClient()
   const user = await getServerUser()
@@ -12,7 +59,9 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
   const userName = user?.name || ''
   const tenantName = variant === 'saas' ? 'SaaS管理' : user?.tenant_name || ''
 
-  let dynamicCategories: { id: string; name: string; sort_order: number }[] = []
+  let dynamicCategories: Category[] = []
+  let classGroups: ClassGroup[] = []
+  let overviewLabel = '概要'
 
   if (variant === 'saas') {
     const { data: services } = await supabase
@@ -22,12 +71,9 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
       .eq('release_status', '公開')
 
     if (services) {
-      const categoryMap = new Map<string, { id: string; name: string; sort_order: number }>()
+      const categoryMap = new Map<string, Category>()
       services.forEach((service: { service_category: unknown }) => {
-        const category = service.service_category as
-          | { id: string; name: string; sort_order: number }
-          | null
-          | undefined
+        const category = service.service_category as Category | null | undefined
         if (category && !categoryMap.has(category.id)) {
           categoryMap.set(category.id, category)
         }
@@ -35,6 +81,30 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
       dynamicCategories = Array.from(categoryMap.values()).sort(
         (a, b) => a.sort_order - b.sort_order
       )
+    }
+
+    const { data: serviceClasses } = await supabase
+      .from('service_class')
+      .select('id, name, sort_order')
+      .order('sort_order', { ascending: true })
+
+    const { data: classIndexData } = await supabase
+      .from('service_class_index')
+      .select('service_class_id, service_category_id')
+
+    if (serviceClasses && classIndexData) {
+      const classIndexMap = new Map(
+        classIndexData.map(ci => [ci.service_category_id, ci.service_class_id])
+      )
+      classGroups = groupCategoriesByClass(
+        dynamicCategories,
+        serviceClasses as ServiceClass[],
+        classIndexMap
+      )
+      const overviewClass = serviceClasses.find(sc => sc.name === '概要')
+      if (overviewClass) {
+        overviewLabel = overviewClass.name
+      }
     }
   } else if (tenantId) {
     // テナントが契約しているサービスIDを取得
@@ -94,12 +164,9 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
       }
 
       if (filteredServices.length > 0) {
-        const categoryMap = new Map<string, { id: string; name: string; sort_order: number }>()
+        const categoryMap = new Map<string, Category>()
         filteredServices.forEach((service: { service_category: unknown }) => {
-          const category = service.service_category as
-            | { id: string; name: string; sort_order: number }
-            | null
-            | undefined
+          const category = service.service_category as Category | null | undefined
           if (category && !categoryMap.has(category.id)) {
             categoryMap.set(category.id, category)
           }
@@ -107,6 +174,30 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
         dynamicCategories = Array.from(categoryMap.values()).sort(
           (a, b) => a.sort_order - b.sort_order
         )
+      }
+
+      const { data: serviceClasses } = await supabase
+        .from('service_class')
+        .select('id, name, sort_order')
+        .order('sort_order', { ascending: true })
+
+      const { data: classIndexData } = await supabase
+        .from('service_class_index')
+        .select('service_class_id, service_category_id')
+
+      if (serviceClasses && classIndexData) {
+        const classIndexMap = new Map(
+          classIndexData.map(ci => [ci.service_category_id, ci.service_class_id])
+        )
+        classGroups = groupCategoriesByClass(
+          dynamicCategories,
+          serviceClasses as ServiceClass[],
+          classIndexMap
+        )
+        const overviewClass = serviceClasses.find(sc => sc.name === '概要')
+        if (overviewClass) {
+          overviewLabel = overviewClass.name
+        }
       }
     }
   }
@@ -121,7 +212,8 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
 
   return (
     <SidebarNav
-      dynamicCategories={dynamicCategories}
+      classGroups={classGroups}
+      overviewLabel={overviewLabel}
       tenantName={tenantName}
       basePath={basePath}
       userName={variant !== 'portal' ? userName : undefined}

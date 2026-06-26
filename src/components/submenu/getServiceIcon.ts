@@ -16,7 +16,13 @@ import {
   Award,
   Shield,
   Download,
+  HeartHandshake,
+  UserPlus,
+  LayoutGrid,
 } from 'lucide-react'
+
+/** どのパターンにもマッチしないサービス名に対して使う既定アイコン（カード間のデザイン統一のため） */
+const DEFAULT_ICON: LucideIcon = LayoutGrid
 
 const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   qr_attendance: QrCode,
@@ -47,12 +53,14 @@ const SERVICE_NAME_PATTERN_MAP: Array<[RegExp, LucideIcon]> = [
   [/分析|結果|レポート|データ|月次|締め|評価|ダッシュボード|dashboard/i, TrendingUp],
   [/スキル|育成|学習|ラーニング|eラーニング|成長|コース/i, Award],
   [/ダウンロード|エクスポート|出力|export/i, Download],
+  [/相談|sos|悩み|カウンセリング/i, HeartHandshake],
+  [/リファラル|推薦|紹介|referral/i, UserPlus],
 ]
 
 export function getServiceIcon(
   category: string | null | undefined,
   serviceName?: string | null
-): LucideIcon | undefined {
+): LucideIcon {
   if (category) {
     const icon = CATEGORY_ICON_MAP[category.toLowerCase()]
     if (icon) return icon
@@ -66,5 +74,6 @@ export function getServiceIcon(
     }
   }
 
-  return undefined
+  // どのパターンにもマッチしない場合も既定アイコンを返し、カードのデザインを統一する
+  return DEFAULT_ICON
 }

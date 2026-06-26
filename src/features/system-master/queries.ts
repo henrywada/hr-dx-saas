@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolvePageFilePath } from '@/lib/route-resolver'
 
 export async function getServiceClasses() {
   const supabase = createAdminClient()
@@ -39,6 +40,20 @@ export async function getServiceCategories() {
   return data || []
 }
 
+/**
+ * 各サービス行に、route_path に対応する page.tsx が実在するかどうかのフラグを付与する。
+ * resolver は第2引数として注入可能（テスト時に固定の結果を返すスタブを渡すため）。
+ */
+export function withAiAdviceAvailability<T extends { route_path?: string | null }>(
+  rows: T[],
+  resolver: (routePath: string) => string | null = resolvePageFilePath
+): (T & { ai_advice_available: boolean })[] {
+  return rows.map(row => ({
+    ...row,
+    ai_advice_available: resolver(row.route_path || '') !== null,
+  }))
+}
+
 export async function getServices() {
   const supabase = createAdminClient()
   const { data, error } = await supabase.from('service').select(`
@@ -62,7 +77,8 @@ export async function getServices() {
     return (a.sort_order ?? 0) - (b.sort_order ?? 0)
   })
 
-  return rows.map(({ service_category: _c, ...rest }) => rest)
+  const withoutCategory = rows.map(({ service_category: _c, ...rest }) => rest)
+  return withAiAdviceAvailability(withoutCategory)
 }
 
 export async function getAppRoles() {

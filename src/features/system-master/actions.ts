@@ -2,6 +2,9 @@
 
 import { createAdminClient } from '@/lib/supabase/admin' // ✅ adminクライアントを使用
 import { revalidatePath } from 'next/cache'
+import fs from 'node:fs/promises'
+import { resolvePageFilePath } from '@/lib/route-resolver'
+import { generateGeminiContent, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
 
 /**
  * 共通の更新処理 (Admin権限)
@@ -259,26 +262,75 @@ export async function getTenantServices() {
 }
 
 // --- AI Suggestion ---
-export async function generateAiAdvice(
-  serviceName: string,
-  categoryName: string,
-  currentTitle: string,
-  currentDesc: string
-) {
-  // 擬似的なAIレスポンスの遅延
-  await new Promise(resolve => setTimeout(resolve, 800))
 
-  // カテゴリやサービス名に基づいた、ユーザーが使いたくなるキャッチーな文言を生成
-  const catchyTitle = `✨【${categoryName}】${serviceName}で業務時間を最大80%削減`
-  const catchyDesc = `面倒な「${serviceName}」を完全にデジタル化。利用ユーザーの視点で、迷わず直感的に操作できる設計にこだわりました。これ一つで、${categoryName}の悩みから解放されます。`
+const MAX_TITLE_LENGTH = 25
+const MAX_DESCRIPTION_LENGTH = 100
+const MAX_SOURCE_CHARS = 8000
 
-  console.log('[AI Mock Generation]', { serviceName, categoryName, currentTitle, currentDesc })
-
+/**
+ * 生成結果の文字数を仕様の上限内に防御的に切り詰める（LLMが制約を超える場合の保険）。
+ */
+export function truncateAiAdvice(data: { title: string; description: string }): {
+  title: string
+  description: string
+} {
   return {
-    success: true,
-    data: {
-      title: catchyTitle,
-      description: catchyDesc,
-    },
+    title: data.title.slice(0, MAX_TITLE_LENGTH),
+    description: data.description.slice(0, MAX_DESCRIPTION_LENGTH),
+  }
+}
+
+const AI_ADVICE_SYSTEM_PROMPT =
+  'あなたは日本語のSaaSプロダクトのUXコピーライターです。渡されたNext.js/Reactコンポーネントのソースコードを解析し、' +
+  'エンドユーザーが実際に使う機能として何を行うものかを正確に読み取った上で、管理画面のサービス一覧に表示するための、' +
+  `タイトル（${MAX_TITLE_LENGTH}文字以内）とdescription（${MAX_DESCRIPTION_LENGTH}文字以内）を日本語で作成してください。` +
+  '誇大な煽り文句や事実と異なる効果（具体的な削減率など）は含めないでください。'
+
+/**
+ * サービスの route_path に対応するページコンポーネントのソースコードを解析し、
+ * タイトル・descriptionを Gemini で生成する。
+ */
+export async function generateServiceAiAdvice(
+  routePath: string,
+  serviceName: string,
+  categoryName: string
+): Promise<
+  | { success: true; data: { title: string; description: string } }
+  | { success: false; error: string }
+> {
+  const filePath = resolvePageFilePath(routePath)
+  if (!filePath) {
+    return { success: false, error: 'ページコンポーネントが見つかりませんでした' }
+  }
+
+  try {
+    const rawSource = await fs.readFile(filePath, 'utf-8')
+    const source = rawSource.slice(0, MAX_SOURCE_CHARS)
+
+    const prompt =
+      `サービス名: ${serviceName}\n` +
+      `カテゴリ名: ${categoryName}\n` +
+      `ページコンポーネントのソースコード:\n${source}`
+
+    const responseText = await generateGeminiContent({
+      model: GEMINI_FLASH_MODEL,
+      system: AI_ADVICE_SYSTEM_PROMPT,
+      prompt,
+      json: true,
+      responseJsonSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+        },
+        required: ['title', 'description'],
+      },
+    })
+
+    const parsed = JSON.parse(responseText) as { title: string; description: string }
+    return { success: true, data: truncateAiAdvice(parsed) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '不明なエラー'
+    return { success: false, error: `AI生成に失敗しました: ${message}` }
   }
 }

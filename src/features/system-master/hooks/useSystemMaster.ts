@@ -20,7 +20,7 @@ import {
   toggleTenantService,
   bulkSetTenantServices,
   getTenantServices,
-  generateAiAdvice,
+  generateServiceAiAdvice,
 } from '../actions'
 
 export function useSystemMaster() {
@@ -57,6 +57,6 @@ export function useSystemMaster() {
     getTenantServices,
 
     // AI Advice
-    generateAiAdvice,
+    generateServiceAiAdvice,
   }
 }

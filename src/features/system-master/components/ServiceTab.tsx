@@ -10,7 +10,8 @@ interface Props {
 }
 
 export default function ServiceTab({ initialServices, categories }: Props) {
-  const { updateService, createService, deleteService, generateAiAdvice } = useSystemMaster()
+  const { updateService, createService, deleteService, generateServiceAiAdvice } =
+    useSystemMaster()
 
   const [services, setServices] = useState<any[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -27,6 +28,7 @@ export default function ServiceTab({ initialServices, categories }: Props) {
   const [modalTitle, setModalTitle] = useState('')
   const [modalDescription, setModalDescription] = useState('')
   const [isAiLoading, setIsAiLoading] = useState(false)
+  const [aiAdviceAvailable, setAiAdviceAvailable] = useState(true)
 
   useEffect(() => {
     // Propsの変更に合わせてstateを同期し、デフォルト値を適用する
@@ -122,18 +124,17 @@ export default function ServiceTab({ initialServices, categories }: Props) {
       const svc = services.find(s => s.id === modalServiceId)
       const cat = categories.find(c => c.id === svc?.service_category_id)
 
-      const result = await generateAiAdvice(
+      const result = await generateServiceAiAdvice(
+        svc?.route_path || '',
         svc?.name || '',
-        cat?.name || '',
-        modalTitle,
-        modalDescription
+        cat?.name || ''
       )
 
-      if (result.success && result.data) {
+      if (result.success === true) {
         setModalTitle(result.data.title)
         setModalDescription(result.data.description)
       } else {
-        alert(`AIアドバイスの取得に失敗しました。`)
+        alert(`AIアドバイスの取得に失敗しました: ${result.error}`)
       }
     } catch (err: any) {
       alert(`AIエラー: ${err.message}`)
@@ -145,8 +146,16 @@ export default function ServiceTab({ initialServices, categories }: Props) {
   const openModal = (id: string) => {
     const svc = services.find(s => s.id === id)
     if (!svc) return
-    setModalTitle(svc.title || '')
-    setModalDescription(svc.description || '')
+    const available = Boolean(svc.ai_advice_available)
+    setAiAdviceAvailable(available)
+    if (available) {
+      setModalTitle(svc.title || '')
+      setModalDescription(svc.description || '')
+    } else {
+      // 対応する page.tsx が存在しないため、保存済みの値より「開発中」表示を優先する
+      setModalTitle('開発中')
+      setModalDescription('開発中です。しばらくお待ちください。')
+    }
     setModalServiceId(id)
   }
 
@@ -475,13 +484,18 @@ export default function ServiceTab({ initialServices, categories }: Props) {
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleAiAdvice}
-                  disabled={isAiLoading || loading}
+                  disabled={isAiLoading || loading || !aiAdviceAvailable}
+                  title={
+                    aiAdviceAvailable
+                      ? undefined
+                      : '対応するページが見つからないため自動生成できません'
+                  }
                   className={`flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-purple-500 to-orange-600 text-white font-bold text-xs rounded-md hover:opacity-90 transition-opacity shadow-xs ${
-                    isAiLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    isAiLoading || !aiAdviceAvailable ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   <span className="text-base">✨</span>
-                  {isAiLoading ? 'AI考え中...' : 'AIアドバイスで自動生成'}
+                  {isAiLoading ? 'AI考え中...' : 'タイトル・説明の自動作成'}
                 </button>
               </div>
             </div>

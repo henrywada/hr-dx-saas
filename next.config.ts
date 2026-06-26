@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
       ],
     },
   },
+  // system-master の「タイトル・説明の自動作成」が route_path から page.tsx の
+  // ソースを実行時に読むため、サーバーレス関数バンドルに全 page.tsx を明示的に含める
+  outputFileTracingIncludes: {
+    "/saas_adm/system-master/**": ["./src/app/**/page.tsx"],
+  },
   async redirects() {
     return [
       {

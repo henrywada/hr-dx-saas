@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { truncateAiAdvice } from './actions'
+import { truncateAiAdvice } from './ai-advice-helpers'
 
 test('25文字以内のタイトルはそのまま', () => {
   const result = truncateAiAdvice({ title: 'あ'.repeat(25), description: 'd' })

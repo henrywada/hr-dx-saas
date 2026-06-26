@@ -5,6 +5,11 @@ import { revalidatePath } from 'next/cache'
 import fs from 'node:fs/promises'
 import { resolvePageFilePath } from '@/lib/route-resolver'
 import { generateGeminiContent, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
+import {
+  truncateAiAdvice,
+  MAX_TITLE_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+} from './ai-advice-helpers'
 
 /**
  * 共通の更新処理 (Admin権限)
@@ -263,22 +268,7 @@ export async function getTenantServices() {
 
 // --- AI Suggestion ---
 
-const MAX_TITLE_LENGTH = 25
-const MAX_DESCRIPTION_LENGTH = 100
 const MAX_SOURCE_CHARS = 8000
-
-/**
- * 生成結果の文字数を仕様の上限内に防御的に切り詰める（LLMが制約を超える場合の保険）。
- */
-export function truncateAiAdvice(data: { title: string; description: string }): {
-  title: string
-  description: string
-} {
-  return {
-    title: data.title.slice(0, MAX_TITLE_LENGTH),
-    description: data.description.slice(0, MAX_DESCRIPTION_LENGTH),
-  }
-}
 
 const AI_ADVICE_SYSTEM_PROMPT =
   'あなたは日本語のSaaSプロダクトのUXコピーライターです。渡されたNext.js/Reactコンポーネントのソースコードを解析し、' +

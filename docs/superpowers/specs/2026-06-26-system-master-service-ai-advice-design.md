@@ -108,6 +108,23 @@ export async function generateServiceAiAdvice(
   - `route_path` が空のサービスでモーダルを開き、ボタンが disabled かつ「開発中」表示になることを確認
   - 生成後に保存ボタンで実際にDBへ反映されることを確認
 
+## 本番環境（Vercel）でのファイル読み込みに関する注意
+
+このプロジェクトは Vercel にデプロイされ、Server Action はビルド時のファイルトレーシング（`@vercel/nft`）により、実行時に必要なファイルのみがサーバーレス関数にバンドルされる。`src/app/**/page.tsx` は実行時に `fs.readFile` で動的に読むだけであり、コードから `import` されないため、デフォルトではこのトレーシング対象に含まれず、本番では `ENOENT` になる可能性が高い（ローカルの `npm run dev` では問題なく動作する）。
+
+これを回避するため、`next.config.ts` の `experimental.outputFileTracingIncludes` に以下を追加する：
+
+```ts
+experimental: {
+  // ...既存設定...
+  outputFileTracingIncludes: {
+    '/saas_adm/system-master/**': ['./src/app/**/page.tsx'],
+  },
+},
+```
+
+これにより、`/saas_adm/system-master` 配下のルートのサーバーレス関数バンドルに、`src/app` 配下の全 `page.tsx` が明示的に含まれる。コード量自体は小さいため、バンドルサイズへの影響は軽微と判断する。
+
 ## スコープ外（やらないこと）
 
 - `page.tsx` が import する子コンポーネントの再帰的な読み込み（YAGNI。まずは page.tsx 単体で十分な精度が出るかを見る）

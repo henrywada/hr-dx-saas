@@ -10,8 +10,7 @@ interface Props {
 }
 
 export default function ServiceTab({ initialServices, categories }: Props) {
-  const { updateService, createService, deleteService, generateServiceAiAdvice } =
-    useSystemMaster()
+  const { updateService, createService, deleteService, generateServiceAiAdvice } = useSystemMaster()
 
   const [services, setServices] = useState<any[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)

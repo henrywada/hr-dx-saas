@@ -25,19 +25,19 @@ type Props = {
 
 function titleRowClass(layout: SubMenuServiceCardLayout, accent: string): string {
   if (layout === 'admin') {
-    return `text-xs font-bold tracking-wider uppercase mb-1.5 ${accent}`
+    return `text-xs font-bold tracking-wider uppercase mb-3 ${accent}`
   }
-  return `text-[10px] font-bold uppercase tracking-wider mb-1.5 ${accent}`
+  return `text-[10px] font-bold uppercase tracking-wider mb-3 ${accent}`
 }
 
 function descriptionClass(layout: SubMenuServiceCardLayout): string {
   if (layout === 'admin') {
-    return 'text-sm text-slate-500 leading-relaxed whitespace-pre-wrap mt-2'
+    return 'text-sm text-slate-500 leading-normal whitespace-pre-wrap mt-2'
   }
   if (layout === 'portal') {
-    return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1.5 whitespace-pre-line'
+    return 'text-sm text-slate-500 leading-normal line-clamp-3 mt-2 whitespace-pre-line'
   }
-  return 'text-sm text-slate-500 leading-relaxed line-clamp-3 mt-1.5'
+  return 'text-sm text-slate-500 leading-normal line-clamp-3 mt-2'
 }
 
 /** Link 直下で useLinkStatus を使う（next/link のナビ待ちを検知） */
@@ -54,11 +54,6 @@ function SubMenuServiceCardInner({
 
   return (
     <>
-      {/* AIスロップ（サイドストライプ）を排除し、スマートな上部アクセントバーを採用。グループホバー時に太さが自然に変化するマイクロインタラクション */}
-      <div
-        className={`absolute left-0 right-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5 ${variant.bar}`}
-      />
-
       {pending ? (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/75 backdrop-blur-[1px]"
@@ -73,7 +68,7 @@ function SubMenuServiceCardInner({
       ) : null}
 
       {/* 左右均等かつデバイスサイズに応じたレスポンシブパディング */}
-      <div className="p-5 sm:p-6 w-full flex flex-col h-full pt-7">
+      <div className="p-3 sm:p-4 w-full flex flex-col h-full pt-4">
         {title ? (
           <div className={titleRowClass(layout, variant.text)}>{title}</div>
         ) : (
@@ -86,7 +81,7 @@ function SubMenuServiceCardInner({
           ) : null}
           <div className="flex-1">
             <h3
-              className={`text-base sm:text-lg font-bold text-slate-900 mb-1.5 transition-colors ${variant.hover}`}
+              className={`text-base sm:text-lg font-bold text-slate-900 mb-2 transition-colors ${variant.hover}`}
             >
               {name}
             </h3>
@@ -95,9 +90,13 @@ function SubMenuServiceCardInner({
           </div>
         </div>
 
-        {/* ホバー時に美しくスライドして現れる右向きアロー */}
-        <div className="mt-auto pt-4 flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-          <ArrowRight className={`w-4 h-4 ${variant.text}`} />
+        {/* フッター：罫線と進むアロー */}
+        <div className="mt-auto border-t border-slate-200 pt-2">
+          <div className="flex justify-end">
+            <div className="flex items-center gap-1 text-blue-600 font-bold text-sm">
+              進む <ArrowRight className="w-4 h-4" />
+            </div>
+          </div>
         </div>
       </div>
     </>

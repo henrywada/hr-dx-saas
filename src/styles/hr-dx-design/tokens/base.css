@@ -1,75 +1,80 @@
 /* ============================================================
    HR-DX — base layer (light reset + document defaults)
+   @layer base に入れることで、Tailwind の utilities レイヤー
+   （mb-*, mt-* 等のスペーシングユーティリティ）が正しく
+   このリセットを上書きできるようにする。
    ============================================================ */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--body-size);
-  line-height: var(--body-leading);
-  color: var(--text-primary);
-  background: var(--surface-page);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--body-size);
+    line-height: var(--body-leading);
+    color: var(--text-primary);
+    background: var(--surface-page);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  font-weight: var(--title-weight);
-  line-height: var(--leading-tight);
-  color: var(--text-primary);
-}
-p {
-  margin: 0;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-weight: var(--title-weight);
+    line-height: var(--leading-tight);
+    color: var(--text-primary);
+  }
+  p {
+    margin: 0;
+  }
 
-a {
-  color: var(--text-link);
-  text-decoration: none;
-}
-a:hover {
-  color: var(--text-link-hover);
-  text-decoration: underline;
-}
+  a {
+    color: var(--text-link);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--text-link-hover);
+    text-decoration: underline;
+  }
 
-button {
-  font-family: inherit;
-}
+  button {
+    font-family: inherit;
+  }
 
-code,
-kbd,
-samp,
-pre {
-  font-family: var(--font-mono);
-}
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
 
-:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
-}
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
 
-::selection {
-  background: var(--brand-200);
-  color: var(--ink);
-}
+  ::selection {
+    background: var(--brand-200);
+    color: var(--ink);
+  }
 
-/* Tabular figures helper for data tables */
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+  /* Tabular figures helper for data tables */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }

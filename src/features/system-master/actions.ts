@@ -5,11 +5,7 @@ import { revalidatePath } from 'next/cache'
 import fs from 'node:fs/promises'
 import { resolvePageFilePath } from '@/lib/route-resolver'
 import { generateGeminiContent, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
-import {
-  truncateAiAdvice,
-  MAX_TITLE_LENGTH,
-  MAX_DESCRIPTION_LENGTH,
-} from './ai-advice-helpers'
+import { truncateAiAdvice, MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from './ai-advice-helpers'
 
 /**
  * 共通の更新処理 (Admin権限)

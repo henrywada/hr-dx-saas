@@ -9,10 +9,9 @@ import { resolvePageFilePath } from './route-resolver'
 function makeTempAppDir(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'route-resolver-test-'))
   // /adm/job-positions → (tenant)/(tenant-admin)/adm/job-positions/page.tsx
-  fs.mkdirSync(
-    path.join(dir, '(tenant)', '(tenant-admin)', 'adm', 'job-positions'),
-    { recursive: true }
-  )
+  fs.mkdirSync(path.join(dir, '(tenant)', '(tenant-admin)', 'adm', 'job-positions'), {
+    recursive: true,
+  })
   fs.writeFileSync(
     path.join(dir, '(tenant)', '(tenant-admin)', 'adm', 'job-positions', 'page.tsx'),
     '// job-positions page'
@@ -20,10 +19,9 @@ function makeTempAppDir(): string {
   // ルート直下の page.tsx（"/" に対応）
   fs.writeFileSync(path.join(dir, 'page.tsx'), '// root page')
   // ネストしたルートグループ
-  fs.mkdirSync(
-    path.join(dir, '(saas-admin)', 'saas_adm', '(base_mnt)', 'system-master'),
-    { recursive: true }
-  )
+  fs.mkdirSync(path.join(dir, '(saas-admin)', 'saas_adm', '(base_mnt)', 'system-master'), {
+    recursive: true,
+  })
   fs.writeFileSync(
     path.join(dir, '(saas-admin)', 'saas_adm', '(base_mnt)', 'system-master', 'page.tsx'),
     '// system-master page'

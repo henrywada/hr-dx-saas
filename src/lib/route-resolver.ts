@@ -15,11 +15,7 @@ function toEffectiveRoute(segments: string[]): string {
   return '/' + visible.join('/')
 }
 
-function findPageFile(
-  dir: string,
-  segments: string[],
-  targetRoute: string
-): string | null {
+function findPageFile(dir: string, segments: string[], targetRoute: string): string | null {
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -38,11 +34,7 @@ function findPageFile(
     }
 
     if (entry.isDirectory()) {
-      const found = findPageFile(
-        path.join(dir, entry.name),
-        [...segments, entry.name],
-        targetRoute
-      )
+      const found = findPageFile(path.join(dir, entry.name), [...segments, entry.name], targetRoute)
       if (found) return found
     }
   }

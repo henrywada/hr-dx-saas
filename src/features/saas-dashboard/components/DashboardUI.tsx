@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { APP_ROUTES } from '@/config/routes'
 import { DASHBOARD_CARDS } from '@/config/dashboard-config'
 import {
   LineChart,
@@ -46,8 +48,23 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">⚙️SaaS管理</h1>
+        <Link
+          href={APP_ROUTES.TENANT.ADMIN}
+          className="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700"
+        >
+          管理TOPへ
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
       </div>
 
       {/* 統計カード */}

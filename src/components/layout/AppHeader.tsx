@@ -50,10 +50,11 @@ export function AppHeader({ variant }: AppHeaderProps) {
   let bgStyle = 'rgba(255, 255, 255, 0.95)'
 
   if (variant === 'admin') {
-    // HR-DX Design System: app chrome（#232a33）
-    bgStyle = '#232a33'
+    // 光沢のあるダークブルー
+    bgStyle = 'linear-gradient(180deg, #1f4e8c 0%, #123262 50%, #0a1f40 100%)'
   } else if (variant === 'saas') {
-    bgStyle = '#000B00'
+    // 光沢のあるグリーン
+    bgStyle = 'linear-gradient(180deg, #2f9e5a 0%, #1f7a44 50%, #145530 100%)'
   }
 
   const headerStyle = {

@@ -34,6 +34,11 @@ export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
       render: (value: ConsultationCategory) => CATEGORY_LABEL[value],
     },
     {
+      key: 'claimed_by',
+      label: '対応状況',
+      render: (value: string | null) => (value ? '対応中' : '未対応'),
+    },
+    {
       key: 'status',
       label: '状態',
       render: (value: ConsultationStatus) => STATUS_LABEL[value],

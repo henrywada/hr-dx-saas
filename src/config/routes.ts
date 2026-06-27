@@ -33,6 +33,9 @@ export const APP_ROUTES = {
     /** 悩み・相談窓口（対応者向けキュー） */
     ADMIN_CONSULTATION_QUEUE: '/adm/consultation-queue',
     ADMIN_CONSULTATION_QUEUE_DETAIL: (id: string) => `/adm/consultation-queue/${id}`,
+    /** 悩み・相談窓口（上司・other_any対象者向け、一般従業員ポータル内） */
+    CONSULTATION_INBOX: '/consultation/inbox',
+    CONSULTATION_INBOX_DETAIL: (id: string) => `/consultation/inbox/${id}`,
     /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
     ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */

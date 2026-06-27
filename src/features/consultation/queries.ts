@@ -4,6 +4,7 @@ import type {
   ConsultationListItem,
   ConsultationQueueItem,
   ConsultationReply,
+  ConsultationTargetType,
   ConsultationThread,
   EligibleManager,
 } from './types'
@@ -94,7 +95,10 @@ export async function getConsultationThread(
     .eq('consultation_id', consultationId)
     .order('created_at', { ascending: true })
 
-  const sanitizedConsultation = sanitizeConsultationForViewer(consultation as Consultation, isStaff)
+  const sanitizedConsultation = sanitizeConsultationForViewer(
+    { ...consultation, target_type: consultation.target_type as ConsultationTargetType },
+    isStaff
+  )
 
   if (repliesError) {
     console.error('getConsultationThread replies error:', repliesError)

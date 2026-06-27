@@ -6,8 +6,6 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 
-const STAFF_ROLES = ['hr', 'hr_manager', 'company_doctor', 'company_nurse', 'hsc']
-
 export const submitConsultationSchema = z
   .object({
     category: z.enum(['harassment', 'mental_health', 'workload', 'interpersonal', 'other']),
@@ -29,6 +27,19 @@ export async function submitConsultation(input: SubmitConsultationInput): Promis
 
   const parsed = submitConsultationSchema.parse(input)
   const supabase = await createClient()
+
+  if (parsed.targetType === 'manager') {
+    const { data: manager, error: managerError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('id', parsed.targetEmployeeId as string)
+      .eq('tenant_id', user.tenant_id)
+      .eq('is_manager', true)
+      .maybeSingle()
+
+    if (managerError) throw managerError
+    if (!manager) throw new Error('指定された上司が見つかりません')
+  }
 
   const { data, error } = await supabase
     .from('consultations')
@@ -87,6 +98,7 @@ export async function replyToConsultation(input: z.infer<typeof replySchema>): P
 
   revalidatePath(APP_ROUTES.TENANT.CONSULTATION_DETAIL(parsed.consultationId))
   revalidatePath(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(parsed.consultationId))
+  revalidatePath(APP_ROUTES.TENANT.CONSULTATION_INBOX_DETAIL(parsed.consultationId))
 }
 
 /**
@@ -114,6 +126,8 @@ export async function claimConsultation(consultationId: string): Promise<void> {
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE)
   revalidatePath(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(consultationId))
+  revalidatePath(APP_ROUTES.TENANT.CONSULTATION_INBOX)
+  revalidatePath(APP_ROUTES.TENANT.CONSULTATION_INBOX_DETAIL(consultationId))
 }
 
 const updateStatusSchema = z.object({
@@ -126,7 +140,6 @@ export async function updateConsultationStatus(
 ): Promise<void> {
   const user = await getServerUser()
   if (!user?.employee_id) throw new Error('Unauthorized')
-  if (!STAFF_ROLES.includes(user.appRole ?? '')) throw new Error('Forbidden')
 
   const parsed = updateStatusSchema.parse(input)
   const supabase = await createClient()
@@ -140,4 +153,5 @@ export async function updateConsultationStatus(
   if (error) throw error
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE)
+  revalidatePath(APP_ROUTES.TENANT.CONSULTATION_INBOX)
 }

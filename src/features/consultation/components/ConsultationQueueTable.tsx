@@ -10,9 +10,13 @@ import type { ConsultationCategory, ConsultationQueueItem, ConsultationStatus } 
 
 interface ConsultationQueueTableProps {
   items: ConsultationQueueItem[]
+  /** 詳細ページへのリンク生成関数。省略時は管理者向けキュー詳細を使う */
+  detailHref?: (id: string) => string
 }
 
-export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
+export function ConsultationQueueTable({ items, detailHref }: ConsultationQueueTableProps) {
+  const resolveHref = detailHref ?? APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL
+
   const columns: Column<ConsultationQueueItem>[] = [
     {
       key: 'display_name',
@@ -20,10 +24,7 @@ export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
       // DataTable の onRowAction は未配線（DataTable.tsx 自体に呼び出し箇所が無い）ため、
       // セル内リンクで詳細ページへ遷移する。
       render: (value: string, item) => (
-        <Link
-          href={APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(item.id)}
-          className="text-(--brand) hover:underline"
-        >
+        <Link href={resolveHref(item.id)} className="text-(--brand) hover:underline">
           {value}
         </Link>
       ),

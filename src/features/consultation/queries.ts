@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import type {
+  Consultation,
   ConsultationListItem,
   ConsultationQueueItem,
+  ConsultationReply,
   ConsultationThread,
 } from './types'
 
@@ -34,6 +36,31 @@ export async function getMyConsultations(employeeId: string): Promise<Consultati
   return data || []
 }
 
+/**
+ * 匿名相談を対応者が閲覧する場合、相談者本人の employee_id をクライアントへ送らない。
+ * ConsultationThreadView は Client Component のため、props はそのままRSCペイロードに
+ * シリアライズされてブラウザに渡る。employee_id 自体を残すと、対応者向けUIが氏名を
+ * 表示していなくても、ペイロードから実名を解決できてしまう（表示層マスクだけでは防げない）。
+ */
+export function sanitizeConsultationForViewer(consultation: Consultation, isStaff: boolean): Consultation {
+  if (isStaff && consultation.is_anonymous) {
+    return { ...consultation, employee_id: null }
+  }
+  return consultation
+}
+
+/** 匿名相談の本人による返信は、対応者向け表示では author_employee_id を伏せる（同上の理由）。 */
+export function sanitizeReplyForViewer(
+  reply: ConsultationReply,
+  isStaff: boolean,
+  isAnonymous: boolean
+): ConsultationReply {
+  if (isStaff && isAnonymous && !reply.is_staff_reply) {
+    return { ...reply, author_employee_id: null }
+  }
+  return reply
+}
+
 export async function getConsultationThread(
   consultationId: string,
   viewerEmployeeId: string,
@@ -43,7 +70,7 @@ export async function getConsultationThread(
 
   const { data: consultation, error: consultationError } = await supabase
     .from('consultations')
-    .select('*')
+    .select('id, tenant_id, employee_id, is_anonymous, category, body, status, assigned_to, created_at')
     .eq('id', consultationId)
     .maybeSingle()
 
@@ -62,16 +89,22 @@ export async function getConsultationThread(
 
   const { data: replies, error: repliesError } = await supabase
     .from('consultation_replies')
-    .select('*')
+    .select('id, consultation_id, author_employee_id, is_staff_reply, body, created_at')
     .eq('consultation_id', consultationId)
     .order('created_at', { ascending: true })
 
+  const sanitizedConsultation = sanitizeConsultationForViewer(consultation, isStaff)
+
   if (repliesError) {
     console.error('getConsultationThread replies error:', repliesError)
-    return { consultation, replies: [] }
+    return { consultation: sanitizedConsultation, replies: [] }
   }
 
-  return { consultation, replies: replies || [] }
+  const sanitizedReplies = (replies || []).map(reply =>
+    sanitizeReplyForViewer(reply, isStaff, consultation.is_anonymous)
+  )
+
+  return { consultation: sanitizedConsultation, replies: sanitizedReplies }
 }
 
 export async function getConsultationQueue(): Promise<ConsultationQueueItem[]> {

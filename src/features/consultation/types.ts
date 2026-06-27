@@ -12,7 +12,8 @@ export type ConsultationStatus = 'open' | 'in_progress' | 'resolved'
 export interface Consultation {
   id: string
   tenant_id: string
-  employee_id: string
+  /** 匿名相談を対応者が閲覧する場合は null（表示層への実名漏洩防止、queries.ts 参照） */
+  employee_id: string | null
   is_anonymous: boolean
   category: ConsultationCategory
   body: string
@@ -24,7 +25,8 @@ export interface Consultation {
 export interface ConsultationReply {
   id: string
   consultation_id: string
-  author_employee_id: string
+  /** 匿名相談を対応者が閲覧する場合、相談者本人の返信は null（表示層への実名漏洩防止） */
+  author_employee_id: string | null
   is_staff_reply: boolean
   body: string
   created_at: string

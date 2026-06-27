@@ -704,7 +704,7 @@ export function ConsultationForm() {
     startTransition(async () => {
       try {
         const result = await submitConsultation({ category, body, isAnonymous })
-        router.push(`/consultation/${result.id}`)
+        router.push(APP_ROUTES.TENANT.CONSULTATION_DETAIL(result.id))
       } catch {
         setError('送信に失敗しました。もう一度お試しください。')
       }
@@ -868,6 +868,7 @@ export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadVi
 
 import { useRouter } from 'next/navigation'
 import { DataTable, type Column } from '@/components/ui/DataTable'
+import { APP_ROUTES } from '@/config/routes'
 import type { ConsultationQueueItem, ConsultationStatus } from '../types'
 
 const STATUS_LABEL: Record<ConsultationStatus, string> = {
@@ -901,7 +902,7 @@ export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
       searchable
       searchKey="display_name"
       getRowId={item => item.id}
-      onRowAction={item => router.push(`/adm/consultation-queue/${item.id}`)}
+      onRowAction={item => router.push(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(item.id))}
     />
   )
 }

@@ -1,9 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { format } from 'date-fns'
+import { ja } from 'date-fns/locale'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getMyConsultations } from '@/features/consultation/queries'
 import { ConsultationForm } from '@/features/consultation/components/ConsultationForm'
+import { CATEGORY_LABEL, STATUS_LABEL } from '@/features/consultation/labels'
 
 export const metadata = { title: '悩み・相談窓口' }
 
@@ -21,10 +24,11 @@ export default async function ConsultationPage() {
         {consultations.map(c => (
           <Link
             key={c.id}
-            href={`/consultation/${c.id}`}
+            href={APP_ROUTES.TENANT.CONSULTATION_DETAIL(c.id)}
             className="rounded-lg border border-slate-200 bg-white p-4 text-xs"
           >
-            {c.category} - {c.status}
+            {CATEGORY_LABEL[c.category]} - {STATUS_LABEL[c.status]} -{' '}
+            {format(new Date(c.created_at), 'M/d (E) HH:mm', { locale: ja })}
           </Link>
         ))}
       </div>

@@ -3,17 +3,12 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { replyToConsultation, updateConsultationStatus } from '../actions'
+import { STATUS_LABEL } from '../labels'
 import type { ConsultationThread, ConsultationStatus } from '../types'
 
 interface ConsultationThreadViewProps {
   thread: ConsultationThread
   isStaff: boolean
-}
-
-const STATUS_LABEL: Record<ConsultationStatus, string> = {
-  open: '未対応',
-  in_progress: '対応中',
-  resolved: '解決済み',
 }
 
 export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadViewProps) {

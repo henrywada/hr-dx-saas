@@ -1,23 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { format } from 'date-fns'
+import { ja } from 'date-fns/locale'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { APP_ROUTES } from '@/config/routes'
+import { CATEGORY_LABEL, STATUS_LABEL } from '../labels'
 import type { ConsultationCategory, ConsultationQueueItem, ConsultationStatus } from '../types'
-
-const STATUS_LABEL: Record<ConsultationStatus, string> = {
-  open: '未対応',
-  in_progress: '対応中',
-  resolved: '解決済み',
-}
-
-const CATEGORY_LABEL: Record<ConsultationCategory, string> = {
-  harassment: 'ハラスメント',
-  mental_health: 'メンタルヘルス',
-  workload: '業務量',
-  interpersonal: '人間関係',
-  other: 'その他',
-}
 
 interface ConsultationQueueTableProps {
   items: ConsultationQueueItem[]
@@ -49,7 +38,11 @@ export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
       label: '状態',
       render: (value: ConsultationStatus) => STATUS_LABEL[value],
     },
-    { key: 'created_at', label: '受付日時' },
+    {
+      key: 'created_at',
+      label: '受付日時',
+      render: (value: string) => format(new Date(value), 'M/d (E) HH:mm', { locale: ja }),
+    },
   ]
 
   return (

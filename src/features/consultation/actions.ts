@@ -75,7 +75,8 @@ export async function replyToConsultation(input: z.infer<typeof replySchema>): P
 
   if (error) throw error
 
-  revalidatePath(`${APP_ROUTES.TENANT.CONSULTATION}/${parsed.consultationId}`)
+  revalidatePath(APP_ROUTES.TENANT.CONSULTATION_DETAIL(parsed.consultationId))
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(parsed.consultationId))
 }
 
 const updateStatusSchema = z.object({

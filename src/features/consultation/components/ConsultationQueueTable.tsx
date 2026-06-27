@@ -1,9 +1,9 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { APP_ROUTES } from '@/config/routes'
-import type { ConsultationQueueItem, ConsultationStatus } from '../types'
+import type { ConsultationCategory, ConsultationQueueItem, ConsultationStatus } from '../types'
 
 const STATUS_LABEL: Record<ConsultationStatus, string> = {
   open: '未対応',
@@ -11,16 +11,39 @@ const STATUS_LABEL: Record<ConsultationStatus, string> = {
   resolved: '解決済み',
 }
 
+const CATEGORY_LABEL: Record<ConsultationCategory, string> = {
+  harassment: 'ハラスメント',
+  mental_health: 'メンタルヘルス',
+  workload: '業務量',
+  interpersonal: '人間関係',
+  other: 'その他',
+}
+
 interface ConsultationQueueTableProps {
   items: ConsultationQueueItem[]
 }
 
 export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
-  const router = useRouter()
-
   const columns: Column<ConsultationQueueItem>[] = [
-    { key: 'display_name', label: '相談者' },
-    { key: 'category', label: 'カテゴリ' },
+    {
+      key: 'display_name',
+      label: '相談者',
+      // DataTable の onRowAction は未配線（DataTable.tsx 自体に呼び出し箇所が無い）ため、
+      // セル内リンクで詳細ページへ遷移する。
+      render: (value: string, item) => (
+        <Link
+          href={APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(item.id)}
+          className="text-(--brand) hover:underline"
+        >
+          {value}
+        </Link>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'カテゴリ',
+      render: (value: ConsultationCategory) => CATEGORY_LABEL[value],
+    },
     {
       key: 'status',
       label: '状態',
@@ -36,7 +59,6 @@ export function ConsultationQueueTable({ items }: ConsultationQueueTableProps) {
       searchable
       searchKey="display_name"
       getRowId={item => item.id}
-      onRowAction={item => router.push(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(item.id))}
     />
   )
 }

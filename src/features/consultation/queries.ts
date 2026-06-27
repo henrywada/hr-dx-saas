@@ -14,6 +14,7 @@ export function maskAnonymousAuthor<
 >(rows: T[]): (T & { display_name: string })[] {
   return rows.map(row => ({
     ...row,
+    employee_name: row.is_anonymous ? null : (row.employee_name ?? null),
     display_name: row.is_anonymous ? '匿名相談者' : (row.employee_name ?? '不明'),
   }))
 }
@@ -51,6 +52,10 @@ export async function getConsultationThread(
     return null
   }
 
+  // isStaff は呼び出し元から渡される未検証の値だが、実際のセキュリティ境界は
+  // Postgres の RLS ポリシー（テナント分離・行レベルアクセス制御）が担う。
+  // ここでの isStaff チェックはこの関数自身のUX上の分岐（早期return）を
+  // 制御するのみで、Supabase が実際に返すデータ範囲を左右するものではない。
   if (!isStaff && consultation.employee_id !== viewerEmployeeId) {
     return null
   }

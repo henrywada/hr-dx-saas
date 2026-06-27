@@ -20,3 +20,15 @@ test('元の行の他フィールドは保持される', () => {
   const result = maskAnonymousAuthor(rows)
   assert.equal(result[0].status, 'open')
 })
+
+test('匿名の場合は employee_name 自体もnullになる（実名漏洩防止）', () => {
+  const rows = [{ id: 'c4', is_anonymous: true, employee_name: '田中次郎' }]
+  const result = maskAnonymousAuthor(rows)
+  assert.equal(result[0].employee_name, null)
+})
+
+test('記名の場合は employee_name はそのまま保持される', () => {
+  const rows = [{ id: 'c5', is_anonymous: false, employee_name: '高橋三郎' }]
+  const result = maskAnonymousAuthor(rows)
+  assert.equal(result[0].employee_name, '高橋三郎')
+})

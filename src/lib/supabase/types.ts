@@ -575,6 +575,106 @@ export type Database = {
           },
         ]
       }
+      consultation_replies: {
+        Row: {
+          author_employee_id: string
+          body: string
+          consultation_id: string
+          created_at: string
+          id: string
+          is_staff_reply: boolean
+        }
+        Insert: {
+          author_employee_id: string
+          body: string
+          consultation_id: string
+          created_at?: string
+          id?: string
+          is_staff_reply: boolean
+        }
+        Update: {
+          author_employee_id?: string
+          body?: string
+          consultation_id?: string
+          created_at?: string
+          id?: string
+          is_staff_reply?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_replies_author_employee_id_fkey"
+            columns: ["author_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_replies_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultations: {
+        Row: {
+          assigned_to: string | null
+          body: string
+          category: Database["public"]["Enums"]["consultation_category"]
+          created_at: string
+          employee_id: string
+          id: string
+          is_anonymous: boolean
+          status: Database["public"]["Enums"]["consultation_status"]
+          tenant_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          body: string
+          category: Database["public"]["Enums"]["consultation_category"]
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_anonymous?: boolean
+          status?: Database["public"]["Enums"]["consultation_status"]
+          tenant_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          body?: string
+          category?: Database["public"]["Enums"]["consultation_category"]
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_anonymous?: boolean
+          status?: Database["public"]["Enums"]["consultation_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       division_establishment_anchors: {
         Row: {
           created_at: string
@@ -8968,7 +9068,13 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      consultation_category:
+        | "harassment"
+        | "mental_health"
+        | "workload"
+        | "interpersonal"
+        | "other"
+      consultation_status: "open" | "in_progress" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9098,7 +9204,16 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      consultation_category: [
+        "harassment",
+        "mental_health",
+        "workload",
+        "interpersonal",
+        "other",
+      ],
+      consultation_status: ["open", "in_progress", "resolved"],
+    },
   },
 } as const
 

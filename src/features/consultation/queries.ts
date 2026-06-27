@@ -70,7 +70,7 @@ export async function getConsultationThread(
 
   const { data: consultation, error: consultationError } = await supabase
     .from('consultations')
-    .select('id, tenant_id, employee_id, is_anonymous, category, body, status, assigned_to, created_at')
+    .select('id, tenant_id, employee_id, is_anonymous, category, body, status, assigned_to, target_type, target_employee_id, claimed_by, claimed_at, created_at')
     .eq('id', consultationId)
     .maybeSingle()
 
@@ -93,7 +93,7 @@ export async function getConsultationThread(
     .eq('consultation_id', consultationId)
     .order('created_at', { ascending: true })
 
-  const sanitizedConsultation = sanitizeConsultationForViewer(consultation, isStaff)
+  const sanitizedConsultation = sanitizeConsultationForViewer(consultation as Consultation, isStaff)
 
   if (repliesError) {
     console.error('getConsultationThread replies error:', repliesError)
@@ -111,7 +111,7 @@ export async function getConsultationQueue(): Promise<ConsultationQueueItem[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('consultations')
-    .select('id, category, status, is_anonymous, created_at, employees:employee_id(name)')
+    .select('id, category, status, is_anonymous, created_at, claimed_by, employees:employee_id(name)')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -126,6 +126,7 @@ export async function getConsultationQueue(): Promise<ConsultationQueueItem[]> {
     is_anonymous: row.is_anonymous,
     created_at: row.created_at,
     employee_name: (row.employees as { name?: string } | null)?.name ?? null,
+    claimed_by: row.claimed_by,
   }))
 
   return maskAnonymousAuthor(rows)

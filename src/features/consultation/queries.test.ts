@@ -43,6 +43,10 @@ const baseConsultation: Consultation = {
   body: '本文',
   status: 'open',
   assigned_to: null,
+  target_type: 'other_any',
+  target_employee_id: null,
+  claimed_by: null,
+  claimed_at: null,
   created_at: '2026-06-27T00:00:00.000Z',
 }
 

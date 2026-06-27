@@ -9,6 +9,15 @@ export type ConsultationCategory =
 
 export type ConsultationStatus = 'open' | 'in_progress' | 'resolved'
 
+/** 相談の宛先区分。manager のときのみ target_employee_id が必須 */
+export type ConsultationTargetType =
+  | 'medical_staff'
+  | 'hr'
+  | 'hr_manager'
+  | 'manager'
+  | 'hsc'
+  | 'other_any'
+
 export interface Consultation {
   id: string
   tenant_id: string
@@ -19,6 +28,12 @@ export interface Consultation {
   body: string
   status: ConsultationStatus
   assigned_to: string | null
+  target_type: ConsultationTargetType
+  /** target_type='manager' のときのみ非null（指名された上司の employees.id） */
+  target_employee_id: string | null
+  /** 対応を宣言（claim）した職員の employees.id。null は未対応 */
+  claimed_by: string | null
+  claimed_at: string | null
   created_at: string
 }
 
@@ -48,10 +63,18 @@ export interface ConsultationQueueItem {
   is_anonymous: boolean
   employee_name: string | null
   display_name: string
+  /** 対応を宣言した職員の employees.id。null は未対応 */
+  claimed_by: string | null
   created_at: string
 }
 
 export interface ConsultationThread {
   consultation: Consultation
   replies: ConsultationReply[]
+}
+
+/** 「上司」宛先選択用の候補（employees.is_manager = true の全社プール） */
+export interface EligibleManager {
+  id: string
+  name: string
 }

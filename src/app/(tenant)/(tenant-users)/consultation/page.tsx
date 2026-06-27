@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { getMyConsultations } from '@/features/consultation/queries'
+import { getMyConsultations, getEligibleManagers } from '@/features/consultation/queries'
 import { ConsultationForm } from '@/features/consultation/components/ConsultationForm'
 import { CATEGORY_LABEL, STATUS_LABEL } from '@/features/consultation/labels'
 
@@ -14,12 +14,15 @@ export default async function ConsultationPage() {
   const user = await getServerUser()
   if (!user?.employee_id) redirect(APP_ROUTES.AUTH.LOGIN)
 
-  const consultations = await getMyConsultations(user.employee_id)
+  const [consultations, eligibleManagers] = await Promise.all([
+    getMyConsultations(user.employee_id),
+    getEligibleManagers(),
+  ])
 
   return (
     <div className="flex flex-col gap-4 px-4 sm:px-6 py-5 mx-auto max-w-300">
       <h1 className="text-sm font-semibold">悩み・相談窓口</h1>
-      <ConsultationForm />
+      <ConsultationForm eligibleManagers={eligibleManagers} />
       <div className="flex flex-col gap-2">
         {consultations.map(c => (
           <Link

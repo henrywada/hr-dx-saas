@@ -5,6 +5,7 @@ import type {
   ConsultationQueueItem,
   ConsultationReply,
   ConsultationThread,
+  EligibleManager,
 } from './types'
 
 /**
@@ -130,4 +131,24 @@ export async function getConsultationQueue(): Promise<ConsultationQueueItem[]> {
   }))
 
   return maskAnonymousAuthor(rows)
+}
+
+/**
+ * 「上司」宛先選択用に、テナント内で is_manager=true の全従業員を返す。
+ * 直属上司に固定しない（匿名性維持のため、相談者が任意の1名を指名できるようにする）。
+ * employees_select_same_tenant の既存RLSにより自テナント内のみ取得される。
+ */
+export async function getEligibleManagers(): Promise<EligibleManager[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name')
+    .eq('is_manager', true)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('getEligibleManagers error:', error)
+    return []
+  }
+  return data || []
 }

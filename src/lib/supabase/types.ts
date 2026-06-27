@@ -622,33 +622,45 @@ export type Database = {
           assigned_to: string | null
           body: string
           category: Database["public"]["Enums"]["consultation_category"]
+          claimed_at: string | null
+          claimed_by: string | null
           created_at: string
           employee_id: string
           id: string
           is_anonymous: boolean
           status: Database["public"]["Enums"]["consultation_status"]
+          target_employee_id: string | null
+          target_type: string
           tenant_id: string
         }
         Insert: {
           assigned_to?: string | null
           body: string
           category: Database["public"]["Enums"]["consultation_category"]
+          claimed_at?: string | null
+          claimed_by?: string | null
           created_at?: string
           employee_id: string
           id?: string
           is_anonymous?: boolean
           status?: Database["public"]["Enums"]["consultation_status"]
+          target_employee_id?: string | null
+          target_type?: string
           tenant_id: string
         }
         Update: {
           assigned_to?: string | null
           body?: string
           category?: Database["public"]["Enums"]["consultation_category"]
+          claimed_at?: string | null
+          claimed_by?: string | null
           created_at?: string
           employee_id?: string
           id?: string
           is_anonymous?: boolean
           status?: Database["public"]["Enums"]["consultation_status"]
+          target_employee_id?: string | null
+          target_type?: string
           tenant_id?: string
         }
         Relationships: [
@@ -660,8 +672,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "consultations_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "consultations_employee_id_fkey"
             columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_target_employee_id_fkey"
+            columns: ["target_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]

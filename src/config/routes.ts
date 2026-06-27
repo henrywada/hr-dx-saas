@@ -27,6 +27,12 @@ export const APP_ROUTES = {
     ADMIN_OVERTIME_SETTINGS: '/adm/overtime-settings',
     /** テレワーク端末登録申請（(tenant-users) ポータル、URL は /device-pairing） */
     PORTAL_DEVICE_PAIRING: '/device-pairing',
+    /** 悩み・相談窓口（本人向け） */
+    CONSULTATION: '/consultation',
+    CONSULTATION_DETAIL: (id: string) => `/consultation/${id}`,
+    /** 悩み・相談窓口（対応者向けキュー） */
+    ADMIN_CONSULTATION_QUEUE: '/adm/consultation-queue',
+    ADMIN_CONSULTATION_QUEUE_DETAIL: (id: string) => `/adm/consultation-queue/${id}`,
     /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
     ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */

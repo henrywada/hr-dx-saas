@@ -54,6 +54,18 @@ export async function replyToConsultation(input: z.infer<typeof replySchema>): P
   const supabase = await createClient()
   const isStaff = STAFF_ROLES.includes(user.appRole ?? '')
 
+  const { data: consultation, error: fetchError } = await supabase
+    .from('consultations')
+    .select('employee_id')
+    .eq('id', parsed.consultationId)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+  if (!consultation) throw new Error('Not found')
+  if (!isStaff && consultation.employee_id !== user.employee_id) {
+    throw new Error('Forbidden')
+  }
+
   const { error } = await supabase.from('consultation_replies').insert({
     consultation_id: parsed.consultationId,
     author_employee_id: user.employee_id,
@@ -75,7 +87,7 @@ export async function updateConsultationStatus(
   input: z.infer<typeof updateStatusSchema>
 ): Promise<void> {
   const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user?.employee_id) throw new Error('Unauthorized')
   if (!STAFF_ROLES.includes(user.appRole ?? '')) throw new Error('Forbidden')
 
   const parsed = updateStatusSchema.parse(input)

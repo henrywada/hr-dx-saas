@@ -21,6 +21,8 @@ import {
   checkExistingResponse,
 } from '@/features/stress-check/queries'
 import { getPendingConsultationCount } from '@/features/consultation/queries'
+import { getTodayCheckin } from '@/features/condition-checkin/queries'
+import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWidget'
 import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
 import { ConsultationPendingNotice } from '@/features/dashboard/components/ConsultationPendingNotice'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
@@ -44,12 +46,14 @@ export default async function DashboardPage() {
     pendingQuestionnaires,
     activePeriod,
     pendingConsultationCount,
+    todayCheckin,
   ] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
     getPendingAssignedQuestionnairesForTop(user?.employee_id),
     getActivePeriod(),
     getPendingConsultationCount(),
+    user?.employee_id ? getTodayCheckin(user.employee_id) : Promise.resolve(null),
   ])
 
   // 産業医・保健師・人事系の役割は /adm/consultation-queue、上司は /consultation/inbox へ誘導
@@ -96,9 +100,12 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. Top Priority Tasks - 2-Column Grid */}
-      {(importantTask?.isPending || showStressCheckTask) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* 2. Top Priority Tasks - 2-Column Grid (コンディション記録は従業員なら常時表示) */}
+      {(importantTask?.isPending || showStressCheckTask || user?.employee_id) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Condition Checkin Widget */}
+          {user?.employee_id && <CheckinWidget initialScore={todayCheckin?.score ?? null} />}
+
           {/* Important Task Card */}
           {importantTask && importantTask.isPending && (
             <div className="relative overflow-hidden bg-white rounded-lg border-t-4 border-t-orange-500 border border-slate-200 shadow-xs transition-all hover:shadow-sm hover:border-t-orange-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">

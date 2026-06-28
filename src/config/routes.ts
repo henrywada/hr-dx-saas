@@ -36,6 +36,16 @@ export const APP_ROUTES = {
     /** 悩み・相談窓口（上司・other_any対象者向け、一般従業員ポータル内） */
     CONSULTATION_INBOX: '/consultation/inbox',
     CONSULTATION_INBOX_DETAIL: (id: string) => `/consultation/inbox/${id}`,
+    /** コンディション記録（本人向け1タップ記録・自分の推移） */
+    CONDITION: '/condition',
+    /** コンディション記録 上長向け部署集計（一般従業員ポータル内、appRole='employee'な上長は/admに入れないため） */
+    CONDITION_TEAM_TREND: '/condition/team-trend',
+    /** コンディション記録 人事・産業医向け部署集計（部署セレクタ付き） */
+    ADMIN_CONDITION_TREND: '/adm/condition-trend',
+    /** 社内イベント・表彰（本人向け一覧・RSVP・表彰発表） */
+    EVENTS: '/events',
+    /** 社内イベント・表彰 管理（人事向けCRUD） */
+    ADMIN_EVENTS_AWARDS: '/adm/events-awards',
     /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
     ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */

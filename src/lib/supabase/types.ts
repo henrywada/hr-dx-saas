@@ -325,6 +325,61 @@ export type Database = {
           },
         ]
       }
+      awards: {
+        Row: {
+          award_type: string
+          comment: string | null
+          created_at: string
+          created_by: string
+          id: string
+          period_label: string
+          recipient_employee_id: string
+          tenant_id: string
+        }
+        Insert: {
+          award_type: string
+          comment?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          period_label: string
+          recipient_employee_id: string
+          tenant_id: string
+        }
+        Update: {
+          award_type?: string
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          period_label?: string
+          recipient_employee_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "awards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "awards_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "awards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_pulses: {
         Row: {
           candidate_name: string
@@ -571,6 +626,51 @@ export type Database = {
             columns: ["closure_id"]
             isOneToOne: false
             referencedRelation: "monthly_overtime_closures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      condition_checkins: {
+        Row: {
+          checkin_date: string
+          created_at: string
+          employee_id: string
+          id: string
+          memo: string | null
+          score: number
+          tenant_id: string
+        }
+        Insert: {
+          checkin_date: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          memo?: string | null
+          score: number
+          tenant_id: string
+        }
+        Update: {
+          checkin_date?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          memo?: string | null
+          score?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condition_checkins_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condition_checkins_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3018,6 +3118,93 @@ export type Database = {
           },
           {
             foreignKeyName: "health_assessments_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_event_attendees: {
+        Row: {
+          employee_id: string
+          event_id: string
+          rsvp_status: string
+          updated_at: string
+        }
+        Insert: {
+          employee_id: string
+          event_id: string
+          rsvp_status?: string
+          updated_at?: string
+        }
+        Update: {
+          employee_id?: string
+          event_id?: string
+          rsvp_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_event_attendees_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "internal_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_events: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          event_date: string
+          id: string
+          location: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          event_date: string
+          id?: string
+          location?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          event_date?: string
+          id?: string
+          location?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -8982,6 +9169,14 @@ export type Database = {
           max_overtime: number
           violation_count: number
           warning_count: number
+        }[]
+      }
+      get_division_condition_trend: {
+        Args: { p_days?: number; p_division_id: string }
+        Returns: {
+          avg_score: number
+          checkin_date: string
+          respondent_count: number
         }[]
       }
       get_overtime_gap_analysis: {

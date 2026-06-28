@@ -44,7 +44,10 @@ export async function getMyConsultations(employeeId: string): Promise<Consultati
  * シリアライズされてブラウザに渡る。employee_id 自体を残すと、対応者向けUIが氏名を
  * 表示していなくても、ペイロードから実名を解決できてしまう（表示層マスクだけでは防げない）。
  */
-export function sanitizeConsultationForViewer(consultation: Consultation, isStaff: boolean): Consultation {
+export function sanitizeConsultationForViewer(
+  consultation: Consultation,
+  isStaff: boolean
+): Consultation {
   if (isStaff && consultation.is_anonymous) {
     return { ...consultation, employee_id: null }
   }
@@ -72,7 +75,9 @@ export async function getConsultationThread(
 
   const { data: consultation, error: consultationError } = await supabase
     .from('consultations')
-    .select('id, tenant_id, employee_id, is_anonymous, category, body, status, assigned_to, target_type, target_employee_id, claimed_by, claimed_at, created_at')
+    .select(
+      'id, tenant_id, employee_id, is_anonymous, category, body, status, assigned_to, target_type, target_employee_id, claimed_by, claimed_at, created_at'
+    )
     .eq('id', consultationId)
     .maybeSingle()
 
@@ -116,7 +121,9 @@ export async function getConsultationQueue(): Promise<ConsultationQueueItem[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('consultations')
-    .select('id, category, status, is_anonymous, created_at, claimed_by, employees:employee_id(name)')
+    .select(
+      'id, category, status, is_anonymous, created_at, claimed_by, employees:employee_id(name)'
+    )
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -155,4 +162,23 @@ export async function getEligibleManagers(): Promise<EligibleManager[]> {
     return []
   }
   return data || []
+}
+
+/**
+ * 自分が対応者として未対応（claimed_by IS NULL）の相談件数。
+ * トップページの新着通知バッジ用。RLS（consultations_select_target_unclaimed）が
+ * 役割・宛先に応じた絞り込みを行うため、対象外の従業員は常に0件になる。
+ */
+export async function getPendingConsultationCount(): Promise<number> {
+  const supabase = await createClient()
+  const { count, error } = await supabase
+    .from('consultations')
+    .select('id', { count: 'exact', head: true })
+    .is('claimed_by', null)
+
+  if (error) {
+    console.error('getPendingConsultationCount error:', error)
+    return 0
+  }
+  return count ?? 0
 }

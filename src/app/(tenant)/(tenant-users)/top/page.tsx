@@ -20,11 +20,16 @@ import {
   checkStressCheckEligibility,
   checkExistingResponse,
 } from '@/features/stress-check/queries'
+import { getPendingConsultationCount } from '@/features/consultation/queries'
 import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
+import { ConsultationPendingNotice } from '@/features/dashboard/components/ConsultationPendingNotice'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
 import { MobileNavSection } from '@/features/dashboard/components/MobileNavSection'
+import { APP_ROUTES } from '@/config/routes'
+
+const CONSULTATION_STAFF_ROLES = ['hr', 'hr_manager', 'hsc', 'company_doctor', 'company_nurse']
 
 export default async function DashboardPage() {
   const user = await getServerUser()
@@ -33,12 +38,24 @@ export default async function DashboardPage() {
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
   const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
 
-  const [importantTask, announcements, pendingQuestionnaires, activePeriod] = await Promise.all([
+  const [
+    importantTask,
+    announcements,
+    pendingQuestionnaires,
+    activePeriod,
+    pendingConsultationCount,
+  ] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
     getPendingAssignedQuestionnairesForTop(user?.employee_id),
     getActivePeriod(),
+    getPendingConsultationCount(),
   ])
+
+  // 産業医・保健師・人事系の役割は /adm/consultation-queue、上司は /consultation/inbox へ誘導
+  const consultationInboxHref = CONSULTATION_STAFF_ROLES.includes(user?.appRole ?? '')
+    ? APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE
+    : APP_ROUTES.TENANT.CONSULTATION_INBOX
 
   // ストレスチェック受検ボタン表示判定
   let showStressCheckTask = false
@@ -75,7 +92,6 @@ export default async function DashboardPage() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-500">
-          <InterviewBookingService />
           <HrInquiryNavLink />
         </div>
       </div>
@@ -173,13 +189,17 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Left: Notices */}
         <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
-          <div className="px-5 py-4 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
+          <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md shadow-inner">
               <Bell className="w-4 h-4" />
             </div>
-            <h3 className="font-bold text-sm text-slate-800">人事からのお知らせ</h3>
+            <h3 className="font-bold text-sm text-slate-800">お知らせ</h3>
           </div>
           <div className="p-0 flex-1">
+            <ConsultationPendingNotice
+              count={pendingConsultationCount}
+              href={consultationInboxHref}
+            />
             <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
             <ul
               className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}
@@ -222,14 +242,15 @@ export default async function DashboardPage() {
 
         {/* Right: Shortcuts */}
         <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
-          <div className="px-5 py-4 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
+          <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
             <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-md shadow-inner">
               <Zap className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-sm text-slate-800">クイックアクセス</h3>
           </div>
-          <div className="p-5 flex-1">
+          <div className="px-5 pt-2 pb-5 flex-1">
             <div className="flex flex-col gap-3">
+              <InterviewBookingService />
               <QuickAccessCards />
               <MobileNavSection />
             </div>

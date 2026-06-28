@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, X } from 'lucide-react'
+import { Calendar, ExternalLink, X } from 'lucide-react'
 import { InterviewCalendar } from '@/app/(tenant)/(tenant-admin)/adm/(company_doctor)/high-stress-followup/components/InterviewCalendar'
 import {
   fetchTenantDoctors,
@@ -36,14 +36,29 @@ export function InterviewBookingService() {
     }
   }, [isOpen, doctorId])
 
-  const buttonStyle =
-    'inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-emerald-200/50 group shrink-0'
-
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} className={buttonStyle}>
-        <Calendar className="w-4 h-4 mr-1.5 opacity-80 group-hover:scale-110 transition-transform" />
-        産業医面談予約
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="w-full text-left px-5 py-1.5 flex items-center justify-between gap-3 group hover:bg-slate-50/80 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 -mx-5 border-b border-slate-200 last:border-b-0"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="p-1.5 rounded-md shrink-0 bg-emerald-100 text-emerald-700">
+            <Calendar className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h4 className="text-xs font-semibold text-blue-600! group-hover:text-blue-700! transition-colors m-0">
+                産業医面談予約
+              </h4>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            </div>
+            <p className="text-slate-500 text-xs mt-0.5 leading-tight">
+              ご希望の日時で産業医面談を予約できます
+            </p>
+          </div>
+        </div>
       </button>
 
       {isOpen && (

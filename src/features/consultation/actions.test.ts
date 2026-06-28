@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { submitConsultationSchema } from './actions'
+import { submitConsultationSchema } from './types'
 
 test('正常な入力はパースに成功する', () => {
   const result = submitConsultationSchema.safeParse({

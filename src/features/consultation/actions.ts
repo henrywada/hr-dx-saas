@@ -5,21 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
-
-export const submitConsultationSchema = z
-  .object({
-    category: z.enum(['harassment', 'mental_health', 'workload', 'interpersonal', 'other']),
-    body: z.string().min(1).max(2000),
-    isAnonymous: z.boolean(),
-    targetType: z.enum(['medical_staff', 'hr', 'hr_manager', 'manager', 'hsc', 'other_any']),
-    targetEmployeeId: z.string().uuid().optional(),
-  })
-  .refine(data => (data.targetType === 'manager') === (data.targetEmployeeId !== undefined), {
-    message: 'targetType が manager の場合のみ targetEmployeeId が必須です',
-    path: ['targetEmployeeId'],
-  })
-
-export type SubmitConsultationInput = z.infer<typeof submitConsultationSchema>
+import { submitConsultationSchema, type SubmitConsultationInput } from './types'
 
 export async function submitConsultation(input: SubmitConsultationInput): Promise<{ id: string }> {
   const user = await getServerUser()

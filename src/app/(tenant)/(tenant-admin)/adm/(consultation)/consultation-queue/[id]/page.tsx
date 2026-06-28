@@ -21,7 +21,7 @@ export default async function ConsultationQueueDetailPage({
   if (!thread) redirect(APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE)
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-480">
+    <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-300">
       <ConsultationThreadView thread={thread} isStaff />
     </div>
   )

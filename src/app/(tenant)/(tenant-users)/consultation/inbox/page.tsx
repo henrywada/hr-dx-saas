@@ -19,7 +19,10 @@ export default async function ConsultationInboxPage() {
   return (
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-300">
       <h1 className="text-sm font-semibold mb-4">対応が必要な相談</h1>
-      <ConsultationQueueTable items={items} detailHref={APP_ROUTES.TENANT.CONSULTATION_INBOX_DETAIL} />
+      <ConsultationQueueTable
+        items={items}
+        detailBasePath={APP_ROUTES.TENANT.CONSULTATION_INBOX_DETAIL('')}
+      />
     </div>
   )
 }

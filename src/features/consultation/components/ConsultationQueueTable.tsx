@@ -10,12 +10,19 @@ import type { ConsultationCategory, ConsultationQueueItem, ConsultationStatus } 
 
 interface ConsultationQueueTableProps {
   items: ConsultationQueueItem[]
-  /** 詳細ページへのリンク生成関数。省略時は管理者向けキュー詳細を使う */
-  detailHref?: (id: string) => string
+  /**
+   * 詳細ページのベースパス（末尾に id を付与して遷移先を組み立てる）。
+   * 関数をServer ComponentからClient Componentへpropsで渡すことはできないため、
+   * 文字列で受け取る。省略時は管理者向けキュー詳細を使う。
+   */
+  detailBasePath?: string
 }
 
-export function ConsultationQueueTable({ items, detailHref }: ConsultationQueueTableProps) {
-  const resolveHref = detailHref ?? APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL
+export function ConsultationQueueTable({ items, detailBasePath }: ConsultationQueueTableProps) {
+  const resolveHref = (id: string) =>
+    detailBasePath
+      ? `${detailBasePath}${id}`
+      : APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE_DETAIL(id)
 
   const columns: Column<ConsultationQueueItem>[] = [
     {

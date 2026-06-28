@@ -1,5 +1,7 @@
 // src/features/consultation/types.ts
 
+import { z } from 'zod'
+
 export type ConsultationCategory =
   | 'harassment'
   | 'mental_health'
@@ -78,3 +80,23 @@ export interface EligibleManager {
   id: string
   name: string
 }
+
+/**
+ * 相談送信フォームの入力検証スキーマ。
+ * Next.js の 'use server' ファイルは async 関数以外を export できないため、
+ * actions.ts ではなくこちらに定義する。
+ */
+export const submitConsultationSchema = z
+  .object({
+    category: z.enum(['harassment', 'mental_health', 'workload', 'interpersonal', 'other']),
+    body: z.string().min(1).max(2000),
+    isAnonymous: z.boolean(),
+    targetType: z.enum(['medical_staff', 'hr', 'hr_manager', 'manager', 'hsc', 'other_any']),
+    targetEmployeeId: z.string().uuid().optional(),
+  })
+  .refine(data => (data.targetType === 'manager') === (data.targetEmployeeId !== undefined), {
+    message: 'targetType が manager の場合のみ targetEmployeeId が必須です',
+    path: ['targetEmployeeId'],
+  })
+
+export type SubmitConsultationInput = z.infer<typeof submitConsultationSchema>

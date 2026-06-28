@@ -20,6 +20,8 @@ import { DashboardSectionCard } from '@/features/adm-dashboard/components/Dashbo
 import { DashboardSectionGroupCard } from '@/features/adm-dashboard/components/DashboardSectionGroupCard'
 import { ToolboxGrid } from '@/features/adm-dashboard/components/ToolboxGrid'
 import { getAdmDashboardSummary } from '@/features/adm-dashboard/queries'
+import { getPendingConsultationCount } from '@/features/consultation/queries'
+import { ConsultationPendingAdminButton } from '@/features/consultation/components/ConsultationPendingAdminButton'
 import { APP_ROUTES } from '@/config/routes'
 
 function formatPercent(value: number | null): string {
@@ -35,7 +37,10 @@ function formatActiveEmployeesSub(companyDoctorCount: number): string {
 }
 
 export default async function HrDashboardPage() {
-  const summary = await getAdmDashboardSummary()
+  const [summary, pendingConsultationCount] = await Promise.all([
+    getAdmDashboardSummary(),
+    getPendingConsultationCount(),
+  ])
 
   if (!summary) {
     return (
@@ -53,13 +58,16 @@ export default async function HrDashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight text-[#161b22] sm:text-3xl">
           管理：人事ダッシュボード
         </h1>
-        <Link
-          href={APP_ROUTES.TENANT.ADMIN_MANUAL}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-medium text-[#161b22] shadow-xs transition-colors hover:bg-[#f6f8fa]"
-        >
-          <Book className="h-4 w-4" />
-          マニュアル
-        </Link>
+        <div className="flex items-center gap-2">
+          <ConsultationPendingAdminButton count={pendingConsultationCount} />
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_MANUAL}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-medium text-[#161b22] shadow-xs transition-colors hover:bg-[#f6f8fa]"
+          >
+            <Book className="h-4 w-4" />
+            マニュアル
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

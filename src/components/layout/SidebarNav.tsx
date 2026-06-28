@@ -24,7 +24,6 @@ interface SidebarNavProps {
     }[]
   }[]
   overviewLabel: string
-  tenantName?: string
   isSaaSAdmin?: boolean
   basePath?: string
   userName?: string
@@ -36,7 +35,6 @@ interface SidebarNavProps {
 export function SidebarNav({
   classGroups,
   overviewLabel,
-  tenantName,
   isSaaSAdmin = false,
   basePath = `${APP_ROUTES.TENANT.PORTAL}/subMenu`,
   userName,
@@ -160,13 +158,6 @@ export function SidebarNav({
                   <LogOut className="w-5 h-5 text-[#57606a] group-hover:text-[#24292f]" />
                   <span className="flex-1 text-left">ログアウト</span>
                 </button>
-              )}
-
-              {/* Login Tenant Display */}
-              {tenantName && (
-                <div className="mt-2 pt-2 border-t border-[#e2e6ec] px-2">
-                  <p className="text-xs font-semibold text-[#57606a] truncate">{tenantName}</p>
-                </div>
               )}
             </nav>
           </div>

@@ -57,7 +57,6 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
 
   const tenantId = user?.tenant_id
   const userName = user?.name || ''
-  const tenantName = variant === 'saas' ? 'SaaS管理' : user?.tenant_name || ''
 
   let dynamicCategories: Category[] = []
   let classGroups: ClassGroup[] = []
@@ -214,9 +213,8 @@ export async function AppSidebar({ variant }: { variant: 'portal' | 'admin' | 's
     <SidebarNav
       classGroups={classGroups}
       overviewLabel={overviewLabel}
-      tenantName={tenantName}
       basePath={basePath}
-      userName={variant !== 'portal' ? userName : undefined}
+      userName={userName}
       isSaaSAdmin={isSaaSAdmin}
       appRole={user?.appRole}
       variant={variant}

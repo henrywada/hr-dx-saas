@@ -162,7 +162,18 @@ export function AppHeader({ variant }: AppHeaderProps) {
 
         {/* Back Button */}
         <button
-          onClick={() => router.push(APP_ROUTES.TENANT.PORTAL)}
+          onClick={async () => {
+            // 産業医はログイン状態のまま /login へ遷移するとミドルウェアが /top に
+            // リダイレクトし直してしまうため、明示的にサインアウトしてから遷移する。
+            if (variant === 'admin' && appRole === 'company_doctor') {
+              await writeAuditLog({ action: 'LOGOUT', path: '/logout' }).catch(console.error)
+              await supabase.auth.signOut()
+              router.push(APP_ROUTES.AUTH.LOGIN)
+              router.refresh()
+              return
+            }
+            router.push(APP_ROUTES.TENANT.PORTAL)
+          }}
           className={`px-3 py-2 rounded-md text-sm font-medium transition-all hover:opacity-80 ${
             variant === 'portal'
               ? 'text-slate-600 hover:bg-slate-100'

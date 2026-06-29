@@ -48,4 +48,16 @@ export interface AdmDashboardSummary {
     /** 実施中アンケートの平均回答率（%） */
     averageResponseRatePercent: number | null
   }
+  wellbeing: {
+    /** 直近30日の感謝・称賛(Kudos)送信件数 */
+    kudosCountLast30Days: number
+    /** 直近30日のコンディション平均スコア（匿名化閾値n<5の場合はnull） */
+    conditionAverageScore: number | null
+    /** 直近30日のコンディション回答者数 */
+    conditionRespondentCount: number
+    /** 未対応の相談件数 */
+    pendingConsultationCount: number
+    /** 開催予定の社内イベント数 */
+    upcomingEventCount: number
+  }
 }

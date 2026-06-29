@@ -2,7 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { toJSTDateString } from '@/lib/datetime'
-import type { ConditionCheckin, ConditionTrendPoint, DivisionConditionTrendPoint } from './types'
+import type {
+  ConditionCheckin,
+  ConditionTrendPoint,
+  DivisionConditionTrendPoint,
+  TenantConditionSummary,
+} from './types'
 
 export async function getTodayCheckin(employeeId: string): Promise<ConditionCheckin | null> {
   const supabase = await createClient()
@@ -71,6 +76,20 @@ export async function getMyCheckinTrend(
   }
 
   return buildTrendSeries(data || [], days, todayYmd)
+}
+
+/** テナント全体の匿名集計を取得する（adm-dashboardウェルビーイング統合用、HR系ロール限定） */
+export async function getTenantConditionSummary(days = 30): Promise<TenantConditionSummary> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .rpc('get_tenant_condition_summary', { p_days: days })
+    .maybeSingle()
+
+  if (error || !data) {
+    if (error) console.error('getTenantConditionSummary error:', error)
+    return { avg_score: null, respondent_count: 0 }
+  }
+  return data
 }
 
 export async function getDivisionConditionTrend(

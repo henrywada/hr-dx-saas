@@ -30,6 +30,12 @@ export interface DivisionOption {
   name: string
 }
 
+/** テナント全体匿名集計（SECURITY DEFINER 関数 get_tenant_condition_summary の戻り値。adm-dashboard統合用） */
+export interface TenantConditionSummary {
+  avg_score: number | null
+  respondent_count: number
+}
+
 /**
  * 1タップ記録の入力検証スキーマ。
  * Next.js の 'use server' ファイルは async 関数以外を export できないため、

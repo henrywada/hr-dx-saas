@@ -9,6 +9,10 @@ import {
 } from '@/features/adm/stress-check/queries'
 import { getCourses } from '@/features/e-learning/queries'
 import { getQuestionnaires } from '@/features/questionnaire/queries'
+import { getKudosStatsByDivision } from '@/features/recognition/queries'
+import { getTenantConditionSummary } from '@/features/condition-checkin/queries'
+import { getPendingConsultationCount } from '@/features/consultation/queries'
+import { getAllEventsForAdmin } from '@/features/internal-events/queries'
 import { summarizeQuestionnaires } from './summarize'
 import type { AdmDashboardSummary } from './types'
 
@@ -28,6 +32,10 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
     publishedCourses,
     questionnaires,
     inProgressRes,
+    kudosDivisionStats,
+    conditionSummary,
+    pendingConsultationCount,
+    allEvents,
   ] = await Promise.all([
     getHrKpiBundle(),
     getOneOnOneDashboardData(),
@@ -39,6 +47,10 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
       .is('completed_at', null),
+    getKudosStatsByDivision(30),
+    getTenantConditionSummary(30),
+    getPendingConsultationCount(),
+    getAllEventsForAdmin(),
   ])
 
   if (!kpiResult.ok) return null
@@ -61,6 +73,10 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
   }
 
   const questionnaireSummary = summarizeQuestionnaires(questionnaires)
+
+  const kudosCountLast30Days = kudosDivisionStats.reduce((sum, d) => sum + d.sentCount, 0)
+  const todayIso = new Date().toISOString()
+  const upcomingEventCount = allEvents.filter(e => e.event_date >= todayIso).length
 
   return {
     headcount: {
@@ -91,5 +107,12 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
       inProgressAssignmentCount: inProgressRes.count ?? 0,
     },
     questionnaire: questionnaireSummary,
+    wellbeing: {
+      kudosCountLast30Days,
+      conditionAverageScore: conditionSummary.avg_score,
+      conditionRespondentCount: conditionSummary.respondent_count,
+      pendingConsultationCount,
+      upcomingEventCount,
+    },
   }
 }

@@ -9415,6 +9415,13 @@ export type Database = {
           year_month: string
         }[]
       }
+      get_tenant_condition_summary: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_score: number
+          respondent_count: number
+        }[]
+      }
       get_tenant_employee_auth_email: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: string

@@ -14,6 +14,9 @@ import {
   BookOpen,
   ClipboardList,
   Wrench,
+  Smile,
+  MessageCircleHeart,
+  PartyPopper,
 } from 'lucide-react'
 import { KpiSummaryCard } from '@/features/hr-kpi/components/KpiSummaryCard'
 import { DashboardSectionCard } from '@/features/adm-dashboard/components/DashboardSectionCard'
@@ -168,6 +171,49 @@ export default async function HrDashboardPage() {
             },
             { label: '高ストレス者', value: `${summary.stressCheck.highStressCount}名` },
           ]}
+        />
+        <DashboardSectionCard
+          icon={<HeartHandshake className="h-4 w-4" />}
+          iconClassName="bg-pink-50 text-pink-600"
+          title="感謝・称賛"
+          description="同僚への感謝・称賛メッセージを投稿。全社フィードでコミュニケーション活性度を可視化。"
+          href={APP_ROUTES.TENANT.ADMIN_KUDOS_STATS}
+          stats={[
+            { label: '直近30日の送信件数', value: `${summary.wellbeing.kudosCountLast30Days}件` },
+          ]}
+        />
+        <DashboardSectionCard
+          icon={<Smile className="h-4 w-4" />}
+          iconClassName="bg-orange-50 text-orange-600"
+          title="コンディション記録"
+          description="日々の気分・体調を1タップで記録。個人を特定しない匿名集計で組織の傾向を可視化。"
+          href={APP_ROUTES.TENANT.ADMIN_CONDITION_TREND}
+          stats={[
+            {
+              label: '平均スコア',
+              value:
+                summary.wellbeing.conditionAverageScore === null
+                  ? '—'
+                  : `${summary.wellbeing.conditionAverageScore}`,
+            },
+            { label: '回答者数', value: `${summary.wellbeing.conditionRespondentCount}名` },
+          ]}
+        />
+        <DashboardSectionCard
+          icon={<MessageCircleHeart className="h-4 w-4" />}
+          iconClassName="bg-teal-50 text-teal-600"
+          title="悩み・相談窓口"
+          description="匿名・記名どちらでも相談可能。産業医・人事が対応状況を一元管理。"
+          href={APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE}
+          stats={[{ label: '未対応', value: `${summary.wellbeing.pendingConsultationCount}件` }]}
+        />
+        <DashboardSectionCard
+          icon={<PartyPopper className="h-4 w-4" />}
+          iconClassName="bg-indigo-50 text-indigo-600"
+          title="社内イベント・表彰"
+          description="社内イベントの告知・参加表明、表彰の発表を管理。"
+          href={APP_ROUTES.TENANT.ADMIN_EVENTS_AWARDS}
+          stats={[{ label: '開催予定', value: `${summary.wellbeing.upcomingEventCount}件` }]}
         />
       </DashboardSectionGroupCard>
 

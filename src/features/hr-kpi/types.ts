@@ -56,6 +56,10 @@ export interface DevelopmentKpi {
   elCompletionRatePercent: number | null
   /** eラーニング割り当て総数 */
   activeElAssignments: number
+  /** 直近の評価期間における評価完了率（flow_status='confirmed'の割合）%。評価期間が無い場合はnull */
+  evaluationCompletionRatePercent: number | null
+  /** 直近180日以内にキャリア面談を1回以上実施した在籍従業員の割合 % */
+  careerDiscussionRatePercent: number | null
 }
 
 /** ダッシュボード全体のKPIバンドル */

@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Target, TrendingUp } from 'lucide-react'
+import { BookOpen, Target, TrendingUp, ClipboardCheck, MessageCircleHeart } from 'lucide-react'
 import { KpiSummaryCard } from './KpiSummaryCard'
 import type { DevelopmentKpi } from '../types'
 
@@ -55,6 +55,44 @@ export function DevelopmentKpiSection({ kpi }: Props) {
           sub="累計"
           icon={<TrendingUp size={14} />}
           status="info"
+        />
+        <KpiSummaryCard
+          label="評価完了率"
+          value={
+            kpi.evaluationCompletionRatePercent != null
+              ? `${kpi.evaluationCompletionRatePercent}%`
+              : 'データなし'
+          }
+          sub="直近の評価期間"
+          icon={<ClipboardCheck size={14} />}
+          status={
+            kpi.evaluationCompletionRatePercent == null
+              ? 'info'
+              : kpi.evaluationCompletionRatePercent >= 80
+                ? 'normal'
+                : kpi.evaluationCompletionRatePercent >= 50
+                  ? 'warning'
+                  : 'danger'
+          }
+        />
+        <KpiSummaryCard
+          label="キャリア面談実施率"
+          value={
+            kpi.careerDiscussionRatePercent != null
+              ? `${kpi.careerDiscussionRatePercent}%`
+              : 'データなし'
+          }
+          sub="直近180日"
+          icon={<MessageCircleHeart size={14} />}
+          status={
+            kpi.careerDiscussionRatePercent == null
+              ? 'info'
+              : kpi.careerDiscussionRatePercent >= 50
+                ? 'normal'
+                : kpi.careerDiscussionRatePercent >= 20
+                  ? 'warning'
+                  : 'danger'
+          }
         />
       </div>
     </section>

@@ -308,22 +308,37 @@ async function fetchDevelopmentKpi(
   supabase: any,
   tenantId: string
 ): Promise<DevelopmentKpi> {
-  const [totalElRes, completedElRes, employeesRes] = await Promise.all([
-    supabase
-      .from('el_assignments')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId),
-    supabase
-      .from('el_assignments')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .not('completed_at', 'is', null),
-    supabase
-      .from('employees')
-      .select('id, employee_skill_assignments ( skill_id )')
-      .eq('tenant_id', tenantId)
-      .eq('active_status', 'active'),
-  ])
+  const careerDiscussionCutoffIso = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [totalElRes, completedElRes, employeesRes, latestPeriodRes, careerDiscussionsRes] =
+    await Promise.all([
+      supabase
+        .from('el_assignments')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId),
+      supabase
+        .from('el_assignments')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .not('completed_at', 'is', null),
+      supabase
+        .from('employees')
+        .select('id, employee_skill_assignments ( skill_id )')
+        .eq('tenant_id', tenantId)
+        .eq('active_status', 'active'),
+      supabase
+        .from('evaluation_periods')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .order('end_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('career_discussions')
+        .select('employee_id')
+        .eq('tenant_id', tenantId)
+        .gte('conducted_at', careerDiscussionCutoffIso),
+    ])
 
   const totalEl = totalElRes.count ?? 0
   const completedEl = completedElRes.count ?? 0
@@ -359,10 +374,42 @@ async function fetchDevelopmentKpi(
     }
   }
 
+  let evaluationCompletionRatePercent: number | null = null
+  const latestPeriodId = (latestPeriodRes.data as { id: string } | null)?.id
+  if (latestPeriodId) {
+    const [totalSheetsRes, confirmedSheetsRes] = await Promise.all([
+      supabase
+        .from('evaluation_sheets')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('period_id', latestPeriodId),
+      supabase
+        .from('evaluation_sheets')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('period_id', latestPeriodId)
+        .eq('flow_status', 'confirmed'),
+    ])
+    const totalSheets = totalSheetsRes.count ?? 0
+    const confirmedSheets = confirmedSheetsRes.count ?? 0
+    evaluationCompletionRatePercent =
+      totalSheets > 0 ? Math.round((confirmedSheets / totalSheets) * 1000) / 10 : null
+  }
+
+  const activeEmployeeCount = (employeesData ?? []).length
+  const careerDiscussionRows = (careerDiscussionsRes.data as { employee_id: string }[] | null) ?? []
+  const employeesWithCareerDiscussion = new Set(careerDiscussionRows.map(r => r.employee_id)).size
+  const careerDiscussionRatePercent =
+    activeEmployeeCount > 0
+      ? Math.round((employeesWithCareerDiscussion / activeEmployeeCount) * 1000) / 10
+      : null
+
   return {
     skillGapRatePercent,
     elCompletionRatePercent,
     activeElAssignments: totalEl,
+    evaluationCompletionRatePercent,
+    careerDiscussionRatePercent,
   }
 }
 

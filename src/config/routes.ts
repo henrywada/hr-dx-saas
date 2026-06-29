@@ -50,6 +50,12 @@ export const APP_ROUTES = {
     EVENTS: '/events',
     /** 社内イベント・表彰 管理（人事向けCRUD） */
     ADMIN_EVENTS_AWARDS: '/adm/events-awards',
+    /** チームコネクト（組織図・社内ディレクトリ閲覧、本人向け） */
+    TEAM_CONNECT: '/team-connect',
+    /** キャリア面談（本人向け履歴・上長向け記録、一般従業員ポータル内） */
+    CAREER_DISCUSSIONS: '/career-discussions',
+    /** キャリア面談 管理（人事向け全社記録・管理） */
+    ADMIN_CAREER_DISCUSSIONS: '/adm/career-discussions',
     /** テレワーク端末の人事承認（(pc_atendance) グループ、URL は /adm/approve_pc） */
     ADMIN_APPROVE_PC: '/adm/approve_pc',
     /** マニュアル集（(manual) グループ） */

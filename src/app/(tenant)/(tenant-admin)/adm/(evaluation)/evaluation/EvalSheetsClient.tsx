@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createEvaluationSheets, deleteEvaluationSheet } from '@/features/evaluation/actions'
+import { APP_ROUTES } from '@/config/routes'
 import {
   FLOW_STATUS_LABELS,
   PERIOD_STATUS_LABELS,
@@ -46,11 +49,16 @@ export function EvalSheetsClient({
   initialSheets,
   initialPeriodId,
 }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string>(initialPeriodId ?? '')
+  // 表示期間は URL クエリ（period）に連動させ、変更時にサーバー側で該当期間のシートを再取得する
+  const selectedPeriodId = initialPeriodId ?? ''
+  function handlePeriodChange(periodId: string) {
+    router.push(periodId ? `${APP_ROUTES.EVALUATION.ADMIN_LIST}?period=${periodId}` : APP_ROUTES.EVALUATION.ADMIN_LIST)
+  }
   const [showGenerateForm, setShowGenerateForm] = useState(false)
   const [genTemplateId, setGenTemplateId] = useState<string>(
     templates.find(t => t.is_active)?.id ?? ''
@@ -131,7 +139,7 @@ export function EvalSheetsClient({
         <label className="text-sm font-medium text-gray-700">表示期間:</label>
         <select
           value={selectedPeriodId}
-          onChange={e => setSelectedPeriodId(e.target.value)}
+          onChange={e => handlePeriodChange(e.target.value)}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
         >
           <option value="">— 期間を選択 —</option>
@@ -298,13 +306,21 @@ export function EvalSheetsClient({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(sheet, empName)}
-                        disabled={isPending}
-                        className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
-                      >
-                        削除
-                      </button>
+                      <div className="inline-flex items-center gap-3">
+                        <Link
+                          href={APP_ROUTES.EVALUATION.ADMIN_SHEET(sheet.id)}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          詳細
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(sheet, empName)}
+                          disabled={isPending}
+                          className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                        >
+                          削除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

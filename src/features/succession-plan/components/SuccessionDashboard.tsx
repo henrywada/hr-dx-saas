@@ -6,11 +6,14 @@ import { PositionPanel } from './PositionPanel'
 import { NineBoxGrid } from './NineBoxGrid'
 import { RiskPanel } from './RiskPanel'
 import type { SuccessionDashboardData, EmployeeOption, DivisionOption } from '../types'
+import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Props {
   data: SuccessionDashboardData
   employees: EmployeeOption[]
   divisions: DivisionOption[]
+  /** 候補者の直近のキャリア面談記録（読み取り専用の参照パネル用。employee_id をキーとする） */
+  careerDiscussionsByEmployee: Record<string, CareerDiscussionRow[]>
 }
 
 type TabId = 'positions' | 'nine_box' | 'risk'
@@ -21,7 +24,12 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'risk', label: '依存リスク' },
 ]
 
-export function SuccessionDashboard({ data, employees, divisions }: Props) {
+export function SuccessionDashboard({
+  data,
+  employees,
+  divisions,
+  careerDiscussionsByEmployee,
+}: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('positions')
   const [addPositionOpen, setAddPositionOpen] = useState(false)
 
@@ -117,6 +125,7 @@ export function SuccessionDashboard({ data, employees, divisions }: Props) {
                   positions={data.positions}
                   employees={employees}
                   divisions={divisions}
+                  careerDiscussionsByEmployee={careerDiscussionsByEmployee}
                   onAddPosition={() => setAddPositionOpen(true)}
                 />
               )}

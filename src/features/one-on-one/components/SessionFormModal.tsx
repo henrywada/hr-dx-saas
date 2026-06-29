@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { recordOneOnOneSession } from '../actions'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { recordOneOnOneSession, updateOneOnOneSession } from '../actions'
 import { TemplateSelector } from './TemplateSelector'
-import type { ThemeTemplate } from '../types'
+import type { ThemeTemplate, SessionRow } from '../types'
 
 interface Employee {
   id: string
@@ -16,9 +17,20 @@ interface Props {
   onClose: () => void
   employees: Employee[]
   templates: ThemeTemplate[]
+  /** 指定時は編集モード（未指定または null は新規記録） */
+  editingSession?: SessionRow | null
 }
 
-export function SessionFormModal({ open, onClose, employees, templates }: Props) {
+/** ISO日時を datetime-local 入力用（ローカルタイム）に整形する */
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso)
+  const tzOffset = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16)
+}
+
+export function SessionFormModal({ open, onClose, employees, templates, editingSession }: Props) {
+  const router = useRouter()
+  const isEdit = Boolean(editingSession)
   const [employeeId, setEmployeeId] = useState('')
   const [theme, setTheme] = useState('')
   const [notes, setNotes] = useState('')
@@ -26,6 +38,25 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
   const [conductedAt, setConductedAt] = useState(new Date().toISOString().slice(0, 16))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 編集対象が変わったらフォームへ反映（新規時は初期化）
+  useEffect(() => {
+    if (!open) return
+    if (editingSession) {
+      setEmployeeId(editingSession.employee_id)
+      setTheme(editingSession.theme)
+      setNotes(editingSession.notes ?? '')
+      setNextDate(editingSession.next_date ?? '')
+      setConductedAt(toDatetimeLocal(editingSession.conducted_at))
+    } else {
+      setEmployeeId('')
+      setTheme('')
+      setNotes('')
+      setNextDate('')
+      setConductedAt(new Date().toISOString().slice(0, 16))
+    }
+    setError(null)
+  }, [open, editingSession])
 
   if (!open) return null
 
@@ -38,13 +69,17 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
     setLoading(true)
     setError(null)
 
-    const result = await recordOneOnOneSession({
+    const payload = {
       employeeId,
       theme,
       notes: notes || undefined,
       nextDate: nextDate || undefined,
       conductedAt: new Date(conductedAt).toISOString(),
-    })
+    }
+
+    const result = editingSession
+      ? await updateOneOnOneSession({ id: editingSession.id, ...payload })
+      : await recordOneOnOneSession(payload)
 
     setLoading(false)
     if (result.success) {
@@ -52,9 +87,11 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
       setTheme('')
       setNotes('')
       setNextDate('')
+      // サーバーデータを再取得して一覧・実施率を即時反映する
+      router.refresh()
       onClose()
     } else {
-      setError(result.error ?? '記録に失敗しました')
+      setError(result.error ?? (isEdit ? '更新に失敗しました' : '記録に失敗しました'))
     }
   }
 
@@ -62,7 +99,9 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">1on1 セッション記録</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {isEdit ? '1on1 セッション編集' : '1on1 セッション記録'}
+          </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-6">
@@ -136,7 +175,7 @@ export function SessionFormModal({ open, onClose, employees, templates }: Props)
               disabled={loading}
               className="flex-1 rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#FD7601] disabled:opacity-50 transition-colors"
             >
-              {loading ? '記録中...' : '記録する'}
+              {loading ? (isEdit ? '更新中...' : '記録中...') : isEdit ? '更新する' : '記録する'}
             </button>
           </div>
         </form>

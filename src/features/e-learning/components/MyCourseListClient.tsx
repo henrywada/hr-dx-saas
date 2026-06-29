@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { BookOpen, Clock, Calendar, ChevronRight } from 'lucide-react'
+import { APP_ROUTES } from '@/config/routes'
 import type { ElAssignment, ElCourse, ElSlideProgress } from '../types'
 import { formatPublicationRangeJa, canAccessCourseViewer } from '../publication-window'
 
@@ -189,7 +190,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
             )
 
             return canOpen ? (
-              <a key={a.id} href={`/el-courses/${a.id}`} className={outerClass}>
+              <a key={a.id} href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(a.id)} className={outerClass}>
                 {inner}
               </a>
             ) : (

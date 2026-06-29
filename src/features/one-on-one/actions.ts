@@ -5,8 +5,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { APP_ROUTES } from '@/config/routes'
-
-const ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer', 'manager']
+import { canConductOneOnOne } from './types'
 
 const sessionSchema = z.object({
   employeeId: z.string().uuid(),
@@ -32,7 +31,7 @@ export async function recordOneOnOneSession(input: {
     return { success: false, error: 'Unauthorized' }
   }
 
-  if (!ALLOWED_ROLES.includes(user.appRole ?? '')) {
+  if (!canConductOneOnOne(user.appRole, user.is_manager)) {
     return { success: false, error: 'Permission denied' }
   }
 
@@ -51,6 +50,82 @@ export async function recordOneOnOneSession(input: {
     next_date: parsed.data.nextDate ?? null,
     conducted_at: parsed.data.conductedAt ?? new Date().toISOString(),
   })
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE)
+  return { success: true }
+}
+
+const updateSessionSchema = sessionSchema.extend({
+  id: z.string().uuid(),
+})
+
+/** 1on1セッションを更新する */
+export async function updateOneOnOneSession(input: {
+  id: string
+  employeeId: string
+  theme: string
+  notes?: string
+  nextDate?: string
+  conductedAt?: string
+}): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user.employee_id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  if (!canConductOneOnOne(user.appRole, user.is_manager)) {
+    return { success: false, error: 'Permission denied' }
+  }
+
+  const parsed = updateSessionSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid input' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('one_on_one_sessions')
+    .update({
+      employee_id: parsed.data.employeeId,
+      theme: parsed.data.theme,
+      notes: parsed.data.notes ?? null,
+      next_date: parsed.data.nextDate ?? null,
+      conducted_at: parsed.data.conductedAt ?? new Date().toISOString(),
+    })
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', user.tenant_id) // テナント越境防止（RLSと二重で防御）
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE)
+  return { success: true }
+}
+
+/** 1on1セッションを削除する */
+export async function deleteOneOnOneSession(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  if (!canConductOneOnOne(user.appRole, user.is_manager)) {
+    return { success: false, error: 'Permission denied' }
+  }
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { success: false, error: 'Invalid input' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('one_on_one_sessions')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id) // テナント越境防止（RLSと二重で防御）
 
   if (error) return { success: false, error: error.message }
 
@@ -96,6 +171,37 @@ export async function addThemeTemplate(input: {
     description: parsed.data.description ?? null,
     sort_order: parsed.data.sortOrder,
   })
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_ONE_ON_ONE)
+  return { success: true }
+}
+
+/** テーマテンプレートを無効化する（論理削除：is_active=false） */
+export async function deactivateThemeTemplate(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  const HR_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer']
+  if (!HR_ROLES.includes(user.appRole ?? '')) {
+    return { success: false, error: 'Permission denied' }
+  }
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { success: false, error: 'Invalid input' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('one_on_one_theme_templates')
+    .update({ is_active: false })
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
 
   if (error) return { success: false, error: error.message }
 

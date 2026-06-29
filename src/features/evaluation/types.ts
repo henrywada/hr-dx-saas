@@ -42,6 +42,30 @@ export const FLOW_STATUS_LABELS: Record<FlowStatus, string> = {
 
 export type EvaluationRole = 'self' | 'primary' | 'secondary' | 'confirmer' | 'hr_admin' | 'none'
 
+/**
+ * シートと閲覧ユーザの関係から評価ロールを解決する（page.tsx / actions.ts 共通）。
+ * テナント管理者ロール（employee 以外）は hr_admin。それ以外は employee_id の一致で判定する。
+ */
+export function resolveEvaluationRole(params: {
+  appRole?: string | null
+  employeeId?: string | null
+  sheet: {
+    employee_id: string
+    primary_evaluator_id: string | null
+    secondary_evaluator_id: string | null
+    confirmer_id: string | null
+  }
+}): EvaluationRole {
+  const { appRole, employeeId, sheet } = params
+  if (appRole && appRole !== 'employee') return 'hr_admin'
+  if (!employeeId) return 'none'
+  if (employeeId === sheet.employee_id) return 'self'
+  if (employeeId === sheet.primary_evaluator_id) return 'primary'
+  if (employeeId === sheet.secondary_evaluator_id) return 'secondary'
+  if (employeeId === sheet.confirmer_id) return 'confirmer'
+  return 'none'
+}
+
 /** 役割 × フロー状態から編集可否を判定する */
 export function canEdit(role: EvaluationRole, status: FlowStatus): boolean {
   const editMap: Record<EvaluationRole, FlowStatus[]> = {

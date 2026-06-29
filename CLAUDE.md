@@ -457,6 +457,7 @@ router.push(APP_ROUTES.dashboard)
 
 ## 新機能の実装手順
 
+0. **PRDドキュメントの作成・計画ファイルの扱い**：着手前に `docs/implementation-plan-<feature-name>.md`（問題定義・ユーザーストーリー・要求優先度・データモデル案・配置ルール・マスタ登録・成功指標・オープンクエスチョンの構成）をPRDとして作成し、git管理下に残す。これがこのプロジェクトにおける実装計画の正本（恒久的な記録）であり、後から仕様の経緯を追う際の参照先になる。一方、Claude Codeのplanモードが生成する `~/.claude/plans/*.md` は実装着手前の承認ゲートとしての**使い捨てファイル**であり、リポジトリ外・git管理外。実装が完了し動作確認が済んだら、その計画ファイルは削除してよい（内容は既にコード自体と上記PRDドキュメントに残っているため、二重管理にしない）。
 1. `src/config/routes.ts` に `APP_ROUTES` 定数を追加
 2. 権限に応じたディレクトリへ `page.tsx` を作成
 3. `src/features/[domain]/queries.ts` に SELECT 関数を定義

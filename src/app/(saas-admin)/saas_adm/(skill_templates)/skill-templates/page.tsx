@@ -37,7 +37,7 @@ export default async function SkillTemplatesPage() {
                   aria-hidden
                 />
                 <p className="mt-2 max-w-3xl text-sm leading-snug text-gray-700">
-                  全テナントが参照できる業種カテゴリ・職種・スキル項目・スキルレベルのテンプレートを管理します。
+                  全テナント共通で参照できるスキルレベルセット（評価段階の定義）を管理します。業種・職種・スキル項目は各テナントの「スキルマップ」で個別に設定します。
                 </p>
               </div>
             </div>

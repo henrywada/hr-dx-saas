@@ -1,6 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import type { LifecycleDashboardData, LifecycleTaskTemplate, InstanceRow, TaskRow } from './types'
+import { toJSTDateString } from '@/lib/datetime'
+import { isTaskOverdue } from './types'
+import type {
+  LifecycleDashboardData,
+  LifecycleTaskTemplate,
+  InstanceRow,
+  TaskRow,
+  PendingTaskRow,
+} from './types'
 
 /** テンプレート一覧を取得する */
 export async function getTaskTemplates(): Promise<LifecycleTaskTemplate[]> {
@@ -113,6 +121,62 @@ export async function getLifecycleInstances(): Promise<InstanceRow[]> {
       tasks: instTasks,
       total_tasks: instTasks.length,
       completed_tasks: completedTasks,
+    }
+  })
+}
+
+/** 自分が担当者になっている未完了のライフサイクルタスクを取得する（/top通知カード用） */
+export async function getMyPendingLifecycleTasks(employeeId: string): Promise<PendingTaskRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+
+  const { data: tasks, error } = await supabase
+    .from('lifecycle_tasks')
+    .select('id, instance_id, title, due_date')
+    .eq('tenant_id', user.tenant_id)
+    .eq('assignee_id', employeeId)
+    .neq('status', 'completed')
+    .order('due_date', { ascending: true, nullsFirst: false })
+
+  if (error || !tasks || tasks.length === 0) return []
+
+  const instanceIds = [...new Set(tasks.map(t => t.instance_id))]
+  const { data: instances } = await supabase
+    .from('lifecycle_instances')
+    .select('id, employee_id, lifecycle_type')
+    .in('id', instanceIds)
+    .eq('tenant_id', user.tenant_id)
+
+  const employeeIds = [...new Set((instances ?? []).map(i => i.employee_id))]
+  const { data: employees } =
+    employeeIds.length > 0
+      ? await supabase.from('employees').select('id, name').in('id', employeeIds)
+      : { data: [] }
+  const employeeNameMap = new Map((employees ?? []).map(e => [e.id, e.name ?? '']))
+
+  const instanceMap = new Map(
+    (instances ?? []).map(i => [
+      i.id,
+      {
+        employeeName: employeeNameMap.get(i.employee_id) ?? '',
+        lifecycleType: i.lifecycle_type as InstanceRow['lifecycle_type'],
+      },
+    ])
+  )
+
+  const todayYmd = toJSTDateString()
+
+  return tasks.map(t => {
+    const instance = instanceMap.get(t.instance_id)
+    return {
+      task_id: t.id,
+      title: t.title,
+      due_date: t.due_date,
+      is_overdue: isTaskOverdue(t.due_date, todayYmd),
+      instance_employee_name: instance?.employeeName ?? '',
+      lifecycle_type: instance?.lifecycleType ?? 'onboarding',
     }
   })
 }

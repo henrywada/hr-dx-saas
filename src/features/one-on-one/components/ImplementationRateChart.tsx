@@ -10,10 +10,21 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts'
-import type { ImplementationRateRow } from '../types'
+/** チャート描画用の正規化済みデータ（管理職別・部署別 共通） */
+export interface RateChartDatum {
+  /** 表示ラベル（短縮済み） */
+  name: string
+  /** ツールチップ用フルネーム */
+  fullName: string
+  rate: number
+  sessions: number
+  total: number
+}
 
 interface Props {
-  data: ImplementationRateRow[]
+  data: RateChartDatum[]
+  /** データが空のときの案内文 */
+  emptyMessage?: string
 }
 
 function getRateColor(rate: number): string {
@@ -22,23 +33,16 @@ function getRateColor(rate: number): string {
   return '#ef4444'
 }
 
-export function ImplementationRateChart({ data }: Props) {
+export function ImplementationRateChart({ data, emptyMessage }: Props) {
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-        データなし — 管理職（is_manager = true）の従業員登録が必要です
+        {emptyMessage ?? 'データなし'}
       </div>
     )
   }
 
-  const chartData = data.map(d => ({
-    name: d.manager_name.length > 8 ? d.manager_name.slice(0, 7) + '…' : d.manager_name,
-    fullName: d.manager_name,
-    rate: d.rate,
-    dept: d.department_name ?? '',
-    sessions: d.sessions_last_30days,
-    total: d.total_subordinates,
-  }))
+  const chartData = data
 
   return (
     <ResponsiveContainer width="100%" height={240}>

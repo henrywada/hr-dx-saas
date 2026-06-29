@@ -51,3 +51,26 @@ export interface LifecycleDashboardData {
   offboardingInstances: InstanceRow[]
   templates: LifecycleTaskTemplate[]
 }
+
+/** 自分が担当者になっている未完了タスク表示用（/top通知カード用） */
+export interface PendingTaskRow {
+  task_id: string
+  title: string
+  due_date: string | null
+  is_overdue: boolean
+  instance_employee_name: string
+  lifecycle_type: LifecycleType
+}
+
+const LIFECYCLE_HR_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer']
+
+/** /adm/lifecycle にアクセスして自分のタスクを管理できる権限かどうかを判定する */
+export function canManageLifecycle(appRole: string | null | undefined): boolean {
+  return appRole != null && LIFECYCLE_HR_ROLES.includes(appRole)
+}
+
+/** due_date が今日より過去なら期限超過と判定する（YYYY-MM-DD文字列同士の比較） */
+export function isTaskOverdue(dueDate: string | null, todayYmd: string): boolean {
+  if (!dueDate) return false
+  return dueDate < todayYmd
+}

@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@/config/routes'
 import { getSuccessionDashboardData } from '@/features/succession-plan/queries'
 import { SuccessionDashboard } from '@/features/succession-plan/components/SuccessionDashboard'
 import { createClient } from '@/lib/supabase/server'
+import { getRecentCareerDiscussionsForEmployees } from '@/features/career-discussions/queries'
 
 export const metadata = { title: 'サクセッションプラン' }
 
@@ -42,5 +43,18 @@ export default async function SuccessionPage() {
 
   const data = await getSuccessionDashboardData()
 
-  return <SuccessionDashboard data={data} employees={employees} divisions={divisions} />
+  const candidateEmployeeIds = [
+    ...new Set(data.positions.flatMap(p => p.candidates.map(c => c.employee_id))),
+  ]
+  const careerDiscussionsByEmployee =
+    await getRecentCareerDiscussionsForEmployees(candidateEmployeeIds)
+
+  return (
+    <SuccessionDashboard
+      data={data}
+      employees={employees}
+      divisions={divisions}
+      careerDiscussionsByEmployee={careerDiscussionsByEmployee}
+    />
+  )
 }

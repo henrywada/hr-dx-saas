@@ -294,6 +294,30 @@ export async function verifyManagerAccess(
   return !!data
 }
 
+/** 目標提案フォーム用データ（対象者名＋テナントスキル一覧） */
+export async function getProposeGoalData(
+  supabase: DB,
+  tenantId: string,
+  employeeId: string
+): Promise<{ employeeName: string | null; tenantSkills: { id: string; name: string }[] }> {
+  const { data: emp } = await (supabase as any)
+    .from('employees')
+    .select('name')
+    .eq('id', employeeId)
+    .single()
+
+  const { data: skills } = await (supabase as any)
+    .from('tenant_skills')
+    .select('id, name')
+    .eq('tenant_id', tenantId)
+    .order('name', { ascending: true })
+
+  return {
+    employeeName: emp?.name ?? null,
+    tenantSkills: (skills ?? []) as { id: string; name: string }[],
+  }
+}
+
 /** 育成ジャーニーボード用全データ取得 */
 export async function getGrowthJourneyData(
   supabase: DB,

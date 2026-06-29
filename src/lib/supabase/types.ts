@@ -501,6 +501,115 @@ export type Database = {
           },
         ]
       }
+      career_discussion_theme_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_discussion_theme_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_discussions: {
+        Row: {
+          career_aspiration: string | null
+          conducted_at: string
+          conducted_by_employee_id: string
+          created_at: string
+          employee_id: string
+          evaluation_period_id: string | null
+          id: string
+          next_date: string | null
+          notes: string | null
+          tenant_id: string
+          theme: string
+        }
+        Insert: {
+          career_aspiration?: string | null
+          conducted_at?: string
+          conducted_by_employee_id: string
+          created_at?: string
+          employee_id: string
+          evaluation_period_id?: string | null
+          id?: string
+          next_date?: string | null
+          notes?: string | null
+          tenant_id: string
+          theme: string
+        }
+        Update: {
+          career_aspiration?: string | null
+          conducted_at?: string
+          conducted_by_employee_id?: string
+          created_at?: string
+          employee_id?: string
+          evaluation_period_id?: string | null
+          id?: string
+          next_date?: string | null
+          notes?: string | null
+          tenant_id?: string
+          theme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_discussions_conducted_by_employee_id_fkey"
+            columns: ["conducted_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussions_evaluation_period_id_fkey"
+            columns: ["evaluation_period_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkins: {
         Row: {
           checkin_date: string

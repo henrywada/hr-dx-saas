@@ -4,10 +4,12 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Trash2, Users } from 'lucide-react'
+import { APP_ROUTES } from '@/config/routes'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { removeAssignment } from '../actions'
 import { AssignmentModal } from './AssignmentModal'
 import type { ElAssignment, ElCourse } from '../types'
+import type { AssignmentProgress } from '../queries'
 
 interface Employee {
   id: string
@@ -19,9 +21,15 @@ interface Props {
   assignments: ElAssignment[]
   employees: Employee[]
   tenantCourses: ElCourse[]
+  progressMap?: Record<string, AssignmentProgress>
 }
 
-export function AssignmentListClient({ assignments, employees, tenantCourses }: Props) {
+export function AssignmentListClient({
+  assignments,
+  employees,
+  tenantCourses,
+  progressMap = {},
+}: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showModal, setShowModal] = useState(false)
@@ -83,6 +91,60 @@ export function AssignmentListClient({ assignments, employees, tenantCourses }: 
       render: (_, item) => <div className="text-sm text-[#57606a]">{item.due_date ?? '-'}</div>,
     },
     {
+      key: 'tenant_id' as keyof ElAssignment,
+      label: '進捗',
+      width: 'w-40',
+      render: (_, item) => {
+        const p = progressMap[item.id]
+        if (!p || p.total === 0) {
+          return <div className="text-xs text-gray-400">スライド未登録</div>
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-20 rounded-full bg-[#eaeef2] overflow-hidden">
+              <div
+                className={`h-full rounded-full ${p.isCompleted ? 'bg-emerald-500' : 'bg-[#FD7601]'}`}
+                style={{ width: `${p.rate}%` }}
+              />
+            </div>
+            <span className="text-xs text-[#57606a] tabular-nums">
+              {p.completed}/{p.total}（{p.rate}%）
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'assigned_at' as keyof ElAssignment,
+      label: '状態',
+      width: 'w-24',
+      render: (_, item) => {
+        const p = progressMap[item.id]
+        if (!p || p.total === 0) {
+          return <span className="text-xs text-gray-400">-</span>
+        }
+        if (p.isCompleted) {
+          return (
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              修了
+            </span>
+          )
+        }
+        if (p.completed > 0) {
+          return (
+            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              受講中
+            </span>
+          )
+        }
+        return (
+          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            未着手
+          </span>
+        )
+      },
+    },
+    {
       key: 'id' as keyof ElAssignment,
       label: '操作',
       width: 'w-12',
@@ -108,7 +170,10 @@ export function AssignmentListClient({ assignments, employees, tenantCourses }: 
             下のコース一覧から選び、受講者を指定してください。
             <br />
             ステータスが「下書き」でも割り当ては可能ですが、受講開始前に
-            <Link href="/adm/el-courses" className="text-[#FD7601] hover:underline mx-0.5">
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
+              className="text-[#FD7601] hover:underline mx-0.5"
+            >
               コース管理
             </Link>
             で「公開中」にすると運用しやすくなります。
@@ -118,7 +183,10 @@ export function AssignmentListClient({ assignments, employees, tenantCourses }: 
         {tenantCourses.length === 0 ? (
           <div className="text-center text-sm text-gray-500">
             自社コースがありません。
-            <Link href="/adm/el-courses" className="text-[#FD7601] hover:underline ml-1">
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
+              className="text-[#FD7601] hover:underline ml-1"
+            >
               コースを作成
             </Link>
           </div>

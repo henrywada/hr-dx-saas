@@ -60,15 +60,45 @@ export interface ImplementationRateRow {
   rate: number
 }
 
+/** 部署別の実施率サマリー */
+export interface DepartmentRateRow {
+  division_id: string
+  department_name: string
+  total_subordinates: number
+  sessions_last_30days: number
+  /** 実施率 0〜100 */
+  rate: number
+}
+
+/** ダッシュボードで表示する従業員（部下）情報 */
+export interface OneOnOneEmployee {
+  id: string
+  name: string
+  department_name: string | null
+}
+
 /** ダッシュボード全体データ */
 export interface OneOnOneDashboardData {
   sessions: SessionRow[]
   implementationRates: ImplementationRateRow[]
+  departmentRates: DepartmentRateRow[]
   themeTemplates: ThemeTemplate[]
   /** 未実施リマインダー対象（30日以上未実施の部下一覧） */
   overdueEmployees: OverdueEmployee[]
   totalSessionsLast30Days: number
   averageRate: number
+}
+
+/**
+ * 1on1 を記録・管理できる権限かどうかを判定する（page.tsx / actions.ts 共通）。
+ * テナント管理者ロール（employee 以外）または上長フラグ（is_manager）を持つユーザを許可する。
+ * 管理画面レイアウト（(tenant-admin)/layout.tsx）が employee を遮断する前提と整合させる。
+ */
+export function canConductOneOnOne(
+  appRole: string | null | undefined,
+  isManager?: boolean | null
+): boolean {
+  return Boolean(isManager) || (appRole != null && appRole !== 'employee')
 }
 
 /** 未実施リマインダー対象 */

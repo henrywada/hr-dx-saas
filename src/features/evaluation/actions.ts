@@ -4,7 +4,106 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
-import type { EvaluationAxis, MboCategory, PeriodType, FlowStatus, EvalActionResult } from './types'
+import {
+  canEdit,
+  resolveEvaluationRole,
+  type EvaluationAxis,
+  type EvaluationRole,
+  type MboCategory,
+  type PeriodType,
+  type FlowStatus,
+  type EvalActionResult,
+} from './types'
+
+/**
+ * シートに対するユーザの評価ロールを解決する（page.tsx / actions 共通の判定基盤）。
+ * - テナント管理者ロール（employee 以外）は hr_admin として全操作可
+ * - それ以外は employee_id とシートの各評価者IDの一致で self/primary/secondary/confirmer を判定
+ */
+async function resolveSheetRole(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  user: { tenant_id?: string | null; employee_id?: string | null; appRole?: string | null },
+  sheetId: string
+): Promise<{ role: EvaluationRole; flowStatus: FlowStatus; isLocked: boolean } | null> {
+  const { data: sheet } = await (supabase as any)
+    .from('evaluation_sheets')
+    .select(
+      'employee_id, primary_evaluator_id, secondary_evaluator_id, confirmer_id, flow_status, is_locked'
+    )
+    .eq('id', sheetId)
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle()
+  if (!sheet) return null
+
+  const role: EvaluationRole = resolveEvaluationRole({
+    appRole: user.appRole,
+    employeeId: user.employee_id,
+    sheet,
+  })
+
+  return { role, flowStatus: sheet.flow_status as FlowStatus, isLocked: sheet.is_locked }
+}
+
+/** 確定スコア（final_score）から等級（final_grade）を判定する（標準しきい値） */
+function scoreToGrade(score: number): 'S' | 'A' | 'B' | 'C' | 'D' {
+  if (score >= 90) return 'S'
+  if (score >= 80) return 'A'
+  if (score >= 70) return 'B'
+  if (score >= 60) return 'C'
+  return 'D'
+}
+
+/**
+ * シートの確定スコアを算出する。
+ * 評価者の優先順位（confirmer > secondary > primary）で採用したスコアを、
+ * 評価項目の重み（weight）で加重平均し 100 点満点に換算する（5 段階 → ×20）。
+ */
+async function computeFinalScore(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sheetId: string,
+  templateId: string
+): Promise<{ score: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' } | null> {
+  const { data: items } = await (supabase as any)
+    .from('evaluation_template_items')
+    .select('id, weight')
+    .eq('template_id', templateId)
+  if (!items || items.length === 0) return null
+
+  const { data: scores } = await (supabase as any)
+    .from('evaluation_scores')
+    .select('item_id, evaluator_type, score')
+    .eq('sheet_id', sheetId)
+
+  // 項目ごとに最優先の評価者スコアを採用
+  const priority: Record<string, number> = { confirmer: 3, secondary: 2, primary: 1, self: 0 }
+  const bestByItem = new Map<string, { score: number; prio: number }>()
+  for (const s of (scores ?? []) as {
+    item_id: string | null
+    evaluator_type: string
+    score: number | null
+  }[]) {
+    if (!s.item_id || s.score == null) continue
+    const prio = priority[s.evaluator_type] ?? -1
+    const current = bestByItem.get(s.item_id)
+    if (!current || prio > current.prio) {
+      bestByItem.set(s.item_id, { score: s.score, prio })
+    }
+  }
+
+  let weightedSum = 0
+  let weightTotal = 0
+  for (const item of items as { id: string; weight: number | null }[]) {
+    const best = bestByItem.get(item.id)
+    if (!best) continue
+    const w = item.weight ?? 0
+    weightedSum += best.score * 20 * w // 5段階 → 100点換算
+    weightTotal += w
+  }
+  if (weightTotal === 0) return null
+
+  const finalScore = Math.round(weightedSum / weightTotal)
+  return { score: finalScore, grade: scoreToGrade(finalScore) }
+}
 
 // ---- テナントテンプレート ----
 
@@ -306,22 +405,39 @@ export async function advanceEvaluationFlow(input: {
   if (!user?.tenant_id || !user.employee_id) return { success: false, error: '権限がありません' }
   const supabase = await createClient()
 
-  const { data: sheet } = await (supabase as any)
-    .from('evaluation_sheets')
-    .select('flow_status, is_locked')
-    .eq('id', input.sheet_id)
-    .eq('tenant_id', user.tenant_id)
-    .maybeSingle()
-  if (!sheet) return { success: false, error: '評価シートが見つかりません' }
-  if (sheet.is_locked) return { success: false, error: '確定済みのシートは変更できません' }
+  const ctx = await resolveSheetRole(supabase, user, input.sheet_id)
+  if (!ctx) return { success: false, error: '評価シートが見つかりません' }
+  if (ctx.isLocked) return { success: false, error: '確定済みのシートは変更できません' }
+
+  // ロール検証：hr_admin は全遷移可。それ以外は現在の状態で編集権を持つロールのみ遷移可。
+  if (ctx.role !== 'hr_admin' && !canEdit(ctx.role, ctx.flowStatus)) {
+    return { success: false, error: 'この操作を行う権限がありません' }
+  }
 
   const isLocked = input.to_status === 'confirmed'
+
+  // 確定時は確定スコア・等級を算出して併せて保存する
+  let finalFields: Record<string, unknown> = {}
+  if (isLocked) {
+    const { data: sheetRow } = await (supabase as any)
+      .from('evaluation_sheets')
+      .select('template_id')
+      .eq('id', input.sheet_id)
+      .maybeSingle()
+    if (sheetRow?.template_id) {
+      const final = await computeFinalScore(supabase, input.sheet_id, sheetRow.template_id)
+      if (final) {
+        finalFields = { final_score: final.score, final_grade: final.grade }
+      }
+    }
+  }
 
   const { error: updateErr } = await (supabase as any)
     .from('evaluation_sheets')
     .update({
       flow_status: input.to_status,
       is_locked: isLocked,
+      ...finalFields,
       updated_at: new Date().toISOString(),
     })
     .eq('id', input.sheet_id)
@@ -330,7 +446,7 @@ export async function advanceEvaluationFlow(input: {
   await (supabase as any).from('evaluation_flow_logs').insert({
     tenant_id: user.tenant_id,
     sheet_id: input.sheet_id,
-    from_status: sheet.flow_status,
+    from_status: ctx.flowStatus,
     to_status: input.to_status,
     changed_by: user.employee_id,
     comment: input.comment ?? null,
@@ -391,6 +507,16 @@ export async function saveEvaluationScore(input: {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.employee_id) return { success: false, error: '権限がありません' }
   const supabase = await createClient()
+
+  // ロール検証：確定済みは編集不可。hr_admin は代理入力可。それ以外は自ロールかつ編集可状態のみ。
+  const ctx = await resolveSheetRole(supabase, user, input.sheet_id)
+  if (!ctx) return { success: false, error: '評価シートが見つかりません' }
+  if (ctx.isLocked) return { success: false, error: '確定済みのシートは変更できません' }
+  if (ctx.role !== 'hr_admin') {
+    if (input.evaluator_type !== ctx.role || !canEdit(ctx.role, ctx.flowStatus)) {
+      return { success: false, error: 'この評価を入力する権限がありません' }
+    }
+  }
 
   let existingQuery = (supabase as any)
     .from('evaluation_scores')

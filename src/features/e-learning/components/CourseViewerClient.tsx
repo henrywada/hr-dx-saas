@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { APP_ROUTES } from '@/config/routes'
 import { completeCourse, recordSlideProgress } from '../actions'
 import { SlideProgressBar } from './SlideProgressBar'
 import { SlideContentView } from './SlideContentView'
@@ -238,7 +239,7 @@ export function CourseViewerClient({ data }: Props) {
           </div>
 
           <Link
-            href="/el-courses"
+            href={APP_ROUTES.TENANT.EL_MY_COURSES}
             className="shrink-0 px-4 py-2.5 text-sm text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-50"
           >
             中断

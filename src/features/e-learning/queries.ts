@@ -132,6 +132,73 @@ export async function getAssignments(courseId?: string): Promise<ElAssignment[]>
   return (data ?? []) as unknown as ElAssignment[]
 }
 
+export interface AssignmentProgress {
+  /** 完了スライド数 */
+  completed: number
+  /** コース総スライド数 */
+  total: number
+  /** 進捗率（0-100、総スライド0件のときは0） */
+  rate: number
+  /** 全スライド完了済みか */
+  isCompleted: boolean
+}
+
+/**
+ * 割り当てごとの受講進捗を集計する（管理者の進捗一覧用）。
+ * el_progress(status='completed') のスライド数 ÷ コースの総スライド数 で算出する。
+ */
+export async function getAssignmentProgressMap(
+  assignments: { id: string; course_id: string }[]
+): Promise<Record<string, AssignmentProgress>> {
+  const result: Record<string, AssignmentProgress> = {}
+  if (assignments.length === 0) return result
+
+  const supabase = await createClient()
+  const assignmentIds = assignments.map(a => a.id)
+  const courseIds = Array.from(new Set(assignments.map(a => a.course_id)))
+
+  // コース別の総スライド数
+  const { data: slides, error: slidesError } = await supabase
+    .from('el_slides')
+    .select('id, course_id')
+    .in('course_id', courseIds)
+  if (slidesError) throw supabaseQueryError('スライド数の取得に失敗しました', slidesError)
+
+  const totalByCourse: Record<string, number> = {}
+  for (const s of slides ?? []) {
+    const cid = (s as { course_id: string }).course_id
+    totalByCourse[cid] = (totalByCourse[cid] ?? 0) + 1
+  }
+
+  // 割り当て別の完了スライド数
+  const { data: progress, error: progressError } = await supabase
+    .from('el_progress')
+    .select('assignment_id, status')
+    .in('assignment_id', assignmentIds)
+    .eq('status', 'completed')
+  if (progressError) throw supabaseQueryError('受講進捗の取得に失敗しました', progressError)
+
+  const completedByAssignment: Record<string, number> = {}
+  for (const p of progress ?? []) {
+    const aid = (p as { assignment_id: string }).assignment_id
+    completedByAssignment[aid] = (completedByAssignment[aid] ?? 0) + 1
+  }
+
+  for (const a of assignments) {
+    const total = totalByCourse[a.course_id] ?? 0
+    const completed = Math.min(completedByAssignment[a.id] ?? 0, total || Infinity)
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0
+    result[a.id] = {
+      completed,
+      total,
+      rate,
+      isCompleted: total > 0 && completed >= total,
+    }
+  }
+
+  return result
+}
+
 export async function getEmployeesForAssignment() {
   const supabase = await createClient()
 

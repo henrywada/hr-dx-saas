@@ -182,6 +182,27 @@ export async function getEmployeesForEvaluation(
   })
 }
 
+/** 従業員IDのリストから 表示名のマップ を取得する（評価者・対象者名の解決用） */
+export async function getEmployeeNamesByIds(
+  supabase: SupabaseClient,
+  tenantId: string,
+  ids: string[]
+): Promise<Record<string, string>> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))]
+  if (uniqueIds.length === 0) return {}
+  const { data, error } = await (supabase as any)
+    .from('employees')
+    .select('id, name')
+    .eq('tenant_id', tenantId)
+    .in('id', uniqueIds)
+  if (error || !data) return {}
+  const map: Record<string, string> = {}
+  for (const e of data as { id: string; name: string | null }[]) {
+    map[e.id] = e.name ?? ''
+  }
+  return map
+}
+
 /** 評価スコア一覧（シート内の全評価タイプ） */
 export async function getEvaluationScores(
   supabase: SupabaseClient,

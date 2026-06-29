@@ -10,11 +10,14 @@ import type {
   PositionWithCandidates,
 } from '../types'
 import { READINESS_LABELS } from '../types'
+import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Props {
   position: PositionWithCandidates
   candidate?: CandidateRow | null
   employees: EmployeeOption[]
+  /** 編集中の候補者の直近のキャリア面談記録（読み取り専用の参照パネル用、自動反映はしない） */
+  recentCareerDiscussions: CareerDiscussionRow[]
   onClose: () => void
 }
 
@@ -22,7 +25,13 @@ const READINESS_OPTIONS: ReadinessLevel[] = ['ready_now', 'one_to_two_years', 't
 const SCORE_OPTIONS = [1, 2, 3] as const
 const SCORE_LABELS = ['低', '中', '高'] as const
 
-export function CandidateFormModal({ position, candidate, employees, onClose }: Props) {
+export function CandidateFormModal({
+  position,
+  candidate,
+  employees,
+  recentCareerDiscussions,
+  onClose,
+}: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -101,6 +110,24 @@ export function CandidateFormModal({ position, candidate, employees, onClose }: 
               ))}
             </select>
           </div>
+
+          {candidate && recentCareerDiscussions.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="mb-2 text-xs font-semibold text-gray-600">
+                直近のキャリア面談記録（参照用、readinessには反映されません）
+              </p>
+              <ul className="space-y-2">
+                {recentCareerDiscussions.map(d => (
+                  <li key={d.id} className="text-xs text-gray-600">
+                    <span className="font-medium text-gray-800">{d.theme}</span>
+                    {d.career_aspiration && (
+                      <p className="mt-0.5">本人の志向: {d.career_aspiration}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">準備度</label>

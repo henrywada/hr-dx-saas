@@ -12,7 +12,11 @@ import { EvalSheetsClient } from './EvalSheetsClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EvaluationAdminPage() {
+export default async function EvaluationAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>
+}) {
   const user = await getServerUser()
   if (!user) redirect(APP_ROUTES.AUTH.LOGIN)
 
@@ -23,10 +27,16 @@ export default async function EvaluationAdminPage() {
     getEmployeesForEvaluation(supabase, user.tenant_id!),
   ])
 
-  const activePeriodId = periods.find(p => p.status !== 'confirmed' && p.status !== 'closed')?.id
+  // URL の period クエリを優先し、無ければ進行中の期間をデフォルト選択する
+  const { period: periodParam } = await searchParams
+  const defaultPeriodId = periods.find(p => p.status !== 'confirmed' && p.status !== 'closed')?.id
+  const selectedPeriodId =
+    periodParam && periods.some(p => p.id === periodParam)
+      ? periodParam
+      : (defaultPeriodId ?? null)
 
-  const sheets = activePeriodId
-    ? await getEvaluationSheets(supabase, user.tenant_id!, activePeriodId)
+  const sheets = selectedPeriodId
+    ? await getEvaluationSheets(supabase, user.tenant_id!, selectedPeriodId)
     : []
 
   return (
@@ -55,7 +65,7 @@ export default async function EvaluationAdminPage() {
               templates={templates}
               employees={employees}
               initialSheets={sheets}
-              initialPeriodId={activePeriodId ?? null}
+              initialPeriodId={selectedPeriodId}
             />
           </div>
         </div>

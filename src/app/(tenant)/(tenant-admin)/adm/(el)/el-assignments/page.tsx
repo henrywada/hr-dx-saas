@@ -1,7 +1,12 @@
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
-import { getAssignments, getCourses, getEmployeesForAssignment } from '@/features/e-learning/queries'
+import {
+  getAssignments,
+  getCourses,
+  getEmployeesForAssignment,
+  getAssignmentProgressMap,
+} from '@/features/e-learning/queries'
 import { AssignmentListClient } from '@/features/e-learning/components/AssignmentListClient'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +23,10 @@ export default async function ElAssignmentsPage() {
     getCourses(),
   ])
 
+  const progressMap = await getAssignmentProgressMap(
+    assignments.map(a => ({ id: a.id, course_id: a.course_id }))
+  )
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
@@ -28,6 +37,7 @@ export default async function ElAssignmentsPage() {
         assignments={assignments}
         employees={employees}
         tenantCourses={tenantCourses}
+        progressMap={progressMap}
       />
     </div>
   )

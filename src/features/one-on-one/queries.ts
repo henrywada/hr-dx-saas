@@ -4,10 +4,35 @@ import { differenceInDays } from 'date-fns'
 import type {
   SessionRow,
   ImplementationRateRow,
+  DepartmentRateRow,
   ThemeTemplate,
   OverdueEmployee,
   OneOnOneDashboardData,
+  OneOnOneEmployee,
 } from './types'
+
+/** 1on1 対象となる在籍中の部下（is_manager=false）一覧を取得する */
+export async function getActiveEmployeesForOneOnOne(): Promise<OneOnOneEmployee[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name, division_id, divisions(name)')
+    .eq('tenant_id', user.tenant_id)
+    .eq('active_status', 'active')
+    .eq('is_manager', false)
+    .order('name')
+
+  if (error || !data) return []
+
+  return data.map(e => {
+    const divData = e.divisions as { name: string } | { name: string }[] | null
+    const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
+    return { id: e.id, name: e.name ?? '', department_name: deptName }
+  })
+}
 
 /** 直近50件のセッション一覧（従業員・部署名付き）を取得する */
 export async function getOneOnOneSessions(): Promise<SessionRow[]> {
@@ -151,6 +176,63 @@ export async function getImplementationRates(): Promise<ImplementationRateRow[]>
     .sort((a, b) => b.rate - a.rate)
 }
 
+/** 部署別の実施率サマリーを取得する（直近30日） */
+export async function getDepartmentImplementationRates(): Promise<DepartmentRateRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  // 在籍中の部下（is_manager=false）を部署ごとに集計
+  const { data: subordinates } = await supabase
+    .from('employees')
+    .select('id, division_id, divisions(name)')
+    .eq('tenant_id', user.tenant_id)
+    .eq('active_status', 'active')
+    .eq('is_manager', false)
+
+  if (!subordinates || subordinates.length === 0) return []
+
+  // 直近30日のセッション（部下ID単位で実施有無を判定）
+  const { data: sessions } = await supabase
+    .from('one_on_one_sessions')
+    .select('employee_id')
+    .eq('tenant_id', user.tenant_id)
+    .gte('conducted_at', thirtyDaysAgo)
+
+  const conductedEmployeeIds = new Set((sessions ?? []).map(s => s.employee_id))
+
+  const byDivision = new Map<
+    string,
+    { name: string; total: number; conducted: number }
+  >()
+
+  for (const sub of subordinates) {
+    if (!sub.division_id) continue
+    const divData = sub.divisions as { name: string } | { name: string }[] | null
+    const deptName = Array.isArray(divData)
+      ? (divData[0]?.name ?? '未設定')
+      : (divData?.name ?? '未設定')
+
+    const entry = byDivision.get(sub.division_id) ?? { name: deptName, total: 0, conducted: 0 }
+    entry.total += 1
+    if (conductedEmployeeIds.has(sub.id)) entry.conducted += 1
+    byDivision.set(sub.division_id, entry)
+  }
+
+  return Array.from(byDivision.entries())
+    .map(([divisionId, v]) => ({
+      division_id: divisionId,
+      department_name: v.name,
+      total_subordinates: v.total,
+      sessions_last_30days: v.conducted,
+      rate: v.total > 0 ? Math.round((v.conducted / v.total) * 100) : 0,
+    }))
+    .sort((a, b) => b.rate - a.rate)
+}
+
 /** テーマテンプレート一覧を取得する */
 export async function getThemeTemplates(): Promise<ThemeTemplate[]> {
   const user = await getServerUser()
@@ -239,12 +321,14 @@ export async function getOverdueEmployees(): Promise<OverdueEmployee[]> {
 
 /** ダッシュボード用データをまとめて取得する */
 export async function getOneOnOneDashboardData(): Promise<OneOnOneDashboardData> {
-  const [sessions, implementationRates, themeTemplates, overdueEmployees] = await Promise.all([
-    getOneOnOneSessions(),
-    getImplementationRates(),
-    getThemeTemplates(),
-    getOverdueEmployees(),
-  ])
+  const [sessions, implementationRates, departmentRates, themeTemplates, overdueEmployees] =
+    await Promise.all([
+      getOneOnOneSessions(),
+      getImplementationRates(),
+      getDepartmentImplementationRates(),
+      getThemeTemplates(),
+      getOverdueEmployees(),
+    ])
 
   const totalSessionsLast30Days = implementationRates.reduce(
     (sum, r) => sum + r.sessions_last_30days,
@@ -260,6 +344,7 @@ export async function getOneOnOneDashboardData(): Promise<OneOnOneDashboardData>
   return {
     sessions,
     implementationRates,
+    departmentRates,
     themeTemplates,
     overdueEmployees,
     totalSessionsLast30Days,

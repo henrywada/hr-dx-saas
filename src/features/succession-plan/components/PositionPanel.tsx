@@ -6,15 +6,23 @@ import { PositionFormModal } from './PositionFormModal'
 import { CandidateFormModal } from './CandidateFormModal'
 import type { PositionWithCandidates, CandidateRow, EmployeeOption, DivisionOption } from '../types'
 import { RISK_LEVEL_LABELS, RISK_LEVEL_COLORS, READINESS_LABELS, READINESS_COLORS } from '../types'
+import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Props {
   positions: PositionWithCandidates[]
   employees: EmployeeOption[]
   divisions: DivisionOption[]
+  careerDiscussionsByEmployee: Record<string, CareerDiscussionRow[]>
   onAddPosition: () => void
 }
 
-export function PositionPanel({ positions, employees, divisions, onAddPosition }: Props) {
+export function PositionPanel({
+  positions,
+  employees,
+  divisions,
+  careerDiscussionsByEmployee,
+  onAddPosition,
+}: Props) {
   const [, startTransition] = useTransition()
   const [editingPosition, setEditingPosition] = useState<PositionWithCandidates | null>(null)
   const [addingCandidateTo, setAddingCandidateTo] = useState<PositionWithCandidates | null>(null)
@@ -181,6 +189,7 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
         <CandidateFormModal
           position={addingCandidateTo}
           employees={employees}
+          recentCareerDiscussions={[]}
           onClose={() => setAddingCandidateTo(null)}
         />
       )}
@@ -190,6 +199,9 @@ export function PositionPanel({ positions, employees, divisions, onAddPosition }
           position={editingCandidate.position}
           candidate={editingCandidate.candidate}
           employees={employees}
+          recentCareerDiscussions={
+            careerDiscussionsByEmployee[editingCandidate.candidate.employee_id] ?? []
+          }
           onClose={() => setEditingCandidate(null)}
         />
       )}

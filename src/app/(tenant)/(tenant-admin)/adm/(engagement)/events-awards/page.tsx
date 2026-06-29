@@ -12,7 +12,7 @@ import { EventAttendeeTable } from '@/features/internal-events/components/admin/
 import { AwardFormDialog } from '@/features/internal-events/components/admin/AwardFormDialog'
 import { AwardBoard } from '@/features/internal-events/components/AwardBoard'
 
-const HR_ROLES = ['hr', 'hr_manager']
+const HR_ROLES = ['hr', 'hr_manager', 'developer']
 
 export const metadata = { title: 'イベント・表彰管理' }
 

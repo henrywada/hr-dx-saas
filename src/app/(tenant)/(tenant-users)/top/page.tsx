@@ -25,6 +25,8 @@ import { getTodayCheckin } from '@/features/condition-checkin/queries'
 import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWidget'
 import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
 import { ConsultationPendingNotice } from '@/features/dashboard/components/ConsultationPendingNotice'
+import { getRecentKudosCountForRecipient } from '@/features/recognition/queries'
+import { KudosPendingNotice } from '@/features/recognition/components/KudosPendingNotice'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
@@ -47,6 +49,7 @@ export default async function DashboardPage() {
     activePeriod,
     pendingConsultationCount,
     todayCheckin,
+    pendingKudosCount,
   ] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
@@ -54,6 +57,7 @@ export default async function DashboardPage() {
     getActivePeriod(),
     getPendingConsultationCount(),
     user?.employee_id ? getTodayCheckin(user.employee_id) : Promise.resolve(null),
+    user?.employee_id ? getRecentKudosCountForRecipient(user.employee_id) : Promise.resolve(0),
   ])
 
   // 産業医・保健師・人事系の役割は /adm/consultation-queue、上司は /consultation/inbox へ誘導
@@ -207,6 +211,7 @@ export default async function DashboardPage() {
               count={pendingConsultationCount}
               href={consultationInboxHref}
             />
+            <KudosPendingNotice count={pendingKudosCount} href={APP_ROUTES.TENANT.KUDOS} />
             <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
             <ul
               className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}

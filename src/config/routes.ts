@@ -42,6 +42,10 @@ export const APP_ROUTES = {
     CONDITION_TEAM_TREND: '/condition/team-trend',
     /** コンディション記録 人事・産業医向け部署集計（部署セレクタ付き） */
     ADMIN_CONDITION_TREND: '/adm/condition-trend',
+    /** 感謝・称賛（Kudos、本人向け全社フィード・投稿） */
+    KUDOS: '/kudos',
+    /** 感謝・称賛（Kudos）集計 管理（人事向け部署別・個人別ランキング） */
+    ADMIN_KUDOS_STATS: '/adm/kudos-stats',
     /** 社内イベント・表彰（本人向け一覧・RSVP・表彰発表） */
     EVENTS: '/events',
     /** 社内イベント・表彰 管理（人事向けCRUD） */

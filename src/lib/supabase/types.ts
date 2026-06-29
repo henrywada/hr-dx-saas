@@ -3483,6 +3483,108 @@ export type Database = {
           },
         ]
       }
+      kudos: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_employee_id: string
+          tenant_id: string
+          value_tag: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_employee_id: string
+          tenant_id: string
+          value_tag?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_employee_id?: string
+          tenant_id?: string
+          value_tag?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kudos_sender_employee_id_fkey"
+            columns: ["sender_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kudos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kudos_reactions: {
+        Row: {
+          employee_id: string
+          kudos_id: string
+        }
+        Insert: {
+          employee_id: string
+          kudos_id: string
+        }
+        Update: {
+          employee_id?: string
+          kudos_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kudos_reactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kudos_reactions_kudos_id_fkey"
+            columns: ["kudos_id"]
+            isOneToOne: false
+            referencedRelation: "kudos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kudos_recipients: {
+        Row: {
+          employee_id: string
+          kudos_id: string
+        }
+        Insert: {
+          employee_id: string
+          kudos_id: string
+        }
+        Update: {
+          employee_id?: string
+          kudos_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kudos_recipients_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kudos_recipients_kudos_id_fkey"
+            columns: ["kudos_id"]
+            isOneToOne: false
+            referencedRelation: "kudos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lifecycle_instances: {
         Row: {
           completed_at: string | null

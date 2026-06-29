@@ -13,8 +13,8 @@ INSERT INTO public.service (
   '社内イベントの告知・参加表明、表彰の発表を確認できます。',
   14,
   '/events',
-  'employee',
-  'released'
+  'all_users',
+  '公開'
 ) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.service (
@@ -29,8 +29,8 @@ INSERT INTO public.service (
   '社内イベントの作成・参加者管理、表彰の登録を行います。',
   15,
   '/adm/events-awards',
-  'admin',
-  'released'
+  'adm',
+  '公開'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 管理者向け機能はhr/hr_managerのみ許可（産業医・保健師は健康領域外のため対象外）

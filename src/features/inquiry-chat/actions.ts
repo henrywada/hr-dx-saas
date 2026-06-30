@@ -11,8 +11,8 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { chunkPlainText } from './chunk'
 import { embedChunks, embedQueryText, formatVectorForPg } from './embedding'
-import { CHAT_MODEL, RAG_TOP_K } from './constants'
-import { generateGeminiContent } from '@/lib/ai/gemini'
+import { CHAT_MODEL, MAX_HISTORY_TURNS, RAG_TOP_K } from './constants'
+import { getGeminiClient } from '@/lib/ai/gemini'
 
 // extractors（pdfjs 等）は取り込み Server Action 内でのみ dynamic import する。
 // 先頭で静的 import するとチャット送信だけでもバンドルが読み込まれ Next サーバーで落ちる。
@@ -512,19 +512,58 @@ export async function sendInquiryMessage(input: {
 参照資料にないことは推測せず、「登録された資料には記載がありません」と述べてください。
 回答は日本語で簡潔に。最後に「重要: 最終的な判断は必ず人事担当へご確認ください」と一文入れてください。`
 
+  const { data: historyRows } = await supabase
+    .from('tenant_inquiry_chat_messages')
+    .select('role, content')
+    .eq('session_id', sessionId)
+    .eq('tenant_id', user.tenant_id)
+    .order('created_at', { ascending: false })
+    .limit(MAX_HISTORY_TURNS * 2)
+
+  const recentHistory = ((historyRows ?? []) as { role: string; content: string }[]).reverse()
+
+  const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = []
+
+  if (contextBlocks.length > 0) {
+    contents.push({
+      role: 'user',
+      parts: [
+        {
+          text: `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n以上を踏まえて会話を続けてください。`,
+        },
+      ],
+    })
+    contents.push({
+      role: 'model',
+      parts: [{ text: '参照資料を確認しました。ご質問をどうぞ。' }],
+    })
+  }
+
+  const history = recentHistory.slice(0, -1)
+  for (const h of history) {
+    if (h.role === 'user' || h.role === 'assistant') {
+      contents.push({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.content }],
+      })
+    }
+  }
+
+  contents.push({ role: 'user', parts: [{ text: message }] })
+
   let answer: string
   try {
-    const text = await generateGeminiContent({
+    const ai = getGeminiClient()
+    const completion = await ai.models.generateContent({
       model: CHAT_MODEL,
-      system: systemPrompt,
-      prompt:
-        contextBlocks.length > 0
-          ? `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n質問: ${message}`
-          : `参照資料は登録されていません。質問: ${message}`,
-      temperature: 0.3,
-      maxOutputTokens: 2000,
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.3,
+        maxOutputTokens: 2000,
+      },
     })
-    answer = text.trim()
+    answer = completion.text?.trim() || ''
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'AI 応答に失敗しました'
     return { ok: false, error: msg }

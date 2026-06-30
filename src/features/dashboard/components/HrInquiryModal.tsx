@@ -63,10 +63,10 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
       </DialogTrigger>
       {/* シェルは HelpMarkdownModal と同一（my_help_modal_style / help-modal-style.mdc） */}
       <DialogContent
-        className="max-h-[80vh] max-w-[800px] flex flex-col gap-0 overflow-hidden rounded-lg border border-neutral-200 bg-white p-0 shadow-lg [&>button]:text-white [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:focus-visible:ring-white/40"
+        className="max-h-[80vh] max-w-[800px] flex flex-col gap-0 overflow-hidden rounded-lg border border-neutral-200 bg-white p-0 shadow-lg [&>button]:top-3 [&>button]:text-white [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:focus-visible:ring-white/40"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="rounded-t-lg border-0 bg-sky-600 px-6 pb-4 pt-5 pr-14 text-white sm:px-8 sm:pb-5 sm:pt-6 sm:pr-16">
+        <DialogHeader className="rounded-t-lg border-0 bg-sky-600 px-6 py-2.5 pr-14 text-white sm:px-8 sm:py-3 sm:pr-16">
           <DialogTitle className="text-lg font-semibold text-white sm:text-xl">
             人事へのお問合せ
           </DialogTitle>
@@ -115,19 +115,26 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]">
+            <div
+              className={cn(
+                'min-h-0 flex-1 px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]',
+                tab === 'chat' && aiChatEnabled ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overscroll-contain',
+              )}
+            >
               {tab === 'chat' && aiChatEnabled && (
-                <div className="space-y-3">
+                <div className="flex min-h-0 flex-1 flex-col gap-3">
                   {hrMailEnabled ? (
-                    <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <p className="shrink-0 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                       AI で解決しない場合は「人事へメール」タブからご連絡ください。
                     </p>
                   ) : (
-                    <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <p className="shrink-0 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                       人事へのメール連絡は、管理画面の「基本設定」で宛先を登録するとご利用いただけます。
                     </p>
                   )}
-                  <InquiryChatPanel variant="modal" />
+                  <div className="min-h-0 flex-1">
+                    <InquiryChatPanel variant="modal" />
+                  </div>
                 </div>
               )}
               {tab === 'mail' && hrMailEnabled && <HrInquiryMailForm />}

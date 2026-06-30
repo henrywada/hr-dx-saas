@@ -24,6 +24,7 @@ export type AnnouncementRow = {
   published_at: string
   is_new: boolean
   target_audience: string | null
+  recipient_employee_id: string | null
   sort_order: number
   created_at: string
   updated_at: string

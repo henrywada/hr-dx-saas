@@ -1,13 +1,23 @@
 'use client'
 
 import { Trophy } from 'lucide-react'
+import { printCompletionCertificate } from '../completion-certificate'
 
 interface Props {
   courseTitle: string
+  completedAt: string
+  employeeName: string
+  tenantName: string
   onClose: () => void
 }
 
-export function CourseCompletionBanner({ courseTitle, onClose }: Props) {
+export function CourseCompletionBanner({
+  courseTitle,
+  completedAt,
+  employeeName,
+  tenantName,
+  onClose,
+}: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center space-y-5">
@@ -26,6 +36,22 @@ export function CourseCompletionBanner({ courseTitle, onClose }: Props) {
         </div>
 
         <button
+          type="button"
+          onClick={() =>
+            printCompletionCertificate({
+              employeeName,
+              tenantName,
+              courseTitle,
+              completedAt,
+            })
+          }
+          className="w-full py-3 rounded-xl border border-[#FD7601] text-[#FD7601] font-semibold text-sm hover:bg-orange-50 transition-colors"
+        >
+          修了証を印刷
+        </button>
+
+        <button
+          type="button"
           onClick={onClose}
           className="w-full py-3 rounded-xl bg-[#FD7601] text-white font-semibold text-sm hover:bg-[#FD7601] transition-colors"
         >

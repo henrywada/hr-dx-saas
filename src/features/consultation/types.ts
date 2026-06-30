@@ -100,3 +100,29 @@ export const submitConsultationSchema = z
   })
 
 export type SubmitConsultationInput = z.infer<typeof submitConsultationSchema>
+
+export const CONSULTATION_CATEGORY_LABELS: Record<ConsultationCategory, string> = {
+  harassment: 'ハラスメント',
+  mental_health: 'メンタルヘルス',
+  workload: '業務量',
+  interpersonal: '人間関係',
+  other: 'その他',
+}
+
+export const CONSULTATION_STATUS_LABELS: Record<ConsultationStatus, string> = {
+  open: '未対応',
+  in_progress: '対応中',
+  resolved: '解決済み',
+}
+
+export interface ConsultationPublicStatus {
+  category: ConsultationCategory
+  status: ConsultationStatus
+  created_at: string
+}
+
+export interface ConsultationAggregateRow {
+  yearMonth: string
+  category: ConsultationCategory
+  count: number
+}

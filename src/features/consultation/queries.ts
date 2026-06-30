@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type {
   Consultation,
   ConsultationListItem,
@@ -6,6 +7,9 @@ import type {
   ConsultationReply,
   ConsultationTargetType,
   ConsultationThread,
+  ConsultationPublicStatus,
+  ConsultationAggregateRow,
+  ConsultationCategory,
   EligibleManager,
 } from './types'
 
@@ -181,4 +185,56 @@ export async function getPendingConsultationCount(): Promise<number> {
     return 0
   }
   return count ?? 0
+}
+
+/** 匿名トークンでステータス確認（公開ページ用・admin クライアント） */
+export async function getConsultationStatusByToken(
+  token: string,
+): Promise<ConsultationPublicStatus | null> {
+  if (!token || !/^[0-9a-f-]{36}$/i.test(token)) return null
+
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('consultations')
+    .select('category, status, created_at, is_anonymous')
+    .eq('anonymous_token', token)
+    .maybeSingle()
+
+  if (error || !data || !data.is_anonymous) return null
+
+  return {
+    category: data.category as ConsultationCategory,
+    status: data.status as ConsultationPublicStatus['status'],
+    created_at: data.created_at,
+  }
+}
+
+/** 匿名相談のカテゴリ×月次集計（D-S1） */
+export async function getAnonymousConsultationAggregates(): Promise<ConsultationAggregateRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('consultations')
+    .select('category, created_at')
+    .eq('is_anonymous', true)
+
+  if (error) {
+    console.error('getAnonymousConsultationAggregates error:', error)
+    return []
+  }
+
+  const map = new Map<string, number>()
+  for (const row of data ?? []) {
+    const d = new Date(row.created_at)
+    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const key = `${yearMonth}|${row.category}`
+    map.set(key, (map.get(key) ?? 0) + 1)
+  }
+
+  const out: ConsultationAggregateRow[] = []
+  for (const [key, count] of map.entries()) {
+    const [yearMonth, category] = key.split('|') as [string, ConsultationCategory]
+    out.push({ yearMonth, category, count })
+  }
+
+  return out.sort((a, b) => b.yearMonth.localeCompare(a.yearMonth) || a.category.localeCompare(b.category))
 }

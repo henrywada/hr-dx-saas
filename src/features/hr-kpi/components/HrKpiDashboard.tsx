@@ -6,6 +6,7 @@ import { ProductivityKpiSection } from './ProductivityKpiSection'
 import { EngagementKpiSection } from './EngagementKpiSection'
 import { DevelopmentKpiSection } from './DevelopmentKpiSection'
 import { ExportButton } from './ExportButton'
+import { HrKpiHubBanner } from './HrKpiHubBanner'
 import type { HrKpiBundle } from '../types'
 
 interface Props {
@@ -26,6 +27,7 @@ export function HrKpiDashboard({ bundle }: Props) {
 
   return (
     <div className="p-6">
+      <HrKpiHubBanner />
       {/* メインカード（admin-card-and-table.md スタイルに準拠） */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* カードヘッダー */}

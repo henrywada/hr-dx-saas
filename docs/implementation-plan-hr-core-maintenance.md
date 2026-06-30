@@ -48,6 +48,40 @@
 
 ユーザー確認の結果、今回は**CRITICAL（36協定アラート生成ロジックの新規実装＋新システムへの一本化）のみ**に着手する。HIGH 9件・MEDIUM・LOWは別途バックログとして保留する。
 
+### 実装状況（2026-06-30）
+
+| 項目 | 状態 | 実装 |
+| --- | --- | --- |
+| `detect_overtime_threshold_warnings()` | ✅ | `supabase/migrations/20260630100000_add_overtime_threshold_warnings.sql` |
+| `aggregate_monthly_closure()` からの呼び出し | ✅ | 同上 |
+| `closure_warnings.resolved_at` / `resolved_by` | ✅ | 同上 |
+| `attendance/actions.ts` の `closure_warnings` 切替 | ✅ | `getMonthlyStats`, `buildEmployeeAttendanceRows`, `resolveAlert` 等 |
+
+### HIGH 実装状況（2026-06-30）
+
+| # | 内容 | 状態 |
+| --- | --- | --- |
+| H1 | 深夜跨ぎ CSV（`resolveWorkPeriodTimes`） | ✅ |
+| H2 | 勤怠パース・status 単体テスト | ✅ `work-time-csv-parse.test.ts` |
+| H3 | `buildEmployeeAttendanceRows` tenant_id 明示フィルタ | ✅ |
+| H4 | 求人 AI 3関数の利用回数制限 | ✅ `lib/ai/usage-limit.ts` |
+| H5 | Gemini / SerpApi タイムアウト | ✅ `gemini.ts` 120s、`offer-validation` 30s |
+| H6 | `recruitment-ai/actions.ts` の `as any` 除去 | ✅ |
+| H7 | AI 利用 TOCTOU 対策 | ✅ `try_consume_ai_usage` RPC |
+| H8 | `organization/actions.ts` テナント所有権再検証 | ✅ |
+| H9 | 容量計算ユニットテスト | ✅ `capacity-utils.test.ts` |
+
+### MEDIUM / LOW 実装状況（2026-06-30 バッチ）
+
+| # | 内容 | 状態 |
+| --- | --- | --- |
+| M1 | `deleteDivision` トランザクション化 | ✅ `delete_division_safe` RPC |
+| M2 | `applyVariantToJobPosting` トランザクション化 | ✅ `apply_job_posting_variant` RPC |
+| M3 | 勤怠 CSV Shift_JIS フォールバック | ✅ `decodeWorkTimeCsvBytes` |
+| L1 | CSV エクスポート数式インジェクション対策 | ✅ `lib/csv.ts` + hr-kpi ExportButton |
+| — | `getEmployees` ページネーション | ⬜ 別途（UI 改修が必要） |
+| — | プロンプトインジェクション強化 / 構造化ログ | ⬜ バックログ継続 |
+
 ## 4. 確定した実装設計（36協定アラート生成ロジック）
 
 ### 4-1. 検出する閾値（法令根拠：労働基準法36条、働き方改革関連法 2019年4月施行の罰則付き上限規制）

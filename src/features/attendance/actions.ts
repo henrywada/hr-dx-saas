@@ -17,7 +17,7 @@ import type {
   OverviewStats,
   WorkTimeRecordRow,
 } from './types'
-import { alertTypeSeverity } from './types'
+import { alertTypeSeverity, OVERTIME_CLOSURE_WARNING_TYPES } from './types'
 import { canAccessHrAttendanceDashboard } from './hr-dashboard-access'
 
 /** YYYY-MM の暦上の末日 YYYY-MM-DD */
@@ -64,8 +64,31 @@ function db(supabase: Awaited<ReturnType<typeof createClient>>): any {
   return supabase
 }
 
+type ClosureWarningRow = {
+  id: string
+  tenant_id: string
+  employee_id: string
+  warning_type: string
+  details: Record<string, unknown> | null
+  created_at: string | null
+  resolved_at: string | null
+}
+
+/** closure_warnings 行を UI 互換の OvertimeAlertRow に変換 */
+function mapClosureWarningToAlertRow(w: ClosureWarningRow): OvertimeAlertRow {
+  return {
+    id: w.id,
+    tenant_id: w.tenant_id,
+    employee_id: w.employee_id,
+    alert_type: w.warning_type,
+    alert_value: w.details,
+    triggered_at: w.created_at,
+    resolved_at: w.resolved_at,
+  }
+}
+
 /**
- * 月次集計（overtime_monthly_stats）。無い場合は work_time_records から合算。
+ * 月次集計。締め済み月は monthly_employee_overtime、未締めは work_time_records から合算。
  */
 export async function getMonthlyStats(
   year: number,
@@ -82,6 +105,67 @@ export async function getMonthlyStats(
   const end = lastDayOfCalendarMonth(year, month)
 
   try {
+    const { data: closureRow, error: closureErr } = await db(supabase)
+      .from('monthly_overtime_closures')
+      .select('id, aggregated_at')
+      .eq('year_month', period)
+      .not('aggregated_at', 'is', null)
+      .maybeSingle()
+
+    if (closureErr) {
+      return { ok: false, error: closureErr.message }
+    }
+
+    if (closureRow?.id) {
+      const { data: meoRow, error: meoErr } = await db(supabase)
+        .from('monthly_employee_overtime')
+        .select('total_work_hours, total_overtime_hours')
+        .eq('closure_id', closureRow.id)
+        .eq('employee_id', employeeId)
+        .maybeSingle()
+
+      if (meoErr) {
+        return { ok: false, error: meoErr.message }
+      }
+
+      if (meoRow) {
+        const totalH = Number(meoRow.total_work_hours ?? 0)
+        const otH = Number(meoRow.total_overtime_hours ?? 0)
+        const total = Math.round(totalH * 60)
+        const ot = Math.round(otH * 60)
+
+        const { data: dayRows } = await db(supabase)
+          .from('work_time_records')
+          .select('record_date, is_holiday, duration_minutes')
+          .eq('employee_id', employeeId)
+          .gte('record_date', start)
+          .lte('record_date', end)
+
+        const records = (dayRows ?? []) as {
+          record_date: string
+          is_holiday: boolean | null
+          duration_minutes: number
+        }[]
+        const distinctDays = new Set(records.map(r => r.record_date)).size
+        let holidayM = 0
+        for (const r of records) {
+          if (r.is_holiday) holidayM += Number(r.duration_minutes ?? 0)
+        }
+
+        return {
+          ok: true,
+          data: {
+            total_work_minutes: total,
+            overtime_minutes: ot,
+            holiday_work_minutes: holidayM,
+            avg_daily_work_minutes:
+              distinctDays > 0 ? Math.round(total / distinctDays) : null,
+            source: 'monthly_table',
+          },
+        }
+      }
+    }
+
     const { data: statRow, error: statErr } = await db(supabase)
       .from('overtime_monthly_stats')
       .select(
@@ -261,20 +345,21 @@ export async function getUnresolvedAlerts(
 
   try {
     let q = db(supabase)
-      .from('overtime_alerts')
+      .from('closure_warnings')
       .select(
-        'id, tenant_id, employee_id, alert_type, alert_value, triggered_at, resolved_at',
+        'id, tenant_id, employee_id, warning_type, details, created_at, resolved_at',
       )
       .eq('employee_id', employeeId)
+      .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
       .is('resolved_at', null)
-      .order('triggered_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (year != null && month != null) {
       const start = `${periodMonthDate(year, month)}T00:00:00+09:00`
       const nm = month === 12 ? 1 : month + 1
       const ny = month === 12 ? year + 1 : year
       const endExclusive = `${periodMonthDate(ny, nm)}T00:00:00+09:00`
-      q = q.gte('triggered_at', start).lt('triggered_at', endExclusive)
+      q = q.gte('created_at', start).lt('created_at', endExclusive)
     }
 
     const { data, error } = await q
@@ -285,7 +370,7 @@ export async function getUnresolvedAlerts(
 
     return {
       ok: true,
-      data: (data ?? []) as OvertimeAlertRow[],
+      data: ((data ?? []) as ClosureWarningRow[]).map(mapClosureWarningToAlertRow),
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : '不明なエラー'
@@ -299,6 +384,7 @@ export async function getUnresolvedAlerts(
 
 type HrAttendanceCtx = {
   supabase: Awaited<ReturnType<typeof createClient>>
+  tenantId: string
 }
 
 async function requireHrAttendanceContext(): Promise<
@@ -315,7 +401,7 @@ async function requireHrAttendanceContext(): Promise<
     }
   }
   const supabase = await createClient()
-  return { ok: true, data: { supabase } }
+  return { ok: true, data: { supabase, tenantId: user.tenant_id } }
 }
 
 function addCalendarMonths(year: number, month: number, delta: number): { y: number; m: number } {
@@ -367,6 +453,9 @@ function alertTypeLabelJp(alertType: string): string {
     rolling_6m_80_exceeded: '2〜6ヶ月平均80時間超',
     monthly_ot_45_exceeded: '月45時間超',
     monthly_45_exceeded: '月45時間超',
+    overtime_45h_exceeded: '月45時間超',
+    overtime_100h_critical: '月100時間超',
+    overtime_avg80h_exceeded: '2〜6ヶ月平均80時間超',
     monthly_overtime_warning: '残業注意',
   }
   return map[alertType] ?? alertType
@@ -392,6 +481,7 @@ function alertStatusUiFromValue(alertValue: Record<string, unknown> | null): HrA
 /** 人事ダッシュ用の従業員別行を組み立て（一覧・CSV・サマリーで共用） */
 async function buildEmployeeAttendanceRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
   year: number,
   month: number,
 ): Promise<AttendanceActionResult<EmployeeAttendanceRow[]>> {
@@ -407,6 +497,7 @@ async function buildEmployeeAttendanceRows(
     const { data: empRows, error: empErr } = await db(supabase)
       .from('employees')
       .select('id, employee_no, name, job_title, division_id, divisions:division_id(name)')
+      .eq('tenant_id', tenantId)
     if (empErr) {
       return { ok: false, error: empErr.message }
     }
@@ -429,22 +520,57 @@ async function buildEmployeeAttendanceRows(
       }),
     )
 
-    const { data: statRows, error: statErr } = await db(supabase)
-      .from('overtime_monthly_stats')
-      .select('employee_id, total_minutes, overtime_minutes, holiday_minutes')
-      .eq('period_month', period)
-    if (statErr) {
-      return { ok: false, error: statErr.message }
+    const { data: closureForPeriod, error: closurePeriodErr } = await db(supabase)
+      .from('monthly_overtime_closures')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('year_month', period)
+      .not('aggregated_at', 'is', null)
+      .maybeSingle()
+    if (closurePeriodErr) {
+      return { ok: false, error: closurePeriodErr.message }
     }
 
     const statByEmp = new Map<string, OtStatRow>()
-    for (const s of (statRows ?? []) as OtStatRow[]) {
-      statByEmp.set(s.employee_id, s)
+
+    if (closureForPeriod?.id) {
+      const { data: meoStats, error: meoStatErr } = await db(supabase)
+        .from('monthly_employee_overtime')
+        .select('employee_id, total_work_hours, total_overtime_hours')
+        .eq('closure_id', closureForPeriod.id)
+      if (meoStatErr) {
+        return { ok: false, error: meoStatErr.message }
+      }
+      for (const row of (meoStats ?? []) as {
+        employee_id: string
+        total_work_hours: number
+        total_overtime_hours: number
+      }[]) {
+        statByEmp.set(row.employee_id, {
+          employee_id: row.employee_id,
+          total_minutes: Math.round(Number(row.total_work_hours ?? 0) * 60),
+          overtime_minutes: Math.round(Number(row.total_overtime_hours ?? 0) * 60),
+          holiday_minutes: 0,
+        })
+      }
+    } else {
+      const { data: statRows, error: statErr } = await db(supabase)
+        .from('overtime_monthly_stats')
+        .select('employee_id, total_minutes, overtime_minutes, holiday_minutes')
+        .eq('tenant_id', tenantId)
+        .eq('period_month', period)
+      if (statErr) {
+        return { ok: false, error: statErr.message }
+      }
+      for (const s of (statRows ?? []) as OtStatRow[]) {
+        statByEmp.set(s.employee_id, s)
+      }
     }
 
     const { data: workRows, error: workErr } = await db(supabase)
       .from('work_time_records')
       .select('employee_id, duration_minutes, is_holiday')
+      .eq('tenant_id', tenantId)
       .gte('record_date', start)
       .lte('record_date', end)
     if (workErr) {
@@ -454,6 +580,7 @@ async function buildEmployeeAttendanceRows(
     const { data: otAppRows, error: otAppErr } = await db(supabase)
       .from('overtime_applications')
       .select('employee_id, status, requested_hours')
+      .eq('tenant_id', tenantId)
       .gte('work_date', start)
       .lte('work_date', end)
     if (otAppErr) {
@@ -499,50 +626,132 @@ async function buildEmployeeAttendanceRows(
       workAgg.set(eid, cur)
     }
 
-    const { data: alertsMonth, error: amErr } = await db(supabase)
-      .from('overtime_alerts')
-      .select('employee_id')
-      .gte('triggered_at', triggeredStart)
-      .lt('triggered_at', triggeredEndEx)
-    if (amErr) {
-      return { ok: false, error: amErr.message }
-    }
-    const alertCountInMonth = new Map<string, number>()
-    for (const a of (alertsMonth ?? []) as { employee_id: string }[]) {
-      alertCountInMonth.set(a.employee_id, (alertCountInMonth.get(a.employee_id) ?? 0) + 1)
+    let alertCountInMonth = new Map<string, number>()
+    let unresolvedCountByEmp = new Map<string, number>()
+
+    if (closureForPeriod?.id) {
+      const { data: alertsMonth, error: amErr } = await db(supabase)
+        .from('closure_warnings')
+        .select('employee_id')
+        .eq('tenant_id', tenantId)
+        .eq('closure_id', closureForPeriod.id)
+        .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
+      if (amErr) {
+        return { ok: false, error: amErr.message }
+      }
+      alertCountInMonth = new Map<string, number>()
+      for (const a of (alertsMonth ?? []) as { employee_id: string }[]) {
+        if (!a.employee_id) continue
+        alertCountInMonth.set(
+          a.employee_id,
+          (alertCountInMonth.get(a.employee_id) ?? 0) + 1,
+        )
+      }
+    } else {
+      const { data: alertsMonth, error: amErr } = await db(supabase)
+        .from('closure_warnings')
+        .select('employee_id, created_at')
+        .eq('tenant_id', tenantId)
+        .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
+        .gte('created_at', triggeredStart)
+        .lt('created_at', triggeredEndEx)
+      if (amErr) {
+        return { ok: false, error: amErr.message }
+      }
+      alertCountInMonth = new Map<string, number>()
+      for (const a of (alertsMonth ?? []) as { employee_id: string }[]) {
+        if (!a.employee_id) continue
+        alertCountInMonth.set(
+          a.employee_id,
+          (alertCountInMonth.get(a.employee_id) ?? 0) + 1,
+        )
+      }
     }
 
     const { data: alertsUnres, error: auErr } = await db(supabase)
-      .from('overtime_alerts')
+      .from('closure_warnings')
       .select('employee_id')
+      .eq('tenant_id', tenantId)
+      .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
       .is('resolved_at', null)
     if (auErr) {
       return { ok: false, error: auErr.message }
     }
-    const unresolvedCountByEmp = new Map<string, number>()
+    unresolvedCountByEmp = new Map<string, number>()
     for (const a of (alertsUnres ?? []) as { employee_id: string }[]) {
-      unresolvedCountByEmp.set(a.employee_id, (unresolvedCountByEmp.get(a.employee_id) ?? 0) + 1)
+      if (!a.employee_id) continue
+      unresolvedCountByEmp.set(
+        a.employee_id,
+        (unresolvedCountByEmp.get(a.employee_id) ?? 0) + 1,
+      )
     }
 
     const sixPeriods = lastNPeriodMonths(year, month, 6)
     const yearPeriods = Array.from({ length: 12 }, (_, i) => periodMonthDate(year, i + 1))
     const allPeriods = Array.from(new Set([...sixPeriods, ...yearPeriods]))
 
+    const { data: multiClosures, error: mcErr } = await db(supabase)
+      .from('monthly_overtime_closures')
+      .select('id, year_month')
+      .eq('tenant_id', tenantId)
+      .in('year_month', allPeriods)
+      .not('aggregated_at', 'is', null)
+    if (mcErr) {
+      return { ok: false, error: mcErr.message }
+    }
+
+    type MultiMap = Map<string, Map<string, number>>
+    const otByEmpPeriod: MultiMap = new Map()
+
+    const closureIds = ((multiClosures ?? []) as { id: string; year_month: string }[]).map(
+      c => c.id,
+    )
+    const periodByClosureId = new Map(
+      ((multiClosures ?? []) as { id: string; year_month: string }[]).map(c => [
+        c.id,
+        c.year_month,
+      ]),
+    )
+
+    if (closureIds.length > 0) {
+      const { data: meoMulti, error: meoMultiErr } = await db(supabase)
+        .from('monthly_employee_overtime')
+        .select('employee_id, closure_id, total_overtime_hours')
+        .in('closure_id', closureIds)
+      if (meoMultiErr) {
+        return { ok: false, error: meoMultiErr.message }
+      }
+      for (const row of (meoMulti ?? []) as {
+        employee_id: string
+        closure_id: string
+        total_overtime_hours: number
+      }[]) {
+        const ym = periodByClosureId.get(row.closure_id)
+        if (!ym) continue
+        let inner = otByEmpPeriod.get(row.employee_id)
+        if (!inner) {
+          inner = new Map()
+          otByEmpPeriod.set(row.employee_id, inner)
+        }
+        inner.set(ym, Math.round(Number(row.total_overtime_hours ?? 0) * 60))
+      }
+    }
+
     const { data: multiStats, error: msErr } = await db(supabase)
       .from('overtime_monthly_stats')
       .select('employee_id, period_month, overtime_minutes')
+      .eq('tenant_id', tenantId)
       .in('period_month', allPeriods)
     if (msErr) {
       return { ok: false, error: msErr.message }
     }
 
-    type MultiMap = Map<string, Map<string, number>>
-    const otByEmpPeriod: MultiMap = new Map()
     for (const row of (multiStats ?? []) as {
       employee_id: string
       period_month: string
       overtime_minutes: number
     }[]) {
+      if (otByEmpPeriod.get(row.employee_id)?.has(row.period_month)) continue
       let inner = otByEmpPeriod.get(row.employee_id)
       if (!inner) {
         inner = new Map()
@@ -622,8 +831,9 @@ async function computeOverviewFromRows(
   let unresolvedAlertCount = 0
   try {
     const { count, error } = await db(supabase)
-      .from('overtime_alerts')
+      .from('closure_warnings')
       .select('*', { count: 'exact', head: true })
+      .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
       .is('resolved_at', null)
     if (error) {
       return { ok: false, error: error.message }
@@ -662,9 +872,9 @@ export async function getOverviewStats(
   if (ctx.ok === false) {
     return { ok: false, error: ctx.error }
   }
-  const { supabase } = ctx.data
+  const { supabase, tenantId } = ctx.data
 
-  const built = await buildEmployeeAttendanceRows(supabase, year, month)
+  const built = await buildEmployeeAttendanceRows(supabase, tenantId, year, month)
   if (built.ok === false) {
     return { ok: false, error: built.error }
   }
@@ -685,9 +895,9 @@ export async function getAttendanceDashboardBundle(
   if (ctx.ok === false) {
     return { ok: false, error: ctx.error }
   }
-  const { supabase } = ctx.data
+  const { supabase, tenantId } = ctx.data
 
-  const built = await buildEmployeeAttendanceRows(supabase, year, month)
+  const built = await buildEmployeeAttendanceRows(supabase, tenantId, year, month)
   if (built.ok === false) {
     return { ok: false, error: built.error }
   }
@@ -723,16 +933,19 @@ export async function getUnresolvedAlertsList(
 
   try {
     const { data: alerts, error } = await db(supabase)
-      .from('overtime_alerts')
-      .select('id, employee_id, alert_type, alert_value, triggered_at, resolved_at')
+      .from('closure_warnings')
+      .select(
+        'id, employee_id, warning_type, details, created_at, resolved_at',
+      )
+      .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
       .is('resolved_at', null)
-      .order('triggered_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) {
       return { ok: false, error: error.message }
     }
 
-    const list = (alerts ?? []) as OvertimeAlertRow[]
+    const list = ((alerts ?? []) as ClosureWarningRow[]).map(mapClosureWarningToAlertRow)
     list.sort((a, b) => {
       const ds = alertTypeSeverity(b.alert_type) - alertTypeSeverity(a.alert_type)
       if (ds !== 0) return ds
@@ -742,7 +955,7 @@ export async function getUnresolvedAlertsList(
     })
 
     const sliced = limit != null ? list.slice(0, limit) : list
-    const empIds = Array.from(new Set(sliced.map((a) => a.employee_id)))
+    const empIds = Array.from(new Set(sliced.map(a => a.employee_id)))
 
     const nameByEmp = new Map<string, string>()
     if (empIds.length > 0) {
@@ -844,9 +1057,9 @@ export async function getEmployeeAttendanceList(
   if (ctx.ok === false) {
     return { ok: false, error: ctx.error }
   }
-  const { supabase } = ctx.data
+  const { supabase, tenantId } = ctx.data
 
-  const built = await buildEmployeeAttendanceRows(supabase, year, month)
+  const built = await buildEmployeeAttendanceRows(supabase, tenantId, year, month)
   if (built.ok === false) {
     return { ok: false, error: built.error }
   }
@@ -890,11 +1103,18 @@ export async function resolveAlert(alertId: string): Promise<AttendanceActionRes
   }
   const { supabase } = ctx.data
 
+  const user = await getServerUser()
+  const resolvedBy = user?.employee_id ?? null
+
   try {
     const { error } = await db(supabase)
-      .from('overtime_alerts')
-      .update({ resolved_at: new Date().toISOString() })
+      .from('closure_warnings')
+      .update({
+        resolved_at: new Date().toISOString(),
+        resolved_by: resolvedBy,
+      })
       .eq('id', alertId)
+      .in('warning_type', [...OVERTIME_CLOSURE_WARNING_TYPES])
 
     if (error) {
       return { ok: false, error: error.message }
@@ -928,9 +1148,9 @@ export async function exportAttendanceCSV(
   if (ctx.ok === false) {
     return { ok: false, error: ctx.error }
   }
-  const { supabase } = ctx.data
+  const { supabase, tenantId } = ctx.data
 
-  const built = await buildEmployeeAttendanceRows(supabase, year, month)
+  const built = await buildEmployeeAttendanceRows(supabase, tenantId, year, month)
   if (built.ok === false) {
     return { ok: false, error: built.error }
   }

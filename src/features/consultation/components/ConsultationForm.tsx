@@ -38,6 +38,7 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
   const [otherTarget, setOtherTarget] = useState<OtherTarget>('hr')
   const [managerId, setManagerId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [statusUrl, setStatusUrl] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const targetType = bigCategory === 'medical_staff' ? 'medical_staff' : otherTarget
@@ -60,11 +61,46 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
           targetType,
           targetEmployeeId: targetType === 'manager' ? managerId : undefined,
         })
+        if (isAnonymous && result.anonymousToken) {
+          const url = `${window.location.origin}${APP_ROUTES.PUBLIC.CONSULTATION_STATUS}?token=${result.anonymousToken}`
+          setStatusUrl(url)
+          return
+        }
         router.push(APP_ROUTES.TENANT.CONSULTATION_DETAIL(result.id))
       } catch {
         setError('送信に失敗しました。もう一度お試しください。')
       }
     })
+  }
+
+  if (statusUrl) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-5">
+        <h2 className="text-sm font-bold text-slate-900">相談を受け付けました</h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          匿名相談の進捗は、以下の URL からログインなしで確認できます。URL を控えてください。
+        </p>
+        <code className="block text-xs break-all rounded-lg bg-white border border-slate-200 p-3 text-slate-800">
+          {statusUrl}
+        </code>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard.writeText(statusUrl)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+          >
+            URL をコピー
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(APP_ROUTES.TENANT.CONSULTATION)}
+            className="rounded-lg bg-(--brand) px-3 py-1.5 text-xs text-white"
+          >
+            相談一覧へ
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

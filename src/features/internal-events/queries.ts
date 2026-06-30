@@ -3,13 +3,33 @@
 import { createClient } from '@/lib/supabase/server'
 import type { InternalEvent, EventWithMyRsvp, EventAttendee, Award, RsvpStatus } from './types'
 
+const EVENT_SELECT =
+  'id, tenant_id, title, description, event_date, location, audience_type, division_id, created_by, created_at, division:division_id(name)'
+
+function mapEventRow(row: Record<string, unknown>): InternalEvent {
+  const division = row.division as { name: string | null } | null
+  return {
+    id: row.id as string,
+    tenant_id: row.tenant_id as string,
+    title: row.title as string,
+    description: (row.description as string | null) ?? null,
+    event_date: row.event_date as string,
+    location: (row.location as string | null) ?? null,
+    audience_type: (row.audience_type as InternalEvent['audience_type']) ?? 'tenant',
+    division_id: (row.division_id as string | null) ?? null,
+    division_name: division?.name ?? null,
+    created_by: row.created_by as string,
+    created_at: row.created_at as string,
+  }
+}
+
 /** 従業員向け: 直近のイベント一覧＋本人のRSVP状態 */
 export async function getUpcomingEvents(employeeId: string): Promise<EventWithMyRsvp[]> {
   const supabase = await createClient()
 
   const { data: events, error } = await supabase
     .from('internal_events')
-    .select('id, tenant_id, title, description, event_date, location, created_by, created_at')
+    .select(EVENT_SELECT)
     .order('event_date', { ascending: true })
 
   if (error) {
@@ -32,8 +52,8 @@ export async function getUpcomingEvents(employeeId: string): Promise<EventWithMy
   )
 
   return events.map(event => ({
-    ...event,
-    myRsvpStatus: rsvpByEventId.get(event.id) ?? 'pending',
+    ...mapEventRow(event as Record<string, unknown>),
+    myRsvpStatus: rsvpByEventId.get(event.id as string) ?? 'pending',
   }))
 }
 
@@ -42,14 +62,14 @@ export async function getAllEventsForAdmin(): Promise<InternalEvent[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('internal_events')
-    .select('id, tenant_id, title, description, event_date, location, created_by, created_at')
+    .select(EVENT_SELECT)
     .order('event_date', { ascending: false })
 
   if (error) {
     console.error('getAllEventsForAdmin error:', error)
     return []
   }
-  return data ?? []
+  return (data ?? []).map(row => mapEventRow(row as Record<string, unknown>))
 }
 
 /** 管理者向け: イベント参加者一覧（氏名＋RSVP状態） */

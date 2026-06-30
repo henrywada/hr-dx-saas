@@ -4,10 +4,12 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   getOneOnOneDashboardData,
   getActiveEmployeesForOneOnOne,
+  getUpcomingOneOnOnesForManager,
 } from '@/features/one-on-one/queries'
 import { seedDefaultThemeTemplates } from '@/features/one-on-one/actions'
 import { OneOnOneDashboard } from '@/features/one-on-one/components/OneOnOneDashboard'
 import { canConductOneOnOne } from '@/features/one-on-one/types'
+import { getRecentCareerDiscussionsForEmployees } from '@/features/career-discussions/queries'
 
 export const metadata = { title: '1on1支援機能' }
 
@@ -23,10 +25,22 @@ export default async function OneOnOnePage() {
   // テーマテンプレートが空の場合にデフォルトをシード（冪等）
   await seedDefaultThemeTemplates()
 
-  const [employeeList, data] = await Promise.all([
+  const [employeeList, data, upcoming] = await Promise.all([
     getActiveEmployeesForOneOnOne(),
     getOneOnOneDashboardData(),
+    getUpcomingOneOnOnesForManager(),
   ])
 
-  return <OneOnOneDashboard data={data} employees={employeeList} />
+  const careerDiscussionsByEmployee = await getRecentCareerDiscussionsForEmployees(
+    employeeList.map(e => e.id)
+  )
+
+  return (
+    <OneOnOneDashboard
+      data={data}
+      employees={employeeList}
+      careerDiscussionsByEmployee={careerDiscussionsByEmployee}
+      upcoming={upcoming}
+    />
+  )
 }

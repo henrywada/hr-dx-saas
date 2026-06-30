@@ -295,10 +295,51 @@ async function fetchEngagementKpi(
       total > 0 ? Math.round(((highRes.count ?? 0) / total) * 1000) / 10 : null
   }
 
+  const kudosSinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const [kudosCountRes, kudosSendersRes, activeEmpRes] = await Promise.all([
+    supabase.from('kudos').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).gte('created_at', kudosSinceIso),
+    supabase.from('kudos').select('sender_employee_id').eq('tenant_id', tenantId).gte('created_at', kudosSinceIso),
+    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('active_status', 'active'),
+  ])
+  const kudosCountLast30Days = kudosCountRes.count ?? 0
+  const senderRows = (kudosSendersRes.data ?? []) as { sender_employee_id: string }[]
+  const kudosActiveSendersLast30Days = new Set(senderRows.map(r => r.sender_employee_id)).size
+  const activeEmployees = activeEmpRes.count ?? 0
+  const kudosSenderRatePercent = activeEmployees > 0 ? Math.round((kudosActiveSendersLast30Days / activeEmployees) * 1000) / 10 : null
+
+  const eventSinceIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentEvents } = await supabase
+    .from('internal_events')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .gte('event_date', eventSinceIso)
+
+  const eventIds = (recentEvents ?? []).map((e: { id: string }) => e.id)
+  let eventRsvpResponseRatePercent: number | null = null
+  const eventsLast90Days = eventIds.length
+
+  if (eventIds.length > 0) {
+    const { data: attendeeRows } = await supabase
+      .from('internal_event_attendees')
+      .select('rsvp_status')
+      .in('event_id', eventIds)
+
+    const rows = (attendeeRows ?? []) as { rsvp_status: string }[]
+    if (rows.length > 0) {
+      const responded = rows.filter(r => r.rsvp_status !== 'pending').length
+      eventRsvpResponseRatePercent = Math.round((responded / rows.length) * 1000) / 10
+    }
+  }
+
   return {
     latestPulseSurveyScore,
     latestPulseResponseRate,
     highStressRatePercent,
+    kudosCountLast30Days,
+    kudosActiveSendersLast30Days,
+    kudosSenderRatePercent,
+    eventRsvpResponseRatePercent,
+    eventsLast90Days,
   }
 }
 

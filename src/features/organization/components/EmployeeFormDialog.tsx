@@ -199,6 +199,7 @@ export function EmployeeFormDialog({
                 className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none bg-white"
               >
                 <option value="active">アクティブ</option>
+                <option value="inactive">退職</option>
                 <option value="off">休職</option>
                 <option value="secondment">出向</option>
                 <option value="doctor">産業医</option>

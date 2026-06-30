@@ -4,6 +4,8 @@ import { z } from 'zod'
 
 export type RsvpStatus = 'pending' | 'attending' | 'declined'
 
+export type EventAudienceType = 'tenant' | 'division'
+
 export interface InternalEvent {
   id: string
   tenant_id: string
@@ -11,6 +13,10 @@ export interface InternalEvent {
   description: string | null
   event_date: string
   location: string | null
+  audience_type: EventAudienceType
+  division_id: string | null
+  /** JOIN 表示用 */
+  division_name: string | null
   created_by: string
   created_at: string
 }
@@ -42,14 +48,53 @@ export interface Award {
  * 'use server' ファイルは async 関数以外を export できないため、
  * zod schema は actions.ts ではなくこちらに定義する。
  */
-export const createEventSchema = z.object({
-  title: z.string().trim().min(1, 'タイトルを入力してください').max(200),
-  description: z.string().trim().max(2000).optional(),
-  event_date: z.string().min(1, '開催日時を入力してください'),
-  location: z.string().trim().max(200).optional(),
-})
+export const eventAudienceSchema = z
+  .object({
+    audience_type: z.enum(['tenant', 'division']).default('tenant'),
+    division_id: z.string().uuid().optional().nullable(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.audience_type === 'division' && !val.division_id) {
+      ctx.addIssue({
+        code: 'custom',
+        message: '部署限定の場合は部署を選択してください',
+        path: ['division_id'],
+      })
+    }
+  })
+
+export const createEventSchema = z
+  .object({
+    title: z.string().trim().min(1, 'タイトルを入力してください').max(200),
+    description: z.string().trim().max(2000).optional(),
+    event_date: z.string().min(1, '開催日時を入力してください'),
+    location: z.string().trim().max(200).optional(),
+    audience_type: z.enum(['tenant', 'division']).default('tenant'),
+    division_id: z.string().uuid().optional().nullable(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.audience_type === 'division' && !val.division_id) {
+      ctx.addIssue({
+        code: 'custom',
+        message: '部署限定の場合は部署を選択してください',
+        path: ['division_id'],
+      })
+    }
+  })
 
 export type CreateEventInput = z.infer<typeof createEventSchema>
+
+export const updateEventSchema = createEventSchema.extend({
+  id: z.string().uuid(),
+})
+
+export type UpdateEventInput = z.infer<typeof updateEventSchema>
+
+export const deleteEventSchema = z.object({
+  id: z.string().uuid(),
+})
+
+export type DeleteEventInput = z.infer<typeof deleteEventSchema>
 
 export const updateRsvpSchema = z.object({
   eventId: z.string().uuid(),

@@ -95,6 +95,46 @@ export function parseFlexibleJstTime(recordDateYmd: string, timeField: string): 
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
+/** 暦日 YYYY-MM-DD に 1 日加算 */
+export function addOneCalendarDayYmd(ymd: string): string | null {
+  const normalized = normalizeRecordDateToYmd(ymd.trim())
+  if (!normalized) return null
+  const [y, mo, d] = normalized.split('-').map(v => parseInt(v, 10))
+  const dt = new Date(Date.UTC(y, mo - 1, d + 1))
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
+}
+
+/**
+ * 出勤・退勤時刻を ISO に解決する。
+ * 同一 record_date 上で退勤 < 出勤の場合は深夜跨ぎ（翌日退勤）として解釈する。
+ */
+export function resolveWorkPeriodTimes(
+  recordDateRaw: string,
+  startTimeField: string,
+  endTimeField: string,
+): { startIso: string | null; endIso: string | null } {
+  const ymd = normalizeRecordDateToYmd(recordDateRaw.trim())
+  if (!ymd) return { startIso: null, endIso: null }
+
+  const startIso = parseFlexibleJstTime(ymd, startTimeField)
+  if (!startIso) return { startIso: null, endIso: null }
+
+  let endIso = parseFlexibleJstTime(ymd, endTimeField)
+  if (!endIso) return { startIso, endIso: null }
+
+  if (minutesBetween(startIso, endIso) < 0) {
+    const nextYmd = addOneCalendarDayYmd(ymd)
+    if (nextYmd) {
+      const nextEndIso = parseFlexibleJstTime(nextYmd, endTimeField)
+      if (nextEndIso && minutesBetween(startIso, nextEndIso) >= 0) {
+        endIso = nextEndIso
+      }
+    }
+  }
+
+  return { startIso, endIso }
+}
+
 export function minutesBetween(startIso: string, endIso: string): number {
   const a = new Date(startIso).getTime()
   const b = new Date(endIso).getTime()
@@ -106,4 +146,35 @@ export function parseHolidayCell(raw: string | undefined): boolean {
   if (raw == null || String(raw).trim() === '') return false
   const v = String(raw).trim().toLowerCase()
   return v === '1' || v === 'true' || v === 'yes' || v === 'はい'
+}
+
+/** 1行目に必須ヘッダーが含まれるか（エンコーディング判定用） */
+export function workTimeCsvHasRequiredHeaders(text: string): boolean {
+  const firstLine = text.split(/\r?\n/).find(line => line.trim().length > 0) ?? ''
+  const fields = firstLine.split(',').map(cell => normalizeHeaderCell(cell.replace(/^"|"$/g, '')))
+  return WORK_TIME_CSV_REQUIRED_HEADERS.every(h => fields.includes(h))
+}
+
+/**
+ * 勤怠CSVのバイト列をテキストにデコードする（UTF-8 → Shift_JIS フォールバック）
+ */
+export function decodeWorkTimeCsvBytes(bytes: ArrayBuffer): {
+  text: string
+  encoding: 'utf-8' | 'shift_jis'
+} {
+  const utf8Text = stripBom(new TextDecoder('utf-8').decode(bytes))
+  if (workTimeCsvHasRequiredHeaders(utf8Text)) {
+    return { text: utf8Text, encoding: 'utf-8' }
+  }
+
+  try {
+    const sjisText = stripBom(new TextDecoder('shift-jis').decode(bytes))
+    if (workTimeCsvHasRequiredHeaders(sjisText)) {
+      return { text: sjisText, encoding: 'shift_jis' }
+    }
+  } catch {
+    // shift-jis 非対応環境では UTF-8 結果を返す
+  }
+
+  return { text: utf8Text, encoding: 'utf-8' }
 }

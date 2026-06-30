@@ -7,12 +7,17 @@ import { APP_ROUTES } from '@/config/routes'
 import { createAnnouncement } from '@/features/dashboard/actions'
 import {
   createEventSchema,
+  updateEventSchema,
+  deleteEventSchema,
   updateRsvpSchema,
   createAwardSchema,
   type CreateEventInput,
+  type UpdateEventInput,
+  type DeleteEventInput,
   type UpdateRsvpInput,
   type CreateAwardInput,
 } from './types'
+import { normalizeEventAudienceInput } from './event-audience'
 
 const HR_ROLES = ['hr', 'hr_manager']
 
@@ -29,6 +34,7 @@ export async function createEvent(input: CreateEventInput): Promise<void> {
   assertHrRole(user.appRole)
 
   const parsed = createEventSchema.parse(input)
+  const audience = normalizeEventAudienceInput(parsed)
   const supabase = await createClient()
 
   const { error } = await supabase.from('internal_events').insert({
@@ -37,8 +43,60 @@ export async function createEvent(input: CreateEventInput): Promise<void> {
     description: parsed.description ?? null,
     event_date: parsed.event_date,
     location: parsed.location ?? null,
+    audience_type: audience.audience_type,
+    division_id: audience.division_id,
     created_by: user.employee_id,
   })
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.TENANT.EVENTS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_EVENTS_AWARDS)
+}
+
+/** イベント更新（hr/hr_managerのみ） */
+export async function updateEvent(input: UpdateEventInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.employee_id) throw new Error('Unauthorized')
+  assertHrRole(user.appRole)
+
+  const parsed = updateEventSchema.parse(input)
+  const audience = normalizeEventAudienceInput(parsed)
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('internal_events')
+    .update({
+      title: parsed.title,
+      description: parsed.description ?? null,
+      event_date: parsed.event_date,
+      location: parsed.location ?? null,
+      audience_type: audience.audience_type,
+      division_id: audience.division_id,
+    })
+    .eq('id', parsed.id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.TENANT.EVENTS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_EVENTS_AWARDS)
+}
+
+/** イベント削除（hr/hr_managerのみ） */
+export async function deleteEvent(input: DeleteEventInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.employee_id) throw new Error('Unauthorized')
+  assertHrRole(user.appRole)
+
+  const parsed = deleteEventSchema.parse(input)
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('internal_events')
+    .delete()
+    .eq('id', parsed.id)
+    .eq('tenant_id', user.tenant_id)
 
   if (error) throw error
 

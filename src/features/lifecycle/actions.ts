@@ -232,6 +232,38 @@ export async function updateTaskStatus(
   return { success: true }
 }
 
+const dueDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .nullable()
+
+/** タスクの期限日を更新する */
+export async function updateTaskDueDate(
+  taskId: string,
+  dueDate: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: 'Unauthorized' }
+
+  if (!HR_ROLES.includes(user.appRole ?? '')) return { success: false, error: 'Permission denied' }
+
+  const parsed = dueDateSchema.safeParse(dueDate)
+  if (!parsed.success) return { success: false, error: 'Invalid due date' }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('lifecycle_tasks')
+    .update({ due_date: parsed.data })
+    .eq('id', taskId)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_LIFECYCLE)
+  return { success: true }
+}
+
 /** タスクの担当者を更新する */
 export async function updateTaskAssignee(
   taskId: string,
@@ -254,6 +286,44 @@ export async function updateTaskAssignee(
 
   revalidatePath(APP_ROUTES.TENANT.ADMIN_LIFECYCLE)
   return { success: true }
+}
+
+/** 進行中の退社フローが無ければ自動作成する（退職ステータス変更時） */
+export async function ensureOffboardingInstance(
+  employeeId: string,
+  scheduledDate?: string
+): Promise<{ success: boolean; created: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user.employee_id) {
+    return { success: false, created: false, error: 'Unauthorized' }
+  }
+
+  if (!HR_ROLES.includes(user.appRole ?? '')) {
+    return { success: false, created: false, error: 'Permission denied' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: existing } = await supabase
+    .from('lifecycle_instances')
+    .select('id')
+    .eq('tenant_id', user.tenant_id)
+    .eq('employee_id', employeeId)
+    .eq('lifecycle_type', 'offboarding')
+    .eq('status', 'in_progress')
+    .limit(1)
+
+  if (existing && existing.length > 0) {
+    return { success: true, created: false }
+  }
+
+  const result = await createLifecycleInstance({
+    employeeId,
+    lifecycleType: 'offboarding',
+    scheduledDate,
+  })
+
+  return { success: result.success, created: result.success, error: result.error }
 }
 
 /** インスタンスのメモ（引き継ぎドキュメント）を更新する */

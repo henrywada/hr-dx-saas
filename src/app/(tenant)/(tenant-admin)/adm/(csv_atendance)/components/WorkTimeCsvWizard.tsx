@@ -20,8 +20,8 @@ import {
   type WorkTimeCsvValidatedRow,
 } from '@/features/attendance/work-time-csv-actions'
 import {
+  decodeWorkTimeCsvBytes,
   normalizeHeaderCell,
-  stripBom,
   WORK_TIME_CSV_REQUIRED_HEADERS,
 } from '@/features/attendance/work-time-csv-parse'
 
@@ -144,7 +144,12 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
     }
     const reader = new FileReader()
     reader.onload = () => {
-      const text = stripBom(String(reader.result ?? ''))
+      const buffer = reader.result
+      if (!(buffer instanceof ArrayBuffer)) {
+        setMessage('ファイルの読み込みに失敗しました。')
+        return
+      }
+      const { text, encoding } = decodeWorkTimeCsvBytes(buffer)
       Papa.parse<Record<string, unknown>>(text, {
         header: true,
         skipEmptyLines: true,
@@ -152,7 +157,9 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
           const fields = result.meta.fields?.map((f) => normalizeHeaderCell(f ?? '')) ?? []
           for (const h of WORK_TIME_CSV_REQUIRED_HEADERS) {
             if (!fields.includes(h)) {
-              setMessage(`必須列がありません: ${h}（ヘッダー: ${fields.join(', ')}）`)
+              setMessage(
+                `必須列がありません: ${h}（ヘッダー: ${fields.join(', ')}）。UTF-8 または Shift_JIS で保存した CSV をご利用ください。`,
+              )
               return
             }
           }
@@ -162,14 +169,16 @@ export function WorkTimeCsvWizard({ onRecordsMutated }: WorkTimeCsvWizardProps) 
             setMessage('データ行がありません。')
             return
           }
-          setFileName(file.name)
+          setFileName(
+            encoding === 'shift_jis' ? `${file.name}（Shift_JIS として読み込み）` : file.name,
+          )
           setRawInputs(inputs)
           setStep(2)
         },
         error: (err) => setMessage(err.message || 'CSV の読み込みに失敗しました。'),
       })
     }
-    reader.readAsText(file, 'UTF-8')
+    reader.readAsArrayBuffer(file)
   }, [])
 
   const onDrop = useCallback(

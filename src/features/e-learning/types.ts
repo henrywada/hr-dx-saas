@@ -1,5 +1,6 @@
 export type CourseStatus = 'draft' | 'published' | 'archived'
 export type CourseType = 'template' | 'tenant'
+export type CourseContentFormat = 'native' | 'scorm_12' | 'xapi_launch'
 
 // 既存3種 + マイクロラーニング用5フェーズ
 export type SlideType =
@@ -41,6 +42,8 @@ export interface ElCourse {
   published_start_date: string | null
   /** 公開コースの受講終了日（DATE、YYYY-MM-DD）。未設定なら終了制限なし */
   published_end_date: string | null
+  /** native=自社スライド, scorm_12, xapi_launch */
+  content_format?: CourseContentFormat
   created_at: string
   updated_at: string
 }
@@ -86,7 +89,7 @@ export interface ElAssignment {
   due_date: string | null
   assigned_at: string
   course?: ElCourse
-  employee?: { id: string; name: string; division_id: string | null }
+  employee?: { id: string; name: string; division_id: string | null; divisions?: { name: string } | { name: string }[] | null }
 }
 
 export interface ElCourseWithSlides extends ElCourse {

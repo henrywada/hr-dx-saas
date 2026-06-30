@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { getKudosStatsByDivision, getKudosPersonalRanking } from '@/features/recognition/queries'
+import { getKudosStatsByDivision, getKudosPersonalRanking, getValueTagsForAdmin, getMonthlyMvpCandidates } from '@/features/recognition/queries'
 import { KudosStatsClient } from '@/features/recognition/components/admin/KudosStatsClient'
 
 const HR_ROLES = ['hr', 'hr_manager', 'developer']
@@ -15,9 +15,11 @@ export default async function KudosStatsAdminPage() {
     redirect(APP_ROUTES.TENANT.ADMIN)
   }
 
-  const [divisionStats, personalRanking] = await Promise.all([
+  const [divisionStats, personalRanking, valueTags, mvpSuggestions] = await Promise.all([
     getKudosStatsByDivision(STATS_PERIOD_DAYS),
     getKudosPersonalRanking(STATS_PERIOD_DAYS),
+    getValueTagsForAdmin(),
+    getMonthlyMvpCandidates(),
   ])
 
   return (
@@ -25,6 +27,9 @@ export default async function KudosStatsAdminPage() {
       divisionStats={divisionStats}
       personalRanking={personalRanking}
       periodDays={STATS_PERIOD_DAYS}
+      valueTags={valueTags}
+      mvpPeriodLabel={mvpSuggestions.periodLabel}
+      mvpCandidates={mvpSuggestions.candidates}
     />
   )
 }

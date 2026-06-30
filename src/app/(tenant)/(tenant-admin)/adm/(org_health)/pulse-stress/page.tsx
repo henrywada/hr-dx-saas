@@ -31,6 +31,9 @@ export default async function PulseStressPage() {
         departments={data.departments}
         chartData={data.chartData}
         periods={data.periods}
+        conditionDailyTrend={data.conditionDailyTrend}
+        conditionStressDepartments={data.conditionStressDepartments}
+        conditionStressAlerts={data.conditionStressAlerts}
       />
     </div>
   );
@@ -43,10 +46,10 @@ function PageHeader() {
       <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-emerald-400 rounded-full" />
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
         <Activity className="w-8 h-8 text-blue-600" />
-        ストレスチェック × Echo クロス分析
+        ストレスチェック × Echo × コンディション クロス分析
       </h1>
       <p className="text-sm text-gray-500 mt-1 font-medium pl-11">
-        年1回の健康リスク調査と毎月の組織エンゲージメントによる離職リスク予測
+        年1回の健康リスク調査・毎月のエンゲージメント・日次コンディション記録の統合分析
       </p>
     </div>
   );

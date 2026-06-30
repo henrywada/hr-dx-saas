@@ -80,7 +80,10 @@ export function PendingList({ periodId, pendingEmployees }: Props) {
         message: bulkMessage.trim() || undefined,
       })
       if (result.success) {
-        setMessage({ type: 'success', text: `${result.sent_count}名へ一括催促を送信しました` })
+        setMessage({
+          type: 'success',
+          text: `${result.sent_count}名へ一括催促を送信しました（メール ${result.email_sent_count ?? 0}件）`,
+        })
         setSelectedIds(new Set())
         setShowBulkForm(false)
         setBulkMessage('')

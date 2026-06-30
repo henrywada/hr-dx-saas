@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
@@ -7,7 +8,9 @@ import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import { submitConsultationSchema, type SubmitConsultationInput } from './types'
 
-export async function submitConsultation(input: SubmitConsultationInput): Promise<{ id: string }> {
+export async function submitConsultation(
+  input: SubmitConsultationInput,
+): Promise<{ id: string; anonymousToken?: string }> {
   const user = await getServerUser()
   if (!user?.employee_id) throw new Error('Unauthorized')
 
@@ -27,6 +30,8 @@ export async function submitConsultation(input: SubmitConsultationInput): Promis
     if (!manager) throw new Error('指定された上司が見つかりません')
   }
 
+  const anonymousToken = parsed.isAnonymous ? randomUUID() : null
+
   const { data, error } = await supabase
     .from('consultations')
     .insert({
@@ -35,6 +40,7 @@ export async function submitConsultation(input: SubmitConsultationInput): Promis
       category: parsed.category,
       body: parsed.body,
       is_anonymous: parsed.isAnonymous,
+      anonymous_token: anonymousToken,
       target_type: parsed.targetType,
       target_employee_id: parsed.targetType === 'manager' ? parsed.targetEmployeeId : null,
     })
@@ -44,7 +50,10 @@ export async function submitConsultation(input: SubmitConsultationInput): Promis
   if (error) throw error
 
   revalidatePath(APP_ROUTES.TENANT.CONSULTATION)
-  return { id: data.id }
+  return {
+    id: data.id,
+    ...(anonymousToken ? { anonymousToken } : {}),
+  }
 }
 
 const replySchema = z.object({

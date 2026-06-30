@@ -2,12 +2,55 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import { sendMail, formatExpiryDate } from '@/lib/mail/send'
-import { createLifecycleInstance } from '@/features/lifecycle/actions'
+import { createLifecycleInstance, ensureOffboardingInstance } from '@/features/lifecycle/actions'
+import { toJSTDateString } from '@/lib/datetime'
 
 const ADM_PATH = APP_ROUTES.TENANT.ADMIN
+
+type TenantActionCtx =
+  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; tenantId: string }
+  | { ok: false; error: string }
+
+/** Server Action 用: ログインユーザのテナントコンテキスト */
+async function requireTenantActionContext(): Promise<TenantActionCtx> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) {
+    return { ok: false, error: 'テナント情報が取得できません。ログインし直してください。' }
+  }
+  return { ok: true, supabase: await createClient(), tenantId: user.tenant_id }
+}
+
+async function assertDivisionInTenant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  divisionId: string,
+  tenantId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('divisions')
+    .select('id')
+    .eq('id', divisionId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  return !!data
+}
+
+async function assertEmployeeInTenant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  employeeId: string,
+  tenantId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('id', employeeId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  return !!data
+}
 
 // メールリンクの有効期間: 2週間（336時間）
 const INVITE_EXPIRY_HOURS = 336
@@ -50,8 +93,19 @@ export async function createDivision(data: {
   parent_id?: string | null
   tenant_id: string
 }) {
-  const supabase = await createClient()
-  const { data: result, error } = await supabase.from('divisions').insert(data).select().single()
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  if (data.tenant_id !== ctx.tenantId) {
+    return { success: false, error: '他テナントの部署は作成できません。' }
+  }
+  if (data.parent_id) {
+    const parentOk = await assertDivisionInTenant(ctx.supabase, data.parent_id, ctx.tenantId)
+    if (!parentOk) {
+      return { success: false, error: '親部署が自テナントに存在しません。' }
+    }
+  }
+
+  const { data: result, error } = await ctx.supabase.from('divisions').insert(data).select().single()
 
   if (error) {
     console.error('createDivision error:', error)
@@ -70,11 +124,22 @@ export async function updateDivision(
     parent_id?: string | null
   }
 ) {
-  const supabase = await createClient()
-  const { data: result, error } = await supabase
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertDivisionInTenant(ctx.supabase, id, ctx.tenantId)
+  if (!owned) return { success: false, error: '部署が見つからないか、操作権限がありません。' }
+  if (updates.parent_id) {
+    const parentOk = await assertDivisionInTenant(ctx.supabase, updates.parent_id, ctx.tenantId)
+    if (!parentOk) {
+      return { success: false, error: '親部署が自テナントに存在しません。' }
+    }
+  }
+
+  const { data: result, error } = await ctx.supabase
     .from('divisions')
     .update(updates)
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .select()
     .single()
 
@@ -87,15 +152,28 @@ export async function updateDivision(
 }
 
 export async function deleteDivision(id: string) {
-  const supabase = await createClient()
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertDivisionInTenant(ctx.supabase, id, ctx.tenantId)
+  if (!owned) return { success: false, error: '部署が見つからないか、操作権限がありません。' }
 
-  // まず所属従業員のdivision_idをnullに設定
-  await supabase.from('employees').update({ division_id: null }).eq('division_id', id)
-
-  const { error } = await supabase.from('divisions').delete().eq('id', id)
+  const { error } = await (
+    ctx.supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>
+    }
+  ).rpc('delete_division_safe', {
+    p_division_id: id,
+    p_tenant_id: ctx.tenantId,
+  })
 
   if (error) {
     console.error('deleteDivision error:', error)
+    if (error.message.includes('child_divisions_exist')) {
+      return { success: false, error: '子部署があるため削除できません。先に子部署を移動または削除してください。' }
+    }
     return { success: false, error: error.message }
   }
   revalidatePath(`${ADM_PATH}/divisions`)
@@ -119,6 +197,20 @@ export async function createEmployee(data: {
   start_date?: string
   tenant_id: string
 }) {
+  if (data.tenant_id) {
+    const ctx = await requireTenantActionContext()
+    if (ctx.ok === false) return { success: false, error: ctx.error }
+    if (data.tenant_id !== ctx.tenantId) {
+      return { success: false, error: '他テナントの従業員は登録できません。' }
+    }
+    if (data.division_id) {
+      const divOk = await assertDivisionInTenant(ctx.supabase, data.division_id, ctx.tenantId)
+      if (!divOk) {
+        return { success: false, error: '所属部署が自テナントに存在しません。' }
+      }
+    }
+  }
+
   const supabaseAdmin = createAdminClient()
 
   // tenants.max_employees を超える登録は不可
@@ -232,11 +324,34 @@ export async function updateEmployee(
     start_date?: string
   }
 ) {
-  const supabase = await createClient()
-  const { data: result, error } = await supabase
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertEmployeeInTenant(ctx.supabase, id, ctx.tenantId)
+  if (!owned) return { success: false, error: '従業員が見つからないか、操作権限がありません。' }
+  if (updates.division_id) {
+    const divOk = await assertDivisionInTenant(ctx.supabase, updates.division_id, ctx.tenantId)
+    if (!divOk) {
+      return { success: false, error: '所属部署が自テナントに存在しません。' }
+    }
+  }
+
+  // 退職ステータスへの変更を検知するため、更新前の active_status を取得
+  let previousActiveStatus: string | null = null
+  if (updates.active_status === 'inactive') {
+    const { data: before } = await ctx.supabase
+      .from('employees')
+      .select('active_status')
+      .eq('id', id)
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle()
+    previousActiveStatus = before?.active_status ?? null
+  }
+
+  const { data: result, error } = await ctx.supabase
     .from('employees')
     .update(updates)
     .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
     .select()
     .single()
 
@@ -244,14 +359,37 @@ export async function updateEmployee(
     console.error('updateEmployee error:', error)
     return { success: false, error: error.message }
   }
+
+  // 退職（inactive）への変更時に退社フローを自動開始（失敗しても従業員更新は成功扱い）
+  if (
+    updates.active_status === 'inactive' &&
+    previousActiveStatus !== 'inactive' &&
+    result?.id
+  ) {
+    try {
+      await ensureOffboardingInstance(result.id, toJSTDateString())
+    } catch (e) {
+      console.warn('退社フローの自動生成に失敗しました:', e)
+    }
+  }
+
   revalidatePath(`${ADM_PATH}/employees`)
   revalidatePath(`${ADM_PATH}/divisions`)
+  revalidatePath('/adm/lifecycle')
   return { success: true, data: result }
 }
 
 export async function deleteEmployee(id: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('employees').delete().eq('id', id)
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertEmployeeInTenant(ctx.supabase, id, ctx.tenantId)
+  if (!owned) return { success: false, error: '従業員が見つからないか、操作権限がありません。' }
+
+  const { error } = await ctx.supabase
+    .from('employees')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', ctx.tenantId)
 
   if (error) {
     console.error('deleteEmployee error:', error)
@@ -267,11 +405,20 @@ export async function deleteEmployee(id: string) {
 // =====================================================
 
 export async function assignEmployeeToDivision(employeeId: string, divisionId: string | null) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertEmployeeInTenant(ctx.supabase, employeeId, ctx.tenantId)
+  if (!owned) return { success: false, error: '従業員が見つからないか、操作権限がありません。' }
+  if (divisionId) {
+    const divOk = await assertDivisionInTenant(ctx.supabase, divisionId, ctx.tenantId)
+    if (!divOk) return { success: false, error: '部署が自テナントに存在しません。' }
+  }
+
+  const { error } = await ctx.supabase
     .from('employees')
     .update({ division_id: divisionId })
     .eq('id', employeeId)
+    .eq('tenant_id', ctx.tenantId)
 
   if (error) {
     console.error('assignEmployeeToDivision error:', error)
@@ -287,13 +434,16 @@ export async function assignEmployeeToDivision(employeeId: string, divisionId: s
 // =====================================================
 
 export async function resendEmployeeInviteEmail(employeeId: string) {
-  const supabase = await createClient()
+  const ctx = await requireTenantActionContext()
+  if (ctx.ok === false) return { success: false, error: ctx.error }
+  const owned = await assertEmployeeInTenant(ctx.supabase, employeeId, ctx.tenantId)
+  if (!owned) return { success: false, error: '従業員が見つからないか、操作権限がありません。' }
 
-  // employees から user_id を取得
-  const { data: emp, error: empError } = await supabase
+  const { data: emp, error: empError } = await ctx.supabase
     .from('employees')
     .select('user_id, name')
     .eq('id', employeeId)
+    .eq('tenant_id', ctx.tenantId)
     .single()
 
   if (empError || !emp?.user_id) {

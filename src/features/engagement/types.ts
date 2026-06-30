@@ -56,4 +56,15 @@ export interface EngagementDashboardData {
   hasPulseData: boolean
   hasStressData: boolean
   hasQuestionnaireData: boolean
+  /** 評価・1on1・スキル・eラーニングの成長KPI（P6 フェーズ3） */
+  growthKpi: GrowthDevelopmentKpi
+}
+
+/** 成長・育成レイヤーの横断KPI */
+export interface GrowthDevelopmentKpi {
+  evaluationCompletionRatePercent: number | null
+  elCompletionRatePercent: number | null
+  skillGapRatePercent: number | null
+  oneOnOneSessionsLast30Days: number
+  oneOnOneOverdueCount: number
 }

@@ -7,15 +7,21 @@ import type {
   CareerDiscussionThemeTemplate,
   EvaluationPeriodOption,
 } from '../types'
+import type { OneOnOneSessionSummary } from '@/features/one-on-one/types'
 
 interface Props {
   employees: CareerDiscussionEmployeeOption[]
   templates: CareerDiscussionThemeTemplate[]
   evaluationPeriods: EvaluationPeriodOption[]
+  oneOnOneByEmployee: Record<string, OneOnOneSessionSummary[]>
 }
 
-/** モーダル開閉状態を持つ「面談を記録」ボタン（上長・HR両方の画面で共通利用） */
-export function RecordDiscussionButton({ employees, templates, evaluationPeriods }: Props) {
+export function RecordDiscussionButton({
+  employees,
+  templates,
+  evaluationPeriods,
+  oneOnOneByEmployee,
+}: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -32,6 +38,7 @@ export function RecordDiscussionButton({ employees, templates, evaluationPeriods
         employees={employees}
         templates={templates}
         evaluationPeriods={evaluationPeriods}
+        oneOnOneByEmployee={oneOnOneByEmployee}
       />
     </>
   )

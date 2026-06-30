@@ -32,6 +32,7 @@ async function fetchCurrentMarketData(query: string): Promise<string> {
 
     const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`, {
       method: 'GET',
+      signal: AbortSignal.timeout(30_000),
     })
 
     if (!response.ok) {

@@ -27,11 +27,21 @@ export default async function TeamConnectPage() {
     ])
 
   return (
-    <div className="px-4 sm:px-6 py-5 mx-auto max-w-300 space-y-4">
-      <h1 className="text-sm font-semibold text-slate-900">チームコネクト</h1>
+    <div className="px-4 sm:px-6 py-5 mx-auto max-w-[1200px] space-y-4">
+      <header>
+        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">チームコネクト</h1>
+        <p className="text-sm text-[#57606a] mt-1">
+          組織図で部署構成を確認し、社内ディレクトリで氏名・社員番号からメンバーを検索できます。
+        </p>
+      </header>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold text-slate-500">組織図</h2>
+          <h2 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">
+            組織図
+          </h2>
+          <p className="text-xs text-[#57606a] -mt-1">
+            部署ツリーを展開して、所属メンバーと人数を確認できます。
+          </p>
           <DivisionTreeView
             divisions={divisions}
             employees={employeesByDivision}
@@ -39,7 +49,12 @@ export default async function TeamConnectPage() {
           />
         </section>
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold text-slate-500">社内ディレクトリ</h2>
+          <h2 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">
+            社内ディレクトリ
+          </h2>
+          <p className="text-xs text-[#57606a] -mt-1">
+            氏名・社員番号で検索し、部署で絞り込めます。
+          </p>
           <DirectoryList employees={directoryEmployees} divisions={divisions} />
         </section>
       </div>

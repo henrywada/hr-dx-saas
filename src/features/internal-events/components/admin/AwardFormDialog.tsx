@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { createAward } from '../../actions'
 
 interface EmployeeOption {
@@ -8,11 +8,21 @@ interface EmployeeOption {
   name: string
 }
 
-interface Props {
-  employees: EmployeeOption[]
+interface AwardPreset {
+  recipientEmployeeId: string
+  awardType: string
+  periodLabel: string
+  comment: string
 }
 
-export function AwardFormDialog({ employees }: Props) {
+interface Props {
+  employees: EmployeeOption[]
+  /** E-S2: サジェストから流し込む初期値 */
+  preset?: AwardPreset | null
+  onPresetClear?: () => void
+}
+
+export function AwardFormDialog({ employees, preset, onPresetClear }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [recipientEmployeeId, setRecipientEmployeeId] = useState('')
   const [awardType, setAwardType] = useState('')
@@ -22,6 +32,17 @@ export function AwardFormDialog({ employees }: Props) {
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!preset) return
+    setRecipientEmployeeId(preset.recipientEmployeeId)
+    setAwardType(preset.awardType)
+    setPeriodLabel(preset.periodLabel)
+    setComment(preset.comment)
+    setPublishAnnouncement(true)
+    setErrorMessage(null)
+    setIsOpen(true)
+  }, [preset])
+
   const resetForm = () => {
     setRecipientEmployeeId('')
     setAwardType('')
@@ -29,6 +50,7 @@ export function AwardFormDialog({ employees }: Props) {
     setComment('')
     setPublishAnnouncement(true)
     setErrorMessage(null)
+    onPresetClear?.()
   }
 
   const handleSubmit = (e: React.FormEvent) => {

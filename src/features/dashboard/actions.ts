@@ -24,6 +24,7 @@ export async function createAnnouncement(values: {
   is_new?: boolean
   target_audience?: string | null
   sort_order?: number
+  recipient_employee_id?: string | null
 }) {
   const user = await getServerUser()
   if (!user?.tenant_id) {
@@ -41,6 +42,7 @@ export async function createAnnouncement(values: {
       is_new: values.is_new ?? true,
       target_audience: values.target_audience ?? null,
       sort_order: values.sort_order ?? 0,
+      recipient_employee_id: values.recipient_employee_id ?? null,
     })
     .select()
     .single()
@@ -63,6 +65,7 @@ export async function updateAnnouncement(
     is_new?: boolean
     target_audience?: string | null
     sort_order?: number
+    recipient_employee_id?: string | null
   }
 ) {
   const supabase = await getSupabase()

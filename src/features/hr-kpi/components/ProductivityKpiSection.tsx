@@ -28,7 +28,7 @@ export function ProductivityKpiSection({ kpi }: Props) {
           : 'danger'
 
   return (
-    <section>
+    <section id="productivity">
       <h2 className="mb-3 text-base font-semibold text-gray-700 flex items-center gap-2">
         <Clock size={16} className="text-primary" />
         生産性・労務

@@ -6,7 +6,14 @@ import type {
   KudosFeedItem,
   KudosPersonalRanking,
   KudosRecipient,
+  MvpCandidate,
 } from './types'
+import {
+  buildMvpCandidateList,
+  getPreviousMonthPeriodLabel,
+  jstMonthRangeUtc,
+  type MvpCandidateAggregate,
+} from './mvp-candidates'
 
 const RECENT_NOTICE_DAYS = 7
 const STATS_PERIOD_DAYS = 30
@@ -236,4 +243,132 @@ export async function getKudosPersonalRanking(
   return Array.from(rankingByEmployeeId.values())
     .sort((a, b) => b.sentCount + b.receivedCount - (a.sentCount + a.receivedCount))
     .slice(0, limit)
+}
+
+/** 有効なバリュータグ一覧（投稿フォーム用） */
+export async function getActiveValueTags(): Promise<string[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('kudos_value_tags')
+    .select('name')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('getActiveValueTags error:', error)
+    return []
+  }
+
+  return (data ?? []).map(row => row.name)
+}
+
+/** 管理者向けバリュータグ一覧 */
+export async function getValueTagsForAdmin(): Promise<
+  import('./types').KudosValueTag[]
+> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('kudos_value_tags')
+    .select('id, tenant_id, name, sort_order, is_active')
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('getValueTagsForAdmin error:', error)
+    return []
+  }
+
+  return data ?? []
+}
+
+const UNASSIGNED_FOR_MVP = '未配属'
+
+/** K-C1 / E-S2: 月次 Kudos 受信数に基づく MVP 表彰候補（先月デフォルト） */
+export async function getMonthlyMvpCandidates(
+  periodLabel?: string,
+  limit = 5
+): Promise<{ periodLabel: string; candidates: MvpCandidate[] }> {
+  const label = periodLabel ?? getPreviousMonthPeriodLabel()
+  const { startIso, endIso } = jstMonthRangeUtc(label)
+  const supabase = await createClient()
+
+  const [
+    { data: kudosRows, error: kudosError },
+    { data: awardRows, error: awardError },
+    { data: employees, error: employeesError },
+  ] = await Promise.all([
+    supabase
+      .from('kudos')
+      .select('id, sender_employee_id, value_tag, created_at')
+      .gte('created_at', startIso)
+      .lt('created_at', endIso),
+    supabase.from('awards').select('recipient_employee_id').eq('period_label', label),
+    supabase.from('employees').select('id, name, division:division_id(name)'),
+  ])
+
+  if (kudosError) console.error('getMonthlyMvpCandidates (kudos) error:', kudosError)
+  if (awardError) console.error('getMonthlyMvpCandidates (awards) error:', awardError)
+  if (employeesError) console.error('getMonthlyMvpCandidates (employees) error:', employeesError)
+
+  const alreadyAwarded = new Set((awardRows ?? []).map(r => r.recipient_employee_id))
+
+  const employeeMeta = new Map<string, { name: string; division_name: string }>()
+  for (const emp of employees ?? []) {
+    const div = emp.division as { name: string | null } | null
+    employeeMeta.set(emp.id, {
+      name: emp.name ?? '（不明）',
+      division_name: div?.name ?? UNASSIGNED_FOR_MVP,
+    })
+  }
+
+  const kudosIds = (kudosRows ?? []).map(k => k.id)
+  const { data: recipientRows, error: recipientError } = kudosIds.length
+    ? await supabase
+        .from('kudos_recipients')
+        .select('kudos_id, employee_id')
+        .in('kudos_id', kudosIds)
+    : { data: [], error: null }
+  if (recipientError) console.error('getMonthlyMvpCandidates (recipients) error:', recipientError)
+
+  const kudosById = new Map((kudosRows ?? []).map(k => [k.id, k]))
+  const aggregateByEmployee = new Map<string, MvpCandidateAggregate>()
+
+  for (const row of recipientRows ?? []) {
+    const kudos = kudosById.get(row.kudos_id)
+    if (!kudos) continue
+
+    const meta = employeeMeta.get(row.employee_id) ?? {
+      name: '（不明）',
+      division_name: UNASSIGNED_FOR_MVP,
+    }
+
+    let agg = aggregateByEmployee.get(row.employee_id)
+    if (!agg) {
+      agg = {
+        employee_id: row.employee_id,
+        employee_name: meta.name,
+        division_name: meta.division_name,
+        received_count: 0,
+        sender_ids: new Set(),
+        value_tag_counts: new Map(),
+      }
+      aggregateByEmployee.set(row.employee_id, agg)
+    }
+
+    agg.received_count += 1
+    agg.sender_ids.add(kudos.sender_employee_id)
+    if (kudos.value_tag) {
+      agg.value_tag_counts.set(kudos.value_tag, (agg.value_tag_counts.get(kudos.value_tag) ?? 0) + 1)
+    }
+  }
+
+  const candidates = buildMvpCandidateList(
+    Array.from(aggregateByEmployee.values()),
+    label,
+    alreadyAwarded,
+    limit
+  )
+
+  return { periodLabel: label, candidates }
 }

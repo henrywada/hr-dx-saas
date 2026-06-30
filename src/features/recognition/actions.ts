@@ -7,9 +7,13 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   createKudosSchema,
   toggleReactionSchema,
+  valueTagSchema,
   type CreateKudosInput,
   type ToggleReactionInput,
+  type ValueTagInput,
 } from './types'
+import { VALUE_TAGS } from './labels'
+import { createAnnouncement } from '@/features/dashboard/actions'
 
 /** Kudos投稿（宛先1名以上、本文、任意でバリュータグ） */
 export async function createKudos(input: CreateKudosInput): Promise<void> {
@@ -40,6 +44,25 @@ export async function createKudos(input: CreateKudosInput): Promise<void> {
   )
 
   if (recipientsError) throw recipientsError
+
+  // K-S2: 受信者へ個人宛お知らせを発行（/top のお知らせ欄に表示）
+  const senderName = user.name ?? '同僚'
+  const valueTagSuffix = parsed.valueTag ? `（${parsed.valueTag}）` : ''
+  const bodyPreview =
+    parsed.message.length > 120 ? `${parsed.message.slice(0, 120)}…` : parsed.message
+
+  await Promise.all(
+    parsed.recipientEmployeeIds.map(recipientId =>
+      createAnnouncement({
+        title: `💛 ${senderName}さんから感謝・称賛が届きました${valueTagSuffix}`,
+        body: `${bodyPreview}\n\n詳細は「感謝・称賛」画面でご確認ください。`,
+        target_audience: 'あなた宛',
+        recipient_employee_id: recipientId,
+        is_new: true,
+        sort_order: 10,
+      })
+    )
+  )
 
   revalidatePath(APP_ROUTES.TENANT.KUDOS)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
@@ -77,4 +100,81 @@ export async function toggleReaction(input: ToggleReactionInput): Promise<void> 
   }
 
   revalidatePath(APP_ROUTES.TENANT.KUDOS)
+}
+
+const HR_ROLES = ['hr', 'hr_manager', 'developer']
+
+function assertHrRole(appRole: string | null | undefined): void {
+  if (!appRole || !HR_ROLES.includes(appRole)) {
+    throw new Error('Unauthorized')
+  }
+}
+
+/** デフォルトバリュータグをシードする（冪等） */
+export async function seedDefaultValueTags(): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) throw new Error('Unauthorized')
+  assertHrRole(user.appRole)
+
+  const supabase = await createClient()
+  const { data: existing } = await supabase
+    .from('kudos_value_tags')
+    .select('id')
+    .eq('tenant_id', user.tenant_id)
+    .limit(1)
+
+  if (existing && existing.length > 0) return
+
+  const { error } = await supabase.from('kudos_value_tags').insert(
+    VALUE_TAGS.map((name, index) => ({
+      tenant_id: user.tenant_id,
+      name,
+      sort_order: index,
+    }))
+  )
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.TENANT.KUDOS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_KUDOS_STATS)
+}
+
+/** バリュータグを追加する */
+export async function addValueTag(input: ValueTagInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) throw new Error('Unauthorized')
+  assertHrRole(user.appRole)
+
+  const parsed = valueTagSchema.parse(input)
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('kudos_value_tags').insert({
+    tenant_id: user.tenant_id,
+    name: parsed.name,
+    sort_order: parsed.sortOrder ?? 0,
+  })
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.TENANT.KUDOS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_KUDOS_STATS)
+}
+
+/** バリュータグを無効化する（論理削除） */
+export async function deactivateValueTag(id: string): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) throw new Error('Unauthorized')
+  assertHrRole(user.appRole)
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('kudos_value_tags')
+    .update({ is_active: false })
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.TENANT.KUDOS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_KUDOS_STATS)
 }

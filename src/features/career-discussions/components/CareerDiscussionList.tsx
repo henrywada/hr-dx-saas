@@ -1,9 +1,12 @@
 import type { CareerDiscussionRow } from '../types'
+import { CareerDiscussionAdminActions } from './CareerDiscussionAdminActions'
 
 interface Props {
   rows: CareerDiscussionRow[]
   /** 一覧内に対象者名を表示するか（管理者向け一覧では表示、本人向け履歴では非表示） */
   showEmployeeName?: boolean
+  /** 管理者向けに編集・削除ボタンを表示する */
+  editable?: boolean
   emptyMessage?: string
 }
 
@@ -15,6 +18,7 @@ function formatDate(iso: string): string {
 export function CareerDiscussionList({
   rows,
   showEmployeeName = false,
+  editable = false,
   emptyMessage = '面談記録はまだありません。',
 }: Props) {
   if (rows.length === 0) {
@@ -50,7 +54,13 @@ export function CareerDiscussionList({
               )}
               {row.notes && <p className="text-xs text-slate-600 leading-relaxed">{row.notes}</p>}
               {row.next_date && <p className="text-xs text-slate-500">次回予定: {row.next_date}</p>}
+              {row.linked_one_on_one_theme && (
+                <p className="text-xs text-slate-500">
+                  紐付け 1on1: <span className="font-medium text-slate-700">{row.linked_one_on_one_theme}</span>
+                </p>
+              )}
             </div>
+            {editable && <CareerDiscussionAdminActions row={row} />}
           </div>
         </div>
       ))}

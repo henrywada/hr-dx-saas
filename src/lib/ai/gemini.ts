@@ -44,7 +44,11 @@ export interface GeminiGenerateOptions {
   json?: boolean
   /** 構造化出力スキーマ（OpenAI の json_schema 相当） */
   responseJsonSchema?: unknown
+  /** API 呼び出しタイムアウト（ミリ秒）。既定 120 秒 */
+  timeoutMs?: number
 }
+
+const DEFAULT_GEMINI_TIMEOUT_MS = 120_000
 
 /**
  * 単一ターンのテキスト/JSON 生成。応答テキストを返す。
@@ -52,7 +56,9 @@ export interface GeminiGenerateOptions {
  */
 export async function generateGeminiContent(opts: GeminiGenerateOptions): Promise<string> {
   const ai = getGeminiClient()
-  const response = await ai.models.generateContent({
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS
+
+  const generatePromise = ai.models.generateContent({
     model: opts.model,
     contents: opts.prompt,
     config: {
@@ -63,6 +69,22 @@ export async function generateGeminiContent(opts: GeminiGenerateOptions): Promis
       ...(opts.responseJsonSchema ? { responseJsonSchema: opts.responseJsonSchema } : {}),
     },
   })
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error(`Gemini API が ${timeoutMs}ms 以内に応答しませんでした`)),
+      timeoutMs,
+    )
+  })
+
+  let response
+  try {
+    response = await Promise.race([generatePromise, timeoutPromise])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
+
   const text = response.text
   if (!text) {
     throw new Error('AI からの応答が空でした')

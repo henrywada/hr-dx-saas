@@ -16,6 +16,8 @@ import {
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
 import { getTrainingPlanDashboardData } from '@/features/skill-map/training-plan-queries'
+import { getQualificationMasters, getEmployeeQualifications } from '@/features/qualifications/queries'
+import { getSkillMapDrafts } from '@/features/skill-map/draft-queries'
 import type { TrainingPlanDashboardData } from '@/features/skill-map/training-plan-types'
 
 export default async function SkillMapPage() {
@@ -35,6 +37,9 @@ export default async function SkillMapPage() {
   let completionRows: Awaited<ReturnType<typeof getSkillCompletionData>> = []
   /** シミュレーションデータ */
   let initialSimulations: any[] = []
+  let qualificationMasters: Awaited<ReturnType<typeof getQualificationMasters>> = []
+  let employeeQualifications: Awaited<ReturnType<typeof getEmployeeQualifications>> = []
+  let skillMapDrafts: Awaited<ReturnType<typeof getSkillMapDrafts>> = []
   let trainingPlanData: TrainingPlanDashboardData = {
     templates: [],
     plans: [],
@@ -92,6 +97,15 @@ export default async function SkillMapPage() {
   } catch (e: any) {
     console.warn('getProjectSimulations failed:', e.message)
     initialSimulations = []
+  }
+  try {
+    ;[qualificationMasters, employeeQualifications, skillMapDrafts] = await Promise.all([
+      getQualificationMasters(),
+      getEmployeeQualifications(),
+      getSkillMapDrafts(),
+    ])
+  } catch (e: any) {
+    console.warn('qualifications/drafts fetch failed:', e.message)
   }
   try {
     trainingPlanData = await getTrainingPlanDashboardData(supabase, completionRows)
@@ -173,6 +187,9 @@ export default async function SkillMapPage() {
               completionRows={completionRows}
               initialSimulations={initialSimulations}
               trainingPlanData={trainingPlanData}
+              qualificationMasters={qualificationMasters}
+              employeeQualifications={employeeQualifications}
+              skillMapDrafts={skillMapDrafts}
             />
           </div>
         </div>

@@ -13,11 +13,27 @@ import { getKudosStatsByDivision } from '@/features/recognition/queries'
 import { getTenantConditionSummary } from '@/features/condition-checkin/queries'
 import { getPendingConsultationCount } from '@/features/consultation/queries'
 import { getAllEventsForAdmin } from '@/features/internal-events/queries'
+import {
+  getUpcomingCareerAppointments,
+  getCareerOverdueEmployees,
+} from '@/features/career-discussions/queries'
+import {
+  getEvaluationCompletionRate,
+  getEvaluationPeriods,
+} from '@/features/evaluation/queries'
+import { getTenantSkills } from '@/features/skill-map/queries'
 import { summarizeQuestionnaires } from './summarize'
 import type { AdmDashboardSummary } from './types'
 
+export type AdmDashboardSummaryOptions = {
+  /** URL クエリ evalPeriod で指定された評価期間 ID */
+  evaluationPeriodId?: string
+}
+
 /** /adm メインダッシュボード用のデータを並列取得し、表示用に集約する */
-export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | null> {
+export async function getAdmDashboardSummary(
+  options?: AdmDashboardSummaryOptions
+): Promise<AdmDashboardSummary | null> {
   const user = await getServerUser()
   if (!user?.tenant_id) return null
 
@@ -36,6 +52,10 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
     conditionSummary,
     pendingConsultationCount,
     allEvents,
+    evaluationPeriods,
+    upcomingCareerAppointments,
+    careerOverdueEmployees,
+    tenantSkills,
   ] = await Promise.all([
     getHrKpiBundle(),
     getOneOnOneDashboardData(),
@@ -51,6 +71,10 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
     getTenantConditionSummary(30),
     getPendingConsultationCount(),
     getAllEventsForAdmin(),
+    getEvaluationPeriods(supabase, tenantId),
+    getUpcomingCareerAppointments(),
+    getCareerOverdueEmployees(),
+    getTenantSkills(supabase),
   ])
 
   if (!kpiResult.ok) return null
@@ -78,6 +102,22 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
   const todayIso = new Date().toISOString()
   const upcomingEventCount = allEvents.filter(e => e.event_date >= todayIso).length
 
+  const periodOptions = evaluationPeriods.map(p => ({ id: p.id, name: p.name }))
+  const requestedPeriodId = options?.evaluationPeriodId
+  const selectedPeriod =
+    (requestedPeriodId
+      ? evaluationPeriods.find(p => p.id === requestedPeriodId)
+      : undefined) ?? evaluationPeriods[0] ?? null
+
+  let evaluationCompletionRatePercent: number | null = null
+  if (selectedPeriod) {
+    evaluationCompletionRatePercent = await getEvaluationCompletionRate(
+      supabase,
+      tenantId,
+      selectedPeriod.id
+    )
+  }
+
   return {
     headcount: {
       activeEmployees: kpi.retention.totalActiveEmployees - kpi.retention.companyDoctorCount,
@@ -90,9 +130,8 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
       responseRatePercent: kpi.engagement.latestPulseResponseRate,
       score: kpi.engagement.latestPulseSurveyScore,
     },
-    skillDevelopment: {
-      elCompletionRatePercent: kpi.development.elCompletionRatePercent,
-      skillGapRatePercent: kpi.development.skillGapRatePercent,
+    skillMap: {
+      registeredSkillCount: tenantSkills.length,
     },
     oneOnOne: {
       sessionsLast30Days: oneOnOneData.totalSessionsLast30Days,
@@ -113,6 +152,17 @@ export async function getAdmDashboardSummary(): Promise<AdmDashboardSummary | nu
       conditionRespondentCount: conditionSummary.respondent_count,
       pendingConsultationCount,
       upcomingEventCount,
+    },
+    evaluation: {
+      completionRatePercent: evaluationCompletionRatePercent,
+      selectedPeriodId: selectedPeriod?.id ?? null,
+      selectedPeriodName: selectedPeriod?.name ?? null,
+      periods: periodOptions,
+    },
+    careerDiscussion: {
+      ratePercent: kpi.development.careerDiscussionRatePercent,
+      upcomingAppointmentCount: upcomingCareerAppointments.length,
+      overdueEmployeeCount: careerOverdueEmployees.length,
     },
   }
 }

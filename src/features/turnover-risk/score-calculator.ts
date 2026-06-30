@@ -40,6 +40,16 @@ function calcAbsenceScore(unansweredCount: number): number {
   return 0
 }
 
+/** 成長・評価層因子（各8〜12pt、合計最大40pt） */
+function calcGrowthScore(data: EmployeeRawData): number {
+  let score = 0
+  if (data.one_on_one_overdue_30d) score += 12
+  if (data.evaluation_not_confirmed) score += 12
+  if (data.has_skill_gap) score += 8
+  if (data.has_incomplete_el) score += 8
+  return score
+}
+
 function calcRiskLevel(score: number): RiskLevel {
   if (score >= 60) return 'high'
   if (score >= 30) return 'medium'
@@ -58,7 +68,9 @@ export function calculateRiskScore(data: EmployeeRawData): {
     data.overtime_hours_two_months_ago
   )
   const absence_score = calcAbsenceScore(data.unanswered_questionnaire_count)
-  const risk_score = stress_score + survey_score + overtime_score + absence_score
+  const growth_score = calcGrowthScore(data)
+  const risk_score =
+    stress_score + survey_score + overtime_score + absence_score + growth_score
 
   return {
     risk_score,
@@ -68,12 +80,19 @@ export function calculateRiskScore(data: EmployeeRawData): {
       survey_score,
       overtime_score,
       absence_score,
+      growth_score,
       details: {
         is_high_stress: data.is_high_stress,
         latest_survey_score: data.latest_survey_score,
         overtime_hours_last_month: data.overtime_hours_last_month,
         overtime_delta_hours: data.overtime_hours_last_month - data.overtime_hours_two_months_ago,
         unanswered_questionnaire_count: data.unanswered_questionnaire_count,
+        growth: {
+          one_on_one_overdue_30d: data.one_on_one_overdue_30d,
+          evaluation_not_confirmed: data.evaluation_not_confirmed,
+          has_skill_gap: data.has_skill_gap,
+          has_incomplete_el: data.has_incomplete_el,
+        },
       },
     },
   }

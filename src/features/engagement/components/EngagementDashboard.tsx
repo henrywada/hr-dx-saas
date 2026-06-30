@@ -1,6 +1,7 @@
 'use client'
 
 import { EngagementScoreCards } from './EngagementScoreCards'
+import { GrowthDevelopmentCards } from './GrowthDevelopmentCards'
 import { MonthlyTrendChart } from './MonthlyTrendChart'
 import { DepartmentHeatmap } from './DepartmentHeatmap'
 import type { EngagementDashboardData } from '../types'
@@ -25,7 +26,7 @@ export function EngagementDashboard({ data }: Props) {
             統合エンゲージメントダッシュボード
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            パルスサーベイ・ストレスチェック・Echoアンケートの3ソースを統合表示
+            パルスサーベイ・ストレスチェック・Echoアンケートに加え、評価・1on1・スキル・eラーニングの成長KPIを統合表示
           </p>
         </div>
 
@@ -38,6 +39,14 @@ export function EngagementDashboard({ data }: Props) {
             latestHighStressRate={data.latestHighStressRate}
             latestQuestionnaireResponseRate={data.latestQuestionnaireResponseRate}
           />
+
+          {/* 成長・育成KPI（1on1/評価/スキル/eラーニング） */}
+          <section>
+            <h2 className="mb-3 text-base font-semibold text-gray-700">
+              成長・育成KPI（評価 / 1on1 / スキル / eラーニング）
+            </h2>
+            <GrowthDevelopmentCards kpi={data.growthKpi} />
+          </section>
 
           {/* 月次推移グラフ */}
           <section>

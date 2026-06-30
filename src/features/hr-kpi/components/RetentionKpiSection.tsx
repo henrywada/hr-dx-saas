@@ -26,7 +26,7 @@ export function RetentionKpiSection({ kpi }: Props) {
           : 'normal'
 
   return (
-    <section>
+    <section id="retention">
       <h2 className="mb-3 text-base font-semibold text-gray-700 flex items-center gap-2">
         <UserMinus size={16} className="text-primary" />
         定着

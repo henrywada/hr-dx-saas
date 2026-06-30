@@ -55,6 +55,7 @@ export type AppRole = {
 /** active_status の日本語ラベルマッピング */
 export const ACTIVE_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active:      { label: 'アクティブ', color: 'bg-green-100 text-green-700' },
+  inactive:    { label: '退職',       color: 'bg-slate-100 text-slate-600' },
   off:         { label: '休職',       color: 'bg-red-100 text-red-700' },
   secondment:  { label: '出向',       color: 'bg-yellow-100 text-yellow-700' },
   doctor:      { label: '産業医',     color: 'bg-blue-100 text-blue-700' },

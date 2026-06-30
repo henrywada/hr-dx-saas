@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { ClipboardList } from 'lucide-react';
 import { APP_ROUTES } from '@/config/routes';
 import type { AssignedQuestionnaire } from '@/features/questionnaire/types';
 
@@ -21,8 +22,11 @@ export default function AnswersListClient({ questionnaires }: Props) {
   if (questionnaires.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-        <p className="text-4xl mb-4">📋</p>
-        <p className="text-neutral-500 text-sm">現在、回答が必要なアンケートはありません。</p>
+        <ClipboardList className="w-12 h-12 mb-4 text-neutral-300" />
+        <p className="text-sm font-medium text-neutral-700">回答が必要なアンケートはありません</p>
+        <p className="text-xs text-neutral-500 mt-2 max-w-xs">
+          人事担当者から依頼があると、ここに未回答のアンケートが表示されます。
+        </p>
       </div>
     );
   }

@@ -68,6 +68,30 @@ export function bundleToCsvRows(bundle: HrKpiBundle): string[][] {
       bundle.yearMonth,
     ],
     [
+      'エンゲージメント',
+      'Kudos件数（30日）',
+      fmt(bundle.engagement.kudosCountLast30Days, '件'),
+      bundle.yearMonth,
+    ],
+    [
+      'エンゲージメント',
+      'Kudos送信者数（30日）',
+      fmt(bundle.engagement.kudosActiveSendersLast30Days, '名'),
+      bundle.yearMonth,
+    ],
+    [
+      'エンゲージメント',
+      'イベントRSVP回答率（90日）',
+      fmt(bundle.engagement.eventRsvpResponseRatePercent, '%'),
+      bundle.yearMonth,
+    ],
+    [
+      'エンゲージメント',
+      'Kudos送信者率',
+      fmt(bundle.engagement.kudosSenderRatePercent, '%'),
+      bundle.yearMonth,
+    ],
+    [
       '育成',
       'スキルギャップ率',
       fmt(bundle.development.skillGapRatePercent, '%'),

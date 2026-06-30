@@ -17,11 +17,15 @@ import {
   Smile,
   MessageCircleHeart,
   PartyPopper,
+  ClipboardCheck,
 } from 'lucide-react'
 import { KpiSummaryCard } from '@/features/hr-kpi/components/KpiSummaryCard'
 import { DashboardSectionCard } from '@/features/adm-dashboard/components/DashboardSectionCard'
 import { DashboardSectionGroupCard } from '@/features/adm-dashboard/components/DashboardSectionGroupCard'
 import { ToolboxGrid } from '@/features/adm-dashboard/components/ToolboxGrid'
+import { EvaluationDashboardCard } from '@/features/adm-dashboard/components/EvaluationDashboardCard'
+import { AdmHrKpiLink } from '@/features/adm-dashboard/components/AdmHrKpiLink'
+import { AdmKpiOverviewSection } from '@/features/adm-dashboard/components/AdmKpiOverviewSection'
 import { getAdmDashboardSummary } from '@/features/adm-dashboard/queries'
 import { getPendingConsultationCount } from '@/features/consultation/queries'
 import { ConsultationPendingAdminButton } from '@/features/consultation/components/ConsultationPendingAdminButton'
@@ -39,9 +43,14 @@ function formatActiveEmployeesSub(companyDoctorCount: number): string {
   return companyDoctorCount === 0 ? '名' : `名（産業医：${companyDoctorCount}名）`
 }
 
-export default async function HrDashboardPage() {
+export default async function HrDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ evalPeriod?: string }>
+}) {
+  const { evalPeriod } = await searchParams
   const [summary, pendingConsultationCount] = await Promise.all([
-    getAdmDashboardSummary(),
+    getAdmDashboardSummary({ evaluationPeriodId: evalPeriod }),
     getPendingConsultationCount(),
   ])
 
@@ -63,6 +72,7 @@ export default async function HrDashboardPage() {
         </h1>
         <div className="flex items-center gap-2">
           <ConsultationPendingAdminButton count={pendingConsultationCount} />
+          <AdmHrKpiLink variant="button" />
           <Link
             href={APP_ROUTES.TENANT.ADMIN_MANUAL}
             className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-medium text-[#161b22] shadow-xs transition-colors hover:bg-[#f6f8fa]"
@@ -73,7 +83,7 @@ export default async function HrDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <AdmKpiOverviewSection>
         <KpiSummaryCard
           label="在籍社員数"
           value={`${summary.headcount.activeEmployees}`}
@@ -110,7 +120,7 @@ export default async function HrDashboardPage() {
           icon={<Briefcase className="h-4 w-4" />}
           align="right"
         />
-      </div>
+      </AdmKpiOverviewSection>
 
       <DashboardSectionGroupCard
         icon={<HeartHandshake className="h-4 w-4" />}
@@ -129,23 +139,7 @@ export default async function HrDashboardPage() {
               value: summary.pulseSurvey.score === null ? '—' : `${summary.pulseSurvey.score}`,
             },
           ]}
-        />
-        <DashboardSectionCard
-          icon={<GraduationCap className="h-4 w-4" />}
-          iconClassName="bg-emerald-50 text-emerald-600"
-          title="スキル・能力向上"
-          description="社員ごとのスキルマップ管理。研修履歴・資格取得状況、不足スキルのギャップ分析も。"
-          href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP}
-          stats={[
-            {
-              label: '研修完了率',
-              value: formatPercent(summary.skillDevelopment.elCompletionRatePercent),
-            },
-            {
-              label: 'スキルギャップ率',
-              value: formatPercent(summary.skillDevelopment.skillGapRatePercent),
-            },
-          ]}
+          kpiSection="engagement"
         />
         <DashboardSectionCard
           icon={<MessageCircle className="h-4 w-4" />}
@@ -171,6 +165,7 @@ export default async function HrDashboardPage() {
             },
             { label: '高ストレス者', value: `${summary.stressCheck.highStressCount}名` },
           ]}
+          kpiSection="engagement"
         />
         <DashboardSectionCard
           icon={<HeartHandshake className="h-4 w-4" />}
@@ -181,6 +176,7 @@ export default async function HrDashboardPage() {
           stats={[
             { label: '直近30日の送信件数', value: `${summary.wellbeing.kudosCountLast30Days}件` },
           ]}
+          kpiSection="engagement"
         />
         <DashboardSectionCard
           icon={<Smile className="h-4 w-4" />}
@@ -219,6 +215,46 @@ export default async function HrDashboardPage() {
 
       <DashboardSectionGroupCard icon={<TrendingUp className="h-4 w-4" />} title="学習・成長">
         <DashboardSectionCard
+          icon={<GraduationCap className="h-4 w-4" />}
+          iconClassName="bg-emerald-50 text-emerald-600"
+          title="スキル・能力向上"
+          description="社員ごとのスキルマップ管理。完了率・ギャップ率の横断KPIは横断KPIページの育成セクションで確認できます。"
+          href={APP_ROUTES.TENANT.ADMIN_SKILL_MAP}
+          stats={[
+            { label: '登録スキル', value: `${summary.skillMap.registeredSkillCount}件` },
+          ]}
+          kpiSection="development"
+        />
+        <EvaluationDashboardCard
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          iconClassName="bg-blue-50 text-blue-600"
+          completionRatePercent={summary.evaluation.completionRatePercent}
+          selectedPeriodId={summary.evaluation.selectedPeriodId}
+          periods={summary.evaluation.periods}
+        />
+        <DashboardSectionCard
+          icon={<MessageCircleHeart className="h-4 w-4" />}
+          iconClassName="bg-fuchsia-50 text-fuchsia-600"
+          title="キャリア面談"
+          description="従業員のキャリア志向・成長テーマを記録。後継者計画・評価サイクルと連動。"
+          href={APP_ROUTES.TENANT.ADMIN_CAREER_DISCUSSIONS}
+          stats={[
+            {
+              label: '面談実施率',
+              value: formatPercent(summary.careerDiscussion.ratePercent),
+            },
+            {
+              label: '予約済み',
+              value: `${summary.careerDiscussion.upcomingAppointmentCount}件`,
+            },
+            {
+              label: '90日未実施',
+              value: `${summary.careerDiscussion.overdueEmployeeCount}名`,
+            },
+          ]}
+          kpiSection="development"
+        />
+        <DashboardSectionCard
           icon={<BookOpen className="h-4 w-4" />}
           iconClassName="bg-violet-50 text-violet-600"
           title="eラーニング"
@@ -228,6 +264,7 @@ export default async function HrDashboardPage() {
             { label: '公開コース', value: `${summary.eLearning.publishedCourseCount}件` },
             { label: '受講中', value: `${summary.eLearning.inProgressAssignmentCount}件` },
           ]}
+          kpiSection="development"
         />
         <DashboardSectionCard
           icon={<ClipboardList className="h-4 w-4" />}

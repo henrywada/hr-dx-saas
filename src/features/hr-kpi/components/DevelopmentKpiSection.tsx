@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { BookOpen, Target, TrendingUp, ClipboardCheck, MessageCircleHeart } from 'lucide-react'
 import { KpiSummaryCard } from './KpiSummaryCard'
+import { APP_ROUTES } from '@/config/routes'
 import type { DevelopmentKpi } from '../types'
 
 interface Props {
@@ -19,11 +21,19 @@ export function DevelopmentKpiSection({ kpi }: Props) {
           : 'danger'
 
   return (
-    <section>
-      <h2 className="mb-3 text-base font-semibold text-gray-700 flex items-center gap-2">
-        <BookOpen size={16} className="text-primary" />
-        育成
-      </h2>
+    <section id="development">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2">
+          <BookOpen size={16} className="text-primary" />
+          育成
+        </h2>
+        <Link
+          href={APP_ROUTES.TENANT.ADMIN}
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          評価期間の切替は人事ダッシュボードへ
+        </Link>
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiSummaryCard
           label="スキルギャップ率"

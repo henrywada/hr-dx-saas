@@ -1,6 +1,7 @@
 'use client'
 
 import { Download } from 'lucide-react'
+import { downloadCsv } from '@/lib/csv'
 import { bundleToCsvRows } from '../csv-utils'
 import type { HrKpiBundle } from '../types'
 
@@ -10,17 +11,7 @@ interface Props {
 
 export function ExportButton({ bundle }: Props) {
   const handleExport = () => {
-    const rows = bundleToCsvRows(bundle)
-    // BOM付きUTF-8でExcelが文字化けしないようにする
-    const bom = '﻿'
-    const csv = bom + rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `hr-kpi-${bundle.yearMonth}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsv(`hr-kpi-${bundle.yearMonth}.csv`, bundleToCsvRows(bundle))
   }
 
   return (

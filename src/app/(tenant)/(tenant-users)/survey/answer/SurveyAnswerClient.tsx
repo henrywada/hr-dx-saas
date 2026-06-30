@@ -145,7 +145,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
         <p className="text-gray-600 max-w-lg text-lg leading-relaxed">
           あなたからの貴重なフィードバックは、より良い組織・職場環境づくりのために役立てられます。お疲れ様でした。
         </p>
-        <button className="mt-8 px-8 py-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-base font-medium shadow-sm" onClick={() => window.location.href = '/top'}>
+        <button className="mt-8 px-8 py-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-base font-medium shadow-sm" onClick={() => window.location.href = APP_ROUTES.TENANT.PORTAL}>
           ダッシュボードへ戻る
         </button>
       </div>
@@ -166,7 +166,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
         <p className="text-red-600 font-medium">{loadError}</p>
         <button
           type="button"
-          className="text-sm text-indigo-600 underline"
+          className="text-sm text-primary underline"
           onClick={() => window.location.reload()}
         >
           再読み込み
@@ -179,18 +179,18 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
     return (
       <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-4">
         <h1 className="text-xl font-bold text-gray-900">
-          {surveyTitle ?? '今月の組織度アンケート（Echo）'}
+          {surveyTitle ?? 'パルスサーベイ（Echo）'}
         </h1>
         <p className="text-gray-600 text-sm leading-relaxed max-w-lg mx-auto">
           {noActiveQuestionnaire
-            ? '表示できる設問がありません。人事担当者が Echo 設問管理で設問セットを本番指定すると、ここに設問が表示されます。'
-            : '本番指定の設問セットに、パルス回答で表示できる設問（単一選択・評価表）がありません。'}
+            ? '現在、回答できる設問はありません。人事担当者が設問セットを本番指定すると、トップ画面から案内されます。'
+            : '本番指定の設問セットに、回答形式が設定された設問がありません。'}
         </p>
         <Link
-          href={APP_ROUTES.TENANT.ADMIN_TENANT_QUESTIONNAIRE}
-          className="inline-block text-sm text-indigo-600 font-semibold hover:underline"
+          href={APP_ROUTES.TENANT.PORTAL}
+          className="inline-block text-sm text-[#FD7601] font-semibold hover:underline"
         >
-          Echo 設問管理へ
+          トップ画面へ戻る
         </Link>
       </div>
     );
@@ -203,7 +203,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
       {/* ページヘッダー */}
       <div className="mb-12 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="inline-flex items-center justify-center space-x-2 bg-indigo-50 text-indigo-700 px-5 py-2 rounded-full text-sm font-semibold mb-2">
+        <div className="inline-flex items-center justify-center space-x-2 bg-primary-light text-primary px-5 py-2 rounded-full text-sm font-semibold mb-2">
           <Sparkles size={16} />
           <span>より良い職場づくりのために</span>
         </div>
@@ -222,11 +222,11 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md pb-4 pt-4 mb-10 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-100 sm:border-none shadow-sm sm:shadow-none">
         <div className="flex justify-between text-sm font-semibold text-gray-500 mb-2">
           <span>回答の進捗</span>
-          <span className="text-indigo-600 font-bold">{progressPercent}%</span>
+          <span className="text-primary font-bold">{progressPercent}%</span>
         </div>
         <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700 ease-out"
+            className="h-full bg-gradient-to-r from-primary to-[#ff8a1e] transition-all duration-700 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -243,7 +243,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
               style={{ animationDelay: `${cIdx * 150}ms` }}
             >
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <span className="w-2 h-8 bg-indigo-500 rounded-full inline-block" />
+                <span className="w-2 h-8 bg-primary rounded-full inline-block" />
                 {category}
               </h2>
 
@@ -257,17 +257,17 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                       className={`rounded-xl border transition-all duration-300 overflow-hidden
                       ${
                         isAnswered
-                          ? 'border-indigo-100 bg-indigo-50/20 shadow-sm'
-                          : 'border-gray-100 bg-white hover:border-indigo-100 hover:shadow-md'
+                          ? 'border-primary/20 bg-primary-light/30 shadow-sm'
+                          : 'border-gray-100 bg-white hover:border-primary/20 hover:shadow-md'
                       }`}
                     >
                       <div className="p-4 sm:p-6 pb-4 sm:pb-6 bg-gradient-to-r from-gray-50/50 to-white border-b border-gray-100">
                         <h3 className="text-lg md:text-xl leading-relaxed text-gray-800 font-medium">
-                          <span className="text-indigo-500 mr-2 font-black">Q{qn}.</span>
+                          <span className="text-primary mr-2 font-black">Q{qn}.</span>
                           {q.headline}
                         </h3>
                         {q.detail ? (
-                          <p className="mt-3 text-base text-gray-700 font-medium leading-relaxed border-l-4 border-indigo-200 pl-3">
+                          <p className="mt-3 text-base text-gray-700 font-medium leading-relaxed border-l-4 border-primary/30 pl-3">
                             {q.detail}
                           </p>
                         ) : null}
@@ -286,8 +286,8 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                                     w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-200
                                     ${
                                       isSelected
-                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm'
-                                        : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-indigo-200 hover:bg-white'
+                                        ? 'border-primary bg-primary-light text-primary shadow-sm'
+                                        : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-primary/30 hover:bg-white'
                                     }
                                   `}
                                 >
@@ -306,19 +306,19 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                                   type="button"
                                   onClick={() => handleRating(q.id, opt.value)}
                                   className={`
-                                relative flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 group focus:outline-none focus:ring-4 focus:ring-indigo-500/20 min-h-[4.5rem] sm:min-h-[5.25rem] px-0.5 py-2 sm:p-3
+                                relative flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 group focus:outline-none focus:ring-4 focus:ring-primary/20 min-h-[4.5rem] sm:min-h-[5.25rem] px-0.5 py-2 sm:p-3
                                 ${
                                   isSelected
-                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md scale-[1.02] z-10'
-                                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-indigo-200 hover:bg-white'
+                                    ? 'border-primary bg-primary-light text-primary shadow-md scale-[1.02] z-10'
+                                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-primary/30 hover:bg-white'
                                 }
                               `}
                                 >
                                   <span
                                     className={`text-lg sm:text-2xl mb-0.5 sm:mb-1 font-bold transition-all ${
                                       isSelected
-                                        ? 'text-indigo-600 scale-110'
-                                        : 'text-gray-400 group-hover:text-indigo-400'
+                                        ? 'text-primary scale-110'
+                                        : 'text-gray-400 group-hover:text-primary/70'
                                     }`}
                                   >
                                     {opt.value}
@@ -344,7 +344,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
         {/* フリーコメント欄 (任意) */}
         <div className="space-y-6 pt-6 animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: '600ms' }}>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <span className="w-2 h-8 bg-blue-400 rounded-full inline-block"></span>
+            <span className="w-2 h-8 bg-primary/70 rounded-full inline-block"></span>
             フリーコメント <span className="text-sm font-normal text-gray-400 ml-2">(任意 - 誰が書いたか特定されにくいよう配慮されます)</span>
           </h2>
           <div className="rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow bg-white">
@@ -352,7 +352,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
               <textarea
                 id="free-comment"
                 placeholder="例：最近、部署間の連携が取りづらいと感じることがあります。ミーティングの仕組みを改善してほしいです。"
-                className="min-h-[180px] w-full resize-y text-base p-6 border-0 focus:ring-2 focus:ring-inset focus:ring-indigo-500 bg-gray-50/50 hover:bg-white transition-colors outline-none"
+                className="min-h-[180px] w-full resize-y text-base p-6 border-0 focus:ring-2 focus:ring-inset focus:ring-primary bg-gray-50/50 hover:bg-white transition-colors outline-none"
                 value={freeComment}
                 onChange={(e) => setFreeComment(e.target.value)}
               />
@@ -386,7 +386,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                 ${answeredCount === 0 || isPending
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-primary-dark hover:scale-[1.03] hover:shadow-xl'}
-                ${answeredCount === questions.length && !isPending ? 'bg-indigo-600 hover:bg-indigo-700 ring-2 ring-indigo-600 ring-offset-2' : ''}
+                ${answeredCount === questions.length && !isPending ? 'ring-2 ring-primary ring-offset-2' : ''}
               `}
             >
               {isPending ? (

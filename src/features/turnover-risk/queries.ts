@@ -263,6 +263,91 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
     unansweredCountMap.set(empId, unanswered)
   }
 
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  // 6. 1on1（直近30日に部下としてのセッションなし）
+  const { data: recentOneOnOne } = await supabase
+    .from('one_on_one_sessions')
+    .select('employee_id, conducted_at')
+    .eq('tenant_id', user.tenant_id)
+    .in('employee_id', employeeIds)
+    .gte('conducted_at', thirtyDaysAgo)
+
+  const oneOnOneRecentSet = new Set((recentOneOnOne ?? []).map(s => s.employee_id))
+
+  // 7. 直近評価期間の未完了シート
+  const { data: latestPeriod } = await supabase
+    .from('evaluation_periods')
+    .select('id')
+    .eq('tenant_id', user.tenant_id)
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const evaluationNotConfirmedSet = new Set<string>()
+  const latestPeriodId = latestPeriod?.id
+  if (latestPeriodId) {
+    const { data: sheets } = await supabase
+      .from('evaluation_sheets')
+      .select('employee_id, flow_status')
+      .eq('tenant_id', user.tenant_id)
+      .eq('period_id', latestPeriodId)
+      .in('employee_id', employeeIds)
+
+    const sheetByEmp = new Map(
+      (sheets ?? []).map(s => [s.employee_id, s.flow_status as string]),
+    )
+    for (const empId of employeeIds) {
+      const status = sheetByEmp.get(empId)
+      if (!status || status !== 'confirmed') {
+        evaluationNotConfirmedSet.add(empId)
+      }
+    }
+  }
+
+  // 8. スキルギャップ
+  const { data: employeesWithSkills } = await supabase
+    .from('employees')
+    .select('id, employee_skill_assignments ( skill_id )')
+    .eq('tenant_id', user.tenant_id)
+    .eq('active_status', 'active')
+    .in('id', employeeIds)
+
+  const skillGapSet = new Set<string>()
+  const empSkillData = (employeesWithSkills ?? []) as {
+    id: string
+    employee_skill_assignments: { skill_id: string }[]
+  }[]
+  const allSkillIds = [
+    ...new Set(
+      empSkillData.flatMap(e => e.employee_skill_assignments.map(a => a.skill_id)),
+    ),
+  ]
+  if (allSkillIds.length > 0) {
+    const { data: requirements } = await supabase
+      .from('skill_requirements')
+      .select('skill_id')
+      .in('skill_id', allSkillIds)
+    const skillsWithReqs = new Set(
+      ((requirements as { skill_id: string }[] | null) ?? []).map(r => r.skill_id),
+    )
+    for (const emp of empSkillData) {
+      if (emp.employee_skill_assignments.length === 0) continue
+      const hasGap = emp.employee_skill_assignments.some(a => skillsWithReqs.has(a.skill_id))
+      if (hasGap) skillGapSet.add(emp.id)
+    }
+  }
+
+  // 9. 未完了 eラーニング割当
+  const { data: incompleteEl } = await supabase
+    .from('el_assignments')
+    .select('employee_id')
+    .eq('tenant_id', user.tenant_id)
+    .in('employee_id', employeeIds)
+    .is('completed_at', null)
+
+  const incompleteElSet = new Set((incompleteEl ?? []).map(r => r.employee_id))
+
   return employeeIds.map(empId => ({
     employee_id: empId,
     is_high_stress: latestStressByEmp.get(empId) ?? false,
@@ -270,5 +355,9 @@ export async function collectEmployeeRawData(): Promise<EmployeeRawData[]> {
     overtime_hours_last_month: prevOtMap.get(empId) ?? 0,
     overtime_hours_two_months_ago: prevPrevOtMap.get(empId) ?? 0,
     unanswered_questionnaire_count: unansweredCountMap.get(empId) ?? 0,
+    one_on_one_overdue_30d: !oneOnOneRecentSet.has(empId),
+    evaluation_not_confirmed: evaluationNotConfirmedSet.has(empId),
+    has_skill_gap: skillGapSet.has(empId),
+    has_incomplete_el: incompleteElSet.has(empId),
   }))
 }

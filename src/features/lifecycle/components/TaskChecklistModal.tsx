@@ -1,13 +1,27 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { updateTaskStatus, updateInstanceStatus, updateInstanceNotes } from '../actions'
+import {
+  updateTaskStatus,
+  updateInstanceStatus,
+  updateInstanceNotes,
+  updateTaskDueDate,
+  updateTaskAssignee,
+} from '../actions'
+import { isTaskOverdue } from '../types'
 import type { InstanceRow, TaskStatus } from '../types'
+import { toJSTDateString } from '@/lib/datetime'
 
 // LifecycleDashboard.tsx から import される。selectedInstance が非null の時にレンダリング。
 
+interface EmployeeOption {
+  id: string
+  name: string
+}
+
 interface Props {
   instance: InstanceRow
+  employees: EmployeeOption[]
   onClose: () => void
 }
 
@@ -29,10 +43,22 @@ const taskStatusClass: Record<TaskStatus, string> = {
   completed: 'bg-green-100 text-green-700',
 }
 
-export function TaskChecklistModal({ instance, onClose }: Props) {
+export function TaskChecklistModal({ instance, employees, onClose }: Props) {
+  const todayYmd = useMemo(() => toJSTDateString(), [])
+
   // ローカルステートで楽観的更新を管理（クリックで即反映、サーバー失敗時はロールバック）
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>(() =>
     Object.fromEntries(instance.tasks.map(t => [t.id, t.status]))
+  )
+  const [taskDueDates, setTaskDueDates] = useState<Record<string, string | null>>(() =>
+    Object.fromEntries(instance.tasks.map(t => [t.id, t.due_date]))
+  )
+  const [taskAssignees, setTaskAssignees] = useState<
+    Record<string, { id: string | null; name: string | null }>
+  >(() =>
+    Object.fromEntries(
+      instance.tasks.map(t => [t.id, { id: t.assignee_id, name: t.assignee_name }])
+    )
   )
   const [notes, setNotes] = useState(instance.notes ?? '')
   const [notesEditing, setNotesEditing] = useState(false)
@@ -54,6 +80,36 @@ export function TaskChecklistModal({ instance, onClose }: Props) {
       const result = await updateTaskStatus(taskId, next)
       if (!result.success) {
         setTaskStatuses(prev => ({ ...prev, [taskId]: current }))
+      }
+    })
+  }
+
+  const handleDueDateChange = (taskId: string, value: string) => {
+    const nextDueDate = value || null
+    const prevDueDate = taskDueDates[taskId] ?? null
+    setTaskDueDates(prev => ({ ...prev, [taskId]: nextDueDate }))
+
+    startTransition(async () => {
+      const result = await updateTaskDueDate(taskId, nextDueDate)
+      if (!result.success) {
+        setTaskDueDates(prev => ({ ...prev, [taskId]: prevDueDate }))
+      }
+    })
+  }
+
+  const handleAssigneeChange = (taskId: string, assigneeId: string) => {
+    const nextId = assigneeId || null
+    const prev = taskAssignees[taskId] ?? { id: null, name: null }
+    const nextName = nextId ? (employees.find(e => e.id === nextId)?.name ?? null) : null
+    setTaskAssignees(prevState => ({
+      ...prevState,
+      [taskId]: { id: nextId, name: nextName },
+    }))
+
+    startTransition(async () => {
+      const result = await updateTaskAssignee(taskId, nextId)
+      if (!result.success) {
+        setTaskAssignees(prevState => ({ ...prevState, [taskId]: prev }))
       }
     })
   }
@@ -114,10 +170,18 @@ export function TaskChecklistModal({ instance, onClose }: Props) {
             </div>
           </div>
 
-          {/* タスク一覧（ボタンクリックで 未着手→対応中→完了→未着手 と循環） */}
+          {/* タスク一覧 */}
           <ul className="space-y-2">
             {instance.tasks.map(task => {
               const status = taskStatuses[task.id] ?? task.status
+              const dueDate = taskDueDates[task.id] ?? task.due_date
+              const assignee = taskAssignees[task.id] ?? {
+                id: task.assignee_id,
+                name: task.assignee_name,
+              }
+              const overdue =
+                status !== 'completed' && isTaskOverdue(dueDate, todayYmd)
+
               return (
                 <li
                   key={task.id}
@@ -130,18 +194,50 @@ export function TaskChecklistModal({ instance, onClose }: Props) {
                   >
                     {taskStatusLabel[status]}
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm font-medium ${status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
-                    >
-                      {task.title}
-                    </p>
-                    {task.description && (
-                      <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>
-                    )}
-                    {task.assignee_name && (
-                      <p className="text-xs text-gray-400 mt-0.5">担当: {task.assignee_name}</p>
-                    )}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                      >
+                        {task.title}
+                      </p>
+                      {task.description && (
+                        <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="whitespace-nowrap">期限</span>
+                        <input
+                          type="date"
+                          value={dueDate ?? ''}
+                          onChange={e => handleDueDateChange(task.id, e.target.value)}
+                          disabled={isPending || status === 'completed'}
+                          className="rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 disabled:bg-gray-50"
+                        />
+                        {overdue && (
+                          <span className="text-red-600 font-medium whitespace-nowrap">
+                            期限超過
+                          </span>
+                        )}
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="whitespace-nowrap">担当</span>
+                        <select
+                          value={assignee.id ?? ''}
+                          onChange={e => handleAssigneeChange(task.id, e.target.value)}
+                          disabled={isPending}
+                          className="rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 bg-white max-w-[160px]"
+                        >
+                          <option value="">未割当</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
                   </div>
                 </li>
               )

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { getKudosFeed } from '@/features/recognition/queries'
+import { getKudosFeed, getActiveValueTags } from '@/features/recognition/queries'
 import { getEmployees } from '@/features/organization/queries'
 import { KudosFeed } from '@/features/recognition/components/KudosFeed'
 import { KudosComposer } from '@/features/recognition/components/KudosComposer'
@@ -14,7 +14,11 @@ export default async function KudosPage() {
     redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const [items, employeesRaw] = await Promise.all([getKudosFeed(user.employee_id), getEmployees()])
+  const [items, employeesRaw, valueTags] = await Promise.all([
+    getKudosFeed(user.employee_id),
+    getEmployees(),
+    getActiveValueTags(),
+  ])
 
   const employeeOptions = employeesRaw
     .filter((e): e is typeof e & { name: string } => Boolean(e.name) && e.id !== user.employee_id)
@@ -25,7 +29,7 @@ export default async function KudosPage() {
       <h1 className="text-sm font-semibold text-slate-900">感謝・称賛</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-1">
-          <KudosComposer employees={employeeOptions} />
+          <KudosComposer employees={employeeOptions} valueTags={valueTags} />
         </div>
         <div className="lg:col-span-2">
           <KudosFeed items={items} />

@@ -73,6 +73,31 @@ export async function getEvaluationPeriods(
   return (data ?? []) as EvaluationPeriod[]
 }
 
+/** 指定期間の評価完了率（flow_status='confirmed' の割合、%） */
+export async function getEvaluationCompletionRate(
+  supabase: SupabaseClient,
+  tenantId: string,
+  periodId: string
+): Promise<number | null> {
+  const [totalSheetsRes, confirmedSheetsRes] = await Promise.all([
+    (supabase as any)
+      .from('evaluation_sheets')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('period_id', periodId),
+    (supabase as any)
+      .from('evaluation_sheets')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('period_id', periodId)
+      .eq('flow_status', 'confirmed'),
+  ])
+
+  const totalSheets = totalSheetsRes.count ?? 0
+  const confirmedSheets = confirmedSheetsRes.count ?? 0
+  return totalSheets > 0 ? Math.round((confirmedSheets / totalSheets) * 1000) / 10 : null
+}
+
 /** 評価シート一覧（テナント管理者用 — 全従業員） */
 export async function getEvaluationSheets(
   supabase: SupabaseClient,

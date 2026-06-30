@@ -46,12 +46,22 @@ export const HR_ALERT_TYPE_SEVERITY: Record<string, number> = {
   yearly_360_exceeded: 100,
   monthly_ot_100_exceeded: 90,
   monthly_100_exceeded: 90,
+  overtime_100h_critical: 90,
   rolling_6m_avg_80_exceeded: 80,
   rolling_6m_80_exceeded: 80,
+  overtime_avg80h_exceeded: 80,
   monthly_ot_45_exceeded: 50,
   monthly_45_exceeded: 50,
+  overtime_45h_exceeded: 50,
   monthly_overtime_warning: 40,
 }
+
+/** closure_warnings の36協定警告種別（overtime_alerts からの移行対象） */
+export const OVERTIME_CLOSURE_WARNING_TYPES = [
+  'overtime_45h_exceeded',
+  'overtime_100h_critical',
+  'overtime_avg80h_exceeded',
+] as const
 
 export function alertTypeSeverity(alertType: string): number {
   return HR_ALERT_TYPE_SEVERITY[alertType] ?? 0

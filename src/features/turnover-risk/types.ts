@@ -16,17 +16,31 @@ export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
   low: '低',
 }
 
+export interface GrowthRiskDetails {
+  /** 直近30日に1on1セッションなし（部下として） */
+  one_on_one_overdue_30d: boolean
+  /** 直近評価期間で評価未完了 */
+  evaluation_not_confirmed: boolean
+  /** スキル要件に対するギャップあり */
+  has_skill_gap: boolean
+  /** 未完了の eラーニング割当あり */
+  has_incomplete_el: boolean
+}
+
 export interface ScoreFactors {
   stress_score: number
   survey_score: number
   overtime_score: number
   absence_score: number
+  /** 成長・評価層因子の合計 */
+  growth_score: number
   details: {
     is_high_stress: boolean
     latest_survey_score: number | null
     overtime_hours_last_month: number
     overtime_delta_hours: number
     unanswered_questionnaire_count: number
+    growth: GrowthRiskDetails
   }
 }
 
@@ -66,4 +80,8 @@ export interface EmployeeRawData {
   overtime_hours_last_month: number
   overtime_hours_two_months_ago: number
   unanswered_questionnaire_count: number
+  one_on_one_overdue_30d: boolean
+  evaluation_not_confirmed: boolean
+  has_skill_gap: boolean
+  has_incomplete_el: boolean
 }

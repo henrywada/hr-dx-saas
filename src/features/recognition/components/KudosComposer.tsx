@@ -11,9 +11,12 @@ interface EmployeeOption {
 
 interface Props {
   employees: EmployeeOption[]
+  /** DB マスタのタグ。空の場合は labels.ts のデフォルトにフォールバック */
+  valueTags?: string[]
 }
 
-export function KudosComposer({ employees }: Props) {
+export function KudosComposer({ employees, valueTags }: Props) {
+  const tagOptions = valueTags && valueTags.length > 0 ? valueTags : [...VALUE_TAGS]
   const [recipientEmployeeIds, setRecipientEmployeeIds] = useState<string[]>([])
   const [message, setMessage] = useState('')
   const [valueTag, setValueTag] = useState('')
@@ -72,7 +75,7 @@ export function KudosComposer({ employees }: Props) {
           className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300"
         >
           <option value="">選択しない</option>
-          {VALUE_TAGS.map(tag => (
+          {tagOptions.map(tag => (
             <option key={tag} value={tag}>
               {tag}
             </option>

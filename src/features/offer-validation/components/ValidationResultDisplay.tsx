@@ -1,8 +1,16 @@
 import React from 'react'
+import Link from 'next/link'
 import { OfferValidationResponse } from '../schemas'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { BuildingIcon, ExternalLinkIcon, InfoIcon, TrendingUpIcon } from 'lucide-react'
+import { APP_ROUTES } from '@/config/routes'
+import {
+  BuildingIcon,
+  ExternalLinkIcon,
+  InfoIcon,
+  TrendingUpIcon,
+  UserPlusIcon,
+} from 'lucide-react'
 
 type Props = {
   result: OfferValidationResponse
@@ -118,6 +126,24 @@ export const ValidationResultDisplay: React.FC<Props> = ({ result }) => {
               </div>
             </div>
           )}
+
+          {/* 内定後の次ステップ（入社フロー自動連携） */}
+          <div className="space-y-2 pt-4 border-t border-gray-100">
+            <h4 className="flex items-center gap-2 font-semibold text-[#FD7601]">
+              <UserPlusIcon className="h-4 w-4" />
+              内定後の次ステップ
+            </h4>
+            <p className="text-sm text-gray-600">
+              オファー条件が妥当と判断できたら、従業員マスタに内定者を登録してください。
+              入社予定日（start_date）を設定すると、入社ライフサイクルフローが自動で開始されます。
+            </p>
+            <Link
+              href={APP_ROUTES.TENANT.ADMIN_EMPLOYEES}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#FD7601] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            >
+              従業員登録へ
+            </Link>
+          </div>
         </div>
       </Card>
     </div>

@@ -120,7 +120,7 @@ export async function getAssignments(courseId?: string): Promise<ElAssignment[]>
       `
       *,
       course:el_courses ( id, title, category, status ),
-      employee:employees!el_assignments_employee_id_fkey ( id, name, division_id )
+      employee:employees!el_assignments_employee_id_fkey ( id, name, division_id, divisions ( name ) )
     `
     )
     .order('assigned_at', { ascending: false })

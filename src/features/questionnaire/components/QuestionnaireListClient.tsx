@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { ClipboardList, LayoutTemplate } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { APP_ROUTES } from '@/config/routes'
 import type { QuestionnaireListItem, CreatorType } from '../types'
 import {
@@ -33,9 +35,114 @@ function formatImplementationDateCell(q: QuestionnaireListItem): string {
   return '-'
 }
 
-const CREATOR_LABEL: Record<CreatorType, string> = {
-  system: 'システム',
-  tenant: '自社',
+function buildQuestionnaireColumns(params: {
+  isPending: boolean
+  router: ReturnType<typeof useRouter>
+  setEditTarget: (q: QuestionnaireListItem) => void
+  setDesignTarget: (q: QuestionnaireListItem) => void
+  handleStatusChange: (id: string, status: 'draft' | 'active' | 'closed') => void
+  handleDelete: (id: string, status: string) => void
+}): Column<QuestionnaireListItem>[] {
+  const { isPending, router, setEditTarget, setDesignTarget, handleStatusChange, handleDelete } =
+    params
+
+  return [
+    {
+      key: 'title',
+      label: 'タイトル',
+      sortable: true,
+      render: value => (
+        <span className="font-medium text-neutral-800 max-w-xs truncate block">{String(value)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'ステータス',
+      render: (_value, q) =>
+        q.has_ongoing_period_display ? (
+          <Badge variant="teal">実施中</Badge>
+        ) : (
+          <span className="text-neutral-400">-</span>
+        ),
+    },
+    {
+      key: 'period_count',
+      label: '実施期間数',
+      sortable: true,
+      render: value => <span className="text-neutral-600">{String(value)}</span>,
+    },
+    {
+      key: 'ongoing_period_start_date',
+      label: '実施日',
+      render: (_value, q) => (
+        <span className="text-neutral-600 whitespace-nowrap">
+          {formatImplementationDateCell(q)}
+        </span>
+      ),
+    },
+    {
+      key: 'id',
+      label: '操作',
+      width: 'w-64',
+      render: (_value, q) => (
+        <div className="flex gap-1.5 flex-wrap">
+          {q.status === 'draft' && (
+            <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
+              タイトル編集
+            </Button>
+          )}
+          {q.status === 'draft' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDesignTarget(q)}
+              className="bg-emerald-50! text-emerald-700! border-emerald-200! hover:bg-emerald-100! hover:border-emerald-300! hover:text-emerald-800!"
+            >
+              設問編集
+            </Button>
+          )}
+          {q.status === 'active' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleStatusChange(q.id, 'closed')}
+              disabled={isPending}
+            >
+              終了
+            </Button>
+          )}
+          {q.status === 'closed' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleStatusChange(q.id, 'draft')}
+              disabled={isPending}
+            >
+              下書きに戻す
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
+            className="bg-[#f6f8fa]! text-[#FD7601]! border-[#e2e6ec]! hover:bg-[#FD7601]-10! hover:border-[#e2e6ec]! hover:text-[#FD7601]!"
+          >
+            実施開始へ
+          </Button>
+          {(q.status === 'draft' || q.status === 'closed') && (
+            <Button
+              variant="warning"
+              size="sm"
+              onClick={() => handleDelete(q.id, q.status)}
+              disabled={isPending}
+            >
+              削除
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
 }
 
 export default function QuestionnaireListClient({
@@ -114,49 +221,67 @@ export default function QuestionnaireListClient({
     })
   }
 
+  const questionnaireColumns = buildQuestionnaireColumns({
+    isPending,
+    router,
+    setEditTarget,
+    setDesignTarget,
+    handleStatusChange,
+    handleDelete,
+  })
+
   return (
     <div className="space-y-4">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-xl font-bold text-neutral-800">アンケート管理</h1>
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">アンケート管理</h1>
+          <p className="text-sm text-[#57606a] mt-1">
+            自社アンケートの作成・設問編集・実施期間の管理を行います。テンプレートからコピーして開始できます。
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
         {isDeveloper && (
-          <div className="flex gap-2">
+          <>
             <Button variant="secondary" size="sm" onClick={() => openCreate('system')}>
               ＋ システム作成
             </Button>
             <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
               ＋ 新規作成
             </Button>
-          </div>
+          </>
         )}
         {!isDeveloper && (
           <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
             ＋ 新規作成
           </Button>
         )}
+        </div>
       </div>
 
       {/* タブナビゲーション */}
       <div className="flex gap-1 border-b border-neutral-200">
         <button
           onClick={() => setActiveTab('list')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'list'
               ? 'border-primary text-primary'
               : 'border-transparent text-neutral-500 hover:text-neutral-700'
           }`}
         >
-          📝 アンケート一覧
+          <ClipboardList className="w-4 h-4" />
+          アンケート一覧
         </button>
         <button
           onClick={() => setActiveTab('template')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'template'
               ? 'border-primary text-primary'
               : 'border-transparent text-neutral-500 hover:text-neutral-700'
           }`}
         >
-          📋 テンプレート選択
+          <LayoutTemplate className="w-4 h-4" />
+          テンプレート選択
         </button>
       </div>
 
@@ -164,9 +289,13 @@ export default function QuestionnaireListClient({
       {activeTab === 'template' && (
         <div className="py-4">
           {templates.length === 0 ? (
-            <p className="text-sm text-neutral-400 text-center py-8">
-              利用可能なテンプレートはありません。
-            </p>
+            <div className="text-center py-12 px-4">
+              <LayoutTemplate className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
+              <p className="text-sm font-medium text-neutral-600">利用可能なテンプレートはありません</p>
+              <p className="text-xs text-neutral-400 mt-1">
+                SaaS 管理者がシステムテンプレートを登録すると、ここからコピーできます。
+              </p>
+            </div>
           ) : (
             <TemplateSelector
               templates={templates}
@@ -184,108 +313,22 @@ export default function QuestionnaireListClient({
       {activeTab === 'list' && (
         <div className="py-4">
           {filtered.length === 0 ? (
-            <p className="text-sm text-neutral-400 py-8 text-center">
-              アンケートはありません。テンプレートからコピーするか、新規作成してください。
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-neutral-200">
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-50 text-neutral-600 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">タイトル</th>
-                    <th className="px-4 py-3 font-medium">ステータス</th>
-                    <th className="px-4 py-3 font-medium text-right">実施期間数</th>
-                    <th className="px-4 py-3 font-medium">実施日</th>
-                    <th className="px-4 py-3 font-medium">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {filtered.map(q => {
-                    return (
-                      <tr key={q.id} className="hover:bg-neutral-50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-neutral-800 max-w-xs truncate">
-                          {q.title}
-                        </td>
-                        <td className="px-4 py-3">
-                          {q.has_ongoing_period_display ? (
-                            <Badge variant="teal">実施中</Badge>
-                          ) : (
-                            <span className="text-neutral-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right text-neutral-600">{q.period_count}</td>
-                        <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
-                          {formatImplementationDateCell(q)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1.5 flex-wrap">
-                            {/* タイトル編集（draft） */}
-                            {q.status === 'draft' && (
-                              <Button variant="outline" size="sm" onClick={() => setEditTarget(q)}>
-                                タイトル編集
-                              </Button>
-                            )}
-                            {/* 設問編集（draft） */}
-                            {q.status === 'draft' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDesignTarget(q)}
-                                className="bg-emerald-50! text-emerald-700! border-emerald-200! hover:bg-emerald-100! hover:border-emerald-300! hover:text-emerald-800!"
-                              >
-                                設問編集
-                              </Button>
-                            )}
-                            {/* 終了（active） */}
-                            {q.status === 'active' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleStatusChange(q.id, 'closed')}
-                                disabled={isPending}
-                              >
-                                終了
-                              </Button>
-                            )}
-                            {/* 下書きに戻す（closed） */}
-                            {q.status === 'closed' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleStatusChange(q.id, 'draft')}
-                                disabled={isPending}
-                              >
-                                下書きに戻す
-                              </Button>
-                            )}
-                            {/* 実施期間管理（アサインはここから） */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => router.push(APP_ROUTES.TENANT.SURVEY_PERIODS(q.id))}
-                              className="bg-[#f6f8fa]! text-[#FD7601]! border-[#e2e6ec]! hover:bg-[#FD7601]-10! hover:border-[#e2e6ec]! hover:text-[#FD7601]!"
-                            >
-                              実施開始へ
-                            </Button>
-                            {/* 削除（draft|closed） */}
-                            {(q.status === 'draft' || q.status === 'closed') && (
-                              <Button
-                                variant="warning"
-                                size="sm"
-                                onClick={() => handleDelete(q.id, q.status)}
-                                disabled={isPending}
-                              >
-                                削除
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div className="text-center py-12 px-4">
+              <ClipboardList className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
+              <p className="text-sm font-medium text-neutral-600">アンケートはまだありません</p>
+              <p className="text-xs text-neutral-400 mt-1">
+                「テンプレート選択」タブからコピーするか、「新規作成」で最初のアンケートを作成してください。
+              </p>
             </div>
+          ) : (
+            <DataTable
+              columns={questionnaireColumns}
+              data={filtered}
+              searchable
+              searchPlaceholder="タイトルで検索..."
+              searchKey="title"
+              getRowId={q => q.id}
+            />
           )}
         </div>
       )}

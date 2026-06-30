@@ -10,6 +10,7 @@ import {
   normalizeRecordDateToYmd,
   parseFlexibleJstTime,
   parseHolidayCell,
+  resolveWorkPeriodTimes,
 } from './work-time-csv-parse'
 import type { AttendanceActionResult } from './types'
 
@@ -130,9 +131,9 @@ export async function validateWorkTimeCsvRows(
       errors.push('record_date は YYYY-MM-DD または YYYY/MM/DD 形式で入力してください')
     }
 
-    const startIso =
-      recordDateYmd ? parseFlexibleJstTime(recordDateYmd, r.start_time) : null
-    const endIso = recordDateYmd ? parseFlexibleJstTime(recordDateYmd, r.end_time) : null
+    const period = resolveWorkPeriodTimes(recordDateYmd ?? dateStr, r.start_time, r.end_time)
+    const startIso = recordDateYmd ? period.startIso : null
+    const endIso = recordDateYmd ? period.endIso : null
 
     if (errors.length === 0 && !startIso) errors.push('出勤時刻を解釈できません')
     if (errors.length === 0 && !endIso) errors.push('退勤時刻を解釈できません')
@@ -237,8 +238,7 @@ export async function commitWorkTimeCsvImport(
       continue
     }
 
-    const startIso = parseFlexibleJstTime(recordDate, r.start_time)
-    const endIso = parseFlexibleJstTime(recordDate, r.end_time)
+    const { startIso, endIso } = resolveWorkPeriodTimes(recordDate, r.start_time, r.end_time)
     if (!startIso || !endIso) {
       failed++
       details.push({ line: r.line, error: '時刻の解釈に失敗しました' })

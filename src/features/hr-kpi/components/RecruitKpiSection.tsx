@@ -10,7 +10,7 @@ interface Props {
 
 export function RecruitKpiSection({ kpi }: Props) {
   return (
-    <section>
+    <section id="recruit">
       <h2 className="mb-3 text-base font-semibold text-gray-700 flex items-center gap-2">
         <Briefcase size={16} className="text-primary" />
         採用

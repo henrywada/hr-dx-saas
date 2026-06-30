@@ -46,6 +46,13 @@ export interface EngagementKpi {
   latestPulseResponseRate: number | null
   /** 直近ストレスチェック期間の高ストレス率（%） */
   highStressRatePercent: number | null
+  kudosCountLast30Days: number
+  kudosActiveSendersLast30Days: number
+  kudosSenderRatePercent: number | null
+  /** 直近90日の社内イベント RSVP 回答率（pending 以外 / 全レコード）% */
+  eventRsvpResponseRatePercent: number | null
+  /** 直近90日の社内イベント件数 */
+  eventsLast90Days: number
 }
 
 /** 育成KPI */

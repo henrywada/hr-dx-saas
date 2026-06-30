@@ -47,6 +47,7 @@ export interface SessionRow {
   conducted_at: string
   /** 前回実施からの経過日数（null = 初回） */
   days_since_last: number | null
+  ai_summary: string | null
 }
 
 /** 部署別・管理職別の実施率サマリー */
@@ -101,6 +102,16 @@ export function canConductOneOnOne(
   return Boolean(isManager) || (appRole != null && appRole !== 'employee')
 }
 
+/** 参照パネル用の軽量 1on1 セッション */
+export interface OneOnOneSessionSummary {
+  id: string
+  employee_id: string
+  theme: string
+  notes: string | null
+  conducted_at: string
+  manager_name: string
+}
+
 /** 未実施リマインダー対象 */
 export interface OverdueEmployee {
   employee_id: string
@@ -110,4 +121,19 @@ export interface OverdueEmployee {
   last_session_at: string | null
   /** -1 = 一度も実施なし */
   days_overdue: number
+}
+
+
+/** 予定中の 1on1（アジェンダ事前共有） */
+export interface UpcomingOneOnOneRow {
+  id: string
+  manager_id: string
+  manager_name: string
+  employee_id: string
+  employee_name: string
+  scheduled_at: string
+  theme: string
+  agenda: string | null
+  reminded_at: string | null
+  status: 'scheduled' | 'cancelled' | 'completed'
 }

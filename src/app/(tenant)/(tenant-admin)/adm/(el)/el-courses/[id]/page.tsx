@@ -6,6 +6,9 @@ import {
   getCourseRequirementMappings,
   getAllSkillRequirements,
 } from '@/features/e-learning/queries'
+import { getScormPackageForCourse, getXapiStatementsForCourse } from '@/features/e-learning/scorm-queries'
+import { ScormPackagePanel } from '@/features/e-learning/components/ScormPackagePanel'
+import { XapiStatementsPanel } from '@/features/e-learning/components/XapiStatementsPanel'
 import { SlideEditorClient } from '@/features/e-learning/components/SlideEditorClient'
 import { CourseRequirementMappingPanel } from '@/features/e-learning/components/CourseRequirementMappingPanel'
 
@@ -22,10 +25,12 @@ export default async function ElCourseDetailPage({ params }: Props) {
   }
 
   const { id } = await params
-  const [course, mappings, allRequirements] = await Promise.all([
+  const [course, mappings, allRequirements, scormPackage, xapiStatements] = await Promise.all([
     getCourseWithSlides(id),
     getCourseRequirementMappings(id),
     getAllSkillRequirements(),
+    getScormPackageForCourse(id),
+    getXapiStatementsForCourse(id),
   ])
   if (!course) notFound()
 
@@ -40,12 +45,20 @@ export default async function ElCourseDetailPage({ params }: Props) {
         <h1 className="text-xl font-bold text-gray-800 mt-2">{course.title}</h1>
       </div>
       <div className="space-y-6">
+        <ScormPackagePanel
+          courseId={id}
+          contentFormat={course.content_format ?? 'native'}
+          packageInfo={scormPackage}
+        />
+        <XapiStatementsPanel statements={xapiStatements} />
         <CourseRequirementMappingPanel
           courseId={id}
           mappings={mappings}
           allRequirements={allRequirements}
         />
-        <SlideEditorClient course={course} />
+        {(course.content_format ?? 'native') === 'native' && (
+          <SlideEditorClient course={course} />
+        )}
       </div>
     </div>
   )

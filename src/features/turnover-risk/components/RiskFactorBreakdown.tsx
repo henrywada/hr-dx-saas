@@ -1,6 +1,6 @@
 'use client'
 
-import type { ScoreFactors } from '../types'
+import type { GrowthRiskDetails, ScoreFactors } from '../types'
 
 interface Props {
   factors: ScoreFactors
@@ -13,7 +13,20 @@ interface FactorRow {
   detail: string
 }
 
+function formatGrowthDetail(growth: GrowthRiskDetails | undefined): string {
+  if (!growth) return 'データなし'
+  const flags: string[] = []
+  if (growth.one_on_one_overdue_30d) flags.push('1on1未実施(30日)')
+  if (growth.evaluation_not_confirmed) flags.push('評価未完了')
+  if (growth.has_skill_gap) flags.push('スキルギャップ')
+  if (growth.has_incomplete_el) flags.push('eL未完了')
+  return flags.length > 0 ? flags.join('、') : '該当なし'
+}
+
 export function RiskFactorBreakdown({ factors }: Props) {
+  const growthScore = factors.growth_score ?? 0
+  const growthDetails = factors.details.growth
+
   const rows: FactorRow[] = [
     {
       label: 'ストレスチェック',
@@ -43,6 +56,12 @@ export function RiskFactorBreakdown({ factors }: Props) {
       score: factors.absence_score,
       maxScore: 15,
       detail: `直近3回中 ${factors.details.unanswered_questionnaire_count}回 未回答`,
+    },
+    {
+      label: '成長・評価',
+      score: growthScore,
+      maxScore: 40,
+      detail: formatGrowthDetail(growthDetails),
     },
   ]
 

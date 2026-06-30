@@ -25,14 +25,15 @@
 4. 表彰一覧（社内お知らせ連携で発表）
 
 **Should**
-5. 感謝・称賛機能の月間集計から表彰候補を自動提示（`features/engagement` 連携）
-6. イベント参加率の組織分析への提供
+5. 感謝・称賛機能の月間集計から表彰候補を自動提示 — ✅ 2026-06-30 完了（`/adm/events-awards` の MVP 候補パネル + ワンクリック表彰登録）
+6. イベント参加率の組織分析への提供 — ⬜ v1 Won't（E-O2 設計判断。v2 で engagement/hr-kpi 連携を検討）
 
 **Could**
-7. イベントカレンダー表示（月表示）
+7. イベントカレンダー表示（月表示） — ✅ 2026-06-30 完了（/events リスト/カレンダー切替）
 
 **Won't**
 - 座席表・会場予約管理等の詳細運営機能（スコープ外）
+- ~~v1: 部署限定イベント~~ → **E-O1 v2 実装済み**（全社/部署限定 + 配下部署可視。複数部署は対象外）
 
 ## 4. データモデル（新規テーブル案・未作成）
 
@@ -44,6 +45,8 @@ CREATE TABLE public.internal_events (
   description TEXT,
   event_date TIMESTAMPTZ NOT NULL,
   location TEXT,
+  audience_type TEXT NOT NULL DEFAULT 'tenant', -- tenant | division
+  division_id UUID REFERENCES public.divisions(id),
   created_by UUID NOT NULL REFERENCES public.employees(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -101,7 +104,8 @@ src/app/(tenant)/(tenant-admin)/adm/(engagement)/events-awards/page.tsx
 - イベント参加率（RSVP回答率・出席率）
 - 表彰登録の継続率（毎月発表されているか）
 
-## 8. オープンクエスチョン
+## 8. オープンクエスチョン（2026-06-30 更新）
 
-- 感謝・称賛機能（優先度1位の別PRD）が先行実装された後に表彰候補自動提示を追加するため、本機能のMVPはこの連携を含めずスコープを切る。
-- イベントの対象範囲（全社/部署限定）の権限制御方式は要決定。
+- ~~感謝・称賛連携~~ → E-S2 / K-C1 完了
+- ~~イベントの対象範囲（全社/部署限定）~~ → **E-O1 v2 実装済み**（`audience_type` + `division_id`、RLS 配下部署対応。詳細: `implementation-plan-wellbeing-backlog.md` §9）
+- ~~イベント参加率の組織分析~~ → **E-O2 決定: v1 Won't。v2 で engagement/hr-kpi 連携を検討**

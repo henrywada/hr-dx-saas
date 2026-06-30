@@ -2,12 +2,17 @@
 
 import { Card } from '@/components/ui/Card'
 import { DataTable, type Column } from '@/components/ui/DataTable'
-import type { KudosDivisionStat, KudosPersonalRanking } from '../../types'
+import type { KudosDivisionStat, KudosPersonalRanking, KudosValueTag, MvpCandidate } from '../../types'
+import { ValueTagAdminPanel } from './ValueTagAdminPanel'
+import { MvpCandidatePanel } from './MvpCandidatePanel'
 
 interface KudosStatsClientProps {
   divisionStats: KudosDivisionStat[]
   personalRanking: KudosPersonalRanking[]
   periodDays: number
+  valueTags: KudosValueTag[]
+  mvpPeriodLabel: string
+  mvpCandidates: MvpCandidate[]
 }
 
 const divisionColumns: Column<KudosDivisionStat>[] = [
@@ -26,6 +31,9 @@ export function KudosStatsClient({
   divisionStats,
   personalRanking,
   periodDays,
+  valueTags,
+  mvpPeriodLabel,
+  mvpCandidates,
 }: KudosStatsClientProps) {
   const totalSent = divisionStats.reduce((sum, stat) => sum + stat.sentCount, 0)
   const activeSenderCount = personalRanking.filter(r => r.sentCount > 0).length
@@ -49,6 +57,14 @@ export function KudosStatsClient({
           <p className="text-2xl font-bold text-(--text-primary) mt-1">{activeSenderCount}名</p>
         </Card>
       </div>
+
+      <ValueTagAdminPanel tags={valueTags} />
+
+      <MvpCandidatePanel
+        periodLabel={mvpPeriodLabel}
+        candidates={mvpCandidates}
+        showRegisterHint
+      />
 
       <div>
         <h2 className="text-sm font-bold text-(--text-primary) mb-2">部署別 集計</h2>

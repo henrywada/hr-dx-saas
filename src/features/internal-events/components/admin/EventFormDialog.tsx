@@ -1,14 +1,23 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import type { Division } from '@/features/organization/types'
 import { createEvent } from '../../actions'
+import type { EventAudienceType } from '../../types'
+import { EventAudienceFields } from './EventAudienceFields'
 
-export function EventFormDialog() {
+interface Props {
+  divisions: Division[]
+}
+
+export function EventFormDialog({ divisions }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [location, setLocation] = useState('')
+  const [audienceType, setAudienceType] = useState<EventAudienceType>('tenant')
+  const [divisionId, setDivisionId] = useState('')
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -17,6 +26,8 @@ export function EventFormDialog() {
     setDescription('')
     setEventDate('')
     setLocation('')
+    setAudienceType('tenant')
+    setDivisionId('')
     setErrorMessage(null)
   }
 
@@ -30,6 +41,8 @@ export function EventFormDialog() {
           description: description || undefined,
           event_date: eventDate,
           location: location || undefined,
+          audience_type: audienceType,
+          division_id: audienceType === 'division' ? divisionId : null,
         })
         resetForm()
         setIsOpen(false)
@@ -53,9 +66,17 @@ export function EventFormDialog() {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-lg shadow-xl p-5 w-full max-w-md space-y-3">
+      <div className="bg-white rounded-lg shadow-xl p-5 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
         <h2 className="text-sm font-bold text-slate-900">イベント作成</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <EventAudienceFields
+            audienceType={audienceType}
+            divisionId={divisionId}
+            divisions={divisions}
+            onAudienceTypeChange={setAudienceType}
+            onDivisionIdChange={setDivisionId}
+            idPrefix="create-event"
+          />
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-700">タイトル</label>
             <input
@@ -63,6 +84,7 @@ export function EventFormDialog() {
               required
               value={title}
               onChange={e => setTitle(e.target.value)}
+              placeholder="例: 懇親会"
               className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300"
             />
           </div>

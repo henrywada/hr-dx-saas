@@ -19,9 +19,13 @@ import type { ElCourseViewerData, ElChecklistCompletion } from '../types'
 
 interface Props {
   data: ElCourseViewerData
+  certificateMeta: {
+    employeeName: string
+    tenantName: string
+  }
 }
 
-export function CourseViewerClient({ data }: Props) {
+export function CourseViewerClient({ data, certificateMeta }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showCompletion, setShowCompletion] = useState(false)
@@ -250,6 +254,9 @@ export function CourseViewerClient({ data }: Props) {
       {showCompletion && (
         <CourseCompletionBanner
           courseTitle={title}
+          completedAt={assignment.completed_at ?? new Date().toISOString()}
+          employeeName={certificateMeta.employeeName}
+          tenantName={certificateMeta.tenantName}
           onClose={() => {
             setShowCompletion(false)
             router.push('/el-courses')

@@ -49,6 +49,8 @@ export interface CareerDiscussionRow {
   next_date: string | null
   evaluation_period_id: string | null
   conducted_at: string
+  one_on_one_session_id: string | null
+  linked_one_on_one_theme: string | null
 }
 
 /** 評価期間（任意選択用、軽量版） */
@@ -63,6 +65,31 @@ export interface CareerDiscussionEmployeeOption {
   id: string
   name: string
   department_name: string | null
+}
+
+export type CareerAppointmentStatus = 'scheduled' | 'completed' | 'cancelled'
+
+/** キャリア面談予約（CR-S1） */
+export interface CareerAppointmentRow {
+  id: string
+  employee_id: string
+  employee_name: string
+  scheduled_by_employee_id: string
+  scheduled_by_name: string
+  department_name: string | null
+  theme: string | null
+  scheduled_at: string
+  status: CareerAppointmentStatus
+  notes: string | null
+}
+
+/** 未実施リマインダー対象（1on1 ReminderBadge と同方針） */
+export interface CareerOverdueEmployee {
+  employee_id: string
+  employee_name: string
+  department_name: string | null
+  last_discussion_at: string | null
+  days_overdue: number
 }
 
 /**
@@ -91,9 +118,41 @@ export const createCareerDiscussionSchema = z.object({
     .optional(),
   evaluationPeriodId: z.string().uuid().optional(),
   conductedAt: z.string().datetime().optional(),
+  oneOnOneSessionId: z.string().uuid().optional(),
 })
 
 export type CreateCareerDiscussionInput = z.infer<typeof createCareerDiscussionSchema>
+
+export const updateCareerDiscussionSchema = z.object({
+  id: z.string().uuid(),
+  theme: z.string().min(1).max(200),
+  careerAspiration: z.string().max(2000).optional(),
+  notes: z.string().max(2000).optional(),
+  nextDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .nullable(),
+  evaluationPeriodId: z.string().uuid().optional().nullable(),
+  conductedAt: z.string().datetime().optional(),
+})
+
+export type UpdateCareerDiscussionInput = z.infer<typeof updateCareerDiscussionSchema>
+
+export const scheduleAppointmentSchema = z.object({
+  employeeId: z.string().uuid(),
+  theme: z.string().max(200).optional(),
+  scheduledAt: z.string().datetime({ message: '予約日時を入力してください' }),
+  notes: z.string().max(500).optional(),
+})
+
+export type ScheduleAppointmentInput = z.infer<typeof scheduleAppointmentSchema>
+
+export const updateAppointmentSchema = scheduleAppointmentSchema.extend({
+  id: z.string().uuid(),
+})
+
+export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>
 
 export const templateSchema = z.object({
   name: z.string().min(1).max(100),

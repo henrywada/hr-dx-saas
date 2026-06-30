@@ -1,5 +1,6 @@
 // src/features/organization/queries.ts
 import { createClient } from '@/lib/supabase/server'
+import { computeEmployeeCapacity, countEmployeesByRole } from './capacity-utils'
 
 /**
  * 全部署を取得（RLSで自テナントのみ）
@@ -124,21 +125,16 @@ export async function getTenantEmployeeCapacity(tenantId: string) {
   let registered_user_count = 0
   let company_doctor_count = 0
   if (empRows && empRows.length > 0) {
-    for (const row of empRows) {
-      const ar = (row as { app_role?: { app_role?: string } | { app_role?: string }[] }).app_role
-      const slug = Array.isArray(ar) ? ar[0]?.app_role : ar?.app_role
-      if (slug === 'company_doctor') {
-        company_doctor_count += 1
-      } else {
-        registered_user_count += 1
-      }
-    }
+    const counts = countEmployeesByRole(empRows)
+    registered_user_count = counts.registered_user_count
+    company_doctor_count = counts.company_doctor_count
   }
 
-  const rawMax = tenant?.max_employees
-  const limit = typeof rawMax === 'number' && Number.isFinite(rawMax) ? rawMax : null
-  const totalEmployees = registered_user_count + company_doctor_count
-  const remaining = limit === null ? null : Math.max(limit - totalEmployees, 0)
+  const { limit, remaining } = computeEmployeeCapacity(
+    tenant?.max_employees,
+    registered_user_count,
+    company_doctor_count,
+  )
 
   return {
     limit,

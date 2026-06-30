@@ -10,6 +10,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { generateGeminiContent, GEMINI_PRO_MODEL } from '@/lib/ai/gemini'
+import {
+  AI_MONTHLY_FREE_LIMIT,
+  getMonthlyAiUsageCount,
+  getAiUsageContext,
+  tryConsumeAiUsage,
+} from '@/lib/ai/usage-limit'
 import type { AiGenerationResult } from './types'
 
 // ─────────────────────────────────────────────
@@ -72,6 +78,29 @@ const SYSTEM_PROMPT = `あなたは日本の採用市場に精通したプロフ
   "mediaAdvice": "掲載メディア・アドバイス（上記パターンのルールに従い、中小企業に寄り添うトーンで記載）"
 }`
 
+/** Gemini JSON フィールドを表示用テキストに正規化 */
+function formatGeminiFieldValue(val: unknown): string {
+  if (!val) return ''
+  if (typeof val === 'string') return val
+  if (Array.isArray(val)) {
+    return val
+      .map(v =>
+        typeof v === 'object' && v !== null
+          ? Object.entries(v as Record<string, unknown>)
+              .map(([key, value]) => `【${key}】 ${value}`)
+              .join('\n')
+          : String(v),
+      )
+      .join('\n\n')
+  }
+  if (typeof val === 'object' && val !== null) {
+    return Object.entries(val as Record<string, unknown>)
+      .map(([key, value]) => `【${key}】 ${value}`)
+      .join('\n')
+  }
+  return String(val)
+}
+
 // ─────────────────────────────────────────────
 // generateJobContent — AI求人コンテンツ生成
 // ─────────────────────────────────────────────
@@ -85,14 +114,14 @@ export async function generateJobContent(
       return { success: false, error: '認証されていません。ログインしてください。' }
     }
 
-    // 1.5 プラン・利用回数チェック
-    const usage = await getMonthlyUsageCount()
-    if (!usage.isUnlimited && usage.count >= usage.max) {
-      return {
-        success: false,
-        error:
-          '今月のAI無料利用チケット（10回）の上限に達しました。無制限でご利用いただくにはProプランへのアップグレードをご検討ください。',
-      }
+    // 1.5 プラン・利用回数チェック（原子的消費）
+    const usageCtx = await getAiUsageContext()
+    if (usageCtx.ok === false) {
+      return { success: false, error: usageCtx.error }
+    }
+    const consumed = await tryConsumeAiUsage(usageCtx.data, 'talent-draft')
+    if (consumed.ok === false) {
+      return { success: false, error: consumed.error }
     }
 
     // 2. Gemini API キー確認
@@ -148,43 +177,18 @@ ${input.uniquePoints.trim()}`
       return { success: false, error: 'AI出力の解析に失敗しました。' }
     }
 
-    // 6. コンテンツ生成結果（全プラン共通化：フルオープン）
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formatValue = (val: any): string => {
-      if (!val) return ''
-      if (typeof val === 'string') return val
-      if (Array.isArray(val)) {
-        return val
-          .map(v =>
-            typeof v === 'object' && v !== null
-              ? Object.entries(v)
-                  .map(([key, value]) => `【${key}】 ${value}`)
-                  .join('\n')
-              : String(v)
-          )
-          .join('\n\n')
-      }
-      if (typeof val === 'object' && val !== null) {
-        return Object.entries(val)
-          .map(([key, value]) => `【${key}】 ${value}`)
-          .join('\n')
-      }
-      return String(val)
-    }
-
     const result: AiGenerationResult = {
-      catchphrase: formatValue(parsed.catchphrase),
-      scoutText: formatValue(parsed.scoutText),
-      interviewGuide: formatValue(parsed.interviewGuide),
-      mediaAdvice: formatValue(parsed.mediaAdvice),
+      catchphrase: formatGeminiFieldValue(parsed.catchphrase),
+      scoutText: formatGeminiFieldValue(parsed.scoutText),
+      interviewGuide: formatGeminiFieldValue(parsed.interviewGuide),
+      mediaAdvice: formatGeminiFieldValue(parsed.mediaAdvice),
     }
 
     // 7. DB に保存
     const supabase = await createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: dbError } = await (supabase as any).from('recruitment_jobs').insert({
+    const { error: dbError } = await supabase.from('recruitment_jobs').insert({
       tenant_id: user.tenant_id,
-      title: parsed.catchphrase?.substring(0, 100) || '未設定',
+      title: typeof parsed.catchphrase === 'string' ? parsed.catchphrase.substring(0, 100) : '未設定',
       description: input.challenge,
       requirements: input.expectations,
       ai_catchphrase: parsed.catchphrase,
@@ -198,17 +202,6 @@ ${input.uniquePoints.trim()}`
     if (dbError) {
       console.error('[TalentDraft AI] DB insert error:', dbError)
       // DB保存失敗でもAI結果は返す
-    }
-
-    // 8. ai_usage_logs に利用履歴を記録
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: logError } = await (supabase as any).from('ai_usage_logs').insert({
-      tenant_id: user.tenant_id,
-      feature_name: 'talent-draft',
-    })
-
-    if (logError) {
-      console.error('[TalentDraft AI] DB insert ai_usage_logs error:', logError)
     }
 
     return { success: true, data: result }
@@ -228,32 +221,16 @@ export async function getMonthlyUsageCount(): Promise<{
 }> {
   const user = await getServerUser()
   if (!user || !user.tenant_id) {
-    return { count: 0, max: 10, isUnlimited: false }
+    return { count: 0, max: AI_MONTHLY_FREE_LIMIT, isUnlimited: false }
   }
 
   const isPro = user.planType === 'pro' || user.planType === 'enterprise'
   if (isPro) {
-    return { count: 0, max: 10, isUnlimited: true }
+    return { count: 0, max: AI_MONTHLY_FREE_LIMIT, isUnlimited: true }
   }
 
-  const supabase = await createClient()
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { count, error } = await (supabase as any)
-    .from('ai_usage_logs')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', user.tenant_id)
-    .eq('feature_name', 'talent-draft')
-    .gte('created_at', startOfMonth.toISOString())
-
-  if (error) {
-    console.error('[TalentDraft AI] usage logs fetch error:', error)
-  }
-
-  return { count: count || 0, max: 10, isUnlimited: false }
+  const count = await getMonthlyAiUsageCount(user.tenant_id, 'talent-draft')
+  return { count, max: AI_MONTHLY_FREE_LIMIT, isUnlimited: false }
 }
 
 // ─────────────────────────────────────────────
@@ -278,8 +255,7 @@ export async function getRecruitmentAiLogs() {
 
   const supabase = await createClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('recruitment_jobs')
     .select('*')
     .eq('tenant_id', user.tenant_id)

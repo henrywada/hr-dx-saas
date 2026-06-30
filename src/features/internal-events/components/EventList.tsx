@@ -1,5 +1,6 @@
-import { CalendarDays, MapPin } from 'lucide-react'
+import { CalendarDays, MapPin, Users } from 'lucide-react'
 import { EventRsvpButton } from './EventRsvpButton'
+import { formatEventAudienceLabel } from '../event-audience'
 import type { EventWithMyRsvp } from '../types'
 
 interface Props {
@@ -34,6 +35,10 @@ export function EventList({ events }: Props) {
             <div className="min-w-0 flex-1 space-y-1.5">
               <h3 className="text-sm font-bold text-slate-900">{event.title}</h3>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                  <Users className="w-3 h-3" />
+                  {formatEventAudienceLabel(event)}
+                </span>
                 <span className="inline-flex items-center gap-1">
                   <CalendarDays className="w-3.5 h-3.5" />
                   {formatEventDate(event.event_date)}

@@ -15,6 +15,10 @@ import { BottleneckView } from './BottleneckView'
 import { SimulationWorkspace } from './SimulationWorkspace'
 import type { TrainingPlanDashboardData } from '../training-plan-types'
 import { TrainingPlanView } from './TrainingPlanView'
+import { QualificationsPanel } from '@/features/qualifications/components/QualificationsPanel'
+import type { EmployeeQualificationRow, QualificationMaster } from '@/features/qualifications/types'
+import { SkillMapDraftPanel } from './SkillMapDraftPanel'
+import type { SkillMapDraftRow } from '../draft-queries'
 
 type Props = {
   employeeRows: EmployeeSkillRow[]
@@ -29,6 +33,9 @@ type Props = {
   /** シミュレーション一覧 */
   initialSimulations: any[]
   trainingPlanData: TrainingPlanDashboardData
+  qualificationMasters: QualificationMaster[]
+  employeeQualifications: EmployeeQualificationRow[]
+  skillMapDrafts: SkillMapDraftRow[]
 }
 
 const TABS = [
@@ -38,6 +45,8 @@ const TABS = [
   { key: 'bottleneck', label: 'ボトルネック分析' },
   { key: 'simulation', label: 'アサインシミュレータ' },
   { key: 'training', label: '育成計画' },
+  { key: 'qualifications', label: '資格管理' },
+  { key: 'drafts', label: '配置ドラフト' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -52,6 +61,9 @@ export function SkillMapTabs({
   completionRows,
   initialSimulations,
   trainingPlanData,
+  qualificationMasters,
+  employeeQualifications,
+  skillMapDrafts,
 }: Props) {
   const [tab, setTab] = useState<TabKey>('employee')
 

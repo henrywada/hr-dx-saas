@@ -27,6 +27,43 @@ export interface PulseStressChartData {
   stressRiskArea: number; // 面で表示する総合健康リスク（基本はフラットか段階）
 }
 
+/** C-S1: コンディション記録の日次推移（テナント全体匿名集計） */
+export interface ConditionDailyTrendPoint {
+  checkin_date: string;
+  avg_score: number | null;
+  respondent_count: number;
+}
+
+/** C-S1: 部署別コンディション平均 */
+export interface DivisionConditionSummary {
+  division_id: string;
+  division_name: string;
+  avg_score: number | null;
+  respondent_count: number;
+}
+
+/** C-S1: コンディション × ストレス クロス分析用の部署データ */
+export interface ConditionStressDepartmentData {
+  divisionName: string;
+  healthRisk: number;
+  avgConditionScore: number | null;
+  avgPulseScore: number;
+}
+
+/** C-S1: 低コンディション × 高ストレス の要注意従業員 */
+export interface ConditionStressAlertEmployee {
+  employeeId: string;
+  name: string;
+  divisionName: string;
+  avgConditionScore: number;
+  conditionTrendDown: boolean;
+  isHighStress: boolean;
+  healthRisk: number;
+  warningLevel: 'high' | 'medium';
+}
+
+const CONDITION_CROSS_DAYS = 30;
+
 export async function getCrossAnalysisData(tenantId: string) {
   const supabase = await createClient();
 
@@ -209,10 +246,106 @@ export async function getCrossAnalysisData(tenantId: string) {
     });
   }
 
+  // 6. C-S1: コンディション記録とのクロス分析データ
+  const [
+    { data: conditionDailyRows },
+    { data: divisionConditionRows },
+    { data: employeeConditionRows },
+  ] = await Promise.all([
+    supabase.rpc('get_tenant_condition_daily_trend', { p_days: CONDITION_CROSS_DAYS }),
+    supabase.rpc('get_division_condition_summary', { p_days: CONDITION_CROSS_DAYS }),
+    supabase.rpc('get_employee_condition_averages', { p_days: CONDITION_CROSS_DAYS }),
+  ]);
+
+  const conditionDailyTrend: ConditionDailyTrendPoint[] = (conditionDailyRows ?? []).map(
+    (row: { checkin_date: string; avg_score: number | null; respondent_count: number }) => ({
+      checkin_date: row.checkin_date,
+      avg_score: row.avg_score,
+      respondent_count: Number(row.respondent_count),
+    })
+  );
+
+  const divisionConditionMap = new Map<string, DivisionConditionSummary>();
+  for (const row of divisionConditionRows ?? []) {
+    divisionConditionMap.set(row.division_name, {
+      division_id: row.division_id,
+      division_name: row.division_name,
+      avg_score: row.avg_score,
+      respondent_count: Number(row.respondent_count),
+    });
+  }
+
+  const employeeConditionMap = new Map<
+    string,
+    { avg_score: number; record_count: number; recent_trend_down: boolean }
+  >();
+  for (const row of employeeConditionRows ?? []) {
+    employeeConditionMap.set(row.employee_id, {
+      avg_score: Number(row.avg_score),
+      record_count: Number(row.record_count),
+      recent_trend_down: Boolean(row.recent_trend_down),
+    });
+  }
+
+  const conditionStressDepartments: ConditionStressDepartmentData[] = [];
+  const mergedDivisionNames = new Set<string>();
+  for (const dr of divResults) {
+    const dName = dr.group_name || '不明';
+    mergedDivisionNames.add(dName);
+    const cond = divisionConditionMap.get(dName);
+    let avgPulse = 3.0;
+    if (deptPulseMap[dName]) {
+      avgPulse = Number((deptPulseMap[dName].sum / deptPulseMap[dName].count).toFixed(2));
+    }
+    conditionStressDepartments.push({
+      divisionName: dName,
+      healthRisk: dr.total_health_risk || 100,
+      avgConditionScore: cond?.avg_score ?? null,
+      avgPulseScore: avgPulse,
+    });
+  }
+  for (const [dName, cond] of divisionConditionMap) {
+    if (mergedDivisionNames.has(dName)) continue;
+    conditionStressDepartments.push({
+      divisionName: dName,
+      healthRisk: 100,
+      avgConditionScore: cond.avg_score,
+      avgPulseScore: 0,
+    });
+  }
+
+  const conditionStressAlerts: ConditionStressAlertEmployee[] = [];
+  for (const emp of employees) {
+    const cond = employeeConditionMap.get(emp.employeeId);
+    if (!cond) continue;
+
+    const isLowCondition = cond.avg_score <= 2.5;
+    const isHighRiskCombo = isLowCondition && (emp.isHighStress || cond.recent_trend_down);
+    const isMediumRisk = isLowCondition || (cond.recent_trend_down && emp.isHighStress);
+
+    if (!isHighRiskCombo && !isMediumRisk) continue;
+
+    conditionStressAlerts.push({
+      employeeId: emp.employeeId,
+      name: emp.name,
+      divisionName: emp.divisionName,
+      avgConditionScore: cond.avg_score,
+      conditionTrendDown: cond.recent_trend_down,
+      isHighStress: emp.isHighStress,
+      healthRisk: emp.healthRisk,
+      warningLevel: isHighRiskCombo ? 'high' : 'medium',
+    });
+  }
+
   return {
-    employees: employees.sort((a, b) => a.warningLevel === 'high' ? -1 : 1),
+    employees: employees.sort((a, b) => (a.warningLevel === 'high' ? -1 : 1)),
     departments,
     chartData,
-    periods: sortedPeriods
+    periods: sortedPeriods,
+    conditionDailyTrend,
+    conditionStressDepartments,
+    conditionStressAlerts: conditionStressAlerts.sort((a, b) =>
+      a.warningLevel === 'high' ? -1 : b.warningLevel === 'high' ? 1 : 0
+    ),
   };
 }

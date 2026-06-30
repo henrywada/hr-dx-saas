@@ -77,3 +77,7 @@ export const BLOOM_LEVEL_COLORS: Record<
   evaluate:    { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
   create:      { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
 }
+
+export const EL_SCORM_PACKAGES_BUCKET = 'el-scorm-packages' as const
+export const EL_SCORM_ZIP_MAX_BYTES = 100 * 1024 * 1024
+export const EL_SCORM_ZIP_MAX_MB = 100

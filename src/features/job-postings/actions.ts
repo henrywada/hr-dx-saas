@@ -18,6 +18,7 @@ import {
 } from './types'
 import { generateHelloWorkCSV } from '@/lib/csv-export'
 import { generateGeminiContent, GEMINI_PRO_MODEL, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
+import { getAiUsageContext, tryConsumeAiUsage } from '@/lib/ai/usage-limit'
 
 export async function createJobPostingDraft(
   data: Partial<Omit<InsertJobPosting, 'tenant_id' | 'status'>>
@@ -76,6 +77,11 @@ export async function generateJobPostingFromMemo(jobId: string, memo: string) {
     console.error('Update memo error:', updateMemoError)
     throw new Error('メモの保存に失敗しました。')
   }
+
+  const usageCtx = await getAiUsageContext()
+  if (usageCtx.ok === false) throw new Error(usageCtx.error)
+  const consumed = await tryConsumeAiUsage(usageCtx.data, 'job-posting-memo')
+  if (consumed.ok === false) throw new Error(consumed.error)
 
   // 2. テナント情報（自社の魅力など）を取得
   const { data: tenant } = await supabase
@@ -401,6 +407,11 @@ export async function generateDifferentiationPoints(input: BrandingPromptInput):
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
 
+  const usageCtx = await getAiUsageContext()
+  if (usageCtx.ok === false) throw new Error(usageCtx.error)
+  const consumed = await tryConsumeAiUsage(usageCtx.data, 'job-posting-branding-diff')
+  if (consumed.ok === false) throw new Error(consumed.error)
+
   const prompt = `あなたは採用ブランディングの専門家です。
 以下の求人情報を分析し、他社との差別化ポイントを抽出してください。
 
@@ -437,6 +448,11 @@ export async function generateBrandedVariants(
 ): Promise<GenerateVariantsResult> {
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+
+  const usageCtx = await getAiUsageContext()
+  if (usageCtx.ok === false) throw new Error(usageCtx.error)
+  const consumed = await tryConsumeAiUsage(usageCtx.data, 'job-posting-branding-variants')
+  if (consumed.ok === false) throw new Error(consumed.error)
 
   const supabase = await createClient()
 
@@ -515,29 +531,36 @@ ${pointsText}
 /** バリアントを求人票に適用（is_applied を true にし、job_postings を更新） */
 export async function applyVariantToJobPosting(variantId: string): Promise<void> {
   const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user?.tenant_id) throw new Error('Unauthorized')
 
   const supabase = await createClient()
 
-  const { data: variant, error: fetchError } = await supabase
+  const { error } = await (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>
+    }
+  ).rpc('apply_job_posting_variant', {
+    p_variant_id: variantId,
+    p_tenant_id: user.tenant_id,
+  })
+
+  if (error) {
+    if (error.message.includes('variant_not_found')) {
+      throw new Error('バリアントが見つかりません。')
+    }
+    throw new Error('バリアントの適用に失敗しました。')
+  }
+
+  const { data: variant } = await supabase
     .from('job_posting_ai_variants')
-    .select('*')
+    .select('job_posting_id')
     .eq('id', variantId)
-    .single()
+    .maybeSingle()
 
-  if (fetchError || !variant) throw new Error('バリアントが見つかりません。')
-
-  await supabase
-    .from('job_posting_ai_variants')
-    .update({ is_applied: true, applied_at: new Date().toISOString() })
-    .eq('id', variantId)
-
-  if (variant.job_posting_id) {
-    await supabase
-      .from('job_postings')
-      .update({ title: variant.title, description: variant.description })
-      .eq('id', variant.job_posting_id)
-
+  if (variant?.job_posting_id) {
     revalidatePath(`/adm/job-branding/${variant.job_posting_id}`)
     revalidatePath(`/adm/job-positions/${variant.job_posting_id}`)
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { createCareerDiscussionSchema, canConductCareerDiscussion } from './types'
+import { createCareerDiscussionSchema, scheduleAppointmentSchema, canConductCareerDiscussion } from './types'
 
 const VALID_UUID = '11111111-1111-4111-8111-111111111111'
 
@@ -68,4 +68,21 @@ test('appRoleがemployeeかつis_managerがfalseなら記録権限がない', ()
 
 test('appRoleがhrなら記録権限がある', () => {
   assert.equal(canConductCareerDiscussion('hr', false), true)
+})
+
+test('予約: 正常な入力はパースに成功する', () => {
+  const result = scheduleAppointmentSchema.safeParse({
+    employeeId: VALID_UUID,
+    scheduledAt: '2026-07-15T10:00:00.000Z',
+    theme: 'スキル開発計画',
+  })
+  assert.equal(result.success, true)
+})
+
+test('予約: scheduledAt が不正な場合は拒否される', () => {
+  const result = scheduleAppointmentSchema.safeParse({
+    employeeId: VALID_UUID,
+    scheduledAt: 'not-a-datetime',
+  })
+  assert.equal(result.success, false)
 })

@@ -46,4 +46,17 @@ export const submitConditionCheckinSchema = z.object({
   memo: z.string().max(200).optional(),
 })
 
+
+/** C-C1: コンディション急激低下アラート（get_condition_drop_alerts の戻り値） */
+export interface ConditionDropAlert {
+  employee_id: string
+  employee_name: string
+  division_name: string
+  alert_type: 'week_drop' | 'consecutive_low'
+  recent_avg: number | null
+  prior_avg: number | null
+  consecutive_low_days: number
+  latest_score: number | null
+  latest_checkin_date: string | null
+}
 export type SubmitConditionCheckinInput = z.infer<typeof submitConditionCheckinSchema>

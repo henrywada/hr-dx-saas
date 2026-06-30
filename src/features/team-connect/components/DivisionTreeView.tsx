@@ -102,9 +102,12 @@ export function DivisionTreeView({
 
       <div className="p-3 min-h-[120px]">
         {tree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-            <Folder className="w-10 h-10 mb-3" />
-            <p className="text-sm">部署が登録されていません</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+            <Folder className="w-10 h-10 mb-3 text-[#57606a] opacity-40" />
+            <p className="text-sm font-medium text-[#24292f]">部署が登録されていません</p>
+            <p className="text-xs text-[#57606a] mt-1 max-w-xs">
+              人事担当者が組織設定で部署を登録すると、ここに組織図が表示されます。
+            </p>
           </div>
         ) : (
           tree.map(node => <TreeNodeRow key={node.id} node={node} />)

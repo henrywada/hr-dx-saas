@@ -6,8 +6,11 @@ import { ImplementationRateChart } from './ImplementationRateChart'
 import type { RateChartDatum } from './ImplementationRateChart'
 import { SessionHistoryTable } from './SessionHistoryTable'
 import { ReminderBadge } from './ReminderBadge'
+import { UpcomingOneOnOnePanel } from './UpcomingOneOnOnePanel'
+import { UpcomingScheduleModal } from './UpcomingScheduleModal'
 import { ThemeTemplateManager } from './ThemeTemplateManager'
-import type { OneOnOneDashboardData, SessionRow } from '../types'
+import type { OneOnOneDashboardData, SessionRow, UpcomingOneOnOneRow } from '../types'
+import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Employee {
   id: string
@@ -18,6 +21,8 @@ interface Employee {
 interface Props {
   data: OneOnOneDashboardData
   employees: Employee[]
+  careerDiscussionsByEmployee: Record<string, CareerDiscussionRow[]>
+  upcoming: UpcomingOneOnOneRow[]
 }
 
 type RateView = 'manager' | 'department'
@@ -26,8 +31,9 @@ function truncate(label: string): string {
   return label.length > 8 ? label.slice(0, 7) + '…' : label
 }
 
-export function OneOnOneDashboard({ data, employees }: Props) {
+export function OneOnOneDashboard({ data, employees, careerDiscussionsByEmployee, upcoming }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null)
   const [rateView, setRateView] = useState<RateView>('manager')
 
@@ -76,12 +82,20 @@ export function OneOnOneDashboard({ data, employees }: Props) {
               実施率の可視化・テーマ標準化・未実施リマインダー
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            className="rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#FD7601] transition-colors"
-          >
-            + 記録する
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setScheduleOpen(true)}
+              className="rounded-lg border border-[#FD7601] px-4 py-2.5 text-sm font-medium text-[#FD7601] hover:bg-orange-50 transition-colors"
+            >
+              + 予定登録
+            </button>
+            <button
+              onClick={openCreate}
+              className="rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#FD7601] transition-colors"
+            >
+              + 記録する
+            </button>
+          </div>
         </div>
 
         {/* カード本文 */}
@@ -135,7 +149,8 @@ export function OneOnOneDashboard({ data, employees }: Props) {
               <h2 className="mb-3 text-base font-semibold text-gray-700">
                 未実施リマインダー（30日以上）
               </h2>
-              <ReminderBadge overdueEmployees={data.overdueEmployees} />
+              <UpcomingOneOnOnePanel upcoming={upcoming} />
+          <ReminderBadge overdueEmployees={data.overdueEmployees} />
             </section>
           )}
 
@@ -201,12 +216,20 @@ export function OneOnOneDashboard({ data, employees }: Props) {
       </div>
 
       {/* 記録／編集モーダル */}
+      <UpcomingScheduleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        employees={employees}
+        templates={data.themeTemplates}
+      />
+
       <SessionFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         employees={employees}
         templates={data.themeTemplates}
         editingSession={editingSession}
+        careerDiscussionsByEmployee={careerDiscussionsByEmployee}
       />
     </div>
   )

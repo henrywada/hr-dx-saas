@@ -42,15 +42,15 @@ export default async function AnswersPage({ searchParams }: Props) {
   const questionnaires = await getAssignedQuestionnaires(user.employee_id);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 px-4 sm:px-6 py-5">
       <div className="max-w-lg mx-auto">
         {/* ページヘッダー */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-neutral-800">アンケートに回答する</h1>
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold text-neutral-800 tracking-tight">アンケートに回答する</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            担当者から依頼されたアンケートを確認・回答できます。
+            人事担当者から依頼されたアンケートを確認し、期限内に回答できます。
           </p>
-        </div>
+        </header>
 
         <AnswersListClient questionnaires={questionnaires} />
       </div>

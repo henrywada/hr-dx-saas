@@ -8,6 +8,9 @@ import { APP_ROUTES } from '@/config/routes'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { removeAssignment } from '../actions'
 import { AssignmentModal } from './AssignmentModal'
+import { OverdueAssignmentAlertPanel } from './OverdueAssignmentAlertPanel'
+import { ElDivisionStatsPanel } from './ElDivisionStatsPanel'
+import { isAssignmentOverdue, type ElDivisionCompletionRow } from '../assignment-utils'
 import type { ElAssignment, ElCourse } from '../types'
 import type { AssignmentProgress } from '../queries'
 
@@ -22,6 +25,7 @@ interface Props {
   employees: Employee[]
   tenantCourses: ElCourse[]
   progressMap?: Record<string, AssignmentProgress>
+  divisionStats?: ElDivisionCompletionRow[]
 }
 
 export function AssignmentListClient({
@@ -29,6 +33,7 @@ export function AssignmentListClient({
   employees,
   tenantCourses,
   progressMap = {},
+  divisionStats = [],
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -88,7 +93,18 @@ export function AssignmentListClient({
     {
       key: 'due_date' as keyof ElAssignment,
       label: '期限',
-      render: (_, item) => <div className="text-sm text-[#57606a]">{item.due_date ?? '-'}</div>,
+      render: (_, item) => {
+        const p = progressMap[item.id]
+        const overdue = isAssignmentOverdue(item.due_date, p?.isCompleted ?? false)
+        return (
+          <div
+            className={`text-sm ${overdue ? 'text-red-600 font-medium' : 'text-[#57606a]'}`}
+          >
+            {item.due_date ?? '-'}
+            {overdue && ' (超過)'}
+          </div>
+        )
+      },
     },
     {
       key: 'tenant_id' as keyof ElAssignment,
@@ -230,6 +246,9 @@ export function AssignmentListClient({
 
   return (
     <div className="space-y-4">
+      <OverdueAssignmentAlertPanel assignments={assignments} progressMap={progressMap} />
+      {divisionStats.length > 0 && <ElDivisionStatsPanel rows={divisionStats} />}
+
       <div className="flex items-center gap-2">
         <button
           onClick={() => openAssign(tenantCourses[0]?.id || '')}

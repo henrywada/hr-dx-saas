@@ -145,7 +145,7 @@ export default function TenantEchoListClient({
         <div>
           <h1 className="text-2xl font-bold text-[#24292f]">パルスサーベイ（Echo） 設問管理</h1>
           <p className="text-sm text-[#57606a] mt-1">
-            パルスサーベイ（Echo）で使用する設問セットを管理します。
+            パルスサーベイ（Echo）で使用する設問セットを管理します。本番指定すると従業員の回答画面に反映されます。
           </p>
         </div>
         <button

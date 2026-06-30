@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCareerDiscussion } from '../actions'
 import { ThemeSelector } from './ThemeSelector'
+import { OneOnOneReferencePanel } from './OneOnOneReferencePanel'
 import type {
   CareerDiscussionThemeTemplate,
   CareerDiscussionEmployeeOption,
   EvaluationPeriodOption,
 } from '../types'
+import type { OneOnOneSessionSummary } from '@/features/one-on-one/types'
 
 interface Props {
   open: boolean
@@ -16,6 +18,7 @@ interface Props {
   employees: CareerDiscussionEmployeeOption[]
   templates: CareerDiscussionThemeTemplate[]
   evaluationPeriods: EvaluationPeriodOption[]
+  oneOnOneByEmployee: Record<string, OneOnOneSessionSummary[]>
 }
 
 export function CareerDiscussionFormModal({
@@ -24,6 +27,7 @@ export function CareerDiscussionFormModal({
   employees,
   templates,
   evaluationPeriods,
+  oneOnOneByEmployee,
 }: Props) {
   const router = useRouter()
   const [employeeId, setEmployeeId] = useState('')
@@ -32,6 +36,7 @@ export function CareerDiscussionFormModal({
   const [notes, setNotes] = useState('')
   const [nextDate, setNextDate] = useState('')
   const [evaluationPeriodId, setEvaluationPeriodId] = useState('')
+  const [oneOnOneSessionId, setOneOnOneSessionId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +49,7 @@ export function CareerDiscussionFormModal({
     setNotes('')
     setNextDate('')
     setEvaluationPeriodId('')
+    setOneOnOneSessionId('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,6 +68,7 @@ export function CareerDiscussionFormModal({
       notes: notes || undefined,
       nextDate: nextDate || undefined,
       evaluationPeriodId: evaluationPeriodId || undefined,
+      oneOnOneSessionId: oneOnOneSessionId || undefined,
     })
 
     setLoading(false)
@@ -103,6 +110,15 @@ export function CareerDiscussionFormModal({
           </div>
 
           <ThemeSelector templates={templates} value={theme} onChange={setTheme} />
+
+          {employeeId && (
+            <OneOnOneReferencePanel
+              sessions={oneOnOneByEmployee[employeeId] ?? []}
+              selectable
+              selectedSessionId={oneOnOneSessionId}
+              onSelectSession={setOneOnOneSessionId}
+            />
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

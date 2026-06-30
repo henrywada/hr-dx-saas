@@ -36,7 +36,10 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">お知らせ管理</h1>
-          <p className="text-sm text-[#57606a] mt-1">人事からのお知らせを一覧・追加・編集できます</p>
+          <p className="text-sm text-[#57606a] mt-1">
+            人事からのお知らせを登録・編集します。公開後は従業員トップ画面の「お知らせ」カードに、公開日・対象・NEW
+            バッジ付きで表示されます。
+          </p>
         </div>
         <button
           onClick={() => setDialogState({ open: true })}
@@ -52,7 +55,7 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
           <Bell className="w-4 h-4 text-[#FD7601]" />
           <span className="text-sm font-medium text-[#57606a]">
             お知らせ一覧
-            <span className="text-xs text-[#57606a] ml-2">({announcements.length}件)</span>
+            <span className="text-xs text-[#57606a] ml-2">({announcements.length}件・トップ画面に連動)</span>
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -79,8 +82,12 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
             <tbody>
               {announcements.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-[#57606a]">
-                    お知らせがありません
+                  <td colSpan={5} className="text-center py-12 px-4">
+                    <Bell className="w-10 h-10 mx-auto mb-3 text-[#57606a] opacity-30" />
+                    <p className="text-sm font-medium text-[#24292f]">お知らせはまだありません</p>
+                    <p className="text-xs text-[#57606a] mt-1 max-w-sm mx-auto">
+                      「お知らせを追加」から登録すると、従業員トップの「お知らせ」カードに公開日・タイトル・対象が表示されます。
+                    </p>
                   </td>
                 </tr>
               ) : (

@@ -3,6 +3,8 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { getCourseViewerData } from '@/features/e-learning/queries'
 import { canAccessCourseViewer } from '@/features/e-learning/publication-window'
 import { CourseViewerClient } from '@/features/e-learning/components/CourseViewerClient'
+import { ScormPlayerClient } from '@/features/e-learning/components/ScormPlayerClient'
+import { getScormPlayerData } from '@/features/e-learning/scorm-queries'
 
 interface Props {
   params: Promise<{ assignmentId: string }>
@@ -22,5 +24,17 @@ export default async function CourseViewerPage({ params }: Props) {
     redirect('/el-courses')
   }
 
-  return <CourseViewerClient data={data} />
+  const contentFormat = data.content_format ?? 'native'
+  const certificateMeta = {
+    employeeName: user.name ?? '従業員',
+    tenantName: user.tenant_name ?? '会社',
+  }
+
+  if (contentFormat === 'scorm_12' || contentFormat === 'xapi_launch') {
+    const scormData = await getScormPlayerData(assignmentId, user.employee_id)
+    if (!scormData) notFound()
+    return <ScormPlayerClient data={scormData} certificateMeta={certificateMeta} />
+  }
+
+  return <CourseViewerClient data={data} certificateMeta={certificateMeta} />
 }

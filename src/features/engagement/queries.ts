@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
+import { getHrKpiBundle } from '@/features/hr-kpi/queries'
+import { getOneOnOneDashboardData } from '@/features/one-on-one/queries'
 import type {
   EngagementDashboardData,
   PulseTrendPoint,
@@ -34,6 +36,13 @@ const EMPTY: EngagementDashboardData = {
   hasPulseData: false,
   hasStressData: false,
   hasQuestionnaireData: false,
+  growthKpi: {
+    evaluationCompletionRatePercent: null,
+    elCompletionRatePercent: null,
+    skillGapRatePercent: null,
+    oneOnOneSessionsLast30Days: 0,
+    oneOnOneOverdueCount: 0,
+  },
 }
 
 /** 統合エンゲージメントダッシュボード用データを収集する（既存テーブル読み取りのみ） */
@@ -379,6 +388,12 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
 
   departments.sort((a, b) => a.compositeScore - b.compositeScore)
 
+  const [kpiResult, oneOnOneData] = await Promise.all([
+    getHrKpiBundle(),
+    getOneOnOneDashboardData(),
+  ])
+  const dev = kpiResult.ok ? kpiResult.data.development : null
+
   return {
     pulseTrend,
     latestPulseScore: latestPulsePoint?.score ?? null,
@@ -391,5 +406,12 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
     hasPulseData: pulseTrend.length > 0,
     hasStressData: stressTrend.length > 0,
     hasQuestionnaireData: questionnaireTrend.length > 0,
+    growthKpi: {
+      evaluationCompletionRatePercent: dev?.evaluationCompletionRatePercent ?? null,
+      elCompletionRatePercent: dev?.elCompletionRatePercent ?? null,
+      skillGapRatePercent: dev?.skillGapRatePercent ?? null,
+      oneOnOneSessionsLast30Days: oneOnOneData.totalSessionsLast30Days,
+      oneOnOneOverdueCount: oneOnOneData.overdueEmployees.length,
+    },
   }
 }

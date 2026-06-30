@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { getConsultationQueue } from '@/features/consultation/queries'
+import { getConsultationQueue, getAnonymousConsultationAggregates } from '@/features/consultation/queries'
 import { ConsultationQueueTable } from '@/features/consultation/components/ConsultationQueueTable'
+import { ConsultationAnalyticsPanel } from '@/features/consultation/components/ConsultationAnalyticsPanel'
 
 const STAFF_ROLES = ['hr', 'hr_manager', 'company_doctor', 'company_nurse', 'hsc']
 
@@ -12,11 +13,15 @@ export default async function ConsultationQueuePage() {
     redirect(APP_ROUTES.TENANT.ADMIN)
   }
 
-  const items = await getConsultationQueue()
+  const [items, aggregates] = await Promise.all([
+    getConsultationQueue(),
+    getAnonymousConsultationAggregates(),
+  ])
 
   return (
-    <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-300">
-      <h1 className="text-sm font-semibold mb-4">相談窓口キュー管理</h1>
+    <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-300 space-y-6">
+      <h1 className="text-sm font-semibold">相談窓口キュー管理</h1>
+      <ConsultationAnalyticsPanel rows={aggregates} />
       <ConsultationQueueTable items={items} />
     </div>
   )

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { differenceInDays } from 'date-fns'
 import type {
+  UpcomingOneOnOneRow,
+
   SessionRow,
   ImplementationRateRow,
   DepartmentRateRow,
@@ -9,6 +11,7 @@ import type {
   OverdueEmployee,
   OneOnOneDashboardData,
   OneOnOneEmployee,
+  OneOnOneSessionSummary,
 } from './types'
 
 /** 1on1 対象となる在籍中の部下（is_manager=false）一覧を取得する */
@@ -51,7 +54,8 @@ export async function getOneOnOneSessions(): Promise<SessionRow[]> {
       theme,
       notes,
       next_date,
-      conducted_at
+      conducted_at,
+      ai_summary
     `
     )
     .eq('tenant_id', user.tenant_id)
@@ -103,6 +107,7 @@ export async function getOneOnOneSessions(): Promise<SessionRow[]> {
       next_date: s.next_date,
       conducted_at: s.conducted_at,
       days_since_last: daysSince,
+      ai_summary: (s as { ai_summary?: string | null }).ai_summary ?? null,
     }
   })
 }
@@ -350,4 +355,191 @@ export async function getOneOnOneDashboardData(): Promise<OneOnOneDashboardData>
     totalSessionsLast30Days,
     averageRate,
   }
+}
+
+
+/**
+ * キャリア面談連携（CR-S3）用：指定従業員それぞれの直近 1on1 セッションを取得する。
+ */
+export async function getRecentOneOnOneSessionsForEmployees(
+  employeeIds: string[],
+  limit = 5
+): Promise<Record<string, OneOnOneSessionSummary[]>> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || employeeIds.length === 0) return {}
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('one_on_one_sessions')
+    .select('id, employee_id, manager_id, theme, notes, conducted_at')
+    .eq('tenant_id', user.tenant_id)
+    .in('employee_id', employeeIds)
+    .order('conducted_at', { ascending: false })
+
+  if (error || !data) return {}
+
+  const managerIds = [...new Set(data.map(s => s.manager_id))]
+  const { data: managers } = await supabase
+    .from('employees')
+    .select('id, name')
+    .in('id', managerIds)
+    .eq('tenant_id', user.tenant_id)
+
+  const managerMap = new Map((managers ?? []).map(m => [m.id, m.name ?? '']))
+
+  const byEmployee: Record<string, OneOnOneSessionSummary[]> = {}
+  for (const s of data) {
+    const list = byEmployee[s.employee_id] ?? []
+    if (list.length >= limit) continue
+    list.push({
+      id: s.id,
+      employee_id: s.employee_id,
+      theme: s.theme,
+      notes: s.notes,
+      conducted_at: s.conducted_at,
+      manager_name: managerMap.get(s.manager_id) ?? '',
+    })
+    byEmployee[s.employee_id] = list
+  }
+  return byEmployee
+}
+
+/** 従業員本人が受けた 1on1 セッション一覧（O-S1） */
+export async function getMyOneOnOneSessions(employeeId: string): Promise<SessionRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('one_on_one_sessions')
+    .select('id, manager_id, employee_id, theme, notes, next_date, conducted_at, ai_summary')
+    .eq('tenant_id', user.tenant_id)
+    .eq('employee_id', employeeId)
+    .order('conducted_at', { ascending: false })
+    .limit(100)
+
+  if (error || !data || data.length === 0) return []
+
+  const managerIds = [...new Set(data.map(s => s.manager_id))]
+  const { data: managers } = await supabase
+    .from('employees')
+    .select('id, name, division_id, divisions(name)')
+    .in('id', managerIds)
+    .eq('tenant_id', user.tenant_id)
+
+  const managerMap = new Map(
+    (managers ?? []).map(m => {
+      const divData = m.divisions as { name: string } | { name: string }[] | null
+      const deptName = Array.isArray(divData) ? (divData[0]?.name ?? null) : (divData?.name ?? null)
+      return [m.id, { name: m.name ?? '', deptName }]
+    })
+  )
+
+  const sorted = [...data].sort((a, b) => b.conducted_at.localeCompare(a.conducted_at))
+
+  return sorted.map((s, idx) => {
+    const manager = managerMap.get(s.manager_id)
+    const prevSession = sorted[idx + 1]
+    const daysSince = prevSession
+      ? differenceInDays(new Date(s.conducted_at), new Date(prevSession.conducted_at))
+      : null
+
+    return {
+      id: s.id,
+      manager_id: s.manager_id,
+      manager_name: manager?.name ?? '',
+      employee_id: s.employee_id,
+      employee_name: '',
+      department_name: manager?.deptName ?? null,
+      theme: s.theme,
+      notes: s.notes,
+      next_date: s.next_date,
+      conducted_at: s.conducted_at,
+      days_since_last: daysSince,
+      ai_summary: (s as { ai_summary?: string | null }).ai_summary ?? null,
+    }
+  })
+}
+
+
+/** 管理職向け: 予定中の 1on1 一覧 */
+export async function getUpcomingOneOnOnesForManager(): Promise<UpcomingOneOnOneRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user.employee_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('one_on_one_upcoming')
+    .select('id, manager_id, employee_id, scheduled_at, theme, agenda, reminded_at, status')
+    .eq('tenant_id', user.tenant_id)
+    .eq('status', 'scheduled')
+    .gte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: true })
+    .limit(50)
+
+  if (error || !data?.length) return []
+
+  const empIds = [...new Set(data.flatMap((r: { manager_id: string; employee_id: string }) => [r.manager_id, r.employee_id]))] as string[]
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('id, name')
+    .in('id', empIds)
+    .eq('tenant_id', user.tenant_id)
+
+  const nameMap = new Map((employees ?? []).map(e => [e.id, e.name ?? '']))
+
+  return data.map(row => ({
+    id: row.id,
+    manager_id: row.manager_id,
+    manager_name: nameMap.get(row.manager_id) ?? '',
+    employee_id: row.employee_id,
+    employee_name: nameMap.get(row.employee_id) ?? '',
+    scheduled_at: row.scheduled_at,
+    theme: row.theme,
+    agenda: row.agenda,
+    reminded_at: row.reminded_at,
+    status: row.status as UpcomingOneOnOneRow['status'],
+  }))
+}
+
+/** 従業員向け: 自分宛の予定 1on1 */
+export async function getMyUpcomingOneOnOnes(employeeId: string): Promise<UpcomingOneOnOneRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await (supabase as any)
+    .from('one_on_one_upcoming')
+    .select('id, manager_id, employee_id, scheduled_at, theme, agenda, reminded_at, status')
+    .eq('tenant_id', user.tenant_id)
+    .eq('employee_id', employeeId)
+    .eq('status', 'scheduled')
+    .gte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: true })
+    .limit(20)
+
+  if (error || !data?.length) return []
+
+  const managerIds = [...new Set(data.map((r: { manager_id: string }) => r.manager_id))] as string[]
+  const { data: managers } = await supabase
+    .from('employees')
+    .select('id, name')
+    .in('id', managerIds)
+    .eq('tenant_id', user.tenant_id)
+
+  const nameMap = new Map((managers ?? []).map(m => [m.id, m.name ?? '']))
+
+  return data.map(row => ({
+    id: row.id,
+    manager_id: row.manager_id,
+    manager_name: nameMap.get(row.manager_id) ?? '',
+    employee_id: row.employee_id,
+    employee_name: '',
+    scheduled_at: row.scheduled_at,
+    theme: row.theme,
+    agenda: row.agenda,
+    reminded_at: row.reminded_at,
+    status: row.status as UpcomingOneOnOneRow['status'],
+  }))
 }

@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { deleteOneOnOneSession } from '../actions'
 import type { SessionRow } from '../types'
+import { SessionAiSummary } from './SessionAiSummary'
 
 interface Props {
   sessions: SessionRow[]
@@ -136,6 +137,11 @@ export function SessionHistoryTable({ sessions, onEdit }: Props) {
                       ) : (
                         <p className="text-sm text-gray-400">（記録内容なし）</p>
                       )}
+                      <SessionAiSummary
+                        sessionId={s.id}
+                        notes={s.notes}
+                        initialSummary={s.ai_summary}
+                      />
                     </td>
                   </tr>
                 )}

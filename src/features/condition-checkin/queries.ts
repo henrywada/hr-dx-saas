@@ -7,6 +7,7 @@ import type {
   ConditionTrendPoint,
   DivisionConditionTrendPoint,
   TenantConditionSummary,
+  ConditionDropAlert,
 } from './types'
 
 export async function getTodayCheckin(employeeId: string): Promise<ConditionCheckin | null> {
@@ -107,4 +108,25 @@ export async function getDivisionConditionTrend(
     return []
   }
   return data || []
+}
+
+/** C-C1: コンディション急激低下アラート一覧（産業医・HR向け） */
+export async function getConditionDropAlerts(days = 14): Promise<ConditionDropAlert[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_condition_drop_alerts', { p_days: days })
+  if (error) {
+    console.error('getConditionDropAlerts error:', error)
+    return []
+  }
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    employee_id: String(row.employee_id),
+    employee_name: String(row.employee_name ?? '（不明）'),
+    division_name: String(row.division_name ?? '未配属'),
+    alert_type: row.alert_type as ConditionDropAlert['alert_type'],
+    recent_avg: row.recent_avg != null ? Number(row.recent_avg) : null,
+    prior_avg: row.prior_avg != null ? Number(row.prior_avg) : null,
+    consecutive_low_days: Number(row.consecutive_low_days ?? 0),
+    latest_score: row.latest_score != null ? Number(row.latest_score) : null,
+    latest_checkin_date: row.latest_checkin_date ? String(row.latest_checkin_date) : null,
+  }))
 }

@@ -117,6 +117,7 @@ export type Database = {
           id: string
           is_new: boolean
           published_at: string
+          recipient_employee_id: string | null
           sort_order: number
           target_audience: string | null
           tenant_id: string
@@ -129,6 +130,7 @@ export type Database = {
           id?: string
           is_new?: boolean
           published_at?: string
+          recipient_employee_id?: string | null
           sort_order?: number
           target_audience?: string | null
           tenant_id: string
@@ -141,6 +143,7 @@ export type Database = {
           id?: string
           is_new?: boolean
           published_at?: string
+          recipient_employee_id?: string | null
           sort_order?: number
           target_audience?: string | null
           tenant_id?: string
@@ -148,6 +151,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "announcements_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "announcements_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -501,6 +511,64 @@ export type Database = {
           },
         ]
       }
+      career_discussion_appointments: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          notes: string | null
+          scheduled_at: string
+          scheduled_by_employee_id: string
+          status: string
+          tenant_id: string
+          theme: string | null
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          scheduled_at: string
+          scheduled_by_employee_id: string
+          status?: string
+          tenant_id: string
+          theme?: string | null
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          scheduled_at?: string
+          scheduled_by_employee_id?: string
+          status?: string
+          tenant_id?: string
+          theme?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_discussion_appointments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussion_appointments_scheduled_by_employee_id_fkey"
+            columns: ["scheduled_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussion_appointments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       career_discussion_theme_templates: {
         Row: {
           created_at: string
@@ -550,6 +618,7 @@ export type Database = {
           id: string
           next_date: string | null
           notes: string | null
+          one_on_one_session_id: string | null
           tenant_id: string
           theme: string
         }
@@ -563,6 +632,7 @@ export type Database = {
           id?: string
           next_date?: string | null
           notes?: string | null
+          one_on_one_session_id?: string | null
           tenant_id: string
           theme: string
         }
@@ -576,6 +646,7 @@ export type Database = {
           id?: string
           next_date?: string | null
           notes?: string | null
+          one_on_one_session_id?: string | null
           tenant_id?: string
           theme?: string
         }
@@ -599,6 +670,13 @@ export type Database = {
             columns: ["evaluation_period_id"]
             isOneToOne: false
             referencedRelation: "evaluation_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_discussions_one_on_one_session_id_fkey"
+            columns: ["one_on_one_session_id"]
+            isOneToOne: false
+            referencedRelation: "one_on_one_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -708,6 +786,8 @@ export type Database = {
           details: Json | null
           employee_id: string | null
           id: string
+          resolved_at: string | null
+          resolved_by: string | null
           tenant_id: string
           warning_type: string | null
         }
@@ -717,6 +797,8 @@ export type Database = {
           details?: Json | null
           employee_id?: string | null
           id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           tenant_id: string
           warning_type?: string | null
         }
@@ -726,6 +808,8 @@ export type Database = {
           details?: Json | null
           employee_id?: string | null
           id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           tenant_id?: string
           warning_type?: string | null
         }
@@ -735,6 +819,13 @@ export type Database = {
             columns: ["closure_id"]
             isOneToOne: false
             referencedRelation: "monthly_overtime_closures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closure_warnings_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -828,6 +919,7 @@ export type Database = {
       }
       consultations: {
         Row: {
+          anonymous_token: string | null
           assigned_to: string | null
           body: string
           category: Database["public"]["Enums"]["consultation_category"]
@@ -843,6 +935,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          anonymous_token?: string | null
           assigned_to?: string | null
           body: string
           category: Database["public"]["Enums"]["consultation_category"]
@@ -858,6 +951,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          anonymous_token?: string | null
           assigned_to?: string | null
           body?: string
           category?: Database["public"]["Enums"]["consultation_category"]
@@ -2540,6 +2634,8 @@ export type Database = {
       }
       evaluation_reminders: {
         Row: {
+          email_error: string | null
+          email_sent: boolean
           id: string
           message: string | null
           period_id: string
@@ -2551,6 +2647,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          email_error?: string | null
+          email_sent?: boolean
           id?: string
           message?: string | null
           period_id: string
@@ -2562,6 +2660,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          email_error?: string | null
+          email_sent?: boolean
           id?: string
           message?: string | null
           period_id?: string
@@ -3272,9 +3372,11 @@ export type Database = {
       }
       internal_events: {
         Row: {
+          audience_type: string
           created_at: string
           created_by: string
           description: string | null
+          division_id: string | null
           event_date: string
           id: string
           location: string | null
@@ -3283,9 +3385,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience_type?: string
           created_at?: string
           created_by: string
           description?: string | null
+          division_id?: string | null
           event_date: string
           id?: string
           location?: string | null
@@ -3294,9 +3398,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience_type?: string
           created_at?: string
           created_by?: string
           description?: string | null
+          division_id?: string | null
           event_date?: string
           id?: string
           location?: string | null
@@ -3311,6 +3417,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_events_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_events_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
           },
           {
             foreignKeyName: "internal_events_tenant_id_fkey"
@@ -3690,6 +3810,41 @@ export type Database = {
             columns: ["kudos_id"]
             isOneToOne: false
             referencedRelation: "kudos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kudos_value_tags: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kudos_value_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -4232,6 +4387,7 @@ export type Database = {
       }
       one_on_one_sessions: {
         Row: {
+          ai_summary: string | null
           conducted_at: string
           created_at: string
           employee_id: string
@@ -4243,6 +4399,7 @@ export type Database = {
           theme: string
         }
         Insert: {
+          ai_summary?: string | null
           conducted_at?: string
           created_at?: string
           employee_id: string
@@ -4254,6 +4411,7 @@ export type Database = {
           theme: string
         }
         Update: {
+          ai_summary?: string | null
           conducted_at?: string
           created_at?: string
           employee_id?: string
@@ -4319,6 +4477,70 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "one_on_one_theme_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_on_one_upcoming: {
+        Row: {
+          agenda: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          manager_id: string
+          reminded_at: string | null
+          scheduled_at: string
+          status: string
+          tenant_id: string
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          manager_id: string
+          reminded_at?: string | null
+          scheduled_at: string
+          status?: string
+          tenant_id: string
+          theme: string
+          updated_at?: string
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          manager_id?: string
+          reminded_at?: string | null
+          scheduled_at?: string
+          status?: string
+          tenant_id?: string
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_on_one_upcoming_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "one_on_one_upcoming_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "one_on_one_upcoming_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -9304,6 +9526,19 @@ export type Database = {
         Args: { p_closure_id: string; p_tenant_id: string }
         Returns: undefined
       }
+      apply_job_posting_variant: {
+        Args: { p_tenant_id: string; p_variant_id: string }
+        Returns: undefined
+      }
+      check_employee_condition_drop_alert: {
+        Args: { p_employee_id: string }
+        Returns: {
+          alert_type: string
+          consecutive_low_days: number
+          prior_avg: number
+          recent_avg: number
+        }[]
+      }
       create_auth_user: {
         Args: { p_email: string; p_password: string }
         Returns: string
@@ -9312,6 +9547,14 @@ export type Database = {
       current_employee_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
       delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
+      delete_division_safe: {
+        Args: { p_division_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      detect_overtime_threshold_warnings: {
+        Args: { p_closure_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
       detect_timecard_anomalies: {
         Args: { p_tenant_id: string; p_year_month: string }
         Returns: {
@@ -9321,6 +9564,10 @@ export type Database = {
           record_date: string
           work_time_record_id: string
         }[]
+      }
+      employee_can_view_division_event: {
+        Args: { p_employee_division_id: string; p_event_division_id: string }
+        Returns: boolean
       }
       fn_supervisor_qr_permission_apply: {
         Args: {
@@ -9370,6 +9617,20 @@ export type Database = {
         }[]
       }
       get_auth_user_email: { Args: { p_user_id: string }; Returns: string }
+      get_condition_drop_alerts: {
+        Args: { p_days?: number }
+        Returns: {
+          alert_type: string
+          consecutive_low_days: number
+          division_name: string
+          employee_id: string
+          employee_name: string
+          latest_checkin_date: string
+          latest_score: number
+          prior_avg: number
+          recent_avg: number
+        }[]
+      }
       get_department_overtime_summary: {
         Args: { p_tenant_id: string; p_year_month: string }
         Returns: {
@@ -9382,12 +9643,30 @@ export type Database = {
           warning_count: number
         }[]
       }
+      get_division_condition_summary: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_score: number
+          division_id: string
+          division_name: string
+          respondent_count: number
+        }[]
+      }
       get_division_condition_trend: {
         Args: { p_days?: number; p_division_id: string }
         Returns: {
           avg_score: number
           checkin_date: string
           respondent_count: number
+        }[]
+      }
+      get_employee_condition_averages: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_score: number
+          employee_id: string
+          recent_trend_down: boolean
+          record_count: number
         }[]
       }
       get_overtime_gap_analysis: {
@@ -9413,6 +9692,14 @@ export type Database = {
           total_employees: number
           violation_count: number
           year_month: string
+        }[]
+      }
+      get_tenant_condition_daily_trend: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_score: number
+          checkin_date: string
+          respondent_count: number
         }[]
       }
       get_tenant_condition_summary: {
@@ -9483,6 +9770,14 @@ export type Database = {
         Returns: {
           inserted_count: number
         }[]
+      }
+      try_consume_ai_usage: {
+        Args: {
+          p_feature_name: string
+          p_max_count?: number
+          p_tenant_id: string
+        }
+        Returns: boolean
       }
       update_user_password: {
         Args: { p_new_password: string; p_user_id: string }

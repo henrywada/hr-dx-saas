@@ -18,11 +18,9 @@ export interface AdmDashboardSummary {
     /** 直近パルスサーベイのスコア（0-5スケール） */
     score: number | null
   }
-  skillDevelopment: {
-    /** eラーニング研修完了率（%） */
-    elCompletionRatePercent: number | null
-    /** スキルギャップ率（%） */
-    skillGapRatePercent: number | null
+  skillMap: {
+    /** スキルマップに登録されたスキル数 */
+    registeredSkillCount: number
   }
   oneOnOne: {
     /** 直近30日の1on1実施件数 */
@@ -59,5 +57,23 @@ export interface AdmDashboardSummary {
     pendingConsultationCount: number
     /** 開催予定の社内イベント数 */
     upcomingEventCount: number
+  }
+  evaluation: {
+    /** 選択中評価期間の完了率（flow_status='confirmed' の割合、%） */
+    completionRatePercent: number | null
+    /** 選択中の評価期間 ID */
+    selectedPeriodId: string | null
+    /** 選択中の評価期間名 */
+    selectedPeriodName: string | null
+    /** 期間選択 UI 用の一覧 */
+    periods: { id: string; name: string }[]
+  }
+  careerDiscussion: {
+    /** 直近180日のキャリア面談実施率（在籍従業員に対する割合、%） */
+    ratePercent: number | null
+    /** 予約済み・未実施の面談件数 */
+    upcomingAppointmentCount: number
+    /** 90日以上未実施の従業員数 */
+    overdueEmployeeCount: number
   }
 }

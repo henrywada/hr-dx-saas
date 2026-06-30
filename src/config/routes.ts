@@ -1,4 +1,8 @@
 export const APP_ROUTES = {
+  PUBLIC: {
+    /** 匿名相談のステータス確認（認証不要） */
+    CONSULTATION_STATUS: '/p/consultation/status',
+  },
   AUTH: {
     LOGIN: '/login',
     SIGNUP: '/signup',
@@ -33,7 +37,6 @@ export const APP_ROUTES = {
     /** 悩み・相談窓口（対応者向けキュー） */
     ADMIN_CONSULTATION_QUEUE: '/adm/consultation-queue',
     ADMIN_CONSULTATION_QUEUE_DETAIL: (id: string) => `/adm/consultation-queue/${id}`,
-    /** 悩み・相談窓口（上司・other_any対象者向け、一般従業員ポータル内） */
     CONSULTATION_INBOX: '/consultation/inbox',
     CONSULTATION_INBOX_DETAIL: (id: string) => `/consultation/inbox/${id}`,
     /** コンディション記録（本人向け1タップ記録・自分の推移） */
@@ -119,9 +122,14 @@ export const APP_ROUTES = {
     /** 統合エンゲージメントダッシュボード（P2-B） */
     ADMIN_ENGAGEMENT: '/adm/engagement',
     /** 1on1支援機能（P2-C） */
+    /** 1on1 管理ダッシュボード */
     ADMIN_ONE_ON_ONE: '/adm/one-on-one',
+    /** 従業員向け 受けた1on1履歴 */
+    MY_ONE_ON_ONE: '/my-one-on-one',
     /** 入退社ライフサイクルワークフロー（P2-D） */
     ADMIN_LIFECYCLE: '/adm/lifecycle',
+    /** 従業員マスタ（(base_mnt)/employees） */
+    ADMIN_EMPLOYEES: '/adm/employees',
     /** サクセッションプラン（P3-A） */
     ADMIN_SUCCESSION: '/adm/succession',
     /** 退職理由の構造的蓄積・傾向分析（P3-C） */

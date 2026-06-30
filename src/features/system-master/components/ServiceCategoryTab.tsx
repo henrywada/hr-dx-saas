@@ -188,15 +188,15 @@ export default function ServiceCategoryTab({
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
-                className="text-left text-xs font-semibold text-gray-700"
-              >
-                カテゴリ名
-              </th>
-              <th
-                style={{ padding: `var(--space-2) var(--space-3)` }}
                 className="text-left text-xs font-semibold text-gray-700 w-44"
               >
                 クラス
+              </th>
+              <th
+                style={{ padding: `var(--space-2) var(--space-3)` }}
+                className="text-left text-xs font-semibold text-gray-700"
+              >
+                カテゴリ名
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
@@ -237,6 +237,25 @@ export default function ServiceCategoryTab({
                   )}
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }}>
+                  <select
+                    value={classIndexMap[cat.id] ?? ''}
+                    disabled={classChanging === cat.id}
+                    onChange={e => handleClassChange(cat.id, e.target.value)}
+                    style={{
+                      padding: `var(--space-1) var(--space-2)`,
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                    className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs disabled:opacity-50"
+                  >
+                    <option value="">未設定</option>
+                    {initialClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td style={{ padding: `var(--space-2) var(--space-3)` }}>
                   {editingId === cat.id ? (
                     <input
                       style={{
@@ -255,25 +274,6 @@ export default function ServiceCategoryTab({
                   ) : (
                     <span className="text-gray-800 text-xs">{cat.name}</span>
                   )}
-                </td>
-                <td style={{ padding: `var(--space-2) var(--space-3)` }}>
-                  <select
-                    value={classIndexMap[cat.id] ?? ''}
-                    disabled={classChanging === cat.id}
-                    onChange={e => handleClassChange(cat.id, e.target.value)}
-                    style={{
-                      padding: `var(--space-1) var(--space-2)`,
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                    className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs disabled:opacity-50"
-                  >
-                    <option value="">未設定</option>
-                    {initialClasses.map(cls => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }} className="text-center">
                   <div style={{ gap: 'var(--space-3)' }} className="flex justify-center">

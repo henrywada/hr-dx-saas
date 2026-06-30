@@ -1454,6 +1454,7 @@ export type Database = {
         Row: {
           bloom_level: string | null
           category: string
+          content_format: string
           course_type: string
           created_at: string
           created_by_employee_id: string | null
@@ -1473,6 +1474,7 @@ export type Database = {
         Insert: {
           bloom_level?: string | null
           category?: string
+          content_format?: string
           course_type?: string
           created_at?: string
           created_by_employee_id?: string | null
@@ -1492,6 +1494,7 @@ export type Database = {
         Update: {
           bloom_level?: string | null
           category?: string
+          content_format?: string
           course_type?: string
           created_at?: string
           created_by_employee_id?: string | null
@@ -1709,6 +1712,106 @@ export type Database = {
           },
         ]
       }
+      el_scorm_packages: {
+        Row: {
+          course_id: string
+          launch_path: string
+          original_filename: string | null
+          package_type: string
+          storage_prefix: string | null
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          course_id: string
+          launch_path: string
+          original_filename?: string | null
+          package_type: string
+          storage_prefix?: string | null
+          tenant_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          course_id?: string
+          launch_path?: string
+          original_filename?: string | null
+          package_type?: string
+          storage_prefix?: string | null
+          tenant_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_scorm_packages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_scorm_packages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_scorm_packages_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      el_scorm_runtime: {
+        Row: {
+          assignment_id: string
+          cmi_data: Json
+          lesson_status: string | null
+          score_raw: string | null
+          suspend_data: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          cmi_data?: Json
+          lesson_status?: string | null
+          score_raw?: string | null
+          suspend_data?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          cmi_data?: Json
+          lesson_status?: string | null
+          score_raw?: string | null
+          suspend_data?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_scorm_runtime_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "el_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_scorm_runtime_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       el_slides: {
         Row: {
           content: string | null
@@ -1755,6 +1858,64 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "el_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      el_xapi_statements: {
+        Row: {
+          activity_id: string | null
+          assignment_id: string | null
+          employee_id: string
+          id: string
+          recorded_at: string
+          result_score: number | null
+          statement: Json
+          tenant_id: string
+          verb_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          assignment_id?: string | null
+          employee_id: string
+          id?: string
+          recorded_at?: string
+          result_score?: number | null
+          statement: Json
+          tenant_id: string
+          verb_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          assignment_id?: string | null
+          employee_id?: string
+          id?: string
+          recorded_at?: string
+          result_score?: number | null
+          statement?: Json
+          tenant_id?: string
+          verb_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_xapi_statements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "el_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_xapi_statements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_xapi_statements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

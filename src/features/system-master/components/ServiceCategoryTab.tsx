@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSystemMaster } from '../hooks/useSystemMaster'
 
 interface Props {
@@ -38,6 +38,25 @@ export default function ServiceCategoryTab({
     )
   )
   const [classChanging, setClassChanging] = useState<string | null>(null)
+
+  // クラス ID → service_class.sort_order
+  const classSortById = useMemo(
+    () =>
+      Object.fromEntries(
+        initialClasses.map((cls: { id: string; sort_order?: number | null }) => [
+          cls.id,
+          cls.sort_order,
+        ])
+      ),
+    [initialClasses]
+  )
+
+  const getCategoryClassSortOrder = (categoryId: string) => {
+    const classId = classIndexMap[categoryId]
+    if (!classId) return '-'
+    const sortOrder = classSortById[classId]
+    return sortOrder ?? '-'
+  }
 
   useEffect(() => {
     setCategories(initialCategories)
@@ -181,16 +200,22 @@ export default function ServiceCategoryTab({
                 No
               </th>
               <th
-                style={{ padding: `var(--space-2) var(--space-3)` }}
-                className="text-left text-xs font-semibold text-gray-700 w-32"
+                style={{ padding: `var(--space-2) var(--space-2)` }}
+                className="text-center text-xs font-semibold text-gray-700 w-12 min-w-12"
               >
-                表示順
+                順
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
                 className="text-left text-xs font-semibold text-gray-700 w-44"
               >
                 クラス
+              </th>
+              <th
+                style={{ padding: `var(--space-2) var(--space-3)` }}
+                className="text-right text-xs font-semibold text-gray-700 w-32"
+              >
+                表示順
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
@@ -215,26 +240,11 @@ export default function ServiceCategoryTab({
                 >
                   {rowIndex + 1}
                 </td>
-                <td style={{ padding: `var(--space-2) var(--space-3)` }}>
-                  {editingId === cat.id ? (
-                    <input
-                      type="number"
-                      style={{
-                        padding: `var(--space-1) var(--space-2)`,
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                      className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs"
-                      value={editData[cat.id]?.sort_order ?? ''}
-                      onChange={e =>
-                        setEditData({
-                          ...editData,
-                          [cat.id]: { ...editData[cat.id], sort_order: Number(e.target.value) },
-                        })
-                      }
-                    />
-                  ) : (
-                    <span className="text-gray-800 text-xs">{cat.sort_order}</span>
-                  )}
+                <td
+                  style={{ padding: `var(--space-2) var(--space-2)` }}
+                  className="text-center text-xs text-gray-800 tabular-nums"
+                >
+                  {getCategoryClassSortOrder(cat.id)}
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }}>
                   <select
@@ -254,6 +264,27 @@ export default function ServiceCategoryTab({
                       </option>
                     ))}
                   </select>
+                </td>
+                <td style={{ padding: `var(--space-2) var(--space-3)` }} className="text-right">
+                  {editingId === cat.id ? (
+                    <input
+                      type="number"
+                      style={{
+                        padding: `var(--space-1) var(--space-2)`,
+                        borderRadius: 'var(--radius-sm)',
+                      }}
+                      className="border border-gray-200 w-full focus:ring-2 focus:ring-[#FD7601] outline-none text-xs text-right tabular-nums"
+                      value={editData[cat.id]?.sort_order ?? ''}
+                      onChange={e =>
+                        setEditData({
+                          ...editData,
+                          [cat.id]: { ...editData[cat.id], sort_order: Number(e.target.value) },
+                        })
+                      }
+                    />
+                  ) : (
+                    <span className="text-gray-800 text-xs tabular-nums">{cat.sort_order}</span>
+                  )}
                 </td>
                 <td style={{ padding: `var(--space-2) var(--space-3)` }}>
                   {editingId === cat.id ? (

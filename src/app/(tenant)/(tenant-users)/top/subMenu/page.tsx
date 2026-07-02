@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading'
 import { SubMenuServiceCard } from '@/components/submenu/SubMenuServiceCard'
+import { resolveServiceLinkHref } from '@/lib/service-route'
 
 export default async function SubMenuPage({
   searchParams,
@@ -94,7 +95,7 @@ async function PortalSubMenuCategoryContent({ categoryId }: { categoryId: string
             return (
               <SubMenuServiceCard
                 key={service.id}
-                href={service.route_path || '#'}
+                href={resolveServiceLinkHref(service.route_path)}
                 variant={variant}
                 layout="portal"
                 title={service.title}

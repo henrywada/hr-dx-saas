@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { RouteSegmentLoading } from '@/components/layout/RouteSegmentLoading'
 import { SubMenuServiceCard } from '@/components/submenu/SubMenuServiceCard'
+import { resolveServiceLinkHref } from '@/lib/service-route'
 
 export default async function SubMenuPage({
   searchParams,
@@ -132,6 +133,7 @@ async function AdminSubMenuCategoryContent({ categoryId }: { categoryId: string 
                 targetPath = '/adm' + targetPath
               }
             }
+            targetPath = resolveServiceLinkHref(targetPath)
 
             return (
               <SubMenuServiceCard

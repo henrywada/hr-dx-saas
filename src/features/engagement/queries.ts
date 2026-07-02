@@ -24,6 +24,46 @@ function deptStatus(composite: number): 'good' | 'caution' | 'alert' {
   return 'alert'
 }
 
+/**
+ * divisions.layer 列は不正確な場合があるため（20260505180000_fix_stress_group_analysis_for_layer_depth.sql
+ * で既知の問題として修正実績あり）、parent_id を辿った実際の深さを計算する。
+ * Top階層（parent_id IS NULL）を depth=1 とする。
+ */
+async function computeActualDivisionDepths(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  tenantId: string
+): Promise<Map<string, number>> {
+  const { data } = await supabase
+    .from('divisions')
+    .select('id, parent_id')
+    .eq('tenant_id', tenantId)
+
+  type DivRow = { id: string; parent_id: string | null }
+  const divisions = (data ?? []) as DivRow[]
+
+  const childrenByParent = new Map<string | null, string[]>()
+  for (const d of divisions) {
+    const arr = childrenByParent.get(d.parent_id) ?? []
+    arr.push(d.id)
+    childrenByParent.set(d.parent_id, arr)
+  }
+
+  const depths = new Map<string, number>()
+  const queue: Array<{ id: string; depth: number }> = (childrenByParent.get(null) ?? []).map(
+    id => ({ id, depth: 1 })
+  )
+  while (queue.length > 0) {
+    const { id, depth } = queue.shift()!
+    if (depths.has(id)) continue // 循環参照防止
+    depths.set(id, depth)
+    for (const childId of childrenByParent.get(id) ?? []) {
+      queue.push({ id: childId, depth: depth + 1 })
+    }
+  }
+  return depths
+}
+
 const EMPTY: EngagementDashboardData = {
   pulseTrend: [],
   latestPulseScore: null,
@@ -56,25 +96,33 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
   // 1. 従業員リスト（user_id → division 逆引き用）
   const { data: empRaw } = await supabase
     .from('employees')
-    .select('id, user_id, divisions(id, name)')
+    .select('id, user_id, divisions(id, name, layer)')
     .eq('tenant_id', user.tenant_id)
     .eq('active_status', 'active')
 
   type EmpRow = {
     id: string
     user_id: string | null
-    divisions: { id: string; name: string } | null
+    divisions: { id: string; name: string; layer: number | null } | null
   }
   const employees = (empRaw ?? []) as EmpRow[]
   const userIdToEmpId = new Map<string, string>(
     employees.filter(e => e.user_id).map(e => [e.user_id!, e.id])
   )
-  const empIdToDivision = new Map<string, { id: string; name: string }>(
+  const empIdToDivision = new Map<string, { id: string; name: string; layer: number | null }>(
     employees.filter(e => e.divisions).map(e => [e.id, e.divisions!])
   )
-  const divisionMap = new Map<string, string>()
+
+  // divisions.layer 列は不正確な場合があるため、parent_id から実際の深さを計算して優先的に使う
+  // （raw layer 値へのフォールバックは、階層ツリーから到達できない孤立レコード用）
+  const actualDepths = await computeActualDivisionDepths(supabase, user.tenant_id)
+
+  const divisionMap = new Map<string, { name: string; layer: number | null }>()
   for (const emp of employees) {
-    if (emp.divisions) divisionMap.set(emp.divisions.id, emp.divisions.name)
+    if (emp.divisions) {
+      const layer = actualDepths.get(emp.divisions.id) ?? emp.divisions.layer
+      divisionMap.set(emp.divisions.id, { name: emp.divisions.name, layer })
+    }
   }
 
   // ----------------------------------------------------------------
@@ -343,7 +391,8 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
   // パルス（0〜5 → 0〜40pt）+ ストレス低率（0〜30pt）+ 回答率（0〜30pt）
   // データが無い指標は除外して残りの重みで按分
   const departments: DepartmentEngagementRow[] = []
-  for (const [divId, divName] of divisionMap) {
+  for (const [divId, division] of divisionMap) {
+    const divName = division.name
     const pulseAcc = divPulseScore.get(divId)
     const stressAcc = divStressRate.get(divId)
     const questAcc = divQuestRate.get(divId)
@@ -378,6 +427,7 @@ export async function getEngagementDashboardData(): Promise<EngagementDashboardD
     departments.push({
       divisionId: divId,
       divisionName: divName,
+      layer: division.layer,
       pulseScore,
       highStressRate,
       questionnaireResponseRate,

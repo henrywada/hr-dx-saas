@@ -3,30 +3,26 @@ import { resolveEmployeeEmail } from '@/lib/mail/resolve-employee-email'
 import { sendMail } from '@/lib/mail/send'
 import { APP_ROUTES } from '@/config/routes'
 import {
-  getEmployeeDisplayInfo,
-  getRecentlyNotifiedEmployeeIds,
-  type EmployeeDisplayInfo,
-} from './notification-queries'
-import {
   getDivisionManagerEmployeeIds,
   getHrDigestRecipientEmployeeIds,
 } from '@/lib/notifications/recipient-queries'
+import { getRecentlyNotifiedDivisionIds } from './alert-notification-queries'
 import {
-  describeTopRiskFactors,
+  formatEngagementFactorLines,
   buildManagerAlertEmail,
   buildHrDigestEmail,
-} from './notification-mail'
-import type { HighRiskTransition } from './transition-detector'
-import type { ScoreFactors } from './types'
+} from './alert-notification-mail'
+import type { AlertTransition } from './alert-transition-detector'
+import type { DepartmentEngagementRow } from './types'
 
 type AlertRecipientType = 'manager' | 'hr_digest' | 'no_manager_fallback'
 type AlertStatus = 'sent' | 'failed' | 'skipped'
 
 interface AlertLogEntry {
   tenant_id: string
-  employee_id: string
-  risk_score: number
-  previous_risk_level: string
+  division_id: string
+  composite_score: number
+  previous_status: string
   recipient_employee_id: string | null
   recipient_type: AlertRecipientType
   channel: 'email'
@@ -35,14 +31,13 @@ interface AlertLogEntry {
 }
 
 interface DigestTransition {
-  employeeName: string
-  departmentName: string | null
-  riskScore: number
+  divisionName: string
+  compositeScore: number
 }
 
 function dashboardUrl(): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || 'https://app.hr-dx.jp'
-  return `${base}${APP_ROUTES.TENANT.ADMIN_TURNOVER_RISK}`
+  return `${base}${APP_ROUTES.TENANT.ADMIN_ENGAGEMENT}`
 }
 
 /** 従業員IDにメールを解決して送信し、結果に応じたステータスを返す（例外を握りつぶさず状態化する） */
@@ -63,35 +58,23 @@ async function resolveAndSend(
   }
 }
 
-/** 上長へ個別アラートメールを送信し、監査ログ行を返す */
+/** 部署の管理職へ個別アラートメールを送信し、監査ログ行を返す */
 async function sendManagerAlerts(params: {
   tenantId: string
-  transition: HighRiskTransition
-  info: EmployeeDisplayInfo | undefined
-  employeeName: string
+  transition: AlertTransition
+  divisionInfo: DepartmentEngagementRow | undefined
   dashboardUrl: string
-  scoreFactorsByEmployee: Map<string, ScoreFactors>
 }): Promise<AlertLogEntry[]> {
-  const {
-    tenantId,
-    transition,
-    info,
-    employeeName,
-    dashboardUrl: url,
-    scoreFactorsByEmployee,
-  } = params
-  const departmentName = info?.department_name ?? null
+  const { tenantId, transition, divisionInfo, dashboardUrl: url } = params
+  const divisionName = divisionInfo?.divisionName ?? '(不明な部署)'
 
-  // 対象従業員自身が同一部署の管理職である場合、自分自身への通知を除外する
-  const managerIds = (
-    info?.division_id ? await getDivisionManagerEmployeeIds(tenantId, info.division_id) : []
-  ).filter(id => id !== transition.employee_id)
+  const managerIds = await getDivisionManagerEmployeeIds(tenantId, transition.division_id)
 
   const baseLog = {
     tenant_id: tenantId,
-    employee_id: transition.employee_id,
-    risk_score: transition.risk_score,
-    previous_risk_level: transition.previous_risk_level,
+    division_id: transition.division_id,
+    composite_score: transition.composite_score,
+    previous_status: transition.previous_status,
   }
 
   if (managerIds.length === 0) {
@@ -102,17 +85,23 @@ async function sendManagerAlerts(params: {
         recipient_type: 'no_manager_fallback',
         channel: 'email',
         status: 'skipped',
-        error_message: '同一部署に稼働中の管理職が存在しません',
+        error_message: '当該部署に稼働中の管理職が存在しません',
       },
     ]
   }
 
-  const factors = scoreFactorsByEmployee.get(transition.employee_id)
+  const factorLines = divisionInfo
+    ? formatEngagementFactorLines({
+        pulseScore: divisionInfo.pulseScore,
+        highStressRate: divisionInfo.highStressRate,
+        questionnaireResponseRate: divisionInfo.questionnaireResponseRate,
+      })
+    : []
+
   const message = buildManagerAlertEmail({
-    employeeName,
-    departmentName,
-    riskScore: transition.risk_score,
-    topFactors: factors ? describeTopRiskFactors(factors) : [],
+    divisionName,
+    compositeScore: transition.composite_score,
+    factorLines,
     dashboardUrl: url,
   })
 
@@ -133,12 +122,11 @@ async function sendManagerAlerts(params: {
 
 /**
  * 人事へダイジェストメールを送信する。1受信者につき送信は1通のみ。
- * 監査ログは対象従業員の数だけ、同じ送信結果を紐づけて記録する
- * （「HRはこの従業員について通知を受けたか」を追跡可能にするため）。
+ * 監査ログは対象部署の数だけ、同じ送信結果を紐づけて記録する。
  */
 async function sendHrDigest(params: {
   tenantId: string
-  transitions: HighRiskTransition[]
+  transitions: AlertTransition[]
   digestTransitions: DigestTransition[]
   dashboardUrl: string
 }): Promise<AlertLogEntry[]> {
@@ -152,9 +140,9 @@ async function sendHrDigest(params: {
     for (const transition of transitions) {
       logs.push({
         tenant_id: tenantId,
-        employee_id: transition.employee_id,
-        risk_score: transition.risk_score,
-        previous_risk_level: transition.previous_risk_level,
+        division_id: transition.division_id,
+        composite_score: transition.composite_score,
+        previous_status: transition.previous_status,
         recipient_employee_id: hrId,
         recipient_type: 'hr_digest',
         channel: 'email',
@@ -167,46 +155,40 @@ async function sendHrDigest(params: {
 }
 
 /**
- * 新規に high へ遷移した従業員について、上長へ個別メール・人事へダイジェストメールを送信する。
- * 1人のメール送信失敗が他の対象者への通知を止めないよう、対象者ごとに独立して処理する。
- * 直近に送信済みの従業員は、同時実行等による重複通知を避けるため対象から除外する。
+ * 新規に alert へ遷移した部署について、管理職へ個別メール・人事へダイジェストメールを送信する。
+ * 1件の送信失敗が他の対象部署への通知を止めないよう、対象部署ごとに独立して処理する。
+ * 直近に送信済みの部署は、同時実行等による重複通知を避けるため対象から除外する。
  */
-export async function notifyHighRiskTransitions(params: {
+export async function notifyAlertTransitions(params: {
   tenantId: string
-  transitions: HighRiskTransition[]
-  scoreFactorsByEmployee: Map<string, ScoreFactors>
+  transitions: AlertTransition[]
+  divisionInfoById: Map<string, DepartmentEngagementRow>
 }): Promise<{ notifiedCount: number }> {
-  const { tenantId, scoreFactorsByEmployee } = params
+  const { tenantId, divisionInfoById } = params
 
-  const recentlyNotified = await getRecentlyNotifiedEmployeeIds(
+  const recentlyNotified = await getRecentlyNotifiedDivisionIds(
     tenantId,
-    params.transitions.map(t => t.employee_id)
+    params.transitions.map(t => t.division_id)
   )
-  const transitions = params.transitions.filter(t => !recentlyNotified.has(t.employee_id))
+  const transitions = params.transitions.filter(t => !recentlyNotified.has(t.division_id))
   if (transitions.length === 0) return { notifiedCount: 0 }
 
   const url = dashboardUrl()
-  const employeeIds = transitions.map(t => t.employee_id)
-  const displayInfo = await getEmployeeDisplayInfo(tenantId, employeeIds)
   const alertLogs: AlertLogEntry[] = []
   const digestTransitions: DigestTransition[] = []
 
   for (const transition of transitions) {
-    const info = displayInfo.get(transition.employee_id)
-    const employeeName = info?.name ?? '(不明な従業員)'
+    const info = divisionInfoById.get(transition.division_id)
     digestTransitions.push({
-      employeeName,
-      departmentName: info?.department_name ?? null,
-      riskScore: transition.risk_score,
+      divisionName: info?.divisionName ?? '(不明な部署)',
+      compositeScore: transition.composite_score,
     })
 
     const managerLogs = await sendManagerAlerts({
       tenantId,
       transition,
-      info,
-      employeeName,
+      divisionInfo: info,
       dashboardUrl: url,
-      scoreFactorsByEmployee,
     })
     alertLogs.push(...managerLogs)
   }
@@ -216,14 +198,14 @@ export async function notifyHighRiskTransitions(params: {
 
   if (alertLogs.length > 0) {
     const supabase = await createClient()
-    const { error } = await supabase.from('turnover_risk_alerts').insert(alertLogs)
+    const { error } = await supabase.from('engagement_department_alerts').insert(alertLogs)
     if (error) {
-      console.error('turnover_risk_alerts insert failed:', error.message)
+      console.error('engagement_department_alerts insert failed:', error.message)
     }
   }
 
-  const notifiedEmployeeIds = new Set(
-    alertLogs.filter(log => log.status === 'sent').map(log => log.employee_id)
+  const notifiedDivisionIds = new Set(
+    alertLogs.filter(log => log.status === 'sent').map(log => log.division_id)
   )
-  return { notifiedCount: notifiedEmployeeIds.size }
+  return { notifiedCount: notifiedDivisionIds.size }
 }

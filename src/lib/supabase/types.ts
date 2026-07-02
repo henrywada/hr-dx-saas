@@ -2587,6 +2587,129 @@ export type Database = {
           },
         ]
       }
+      engagement_department_alerts: {
+        Row: {
+          channel: string
+          composite_score: number
+          division_id: string
+          error_message: string | null
+          id: string
+          notified_at: string
+          previous_status: string
+          recipient_employee_id: string | null
+          recipient_type: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          channel?: string
+          composite_score: number
+          division_id: string
+          error_message?: string | null
+          id?: string
+          notified_at?: string
+          previous_status: string
+          recipient_employee_id?: string | null
+          recipient_type: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          channel?: string
+          composite_score?: number
+          division_id?: string
+          error_message?: string | null
+          id?: string
+          notified_at?: string
+          previous_status?: string
+          recipient_employee_id?: string | null
+          recipient_type?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_department_alerts_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_department_alerts_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "engagement_department_alerts_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_department_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_department_scores: {
+        Row: {
+          calculated_at: string
+          composite_score: number
+          division_id: string
+          id: string
+          score_breakdown: Json
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          calculated_at?: string
+          composite_score: number
+          division_id: string
+          id?: string
+          score_breakdown?: Json
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          calculated_at?: string
+          composite_score?: number
+          division_id?: string
+          id?: string
+          score_breakdown?: Json
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_department_scores_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_department_scores_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "engagement_department_scores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluation_flow_logs: {
         Row: {
           changed_at: string

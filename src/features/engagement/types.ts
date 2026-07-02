@@ -28,6 +28,8 @@ export interface QuestionnaireTrendPoint {
 export interface DepartmentEngagementRow {
   divisionId: string
   divisionName: string
+  /** 組織階層番号（divisions.layer）。Top階層が1、数字が大きいほど下位階層 */
+  layer: number | null
   pulseScore: number | null
   highStressRate: number | null
   questionnaireResponseRate: number | null

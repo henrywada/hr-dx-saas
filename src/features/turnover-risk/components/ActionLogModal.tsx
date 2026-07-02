@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { logTurnoverRiskAction } from '../actions'
+import { useEffect, useState } from 'react'
+import { logTurnoverRiskAction, fetchTurnoverRiskActionLogs } from '../actions'
 import { ACTION_TYPE_LABELS } from '../types'
-import type { ActionType } from '../types'
+import type { ActionLog, ActionType } from '../types'
 
 interface Props {
   employeeId: string
@@ -20,11 +20,35 @@ const ACTION_TYPES: ActionType[] = [
   'other',
 ]
 
+function formatActionDate(iso: string) {
+  return new Date(iso).toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function ActionLogModal({ employeeId, employeeName, isOpen, onClose }: Props) {
   const [actionType, setActionType] = useState<ActionType>('one_on_one')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // null = 未読み込み（読み込み中表示）、配列 = 読み込み済み
+  const [logs, setLogs] = useState<ActionLog[] | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    fetchTurnoverRiskActionLogs(employeeId).then(result => {
+      if (!cancelled) setLogs(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, employeeId])
 
   if (!isOpen) return null
 
@@ -46,12 +70,42 @@ export function ActionLogModal({ employeeId, employeeName, isOpen, onClose }: Pr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-gray-200 bg-white shadow-xl">
         <div className="border-b border-gray-200 bg-gray-200 px-6 py-4">
           <h2 className="text-lg font-bold text-gray-900">アクションを記録する</h2>
           <p className="mt-0.5 text-sm text-gray-600">{employeeName}</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+
+        <div className="overflow-y-auto border-b border-gray-200 px-6 py-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            記録履歴
+          </p>
+          {logs === null ? (
+            <p className="text-sm text-gray-400">読み込み中...</p>
+          ) : logs.length === 0 ? (
+            <p className="text-sm text-gray-400">記録はまだありません</p>
+          ) : (
+            <ul className="space-y-2">
+              {logs.map(log => (
+                <li key={log.id} className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-800">
+                      {ACTION_TYPE_LABELS[log.action_type]}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatActionDate(log.actioned_at)}
+                    </span>
+                  </div>
+                  {log.notes && (
+                    <p className="mt-1 whitespace-pre-wrap text-gray-600">{log.notes}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto p-6">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">アクション種別</label>
             <select

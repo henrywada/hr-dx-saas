@@ -9410,6 +9410,70 @@ export type Database = {
           },
         ]
       }
+      turnover_risk_alerts: {
+        Row: {
+          channel: string
+          employee_id: string
+          error_message: string | null
+          id: string
+          notified_at: string
+          previous_risk_level: string
+          recipient_employee_id: string | null
+          recipient_type: string
+          risk_score: number
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          channel?: string
+          employee_id: string
+          error_message?: string | null
+          id?: string
+          notified_at?: string
+          previous_risk_level: string
+          recipient_employee_id?: string | null
+          recipient_type: string
+          risk_score: number
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          channel?: string
+          employee_id?: string
+          error_message?: string | null
+          id?: string
+          notified_at?: string
+          previous_risk_level?: string
+          recipient_employee_id?: string | null
+          recipient_type?: string
+          risk_score?: number
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnover_risk_alerts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnover_risk_alerts_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnover_risk_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turnover_risk_scores: {
         Row: {
           calculated_at: string

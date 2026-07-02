@@ -5,32 +5,39 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { calculateRiskScore } from './score-calculator'
-import { collectEmployeeRawData } from './queries'
+import { collectEmployeeRawData, getActionLogs } from './queries'
+import { getLatestRiskLevelsBeforeUpdate } from './notification-queries'
+import { detectHighRiskTransitions } from './transition-detector'
+import { notifyHighRiskTransitions } from './notifications'
 import { APP_ROUTES } from '@/config/routes'
-import type { ActionType } from './types'
+import type { ActionLog, ActionType, ScoreFactors } from './types'
 
 const ALLOWED_ROLES = ['hr', 'hr_manager', 'tenant_admin', 'developer']
 
-/** 全従業員のリスクスコアを再計算して保存する */
+/** 全従業員のリスクスコアを再計算して保存し、新規に high へ遷移した従業員を通知する */
 export async function recalculateTurnoverRiskScores(): Promise<{
   success: boolean
   updatedCount: number
+  notifiedCount: number
   error?: string
 }> {
   const user = await getServerUser()
   if (!user?.tenant_id) {
-    return { success: false, updatedCount: 0, error: 'Unauthorized' }
+    return { success: false, updatedCount: 0, notifiedCount: 0, error: 'Unauthorized' }
   }
 
   if (!ALLOWED_ROLES.includes(user.appRole ?? '')) {
-    return { success: false, updatedCount: 0, error: 'Permission denied' }
+    return { success: false, updatedCount: 0, notifiedCount: 0, error: 'Permission denied' }
   }
 
   try {
     const rawDataList = await collectEmployeeRawData()
     if (rawDataList.length === 0) {
-      return { success: true, updatedCount: 0 }
+      return { success: true, updatedCount: 0, notifiedCount: 0 }
     }
+
+    // 通知の遷移判定用に、更新前の最新スコアを先に取得しておく
+    const previousLevels = await getLatestRiskLevelsBeforeUpdate(user.tenant_id)
 
     const supabase = await createClient()
     const now = new Date().toISOString()
@@ -51,15 +58,42 @@ export async function recalculateTurnoverRiskScores(): Promise<{
     const { error } = await supabase.from('turnover_risk_scores').insert(records)
 
     if (error) {
-      return { success: false, updatedCount: 0, error: error.message }
+      return { success: false, updatedCount: 0, notifiedCount: 0, error: error.message }
     }
 
     revalidatePath(APP_ROUTES.TENANT.ADMIN_TURNOVER_RISK)
-    return { success: true, updatedCount: records.length }
+
+    // スコア保存は既に成功している。通知処理の失敗でこの成功結果を上書きしない
+    let notifiedCount = 0
+    try {
+      const transitions = detectHighRiskTransitions(previousLevels, records)
+      const scoreFactorsByEmployee = new Map<string, ScoreFactors>(
+        records.map(r => [r.employee_id, r.score_factors as ScoreFactors])
+      )
+      const result = await notifyHighRiskTransitions({
+        tenantId: user.tenant_id,
+        transitions,
+        scoreFactorsByEmployee,
+      })
+      notifiedCount = result.notifiedCount
+    } catch (notifyErr) {
+      console.error('turnover-risk notification failed:', notifyErr)
+    }
+
+    return { success: true, updatedCount: records.length, notifiedCount }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    return { success: false, updatedCount: 0, error: message }
+    return { success: false, updatedCount: 0, notifiedCount: 0, error: message }
   }
+}
+
+/** アクション履歴を取得する（記録モーダルからのクライアント呼び出し用ラッパー） */
+export async function fetchTurnoverRiskActionLogs(employeeId: string): Promise<ActionLog[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+  if (!ALLOWED_ROLES.includes(user.appRole ?? '')) return []
+
+  return getActionLogs(employeeId)
 }
 
 const actionLogSchema = z.object({

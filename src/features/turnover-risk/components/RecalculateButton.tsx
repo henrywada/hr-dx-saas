@@ -13,7 +13,9 @@ export function RecalculateButton() {
     const result = await recalculateTurnoverRiskScores()
     setIsLoading(false)
     if (result.success) {
-      setMessage(`${result.updatedCount} 名のスコアを更新しました`)
+      const notifiedText =
+        result.notifiedCount > 0 ? `（うち ${result.notifiedCount} 名を新規通知）` : ''
+      setMessage(`${result.updatedCount} 名のスコアを更新しました${notifiedText}`)
     } else {
       setMessage(`エラー: ${result.error}`)
     }

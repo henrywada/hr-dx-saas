@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { RecalculateButton } from './RecalculateButton'
 import { RiskRankingTable } from './RiskRankingTable'
+import { ScreenHelpModal } from './ScreenHelpModal'
 import type { TurnoverRiskRow, TurnoverRiskSummary } from '../types'
 
 interface Props {
@@ -37,7 +39,9 @@ const PILLS: { key: FilterKey; label: string }[] = [
 ]
 
 export function TurnoverRiskDashboard({ rows, summary }: Props) {
+  const router = useRouter()
   const [filter, setFilter] = useState<FilterKey>('all')
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
 
   const lastCalc = summary.lastCalculatedAt
     ? new Date(summary.lastCalculatedAt).toLocaleString('ja-JP', {
@@ -56,9 +60,14 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
     <div className="p-6">
       {/* メインカード（admin-card-and-table.md スタイル準拠） */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {/* パスバー */}
-        <div className="border-b border-gray-200 bg-gray-100 px-6 py-2.5 text-sm text-gray-600">
-          /adm/turnover-risk — 離職予兆スコアリング
+        {/* 戻るバー */}
+        <div className="border-b border-gray-200 bg-gray-100 px-6 py-2.5">
+          <button
+            onClick={() => router.back()}
+            className="text-sm font-bold text-blue-600 hover:text-blue-700"
+          >
+            ← 戻る
+          </button>
         </div>
 
         {/* カードヘッダー */}
@@ -69,7 +78,15 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
             </h1>
             {lastCalc && <p className="mt-1 text-xs text-gray-500">最終算出: {lastCalc}</p>}
           </div>
-          <RecalculateButton />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsHelpOpen(true)}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              画面の説明
+            </button>
+            <RecalculateButton />
+          </div>
         </div>
 
         {/* カード本文 */}
@@ -108,6 +125,8 @@ export function TurnoverRiskDashboard({ rows, summary }: Props) {
           <RiskRankingTable rows={filtered} />
         </div>
       </div>
+
+      {isHelpOpen && <ScreenHelpModal onClose={() => setIsHelpOpen(false)} />}
     </div>
   )
 }

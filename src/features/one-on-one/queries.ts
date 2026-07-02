@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { differenceInDays } from 'date-fns'
+import { computePulseTrendDirection, isOneOnOneOverdue } from './condition-summary'
 import type {
   UpcomingOneOnOneRow,
-
   SessionRow,
   ImplementationRateRow,
   DepartmentRateRow,
@@ -12,6 +12,7 @@ import type {
   OneOnOneDashboardData,
   OneOnOneEmployee,
   OneOnOneSessionSummary,
+  EmployeeConditionSummary,
 } from './types'
 
 /** 1on1 対象となる在籍中の部下（is_manager=false）一覧を取得する */
@@ -209,10 +210,7 @@ export async function getDepartmentImplementationRates(): Promise<DepartmentRate
 
   const conductedEmployeeIds = new Set((sessions ?? []).map(s => s.employee_id))
 
-  const byDivision = new Map<
-    string,
-    { name: string; total: number; conducted: number }
-  >()
+  const byDivision = new Map<string, { name: string; total: number; conducted: number }>()
 
   for (const sub of subordinates) {
     if (!sub.division_id) continue
@@ -357,7 +355,6 @@ export async function getOneOnOneDashboardData(): Promise<OneOnOneDashboardData>
   }
 }
 
-
 /**
  * キャリア面談連携（CR-S3）用：指定従業員それぞれの直近 1on1 セッションを取得する。
  */
@@ -462,7 +459,6 @@ export async function getMyOneOnOneSessions(employeeId: string): Promise<Session
   })
 }
 
-
 /** 管理職向け: 予定中の 1on1 一覧 */
 export async function getUpcomingOneOnOnesForManager(): Promise<UpcomingOneOnOneRow[]> {
   const user = await getServerUser()
@@ -480,7 +476,14 @@ export async function getUpcomingOneOnOnesForManager(): Promise<UpcomingOneOnOne
 
   if (error || !data?.length) return []
 
-  const empIds = [...new Set(data.flatMap((r: { manager_id: string; employee_id: string }) => [r.manager_id, r.employee_id]))] as string[]
+  const empIds = [
+    ...new Set(
+      data.flatMap((r: { manager_id: string; employee_id: string }) => [
+        r.manager_id,
+        r.employee_id,
+      ])
+    ),
+  ] as string[]
   const { data: employees } = await supabase
     .from('employees')
     .select('id, name')
@@ -542,4 +545,119 @@ export async function getMyUpcomingOneOnOnes(employeeId: string): Promise<Upcomi
     reminded_at: row.reminded_at,
     status: row.status as UpcomingOneOnOneRow['status'],
   }))
+}
+
+const PULSE_TREND_LIMIT = 3
+
+/** 対象従業員ごとの直近パルスサーベイ推移（古い→新しい順）を取得する */
+async function fetchPulseTrendsByEmployee(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  tenantId: string,
+  userIdToEmpId: Map<string, string>
+): Promise<Map<string, Array<{ period: string; score: number }>>> {
+  const userIds = [...userIdToEmpId.keys()]
+  const pulseByEmployeeDesc = new Map<string, Array<{ period: string; score: number }>>()
+  if (userIds.length === 0) return pulseByEmployeeDesc
+
+  const { data: pulseData } = await supabase
+    .from('pulse_survey_responses')
+    .select('user_id, score, survey_period')
+    .eq('tenant_id', tenantId)
+    .in('user_id', userIds)
+    .not('score', 'is', null)
+    .order('survey_period', { ascending: false })
+    // 従業員ごとに直近 PULSE_TREND_LIMIT 件あれば十分なため、余裕を持った上限で無制限取得を防ぐ
+    .limit(userIds.length * PULSE_TREND_LIMIT * 6)
+
+  for (const row of pulseData ?? []) {
+    const empId = userIdToEmpId.get(row.user_id)
+    if (!empId || row.score === null) continue
+    const list = pulseByEmployeeDesc.get(empId) ?? []
+    if (list.length < PULSE_TREND_LIMIT) {
+      list.push({ period: row.survey_period, score: Math.round((row.score / 2) * 10) / 10 })
+      pulseByEmployeeDesc.set(empId, list)
+    }
+  }
+
+  // 表示用に古い→新しい順へ反転する（DBは新しい→古い順で取得しているため）
+  const result = new Map<string, Array<{ period: string; score: number }>>()
+  for (const [empId, trend] of pulseByEmployeeDesc) {
+    result.set(empId, [...trend].reverse())
+  }
+  return result
+}
+
+/** 対象従業員ごとの直近1on1実施日を取得する */
+async function fetchLastOneOnOneByEmployee(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  tenantId: string,
+  employeeIds: string[]
+): Promise<Map<string, string>> {
+  const { data: sessions } = await supabase
+    .from('one_on_one_sessions')
+    .select('employee_id, conducted_at')
+    .eq('tenant_id', tenantId)
+    .in('employee_id', employeeIds)
+    .order('conducted_at', { ascending: false })
+
+  const lastSessionByEmployee = new Map<string, string>()
+  for (const s of sessions ?? []) {
+    if (!lastSessionByEmployee.has(s.employee_id)) {
+      lastSessionByEmployee.set(s.employee_id, s.conducted_at)
+    }
+  }
+  return lastSessionByEmployee
+}
+
+/**
+ * 1on1実施前のコンディションサマリー（パルスサーベイ直近推移・1on1実施状況）を
+ * 対象従業員ごとに取得する。ストレスチェック等の機微データは含まない
+ * （docs/implementation-plan-1on1-condition-summary.md 参照）。
+ */
+export async function getEmployeeConditionSummary(
+  employeeIds: string[]
+): Promise<Record<string, EmployeeConditionSummary>> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || employeeIds.length === 0) return {}
+
+  const supabase = await createClient()
+
+  const { data: employeesData } = await supabase
+    .from('employees')
+    .select('id, user_id')
+    .eq('tenant_id', user.tenant_id)
+    .in('id', employeeIds)
+
+  const userIdToEmpId = new Map<string, string>()
+  for (const e of employeesData ?? []) {
+    if (e.user_id) userIdToEmpId.set(e.user_id, e.id)
+  }
+
+  const [pulseTrendByEmployee, lastSessionByEmployee] = await Promise.all([
+    fetchPulseTrendsByEmployee(supabase, user.tenant_id, userIdToEmpId),
+    fetchLastOneOnOneByEmployee(supabase, user.tenant_id, employeeIds),
+  ])
+
+  const now = new Date()
+  const result: Record<string, EmployeeConditionSummary> = {}
+  for (const employeeId of employeeIds) {
+    const pulseTrend = pulseTrendByEmployee.get(employeeId) ?? []
+
+    const lastOneOnOneAt = lastSessionByEmployee.get(employeeId) ?? null
+    const daysSinceLastOneOnOne = lastOneOnOneAt
+      ? differenceInDays(now, new Date(lastOneOnOneAt))
+      : null
+
+    result[employeeId] = {
+      employeeId,
+      pulseTrend,
+      pulseTrendDirection: computePulseTrendDirection(pulseTrend),
+      lastOneOnOneAt,
+      daysSinceLastOneOnOne,
+      isOverdue: isOneOnOneOverdue(daysSinceLastOneOnOne),
+    }
+  }
+  return result
 }

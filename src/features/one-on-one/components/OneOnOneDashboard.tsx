@@ -9,7 +9,12 @@ import { ReminderBadge } from './ReminderBadge'
 import { UpcomingOneOnOnePanel } from './UpcomingOneOnOnePanel'
 import { UpcomingScheduleModal } from './UpcomingScheduleModal'
 import { ThemeTemplateManager } from './ThemeTemplateManager'
-import type { OneOnOneDashboardData, SessionRow, UpcomingOneOnOneRow } from '../types'
+import type {
+  OneOnOneDashboardData,
+  SessionRow,
+  UpcomingOneOnOneRow,
+  EmployeeConditionSummary,
+} from '../types'
 import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Employee {
@@ -22,6 +27,7 @@ interface Props {
   data: OneOnOneDashboardData
   employees: Employee[]
   careerDiscussionsByEmployee: Record<string, CareerDiscussionRow[]>
+  conditionSummaryByEmployee: Record<string, EmployeeConditionSummary>
   upcoming: UpcomingOneOnOneRow[]
 }
 
@@ -31,7 +37,13 @@ function truncate(label: string): string {
   return label.length > 8 ? label.slice(0, 7) + '…' : label
 }
 
-export function OneOnOneDashboard({ data, employees, careerDiscussionsByEmployee, upcoming }: Props) {
+export function OneOnOneDashboard({
+  data,
+  employees,
+  careerDiscussionsByEmployee,
+  conditionSummaryByEmployee,
+  upcoming,
+}: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null)
@@ -150,7 +162,7 @@ export function OneOnOneDashboard({ data, employees, careerDiscussionsByEmployee
                 未実施リマインダー（30日以上）
               </h2>
               <UpcomingOneOnOnePanel upcoming={upcoming} />
-          <ReminderBadge overdueEmployees={data.overdueEmployees} />
+              <ReminderBadge overdueEmployees={data.overdueEmployees} />
             </section>
           )}
 
@@ -230,6 +242,7 @@ export function OneOnOneDashboard({ data, employees, careerDiscussionsByEmployee
         templates={data.themeTemplates}
         editingSession={editingSession}
         careerDiscussionsByEmployee={careerDiscussionsByEmployee}
+        conditionSummaryByEmployee={conditionSummaryByEmployee}
       />
     </div>
   )

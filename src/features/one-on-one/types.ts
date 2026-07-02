@@ -1,3 +1,5 @@
+import type { PulseTrendDirection, PulseTrendPoint } from './condition-summary'
+
 /** 1on1テーマ定数（組み込みデフォルト） */
 export const DEFAULT_THEMES = [
   '目標進捗確認',
@@ -123,6 +125,21 @@ export interface OverdueEmployee {
   days_overdue: number
 }
 
+/**
+ * 1on1実施前のコンディションサマリー（パルスサーベイ推移・1on1実施状況）。
+ * ストレスチェック・コンディションチェックイン個人データは上長への表示不可（RLS・既存製品判断）
+ * のためスコープに含めない（docs/implementation-plan-1on1-condition-summary.md 参照）。
+ */
+export interface EmployeeConditionSummary {
+  employeeId: string
+  /** 古い→新しい順。直近3回分 */
+  pulseTrend: PulseTrendPoint[]
+  pulseTrendDirection: PulseTrendDirection
+  lastOneOnOneAt: string | null
+  daysSinceLastOneOnOne: number | null
+  /** 30日以上未実施（または実施記録なし） */
+  isOverdue: boolean
+}
 
 /** 予定中の 1on1（アジェンダ事前共有） */
 export interface UpcomingOneOnOneRow {

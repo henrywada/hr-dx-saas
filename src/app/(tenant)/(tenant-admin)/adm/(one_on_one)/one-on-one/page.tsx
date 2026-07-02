@@ -5,6 +5,7 @@ import {
   getOneOnOneDashboardData,
   getActiveEmployeesForOneOnOne,
   getUpcomingOneOnOnesForManager,
+  getEmployeeConditionSummary,
 } from '@/features/one-on-one/queries'
 import { seedDefaultThemeTemplates } from '@/features/one-on-one/actions'
 import { OneOnOneDashboard } from '@/features/one-on-one/components/OneOnOneDashboard'
@@ -31,15 +32,17 @@ export default async function OneOnOnePage() {
     getUpcomingOneOnOnesForManager(),
   ])
 
-  const careerDiscussionsByEmployee = await getRecentCareerDiscussionsForEmployees(
-    employeeList.map(e => e.id)
-  )
+  const [careerDiscussionsByEmployee, conditionSummaryByEmployee] = await Promise.all([
+    getRecentCareerDiscussionsForEmployees(employeeList.map(e => e.id)),
+    getEmployeeConditionSummary(employeeList.map(e => e.id)),
+  ])
 
   return (
     <OneOnOneDashboard
       data={data}
       employees={employeeList}
       careerDiscussionsByEmployee={careerDiscussionsByEmployee}
+      conditionSummaryByEmployee={conditionSummaryByEmployee}
       upcoming={upcoming}
     />
   )

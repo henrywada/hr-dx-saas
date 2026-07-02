@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { recordOneOnOneSession, updateOneOnOneSession } from '../actions'
 import { TemplateSelector } from './TemplateSelector'
+import { ConditionSummaryPanel } from './ConditionSummaryPanel'
 import Link from 'next/link'
 import { APP_ROUTES } from '@/config/routes'
-import type { ThemeTemplate, SessionRow } from '../types'
+import type { ThemeTemplate, SessionRow, EmployeeConditionSummary } from '../types'
 import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
 interface Employee {
@@ -23,6 +24,7 @@ interface Props {
   /** 指定時は編集モード（未指定または null は新規記録） */
   editingSession?: SessionRow | null
   careerDiscussionsByEmployee?: Record<string, CareerDiscussionRow[]>
+  conditionSummaryByEmployee?: Record<string, EmployeeConditionSummary>
 }
 
 /** ISO日時を datetime-local 入力用（ローカルタイム）に整形する */
@@ -32,7 +34,15 @@ function toDatetimeLocal(iso: string): string {
   return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16)
 }
 
-export function SessionFormModal({ open, onClose, employees, templates, editingSession, careerDiscussionsByEmployee = {} }: Props) {
+export function SessionFormModal({
+  open,
+  onClose,
+  employees,
+  templates,
+  editingSession,
+  careerDiscussionsByEmployee = {},
+  conditionSummaryByEmployee = {},
+}: Props) {
   const router = useRouter()
   const isEdit = Boolean(editingSession)
   const [employeeId, setEmployeeId] = useState('')
@@ -129,12 +139,18 @@ export function SessionFormModal({ open, onClose, employees, templates, editingS
             </select>
           </div>
 
+          {employeeId && conditionSummaryByEmployee[employeeId] && (
+            <ConditionSummaryPanel summary={conditionSummaryByEmployee[employeeId]} />
+          )}
 
           {employeeId && (careerDiscussionsByEmployee[employeeId] ?? []).length > 0 && (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <p className="text-xs font-semibold text-gray-600">直近のキャリア面談（参照用）</p>
-                <Link href={APP_ROUTES.TENANT.ADMIN_CAREER_DISCUSSIONS} className="text-xs text-[#FD7601] hover:underline">
+                <Link
+                  href={APP_ROUTES.TENANT.ADMIN_CAREER_DISCUSSIONS}
+                  className="text-xs text-[#FD7601] hover:underline"
+                >
                   キャリア面談へ
                 </Link>
               </div>

@@ -30,7 +30,7 @@ export default async function ExpirationAlertsPage() {
                 <span>/</span>
                 <span className="text-white">有効期限監視</span>
               </nav>
-              <h1 className="text-3xl font-extrabold flex items-center tracking-tight">
+              <h1 className="text-3xl font-extrabold flex items-center tracking-tight text-white">
                 <AlertTriangle className="h-8 w-8 mr-3 text-yellow-400" />
                 有効期限監視
               </h1>

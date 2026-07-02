@@ -33,7 +33,7 @@ export default function TraceabilityPage() {
               <ArrowRight className="h-3 w-3" />
               <span className="text-white">トレース照会</span>
             </nav>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight flex items-center">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight flex items-center text-white">
               <PackageSearch className="h-10 w-10 md:h-12 md:w-12 mr-4 text-blue-300" />
               流通経路上での照会
             </h1>

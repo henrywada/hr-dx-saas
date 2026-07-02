@@ -102,26 +102,26 @@ export default function CompanyMaintenance({ initialCompanies }: Props) {
         <div className="overflow-x-auto p-4 sm:p-6">
           <table className="min-w-full divide-y divide-gray-100">
             <thead>
-              <tr className="text-left py-3 border-b-2 border-gray-50 uppercase tracking-widest text-[10px] font-black text-gray-400">
-                <th className="px-4 pb-4">会社名</th>
-                <th className="px-4 pb-4">メールアドレス (アラート送信先)</th>
-                <th className="px-4 pb-4 text-center">操作</th>
+              <tr className="text-left border-b-2 border-gray-50 uppercase tracking-widest text-[10px] font-black text-gray-400">
+                <th className="px-4 py-0.5">会社名</th>
+                <th className="px-4 py-0.5">メールアドレス (アラート送信先)</th>
+                <th className="px-4 py-0.5 text-center">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {initialCompanies.length > 0 ? (
                 initialCompanies.map((company) => (
                   <tr key={company.company_id} className="group hover:bg-blue-50/50 transition-all">
-                    <td className="px-4 py-5 whitespace-nowrap">
+                    <td className="px-4 py-1 whitespace-nowrap">
                       <div className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors">{company.company_name}</div>
                     </td>
-                    <td className="px-4 py-5 whitespace-nowrap">
+                    <td className="px-4 py-1 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-500 font-medium">
                         <Mail className="h-3.5 w-3.5 mr-2 opacity-40" />
                         {company.email_address || <span className="text-gray-300 italic">未設定</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-5 whitespace-nowrap text-center">
+                    <td className="px-4 py-1 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center space-x-1">
                         <button
                           onClick={() => handleEdit(company)}

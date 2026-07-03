@@ -262,7 +262,7 @@ export default function ServiceTab({ initialServices, categories, classes, class
               <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-16 text-center">
                 No
               </th>
-              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-32">
+              <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-[calc(12rem+1ch)]">
                 クラス
               </th>
               <th className="px-4 py-1 text-xs font-semibold text-[#24292f] uppercase tracking-wider w-48">
@@ -309,7 +309,7 @@ export default function ServiceTab({ initialServices, categories, classes, class
                   }
                 >
                   <td className="px-4 py-1 text-center align-middle">{index + 1}</td>
-                  <td className="px-4 py-1 align-middle text-xs text-gray-600">
+                  <td className="px-4 py-1 align-middle text-xs text-gray-600 w-[calc(12rem+1ch)]">
                     {classNameForCategory(categoryIdForRow(item))}
                   </td>
                   <td className="px-4 py-1 align-middle">

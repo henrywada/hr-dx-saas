@@ -117,6 +117,8 @@ export const APP_ROUTES = {
     ADMIN_LABOR_COMPLIANCE: '/adm/labor-compliance',
     /** 横断KPIダッシュボード（経営層向け）（P1-D） */
     ADMIN_HR_KPI: '/adm/hr-kpi',
+    /** 経営者向け統合エグゼクティブサマリー（施策4） */
+    ADMIN_EXECUTIVE_SUMMARY: '/adm/executive-summary',
     /** 離職予兆スコアリング & アラート（P2-A） */
     ADMIN_TURNOVER_RISK: '/adm/turnover-risk',
     /** 統合エンゲージメントダッシュボード（P2-B） */

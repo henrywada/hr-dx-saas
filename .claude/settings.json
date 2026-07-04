@@ -1,9 +1,9 @@
 {
   "enabledPlugins": {
-    "product-management@knowledge-work-plugins": true,
-    "engineering@knowledge-work-plugins": true,
-    "design@knowledge-work-plugins": true,
-    "human-resources@knowledge-work-plugins": true
+    "product-management@knowledge-work-plugins": false,
+    "engineering@knowledge-work-plugins": false,
+    "design@knowledge-work-plugins": false,
+    "human-resources@knowledge-work-plugins": false
   },
   "hooks": {
     "PostToolUse": [

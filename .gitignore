@@ -63,3 +63,6 @@ docs/manual/
 !.vscode/extensions.json
 !.vscode/tasks.json
 !.vscode/launch.json
+
+# ローカル実行環境（Playwright MCP用chromiumへのシンボリックリンク等）
+.local/

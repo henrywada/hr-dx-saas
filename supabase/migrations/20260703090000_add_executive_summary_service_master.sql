@@ -12,7 +12,8 @@ BEGIN
   FROM public.service WHERE trim(route_path) = '/adm/hr-kpi' LIMIT 1;
 
   IF v_category_id IS NULL THEN
-    RAISE EXCEPTION '/adm/hr-kpi の service_category が見つかりません。先に横断KPIダッシュボードのmigrationを適用してください。';
+    -- クリーンな db reset では前提サービス未登録のためスキップ（20260706140000 が冪等補完）
+    RETURN;
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM public.service WHERE trim(route_path) = '/adm/executive-summary') THEN

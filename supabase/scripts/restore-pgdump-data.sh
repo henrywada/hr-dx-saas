@@ -19,8 +19,8 @@
 # 使い方:
 #   ./supabase/scripts/restore-pgdump-data.sh <backup.sql> '<postgresql://...>'
 # 例（ローカル・実際に作られたファイル名に合わせる）:
-#   ./supabase/scripts/restore-pgdump-data.sh supabase/backups/service_role_tables_data_20260323.sql 'postgresql://postgres:postgres@127.0.0.1:55322/postgres'
-#   ./supabase/scripts/restore-pgdump-data.sh supabase/backups/service_tenant_tables_data_20260323_153045.sql 'postgresql://postgres:postgres@127.0.0.1:55322/postgres'
+#   ./supabase/scripts/restore-pgdump-data.sh supabase/backups/service_role_tables_data_20260323.sql 'postgresql://postgres:postgres@127.0.0.1:55422/postgres'
+#   ./supabase/scripts/restore-pgdump-data.sh supabase/backups/service_tenant_tables_data_20260323_153045.sql 'postgresql://postgres:postgres@127.0.0.1:55422/postgres'
 # 例（Supabase クラウド）:
 #   ダッシュボードの Database → Connection string（URI）を使用。sslmode=require が付いていることが多い。
 

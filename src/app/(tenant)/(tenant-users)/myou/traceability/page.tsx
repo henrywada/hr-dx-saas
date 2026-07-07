@@ -5,18 +5,28 @@ import TraceabilitySearchForm from '../components/TraceabilitySearchForm'
 import TraceabilityResults from '../components/TraceabilityResults'
 import { getProductTrace } from '@/features/myou/actions'
 import type { ProductTraceResult } from '@/features/myou/types'
-import { PackageSearch, ArrowRight, History, ShieldCheck } from 'lucide-react'
+import { PackageSearch, ArrowRight, History, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function TraceabilityPage() {
   const [isPending, startTransition] = useTransition()
   const [searchResult, setSearchResult] = useState<ProductTraceResult | null>(null)
   const [searched, setSearched] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   const handleSearch = (serial: string) => {
     setSearched(true)
+    setSearchError(null)
     startTransition(async () => {
-      const data = await getProductTrace(serial)
-      setSearchResult(data)
+      // Server Action が throw してもルートの error.tsx に飛ばさず、
+      // 検索コンテキストを保ったままエラーバナーで通知する
+      try {
+        const data = await getProductTrace(serial)
+        setSearchResult(data)
+      } catch (error) {
+        console.error('Traceability search failed:', error)
+        setSearchResult(null)
+        setSearchError('照会中にエラーが発生しました。時間をおいて再度お試しください。')
+      }
     })
   }
 
@@ -73,8 +83,19 @@ export default function TraceabilityPage() {
         {/* 検索フォーム */}
         <TraceabilitySearchForm onSearch={handleSearch} isPending={isPending} />
 
+        {/* 照会エラー */}
+        {searchError && !isPending && (
+          <div className="mt-6 p-4 rounded-lg flex items-center space-x-3 bg-red-50 text-red-800 border border-red-200">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span className="text-sm font-medium">{searchError}</span>
+          </div>
+        )}
+
         {/* 検索結果 */}
-        <TraceabilityResults data={searchResult} searched={searched && !isPending} />
+        <TraceabilityResults
+          data={searchResult}
+          searched={searched && !isPending && !searchError}
+        />
 
         {/* ガイド・補足 */}
         {!searched && (

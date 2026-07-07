@@ -45,7 +45,7 @@ export default function CompanyMaintenance({ initialCompanies }: Props) {
   const handleDelete = async (id: string, name: string) => {
     if (
       !confirm(
-        `施工会社「${name}」を削除してもよろしいですか？\n※この会社に関連付けられた納入履歴がある場合、エラーとなる可能性があります。`
+        `施工会社「${name}」を削除してもよろしいですか？\n※この会社が製品の納入先または出荷履歴から参照されている場合は削除できません。\n※削除するとこの会社へのアラート送信履歴も削除されます。`
       )
     )
       return

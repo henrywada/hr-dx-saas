@@ -2,17 +2,11 @@
 
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { InventoryItem } from '@/features/myou/types'
+import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { Package } from 'lucide-react'
 
 interface InventoryTableProps {
   items: InventoryItem[]
-}
-
-/** 有効期限までの残日数を計算する（期限未設定は null） */
-function daysUntilExpiration(expirationDate: string | null): number | null {
-  if (!expirationDate) return null
-  const diffMs = new Date(`${expirationDate}T00:00:00`).getTime() - Date.now()
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
 
 export default function InventoryTable({ items }: InventoryTableProps) {
@@ -51,7 +45,7 @@ export default function InventoryTable({ items }: InventoryTableProps) {
       key: 'status',
       label: '期限状況',
       render: (_value, item) => {
-        const daysLeft = daysUntilExpiration(item.expiration_date)
+        const daysLeft = getDaysUntilExpiration(item.expiration_date)
         if (daysLeft === null) {
           return (
             <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">

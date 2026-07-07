@@ -3,6 +3,7 @@
 import { useTransition, useState } from 'react'
 import { sendManualAlert } from '@/features/myou/actions'
 import type { ExpiringProduct } from '@/features/myou/types'
+import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { Bell, Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 interface Props {
@@ -133,10 +134,7 @@ export default function ExpiringProductsTable({ products }: Props) {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {company.products.map(p => {
-                  const daysLeft = Math.ceil(
-                    (new Date(p.expiration_date).getTime() - new Date().getTime()) /
-                      (1000 * 60 * 60 * 24)
-                  )
+                  const daysLeft = getDaysUntilExpiration(p.expiration_date) ?? 0
                   return (
                     <tr key={p.serial_number} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">

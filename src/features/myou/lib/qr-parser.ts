@@ -52,6 +52,18 @@ export function buildSerialNumber(dateYmd: string, sequence: number): string {
 }
 
 /**
+ * 当日発行済みシリアル番号の一覧から最大通番を求める（該当なしは 0）。
+ * 文字列の辞書順では通番が5桁（10000〜）になった時点で大小を誤るため、
+ * 必ず数値に変換してから比較する。
+ */
+export function getMaxSerialSequence(serials: string[], dateYmd: string): number {
+  return serials.reduce((max, serial) => {
+    const sequence = extractSerialSequence(serial, dateYmd)
+    return sequence !== null && sequence > max ? sequence : max
+  }, 0)
+}
+
+/**
  * 既存シリアル番号から当日通番を取り出す。
  * 形式に合わない場合は null を返す。
  */

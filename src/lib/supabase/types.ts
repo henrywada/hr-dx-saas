@@ -4554,6 +4554,13 @@ export type Database = {
             referencedRelation: "myou_companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "myou_delivery_logs_product_fkey"
+            columns: ["tenant_id", "serial_number"]
+            isOneToOne: false
+            referencedRelation: "myou_products"
+            referencedColumns: ["tenant_id", "serial_number"]
+          },
         ]
       }
       myou_products: {
@@ -10135,6 +10142,18 @@ export type Database = {
           metadata: Json
           similarity: number
         }[]
+      }
+      myou_register_delivery: {
+        Args: {
+          p_company_id: string
+          p_delivered_by: string
+          p_delivery_date: string
+          p_expiration_date: string
+          p_last_delivery_at: string
+          p_registered_at: string
+          p_serial_number: string
+        }
+        Returns: undefined
       }
       rag_session_tenant_id: { Args: never; Returns: string }
       resolve_active_period_for_employee_v2: {

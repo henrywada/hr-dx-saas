@@ -104,6 +104,29 @@ export const registerDeliverySchema = z.object({
 })
 export type RegisterDeliveryInput = z.infer<typeof registerDeliverySchema>
 
+/** 会社ID（UUID）の検証 */
+export const companyIdSchema = z.string().uuid('会社IDが不正です')
+
+/** 施工会社の登録・更新入力 */
+export const upsertCompanySchema = z.object({
+  id: z.string().uuid('会社IDが不正です').optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, '会社名を入力してください')
+    .max(100, '会社名は100文字以内で入力してください'),
+  email_address: z
+    .string()
+    .trim()
+    .max(255, 'メールアドレスが長すぎます')
+    .refine(value => value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+      message: 'メールアドレスの形式が正しくありません',
+    })
+    .optional()
+    .default(''),
+})
+export type UpsertCompanyInput = z.infer<typeof upsertCompanySchema>
+
 /** QRラベル発行の入力 */
 export const issueLabelsSchema = z.object({
   expiration_date: dateStringSchema,

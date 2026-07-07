@@ -8,11 +8,13 @@ import { sendExpirationAlertEmail } from '@/lib/mail'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getAlertDateRange } from './queries'
-import { buildQrPayload, buildSerialNumber, extractSerialSequence } from './lib/qr-parser'
+import { buildQrPayload, buildSerialNumber, getMaxSerialSequence } from './lib/qr-parser'
 import {
+  companyIdSchema,
   issueLabelsSchema,
   registerDeliverySchema,
   registerReceivingSchema,
+  upsertCompanySchema,
   type DeliveryLogWithCompany,
   type IssueLabelsInput,
   type IssuedLabel,
@@ -108,7 +110,7 @@ export async function registerReceiving(formData: RegisterReceivingInput) {
       received_at: toJSTDateString(),
       tenant_id: user.tenant_id,
     },
-    { onConflict: 'serial_number' }
+    { onConflict: 'tenant_id,serial_number' }
   )
 
   if (productError) {
@@ -136,8 +138,8 @@ export async function registerReceiving(formData: RegisterReceivingInput) {
 
 /**
  * 出荷登録（（株）ミュー → 施工会社）を実行する
- * 1. myou_products の状態を delivered に更新（upsert）
- * 2. myou_delivery_logs に出荷履歴を挿入
+ * 製品の状態更新と出荷履歴の挿入は RPC（myou_register_delivery）で
+ * 単一トランザクションとして実行する（履歴だけ欠落する部分成功を防ぐ）
  */
 export async function registerDelivery(formData: RegisterDeliveryInput) {
   const user = await getServerUser()
@@ -154,44 +156,24 @@ export async function registerDelivery(formData: RegisterDeliveryInput) {
   // 未入荷（在庫に無い）シリアルの出荷は運用初期を考慮して警告付きで受け付ける
   const { data: existing } = await supabase
     .from('myou_products')
-    .select('serial_number, status, received_at')
+    .select('serial_number, status')
     .eq('serial_number', input.serial_number)
     .eq('tenant_id', user.tenant_id)
     .maybeSingle()
 
-  // 1. 製品情報の登録・更新
-  const { error: productError } = await supabase.from('myou_products').upsert(
-    {
-      serial_number: input.serial_number,
-      expiration_date: input.expiration_date,
-      status: 'delivered',
-      last_delivery_at: toJSTISOString(),
-      current_company_id: input.company_id,
-      received_at: existing?.received_at ?? null,
-      tenant_id: user.tenant_id,
-    },
-    { onConflict: 'serial_number' }
-  )
-
-  if (productError) {
-    console.error('Error upserting product (delivery):', productError)
-    return { success: false, error: '製品情報の登録に失敗しました。' }
-  }
-
-  // 2. 出荷ログの記録（担当者名も残す）
-  const { error: logError } = await supabase.from('myou_delivery_logs').insert({
-    serial_number: input.serial_number,
-    company_id: input.company_id,
-    delivery_date: toJSTDateString(),
-    delivered_by: user.name ?? null,
-    registered_at: toJSTISOString(),
-    tenant_id: user.tenant_id,
+  const { error } = await supabase.rpc('myou_register_delivery', {
+    p_serial_number: input.serial_number,
+    p_expiration_date: input.expiration_date,
+    p_company_id: input.company_id,
+    p_delivery_date: toJSTDateString(),
+    p_delivered_by: user.name ?? null,
+    p_last_delivery_at: toJSTISOString(),
+    p_registered_at: toJSTISOString(),
   })
 
-  if (logError) {
-    console.error('Error inserting delivery log:', logError)
-    // 製品登録は成功しているがログに失敗したケース
-    return { success: true, warning: '製品は登録されましたが、履歴の記録に失敗しました。' }
+  if (error) {
+    console.error('Error registering delivery:', error)
+    return { success: false, error: '出荷登録に失敗しました。もう一度お試しください。' }
   }
 
   revalidatePath(APP_ROUTES.MYOU.DELIVERY_SCAN)
@@ -227,25 +209,26 @@ export async function issueLabels(
   const todayYmd = toJSTDateString()
 
   // 当日発行分の最大通番を取得して続きから採番する
-  // ※ 同時実行時に採番が衝突する可能性はあるが、serial_number の主キー制約で
-  //   重複登録は防がれる（低頻度運用のため許容し、失敗時は再実行を促す）
+  // 文字列の辞書順ソートでは通番5桁（10000〜）を正しく比較できないため、
+  // 当日分を全件取得して数値比較で最大値を求める（1日の発行量は少なく軽量）
+  // ※ 同時実行時に採番が衝突する可能性はあるが、(tenant_id, serial_number) の
+  //   主キー制約で重複登録は防がれる（低頻度運用のため許容し、失敗時は再実行を促す）
   const compactDate = todayYmd.replaceAll('-', '')
-  const { data: latest, error: latestError } = await supabase
+  const { data: issuedToday, error: latestError } = await supabase
     .from('myou_products')
     .select('serial_number')
     .eq('tenant_id', user.tenant_id)
     .like('serial_number', `MS-${compactDate}-%`)
-    .order('serial_number', { ascending: false })
-    .limit(1)
 
   if (latestError) {
     console.error('Error fetching latest serial:', latestError)
     return { success: false, error: 'シリアル番号の採番に失敗しました。' }
   }
 
-  const lastSequence = latest?.[0]
-    ? (extractSerialSequence(latest[0].serial_number, todayYmd) ?? 0)
-    : 0
+  const lastSequence = getMaxSerialSequence(
+    (issuedToday ?? []).map(row => row.serial_number),
+    todayYmd
+  )
 
   const labels: IssuedLabel[] = Array.from({ length: input.quantity }, (_, index) => {
     const serial = buildSerialNumber(todayYmd, lastSequence + index + 1)
@@ -281,6 +264,11 @@ export async function issueLabels(
 export async function sendManualAlert(companyId: string) {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+
+  const parsedId = companyIdSchema.safeParse(companyId)
+  if (!parsedId.success) {
+    return { success: false, error: parsedId.error.issues[0]?.message ?? '会社IDが不正です' }
+  }
 
   const supabase = await getSupabase()
 
@@ -357,21 +345,28 @@ export async function upsertCompany(formData: {
     }
   }
 
+  const parsed = upsertCompanySchema.safeParse(formData)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
+  }
+  const input = parsed.data
+
   const supabase = await getSupabase()
 
   const companyData = {
-    name: formData.name,
-    email_address: formData.email_address,
+    name: input.name,
+    // 空文字は未登録として null で保存する
+    email_address: input.email_address === '' ? null : input.email_address,
     tenant_id: user.tenant_id,
   }
 
   let result
-  if (formData.id) {
+  if (input.id) {
     // 更新
     result = await supabase
       .from('myou_companies')
       .update(companyData)
-      .eq('id', formData.id)
+      .eq('id', input.id)
       .eq('tenant_id', user.tenant_id)
   } else {
     // 新規作成
@@ -402,16 +397,28 @@ export async function deleteCompany(id: string) {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
+  const parsedId = companyIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return { success: false, error: parsedId.error.issues[0]?.message ?? '会社IDが不正です' }
+  }
+
   const supabase = await getSupabase()
 
   const { error } = await supabase
     .from('myou_companies')
     .delete()
-    .eq('id', id)
+    .eq('id', parsedId.data)
     .eq('tenant_id', user.tenant_id)
 
   if (error) {
     console.error('Error deleting company:', error)
+    // 23503 = 外部キー制約違反（製品の納入先・出荷履歴から参照されている）
+    if (error.code === '23503') {
+      return {
+        success: false,
+        error: 'この会社は製品の納入先または出荷履歴から参照されているため削除できません。',
+      }
+    }
     return { success: false, error: '施工会社の削除に失敗しました。' }
   }
 

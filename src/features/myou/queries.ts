@@ -6,6 +6,9 @@ import type { AlertLogRow, ExpiringProduct, InventoryItem, MyouCompany } from '.
 /** アラート対象となる有効期限までの残日数 */
 export const EXPIRATION_ALERT_DAYS = 30
 
+/** 在庫一覧の一度に取得する最大件数（無制限取得によるメモリ・転送量の膨張を防ぐ） */
+export const INVENTORY_FETCH_LIMIT = 1000
+
 async function getSupabase() {
   return await createClient()
 }
@@ -146,6 +149,7 @@ export async function getInventory(): Promise<InventoryItem[]> {
     .eq('tenant_id', user.tenant_id)
     .eq('status', 'in_stock')
     .order('expiration_date', { ascending: true, nullsFirst: false })
+    .limit(INVENTORY_FETCH_LIMIT)
 
   if (error) {
     console.error('Error fetching inventory:', {

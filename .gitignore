@@ -50,6 +50,7 @@ supabase/snippets/
 
 # ローカルのバックアップ（DBダンプ・コードアーカイブ。個人情報を含むためコミット禁止）
 backups/
+backup_*.sql
 
 # ローカルのマニュアル類（バージョン管理しない）
 docs/manual/

@@ -207,7 +207,7 @@ export default function ServiceCategoryTab({
               </th>
               <th
                 style={{ padding: `var(--space-2) var(--space-3)` }}
-                className="text-left text-xs font-semibold text-gray-700 w-44"
+                className="text-left text-xs font-semibold text-gray-700 w-[22rem] min-w-[22rem]"
               >
                 クラス
               </th>
@@ -246,7 +246,10 @@ export default function ServiceCategoryTab({
                 >
                   {getCategoryClassSortOrder(cat.id)}
                 </td>
-                <td style={{ padding: `var(--space-2) var(--space-3)` }}>
+                <td
+                  style={{ padding: `var(--space-2) var(--space-3)` }}
+                  className="w-[22rem] min-w-[22rem]"
+                >
                   <select
                     value={classIndexMap[cat.id] ?? ''}
                     disabled={classChanging === cat.id}

@@ -76,6 +76,16 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-sm text-[#57606a] hover:text-[#FD7601] transition-colors"
+        >
+          ← 戻る
+        </button>
+      </div>
+
       {/* タブ */}
       <div className="flex items-center gap-1 border-b border-gray-200">
         {(['tenant', 'template'] as const).map(t => (

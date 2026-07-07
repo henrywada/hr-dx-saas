@@ -23,21 +23,28 @@ interface GetCoursesOptions {
   category?: string
 }
 
+/** 管理画面コース一覧: category → title（日本語は localeCompare） */
+function sortCoursesByCategoryAndTitle(courses: ElCourse[]): ElCourse[] {
+  return [...courses].sort((a, b) => {
+    const byCat = (a.category ?? '').localeCompare(b.category ?? '', 'ja', {
+      sensitivity: 'base',
+    })
+    if (byCat !== 0) return byCat
+    return (a.title ?? '').localeCompare(b.title ?? '', 'ja', { sensitivity: 'base' })
+  })
+}
+
 export async function getCourses(options: GetCoursesOptions = {}): Promise<ElCourse[]> {
   const supabase = await createClient()
 
-  let query = supabase
-    .from('el_courses')
-    .select('*')
-    .eq('course_type', 'tenant')
-    .order('created_at', { ascending: false })
+  let query = supabase.from('el_courses').select('*').eq('course_type', 'tenant')
 
   if (options.status) query = query.eq('status', options.status)
   if (options.category) query = query.eq('category', options.category)
 
   const { data, error } = await query
   if (error) throw supabaseQueryError('コース一覧の取得に失敗しました', error)
-  return (data ?? []) as ElCourse[]
+  return sortCoursesByCategoryAndTitle((data ?? []) as ElCourse[])
 }
 
 export async function getTemplateCourses(options: GetCoursesOptions = {}): Promise<ElCourse[]> {
@@ -48,14 +55,13 @@ export async function getTemplateCourses(options: GetCoursesOptions = {}): Promi
     .select('*')
     .eq('course_type', 'template')
     .is('tenant_id', null)
-    .order('created_at', { ascending: false })
 
   if (options.status) query = query.eq('status', options.status)
   if (options.category) query = query.eq('category', options.category)
 
   const { data, error } = await query
   if (error) throw supabaseQueryError('テンプレートコース一覧の取得に失敗しました', error)
-  return (data ?? []) as ElCourse[]
+  return sortCoursesByCategoryAndTitle((data ?? []) as ElCourse[])
 }
 
 export async function getCourseWithSlides(courseId: string): Promise<ElCourseWithSlides | null> {
@@ -330,9 +336,7 @@ export async function getChecklistCompletions(
 // スキル要件連携クエリ
 // ============================================================
 
-export async function getCourseRequirementMappings(
-  courseId: string
-): Promise<
+export async function getCourseRequirementMappings(courseId: string): Promise<
   Array<{
     id: string
     requirement_id: string

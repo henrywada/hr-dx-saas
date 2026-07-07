@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2, Users } from 'lucide-react'
+import { Plus, Trash2, Users, Search } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { removeAssignment } from '../actions'
 import { AssignmentModal } from './AssignmentModal'
+import { CourseSelectModal } from './CourseSelectModal'
 import { OverdueAssignmentAlertPanel } from './OverdueAssignmentAlertPanel'
 import { ElDivisionStatsPanel } from './ElDivisionStatsPanel'
-import { isAssignmentOverdue, type ElDivisionCompletionRow } from '../assignment-utils'
+import { buildElDivisionCompletionStats, isAssignmentOverdue } from '../assignment-utils'
 import type { ElAssignment, ElCourse } from '../types'
 import type { AssignmentProgress } from '../queries'
 
@@ -25,7 +26,18 @@ interface Props {
   employees: Employee[]
   tenantCourses: ElCourse[]
   progressMap?: Record<string, AssignmentProgress>
-  divisionStats?: ElDivisionCompletionRow[]
+}
+
+const ALL_COURSES_FILTER = '__all__'
+
+/** 割当行が検索クエリに一致するか（ユーザー名・コース名・カテゴリ） */
+function matchesAssignmentSearch(item: ElAssignment, query: string): boolean {
+  if (!query) return true
+  const q = query.toLowerCase()
+  const employeeName = item.employee?.name?.toLowerCase() ?? ''
+  const courseTitle = item.course?.title?.toLowerCase() ?? ''
+  const courseCategory = item.course?.category?.toLowerCase() ?? ''
+  return employeeName.includes(q) || courseTitle.includes(q) || courseCategory.includes(q)
 }
 
 export function AssignmentListClient({
@@ -33,13 +45,55 @@ export function AssignmentListClient({
   employees,
   tenantCourses,
   progressMap = {},
-  divisionStats = [],
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showModal, setShowModal] = useState(false)
+  const [showCourseSelect, setShowCourseSelect] = useState(false)
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [courseFilterId, setCourseFilterId] = useState(ALL_COURSES_FILTER)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const assignableCourses = useMemo(
+    () => tenantCourses.filter(c => c.status !== 'archived'),
+    [tenantCourses]
+  )
+
+  const selectedCourse = useMemo(
+    () => tenantCourses.find(c => c.id === selectedCourseId) ?? null,
+    [tenantCourses, selectedCourseId]
+  )
+
+  const filterCourse = useMemo(
+    () =>
+      courseFilterId === ALL_COURSES_FILTER
+        ? null
+        : (tenantCourses.find(c => c.id === courseFilterId) ?? null),
+    [tenantCourses, courseFilterId]
+  )
+
+  const assignmentCountByCourseId = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const a of assignments) {
+      counts[a.course_id] = (counts[a.course_id] ?? 0) + 1
+    }
+    return counts
+  }, [assignments])
+
+  const courseFilteredAssignments = useMemo(() => {
+    if (courseFilterId === ALL_COURSES_FILTER) return assignments
+    return assignments.filter(item => item.course_id === courseFilterId)
+  }, [assignments, courseFilterId])
+
+  const filteredAssignments = useMemo(() => {
+    return courseFilteredAssignments.filter(item => matchesAssignmentSearch(item, searchQuery))
+  }, [courseFilteredAssignments, searchQuery])
+
+  const filteredDivisionStats = useMemo(
+    () => buildElDivisionCompletionStats(courseFilteredAssignments, progressMap),
+    [courseFilteredAssignments, progressMap]
+  )
 
   const handleRemove = (id: string) => {
     if (!confirm('アサインを解除しますか？')) return
@@ -54,6 +108,21 @@ export function AssignmentListClient({
     setShowModal(true)
   }
 
+  const handleNewAssignment = () => {
+    if (assignableCourses.length === 0) return
+    setShowCourseSelect(true)
+  }
+
+  const handleCourseSelected = (courseId: string) => {
+    setShowCourseSelect(false)
+    openAssign(courseId)
+  }
+
+  const handleCourseFilterChange = (value: string) => {
+    setCourseFilterId(value)
+    setSelectedIds(new Set())
+  }
+
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
     if (!confirm(`${selectedIds.size}件のアサインを削除しますか？`)) return
@@ -61,6 +130,7 @@ export function AssignmentListClient({
       for (const id of selectedIds) {
         await removeAssignment(id)
       }
+      setSelectedIds(new Set())
       router.refresh()
     })
   }
@@ -84,6 +154,7 @@ export function AssignmentListClient({
     {
       key: 'course_id' as keyof ElAssignment,
       label: 'コース',
+      sortable: true,
       render: (_, item) => (
         <div className="text-sm font-medium text-[#24292f]">
           {item.course?.title ?? item.course_id}
@@ -174,6 +245,25 @@ export function AssignmentListClient({
     },
   ]
 
+  const assignmentModal = showModal && selectedCourseId && (
+    <AssignmentModal
+      courseId={selectedCourseId}
+      courseTitle={selectedCourse?.title}
+      employees={employees}
+      onClose={() => setShowModal(false)}
+      onAssigned={() => router.refresh()}
+    />
+  )
+
+  const courseSelectModal = showCourseSelect && (
+    <CourseSelectModal
+      courses={tenantCourses}
+      assignmentCountByCourseId={assignmentCountByCourseId}
+      onSelect={handleCourseSelected}
+      onClose={() => setShowCourseSelect(false)}
+    />
+  )
+
   if (assignments.length === 0) {
     return (
       <>
@@ -241,14 +331,7 @@ export function AssignmentListClient({
           )}
         </div>
 
-        {showModal && selectedCourseId && (
-          <AssignmentModal
-            courseId={selectedCourseId}
-            employees={employees}
-            onClose={() => setShowModal(false)}
-            onAssigned={() => router.refresh()}
-          />
-        )}
+        {assignmentModal}
       </>
     )
   }
@@ -256,30 +339,76 @@ export function AssignmentListClient({
   return (
     <div className="space-y-4">
       <OverdueAssignmentAlertPanel assignments={assignments} progressMap={progressMap} />
-      {divisionStats.length > 0 && <ElDivisionStatsPanel rows={divisionStats} />}
 
-      <div className="flex items-center gap-2">
+      <div className="flex justify-end">
         <button
-          onClick={() => openAssign(tenantCourses[0]?.id || '')}
-          disabled={tenantCourses.length === 0}
-          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40"
+          type="button"
+          onClick={() => router.back()}
+          className="text-sm text-[#57606a] hover:text-[#FD7601] transition-colors"
+        >
+          ← 戻る
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <select
+          value={courseFilterId}
+          onChange={e => handleCourseFilterChange(e.target.value)}
+          className="border border-[#e2e6ec] rounded-lg px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#FD7601] w-full sm:w-auto sm:min-w-[240px]"
+          aria-label="コースで絞り込み"
+        >
+          <option value={ALL_COURSES_FILTER}>すべてのコース</option>
+          {tenantCourses.map(course => (
+            <option key={course.id} value={course.id}>
+              {course.title}
+            </option>
+          ))}
+        </select>
+
+        <button
+          onClick={handleNewAssignment}
+          disabled={assignableCourses.length === 0}
+          className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40 shrink-0 sm:ml-auto"
         >
           <Plus className="w-4 h-4" />
           新規割り当て
         </button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={assignments}
-        searchable
-        searchPlaceholder="ユーザー名で検索..."
-        searchKey="employee_id"
-        selectable
-        selectedIds={selectedIds}
-        onSelectChange={setSelectedIds}
-        getRowId={item => item.id}
-      />
+      {filteredDivisionStats.length > 0 && (
+        <ElDivisionStatsPanel
+          rows={filteredDivisionStats}
+          courseFilterLabel={filterCourse?.title}
+        />
+      )}
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57606a]" />
+        <input
+          type="text"
+          placeholder="ユーザー名・コース名で検索..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full border border-[#e2e6ec] rounded-lg pl-9 pr-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FD7601] focus:ring-offset-0"
+        />
+      </div>
+
+      {filteredAssignments.length === 0 ? (
+        <div className="rounded-xl border border-[#e2e6ec] bg-white px-4 py-10 text-center text-sm text-gray-500">
+          {searchQuery || courseFilterId !== ALL_COURSES_FILTER
+            ? '条件に一致する割り当てがありません'
+            : '割り当てがありません'}
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredAssignments}
+          selectable
+          selectedIds={selectedIds}
+          onSelectChange={setSelectedIds}
+          getRowId={item => item.id}
+        />
+      )}
 
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 p-4 bg-[#FD7601] bg-opacity-10 border border-[#FD7601] rounded-lg">
@@ -294,14 +423,8 @@ export function AssignmentListClient({
         </div>
       )}
 
-      {showModal && selectedCourseId && (
-        <AssignmentModal
-          courseId={selectedCourseId}
-          employees={employees}
-          onClose={() => setShowModal(false)}
-          onAssigned={() => router.refresh()}
-        />
-      )}
+      {assignmentModal}
+      {courseSelectModal}
     </div>
   )
 }

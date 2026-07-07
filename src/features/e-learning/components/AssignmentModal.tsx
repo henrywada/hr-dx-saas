@@ -12,13 +12,14 @@ interface Employee {
 
 interface Props {
   courseId: string
+  courseTitle?: string
   employees: Employee[]
   onClose: () => void
   /** アサイン成功後（一覧の再取得用） */
   onAssigned?: () => void
 }
 
-export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Props) {
+export function AssignmentModal({ courseId, courseTitle, employees, onClose, onAssigned }: Props) {
   const [isPending, startTransition] = useTransition()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dueDate, setDueDate] = useState('')
@@ -61,7 +62,12 @@ export function AssignmentModal({ courseId, employees, onClose, onAssigned }: Pr
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-bold text-gray-800">受講者をアサイン</h2>
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">受講者をアサイン</h2>
+            {courseTitle && (
+              <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{courseTitle}</p>
+            )}
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>

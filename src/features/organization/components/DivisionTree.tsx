@@ -1,11 +1,22 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, Pencil, Trash2, User, Users } from 'lucide-react';
-import type { Division, DivisionTreeNode, EmployeeSummary } from '../types';
-import { EmployeeAssignSelect } from './EmployeeAssignSelect';
-import { UnassignedEmployees } from './UnassignedEmployees';
-import { DivisionFormDialog } from './DivisionFormDialog';
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  ChevronRight,
+  ChevronDown,
+  FolderOpen,
+  Folder,
+  Plus,
+  Pencil,
+  Trash2,
+  User,
+  Users,
+} from 'lucide-react'
+import type { Division, DivisionTreeNode, EmployeeSummary } from '../types'
+import { EmployeeAssignSelect } from './EmployeeAssignSelect'
+import { UnassignedEmployees } from './UnassignedEmployees'
+import { DivisionFormDialog } from './DivisionFormDialog'
 
 // ============================================================
 // ツリー構築ヘルパー
@@ -15,66 +26,66 @@ function buildTree(
   divisions: Division[],
   employeesByDivision: Map<string, EmployeeSummary[]>
 ): DivisionTreeNode[] {
-  const map = new Map<string, DivisionTreeNode>();
-  const roots: DivisionTreeNode[] = [];
+  const map = new Map<string, DivisionTreeNode>()
+  const roots: DivisionTreeNode[] = []
 
   // 各ノードを初期化
   divisions.forEach(d => {
-    const emps = employeesByDivision.get(d.id) || [];
+    const emps = employeesByDivision.get(d.id) || []
     map.set(d.id, {
       ...d,
       children: [],
       employeeCount: emps.length,
       totalEmployeeCount: emps.length,
       employees: emps,
-    });
-  });
+    })
+  })
 
   // 親子関係を構築
   divisions.forEach(d => {
-    const node = map.get(d.id)!;
+    const node = map.get(d.id)!
     if (d.parent_id && map.has(d.parent_id)) {
-      map.get(d.parent_id)!.children.push(node);
+      map.get(d.parent_id)!.children.push(node)
     } else {
-      roots.push(node);
+      roots.push(node)
     }
-  });
+  })
 
   // 子孫合計を計算（再帰）
   function calcTotal(node: DivisionTreeNode): number {
-    let total = node.employeeCount;
+    let total = node.employeeCount
     for (const child of node.children) {
-      total += calcTotal(child);
+      total += calcTotal(child)
     }
-    node.totalEmployeeCount = total;
-    return total;
+    node.totalEmployeeCount = total
+    return total
   }
-  roots.forEach(calcTotal);
+  roots.forEach(calcTotal)
 
   /** 兄弟ノードの並び: divisions.code 昇順（numeric）、未入力コードは後方、同順位は layer → 部署名 */
   function compareDivisionTreeSiblings(a: DivisionTreeNode, b: DivisionTreeNode): number {
-    const codeA = a.code?.trim() ?? '';
-    const codeB = b.code?.trim() ?? '';
+    const codeA = a.code?.trim() ?? ''
+    const codeB = b.code?.trim() ?? ''
     if (codeA && codeB) {
-      const cmp = codeA.localeCompare(codeB, 'ja', { numeric: true });
-      if (cmp !== 0) return cmp;
+      const cmp = codeA.localeCompare(codeB, 'ja', { numeric: true })
+      if (cmp !== 0) return cmp
     } else if (codeA !== codeB) {
-      if (!codeA) return 1;
-      if (!codeB) return -1;
+      if (!codeA) return 1
+      if (!codeB) return -1
     }
-    const layerCmp = (a.layer || 0) - (b.layer || 0);
-    if (layerCmp !== 0) return layerCmp;
-    return (a.name || '').localeCompare(b.name || '', 'ja');
+    const layerCmp = (a.layer || 0) - (b.layer || 0)
+    if (layerCmp !== 0) return layerCmp
+    return (a.name || '').localeCompare(b.name || '', 'ja')
   }
 
   function sortChildren(node: DivisionTreeNode) {
-    node.children.sort(compareDivisionTreeSiblings);
-    node.children.forEach(sortChildren);
+    node.children.sort(compareDivisionTreeSiblings)
+    node.children.forEach(sortChildren)
   }
-  roots.sort(compareDivisionTreeSiblings);
-  roots.forEach(sortChildren);
+  roots.sort(compareDivisionTreeSiblings)
+  roots.forEach(sortChildren)
 
-  return roots;
+  return roots
 }
 
 // ============================================================
@@ -88,15 +99,15 @@ function TreeNodeComponent({
   depth = 0,
   onOpenDialog,
 }: {
-  node: DivisionTreeNode;
-  allDivisions: Division[];
-  tenantId: string;
-  depth?: number;
-  onOpenDialog: (mode: 'create' | 'edit' | 'delete', division?: Division, parent?: Division) => void;
+  node: DivisionTreeNode
+  allDivisions: Division[]
+  tenantId: string
+  depth?: number
+  onOpenDialog: (mode: 'create' | 'edit' | 'delete', division?: Division, parent?: Division) => void
 }) {
-  const [expanded, setExpanded] = useState(depth < 2);
-  const hasChildren = node.children.length > 0;
-  const hasEmployees = node.employees.length > 0;
+  const [expanded, setExpanded] = useState(depth < 2)
+  const hasChildren = node.children.length > 0
+  const hasEmployees = node.employees.length > 0
 
   return (
     <div className="select-none">
@@ -110,28 +121,31 @@ function TreeNodeComponent({
           onClick={() => setExpanded(!expanded)}
           className="p-0.5 rounded hover:bg-[#FD7601]-10 transition-colors shrink-0"
         >
-          {(hasChildren || hasEmployees) ? (
-            expanded
-              ? <ChevronDown className="w-4 h-4 text-[#57606a]" />
-              : <ChevronRight className="w-4 h-4 text-[#57606a]" />
+          {hasChildren || hasEmployees ? (
+            expanded ? (
+              <ChevronDown className="w-4 h-4 text-[#57606a]" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-[#57606a]" />
+            )
           ) : (
             <span className="w-4 h-4 inline-block" />
           )}
         </button>
 
         {/* Folder Icon */}
-        {expanded && (hasChildren || hasEmployees)
-          ? <FolderOpen className="w-4 h-4 text-[#FD7601] shrink-0" />
-          : <Folder className="w-4 h-4 text-[#FD7601] shrink-0" />
-        }
+        {expanded && (hasChildren || hasEmployees) ? (
+          <FolderOpen className="w-4 h-4 text-[#FD7601] shrink-0" />
+        ) : (
+          <Folder className="w-4 h-4 text-[#FD7601] shrink-0" />
+        )}
 
         {/* 部署名（レイヤー番号） */}
         <span
           className="text-sm font-medium text-[#24292f] truncate flex-1"
           onClick={() => setExpanded(!expanded)}
         >
-          {node.name || '名前未設定'}
-          ({node.layer != null ? node.layer : '—'}){' '}[{node.code?.trim() || '—'}]
+          {node.name || '名前未設定'}({node.layer != null ? node.layer : '—'}) [
+          {node.code?.trim() || '—'}]
         </span>
 
         {/* Employee Count Badge */}
@@ -143,21 +157,30 @@ function TreeNodeComponent({
         {/* Action Buttons (visible on hover) */}
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenDialog('edit', node); }}
+            onClick={e => {
+              e.stopPropagation()
+              onOpenDialog('edit', node)
+            }}
             title="編集"
             className="p-1 rounded hover:bg-[#FD7601]-10 text-[#57606a] hover:text-[#FD7601] transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenDialog('create', undefined, node); }}
+            onClick={e => {
+              e.stopPropagation()
+              onOpenDialog('create', undefined, node)
+            }}
             title="子部署を追加"
             className="p-1 rounded hover:bg-green-100 text-[#57606a] hover:text-green-600 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenDialog('delete', node); }}
+            onClick={e => {
+              e.stopPropagation()
+              onOpenDialog('delete', node)
+            }}
             title="削除"
             className="p-1 rounded hover:bg-red-100 text-[#57606a] hover:text-red-600 transition-colors"
           >
@@ -213,7 +236,7 @@ function TreeNodeComponent({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // ============================================================
@@ -221,10 +244,10 @@ function TreeNodeComponent({
 // ============================================================
 
 interface DivisionTreeProps {
-  divisions: Division[];
-  employees: EmployeeSummary[];
-  unassignedEmployees: EmployeeSummary[];
-  tenantId: string;
+  divisions: Division[]
+  employees: EmployeeSummary[]
+  unassignedEmployees: EmployeeSummary[]
+  tenantId: string
 }
 
 export function DivisionTree({
@@ -233,32 +256,37 @@ export function DivisionTree({
   unassignedEmployees,
   tenantId,
 }: DivisionTreeProps) {
+  const router = useRouter()
   const [dialogState, setDialogState] = useState<{
-    open: boolean;
-    mode: 'create' | 'edit' | 'delete';
-    division?: Division;
-    parent?: Division;
-  }>({ open: false, mode: 'create' });
+    open: boolean
+    mode: 'create' | 'edit' | 'delete'
+    division?: Division
+    parent?: Division
+  }>({ open: false, mode: 'create' })
 
   // 部署ごとの従業員マップを構築
-  const employeesByDivision = new Map<string, EmployeeSummary[]>();
+  const employeesByDivision = new Map<string, EmployeeSummary[]>()
   employees.forEach(emp => {
     if (emp.division_id) {
-      const list = employeesByDivision.get(emp.division_id) || [];
-      list.push(emp);
-      employeesByDivision.set(emp.division_id, list);
+      const list = employeesByDivision.get(emp.division_id) || []
+      list.push(emp)
+      employeesByDivision.set(emp.division_id, list)
     }
-  });
+  })
 
-  const tree = buildTree(divisions, employeesByDivision);
+  const tree = buildTree(divisions, employeesByDivision)
 
-  const openDialog = (mode: 'create' | 'edit' | 'delete', division?: Division, parent?: Division) => {
-    setDialogState({ open: true, mode, division, parent });
-  };
+  const openDialog = (
+    mode: 'create' | 'edit' | 'delete',
+    division?: Division,
+    parent?: Division
+  ) => {
+    setDialogState({ open: true, mode, division, parent })
+  }
 
   const closeDialog = () => {
-    setDialogState({ open: false, mode: 'create' });
-  };
+    setDialogState({ open: false, mode: 'create' })
+  }
 
   return (
     <div className="space-y-4">
@@ -268,13 +296,22 @@ export function DivisionTree({
           <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">部署管理</h1>
           <p className="text-sm text-[#57606a] mt-1">組織構造をツリー形式で管理できます</p>
         </div>
-        <button
-          onClick={() => openDialog('create')}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          部署を追加
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-sm text-[#57606a] hover:text-[#FD7601] transition-colors"
+          >
+            ← 戻る
+          </button>
+          <button
+            onClick={() => openDialog('create')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            部署を追加
+          </button>
+        </div>
       </div>
 
       {/* Tree Card */}
@@ -329,5 +366,5 @@ export function DivisionTree({
         tenantId={tenantId}
       />
     </div>
-  );
+  )
 }

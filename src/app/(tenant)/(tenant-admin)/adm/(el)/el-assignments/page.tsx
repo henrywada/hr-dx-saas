@@ -8,7 +8,6 @@ import {
   getAssignmentProgressMap,
 } from '@/features/e-learning/queries'
 import { AssignmentListClient } from '@/features/e-learning/components/AssignmentListClient'
-import { buildElDivisionCompletionStats } from '@/features/e-learning/assignment-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,8 +27,6 @@ export default async function ElAssignmentsPage() {
     assignments.map(a => ({ id: a.id, course_id: a.course_id }))
   )
 
-  const divisionStats = buildElDivisionCompletionStats(assignments, progressMap)
-
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
@@ -41,7 +38,6 @@ export default async function ElAssignmentsPage() {
         employees={employees}
         tenantCourses={tenantCourses}
         progressMap={progressMap}
-        divisionStats={divisionStats}
       />
     </div>
   )

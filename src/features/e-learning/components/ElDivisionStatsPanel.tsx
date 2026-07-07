@@ -2,16 +2,23 @@ import type { ElDivisionCompletionRow } from '../assignment-utils'
 
 interface Props {
   rows: ElDivisionCompletionRow[]
+  /** コース絞り込み時の表示用ラベル */
+  courseFilterLabel?: string
 }
 
 /** 部署別 eラーニング修了率（EL-S2） */
-export function ElDivisionStatsPanel({ rows }: Props) {
+export function ElDivisionStatsPanel({ rows, courseFilterLabel }: Props) {
   if (rows.length === 0) return null
 
   return (
     <div className="mb-6 overflow-hidden rounded-xl border border-[#e2e6ec] bg-white">
       <div className="border-b border-[#e2e6ec] bg-[#f6f8fa] px-4 py-3">
-        <h2 className="text-sm font-semibold text-gray-800">部署別受講状況</h2>
+        <h2 className="text-sm font-semibold text-gray-800">
+          部署別受講状況
+          {courseFilterLabel && (
+            <span className="ml-2 font-normal text-xs text-[#57606a]">（{courseFilterLabel}）</span>
+          )}
+        </h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

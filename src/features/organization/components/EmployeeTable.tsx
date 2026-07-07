@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useTransition, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, Search, Users, Filter, Mail } from 'lucide-react'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { Division, Employee, AppRole } from '../types'
@@ -40,6 +41,7 @@ export function EmployeeTable({
   tenantId,
   employeeCapacity,
 }: EmployeeTableProps) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDivision, setFilterDivision] = useState('')
@@ -316,13 +318,22 @@ export function EmployeeTable({
           <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">従業員管理</h1>
           <p className="text-sm text-[#57606a] mt-1">従業員情報の一覧・追加・編集ができます</p>
         </div>
-        <button
-          onClick={() => setDialogState({ open: true })}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          従業員を追加
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-sm text-[#57606a] hover:text-[#FD7601] transition-colors"
+          >
+            ← 戻る
+          </button>
+          <button
+            onClick={() => setDialogState({ open: true })}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            従業員を追加
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

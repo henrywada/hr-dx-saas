@@ -1,21 +1,15 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { registerDelivery } from '@/features/myou/actions'
+import { registerReceiving } from '@/features/myou/actions'
 import { parseQrContent } from '@/features/myou/lib/qr-parser'
-import type { MyouCompany } from '@/features/myou/types'
 import QrScanner from './QrScanner'
 
-interface DeliveryFormProps {
-  companies: MyouCompany[]
-}
-
 /**
- * 出荷登録フォーム（（株）ミュー → 施工会社）
- * 出荷先を選択したうえでQRスキャンし、出荷履歴を記録する
+ * 入荷登録フォーム（製造元 →（株）ミュー）
+ * QRスキャンで読み取ったシリアル番号・有効期限を在庫として登録する
  */
-export default function DeliveryForm({ companies }: DeliveryFormProps) {
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+export default function ReceivingForm() {
   const [lastScanned, setLastScanned] = useState<{
     serial: string
     expiration: string
@@ -29,28 +23,22 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
   const handleScanSuccess = (decodedText: string) => {
     if (isPending) return
 
-    if (!selectedCompanyId) {
-      setMessage({ type: 'error', text: '先に出荷先（施工会社）を選択してください。' })
-      return
-    }
-
     const { serial, expiration } = parseQrContent(decodedText)
     setLastScanned({ serial, expiration })
     setMessage(null)
 
     // 登録実行
     startTransition(async () => {
-      const result = await registerDelivery({
+      const result = await registerReceiving({
         serial_number: serial,
         expiration_date: expiration,
-        company_id: selectedCompanyId,
       })
 
       if (result.success) {
         if (result.warning) {
           setMessage({ type: 'warning', text: result.warning })
         } else {
-          setMessage({ type: 'success', text: `出荷登録成功: ${serial}` })
+          setMessage({ type: 'success', text: `入荷登録成功: ${serial}` })
         }
       } else {
         setMessage({ type: 'error', text: result.error || '登録に失敗しました。' })
@@ -60,25 +48,6 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
-          出荷先（施工会社）を選択してください
-        </label>
-        <select
-          id="company"
-          value={selectedCompanyId}
-          onChange={e => setSelectedCompanyId(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">-- 選択してください --</option>
-          {companies.map(company => (
-            <option key={company.company_id} value={company.company_id}>
-              {company.company_name}
-            </option>
-          ))}
-        </select>
-      </div>
-
       <div className="relative">
         <QrScanner onScanSuccess={handleScanSuccess} />
         {isPending && (

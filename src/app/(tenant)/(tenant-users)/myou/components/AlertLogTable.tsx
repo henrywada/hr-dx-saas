@@ -2,21 +2,10 @@
 
 import { History, CheckCircle, XCircle } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
-
-interface AlertLog {
-  id: string
-  company_id: string
-  sent_at: string
-  target_serials: string[]
-  status: string
-  error_message: string | null
-  myou_companies: {
-    name: string
-  } | null
-}
+import type { AlertLogRow } from '@/features/myou/types'
 
 interface Props {
-  logs: AlertLog[]
+  logs: AlertLogRow[]
 }
 
 export default function AlertLogTable({ logs }: Props) {

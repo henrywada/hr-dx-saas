@@ -1,37 +1,36 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { QrCode, X, Copy, Check } from 'lucide-react';
+import { useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
+import { QrCode, X, Copy, Check } from 'lucide-react'
+import { buildQrPayload } from '@/features/myou/lib/qr-parser'
+
+// 外部サービスに依存せず、同梱の qrcode.react でローカル生成する
+function generateTestPayload(): string {
+  const serial = 'TEST-' + Math.floor(1000 + Math.random() * 9000)
+  return buildQrPayload(serial, '2026-12-31')
+}
 
 export default function TestQrModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [testData, setTestData] = useState("");
-  const [qrImageUrl, setQrImageUrl] = useState("");
+  const [isOpen, setIsOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [testData, setTestData] = useState(generateTestPayload)
 
   const generateData = () => {
-    const data = "SERIAL:TEST-" + Math.floor(1000 + Math.random() * 9000) + ",EXP:2026-12-31";
-    setTestData(data);
-    // Google Charts ではなく、より安定した QR Code API を使用
-    setQrImageUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(data)}`);
-  };
-
-  // 初回レンダリング時にデータを生成しておく
-  useEffect(() => {
-    generateData();
-  }, []);
+    setTestData(generateTestPayload())
+  }
 
   const handleOpen = () => {
-    generateData(); // 開くたびに新しい番号を生成
-    setIsOpen(true);
-  };
+    generateData() // 開くたびに新しい番号を生成
+    setIsOpen(true)
+  }
 
   const handleCopy = () => {
-    if (!testData) return;
-    navigator.clipboard.writeText(testData);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    if (!testData) return
+    navigator.clipboard.writeText(testData)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <>
@@ -44,7 +43,9 @@ export default function TestQrModal() {
             </div>
             <div>
               <h4 className="font-black text-gray-900">開発・テスト用ツール</h4>
-              <p className="text-xs text-gray-500 font-medium">納入登録の動作確認に使用できるテスト用QRコードを表示します。</p>
+              <p className="text-xs text-gray-500 font-medium">
+                納入登録の動作確認に使用できるテスト用QRコードを表示します。
+              </p>
             </div>
           </div>
           <button
@@ -63,7 +64,7 @@ export default function TestQrModal() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200">
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 flex items-center justify-between text-white">
               <h3 className="text-xl font-black">テスト用QRコード</h3>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="p-1 hover:bg-white/20 rounded-full transition-colors"
                 title="閉じる"
@@ -71,18 +72,11 @@ export default function TestQrModal() {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="p-8 text-center space-y-6">
               <div className="bg-gray-50 p-4 rounded-2xl inline-block border border-gray-100 shadow-inner relative group">
-                {qrImageUrl && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img 
-                    src={qrImageUrl} 
-                    alt="Test QR Code" 
-                    className="w-48 h-48 mx-auto"
-                    onLoad={(e) => (e.currentTarget.style.opacity = '1')}
-                    style={{ opacity: 0, transition: 'opacity 0.3s' }}
-                  />
+                {testData && (
+                  <QRCodeSVG value={testData} size={192} marginSize={2} className="mx-auto" />
                 )}
                 <button
                   onClick={generateData}
@@ -95,8 +89,10 @@ export default function TestQrModal() {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest">埋め込みデータ</p>
-                  <button 
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                    埋め込みデータ
+                  </p>
+                  <button
                     onClick={generateData}
                     className="text-[10px] font-bold text-blue-500 hover:text-blue-700 underline"
                   >
@@ -105,12 +101,16 @@ export default function TestQrModal() {
                 </div>
                 <div className="flex items-center space-x-2 bg-gray-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-hidden">
                   <span className="flex-1 truncate">{testData}</span>
-                  <button 
+                  <button
                     onClick={handleCopy}
                     className="p-1 hover:bg-white/10 rounded transition-colors"
                     title="コピー"
                   >
-                    {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-gray-400" />}
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-400" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -133,5 +133,5 @@ export default function TestQrModal() {
         </div>
       )}
     </>
-  );
+  )
 }

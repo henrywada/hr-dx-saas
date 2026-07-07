@@ -202,4 +202,21 @@ export const APP_ROUTES = {
     /** 従業員：360度評価回答フォーム */
     MY_EVALUATION_360_ANSWER: (reviewerId: string) => `/my-evaluation-360/${reviewerId}`,
   },
+  /** mYou 製品トレーサビリティ・有効期限管理 */
+  MYOU: {
+    /** QRラベル発行（シリアル採番・印刷） */
+    LABELS: '/myou/labels',
+    /** 入荷登録（QRスキャン、製造元→ミュー） */
+    RECEIVING_SCAN: '/myou/receiving-scan',
+    /** 在庫一覧（入荷済み・未出荷） */
+    INVENTORY: '/myou/inventory',
+    /** 出荷登録（QRスキャン、ミュー→施工会社） */
+    DELIVERY_SCAN: '/myou/delivery-scan',
+    /** トレーサビリティ検索 */
+    TRACEABILITY: '/myou/traceability',
+    /** 有効期限監視・アラート */
+    EXPIRATION_ALERTS: '/myou/expiration-alerts',
+    /** 施工会社（納入先）管理 */
+    COMPANIES: '/myou/companies',
+  },
 } as const

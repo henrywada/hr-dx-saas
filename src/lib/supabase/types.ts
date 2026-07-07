@@ -4561,7 +4561,9 @@ export type Database = {
           created_at: string
           current_company_id: string | null
           expiration_date: string | null
+          issued_at: string | null
           last_delivery_at: string | null
+          received_at: string | null
           serial_number: string
           status: string
           tenant_id: string
@@ -4570,7 +4572,9 @@ export type Database = {
           created_at?: string
           current_company_id?: string | null
           expiration_date?: string | null
+          issued_at?: string | null
           last_delivery_at?: string | null
+          received_at?: string | null
           serial_number: string
           status?: string
           tenant_id?: string
@@ -4579,7 +4583,9 @@ export type Database = {
           created_at?: string
           current_company_id?: string | null
           expiration_date?: string | null
+          issued_at?: string | null
           last_delivery_at?: string | null
+          received_at?: string | null
           serial_number?: string
           status?: string
           tenant_id?: string

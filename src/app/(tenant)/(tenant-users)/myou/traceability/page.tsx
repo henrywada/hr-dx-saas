@@ -1,23 +1,24 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import TraceabilitySearchForm from '../components/TraceabilitySearchForm';
-import TraceabilityResults from '../components/TraceabilityResults';
-import { getProductTrace } from '@/features/myou/actions';
-import { PackageSearch, ArrowRight, History, ShieldCheck } from 'lucide-react';
+import { useState, useTransition } from 'react'
+import TraceabilitySearchForm from '../components/TraceabilitySearchForm'
+import TraceabilityResults from '../components/TraceabilityResults'
+import { getProductTrace } from '@/features/myou/actions'
+import type { ProductTraceResult } from '@/features/myou/types'
+import { PackageSearch, ArrowRight, History, ShieldCheck } from 'lucide-react'
 
 export default function TraceabilityPage() {
-  const [isPending, startTransition] = useTransition();
-  const [searchResult, setSearchResult] = useState<any>(null);
-  const [searched, setSearched] = useState(false);
+  const [isPending, startTransition] = useTransition()
+  const [searchResult, setSearchResult] = useState<ProductTraceResult | null>(null)
+  const [searched, setSearched] = useState(false)
 
   const handleSearch = (serial: string) => {
-    setSearched(true);
+    setSearched(true)
     startTransition(async () => {
-      const data = await getProductTrace(serial);
-      setSearchResult(data);
-    });
-  };
+      const data = await getProductTrace(serial)
+      setSearchResult(data)
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -38,30 +39,30 @@ export default function TraceabilityPage() {
               流通経路上での照会
             </h1>
             <p className="max-w-2xl text-lg text-blue-100/80 leading-relaxed font-medium">
-              シリアル番号を入力またはQRコードをスキャンして、製品が「いつ」「どこで」「誰に」
-              届いたのか、製造から現在地までの流通データを即座に照会。
+              シリアル番号を入力またはQRコードをスキャンして、製品の有効期限・入荷日・
+              出荷先・出荷日といった流通データを即座に照会できます。
             </p>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl pt-4">
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex flex-col items-center">
-                 <ShieldCheck className="h-6 w-6 text-green-400 mb-2" />
-                 <span className="text-[10px] text-blue-200 font-bold uppercase">正規ルート</span>
-                 <p className="text-sm font-bold mt-1">即時判定</p>
+                <ShieldCheck className="h-6 w-6 text-green-400 mb-2" />
+                <span className="text-[10px] text-blue-200 font-bold uppercase">正規ルート</span>
+                <p className="text-sm font-bold mt-1">即時判定</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex flex-col items-center">
-                 <History className="h-6 w-6 text-yellow-400 mb-2" />
-                 <span className="text-[10px] text-blue-200 font-bold uppercase">全履歴</span>
-                 <p className="text-sm font-bold mt-1">時系列表示</p>
+                <History className="h-6 w-6 text-yellow-400 mb-2" />
+                <span className="text-[10px] text-blue-200 font-bold uppercase">全履歴</span>
+                <p className="text-sm font-bold mt-1">時系列表示</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hidden md:flex flex-col items-center">
-                 <PackageSearch className="h-6 w-6 text-blue-300 mb-2" />
-                 <span className="text-[10px] text-blue-200 font-bold uppercase">スキャン</span>
-                 <p className="text-sm font-bold mt-1">簡単入力</p>
+                <PackageSearch className="h-6 w-6 text-blue-300 mb-2" />
+                <span className="text-[10px] text-blue-200 font-bold uppercase">スキャン</span>
+                <p className="text-sm font-bold mt-1">簡単入力</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hidden md:flex flex-col items-center">
-                 <ShieldCheck className="h-6 w-6 text-indigo-300 mb-2" />
-                 <span className="text-[10px] text-blue-200 font-bold uppercase">データ保証</span>
-                 <p className="text-sm font-bold mt-1">変更不可ログ</p>
+                <ShieldCheck className="h-6 w-6 text-indigo-300 mb-2" />
+                <span className="text-[10px] text-blue-200 font-bold uppercase">履歴保全</span>
+                <p className="text-sm font-bold mt-1">全件記録</p>
               </div>
             </div>
           </div>
@@ -81,27 +82,34 @@ export default function TraceabilityPage() {
             <div className="md:w-2/3 space-y-4 text-center md:text-left">
               <h3 className="text-xl font-black text-gray-900">どのように動作しますか？</h3>
               <p className="text-gray-500 text-sm leading-relaxed">
-                各製品には固有のシリアル番号が割り振られています。施工管理者が現場で納入登録（QRスキャン）
-                を行うと、その瞬間にGPS情報（オプション）とタイムスタンプがブロックチェーン（データベース）
-                に記録され、後からいつでもこの画面で流通経路の透明性を確認できるようになります。
+                各製品には固有のシリアル番号が割り振られています。入荷時・出荷時に担当者が
+                QRスキャンを行うと、その記録がタイムスタンプとともにデータベースへ保存され、
+                後からいつでもこの画面で流通経路を確認できるようになります。
               </p>
               <div className="flex flex-wrap gap-2 pt-2 justify-center md:justify-start">
-                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">1. 製造</span>
-                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">2. 在庫</span>
-                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">3. 出荷</span>
-                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">4. 納入</span>
-                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">5. 施工完了</span>
+                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                  1. ラベル発行
+                </span>
+                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                  2. 入荷（在庫）
+                </span>
+                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                  3. 出荷
+                </span>
+                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                  4. 施工会社
+                </span>
               </div>
             </div>
             <div className="md:w-1/4 mt-8 md:mt-0 flex items-center justify-center">
-               <div className="relative">
-                 <div className="absolute inset-0 bg-blue-600 rounded-full blur-2xl opacity-20"></div>
-                 <ShieldCheck className="h-24 w-24 text-blue-600 relative z-10" />
-               </div>
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-600 rounded-full blur-2xl opacity-20"></div>
+                <ShieldCheck className="h-24 w-24 text-blue-600 relative z-10" />
+              </div>
             </div>
           </div>
         )}
       </main>
     </div>
-  );
+  )
 }

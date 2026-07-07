@@ -1,42 +1,36 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Search, QrCode, XCircle } from 'lucide-react';
-import QrScanner from './QrScanner';
+import { useState } from 'react'
+import { Search, QrCode, XCircle } from 'lucide-react'
+import { parseQrContent } from '@/features/myou/lib/qr-parser'
+import QrScanner from './QrScanner'
 
 interface TraceabilitySearchFormProps {
-  onSearch: (serial: string) => void;
-  isPending: boolean;
+  onSearch: (serial: string) => void
+  isPending: boolean
 }
 
-export default function TraceabilitySearchForm({ onSearch, isPending }: TraceabilitySearchFormProps) {
-  const [inputSerial, setInputSerial] = useState('');
-  const [showScanner, setShowScanner] = useState(false);
+export default function TraceabilitySearchForm({
+  onSearch,
+  isPending,
+}: TraceabilitySearchFormProps) {
+  const [inputSerial, setInputSerial] = useState('')
+  const [showScanner, setShowScanner] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (inputSerial.trim()) {
-      onSearch(inputSerial.trim());
+      onSearch(inputSerial.trim())
     }
-  };
+  }
 
   const handleScanSuccess = (decodedText: string) => {
-    // QRコードの解析（DeliveryFormと同じロジックを想定）
-    let serial = decodedText;
-    try {
-      const parts = decodedText.split(',');
-      parts.forEach(part => {
-        const [key, value] = part.split(':');
-        if (key?.trim().toUpperCase() === 'SERIAL') serial = value?.trim();
-      });
-    } catch {
-      serial = decodedText;
-    }
+    const { serial } = parseQrContent(decodedText)
 
-    setInputSerial(serial);
-    setShowScanner(false);
-    onSearch(serial);
-  };
+    setInputSerial(serial)
+    setShowScanner(false)
+    onSearch(serial)
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-8">
@@ -71,7 +65,10 @@ export default function TraceabilitySearchForm({ onSearch, isPending }: Traceabi
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3"
+          >
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-gray-400" />
@@ -79,7 +76,7 @@ export default function TraceabilitySearchForm({ onSearch, isPending }: Traceabi
               <input
                 type="text"
                 value={inputSerial}
-                onChange={(e) => setInputSerial(e.target.value)}
+                onChange={e => setInputSerial(e.target.value)}
                 placeholder="シリアル番号を入力（例: S-20240310-001）"
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
               />
@@ -99,5 +96,5 @@ export default function TraceabilitySearchForm({ onSearch, isPending }: Traceabi
         )}
       </div>
     </div>
-  );
+  )
 }

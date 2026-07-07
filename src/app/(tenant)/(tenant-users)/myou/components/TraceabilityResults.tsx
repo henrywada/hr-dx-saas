@@ -1,35 +1,43 @@
-'use client';
+'use client'
 
-import { Package, Truck, Calendar, MapPin, User, CheckCircle2, AlertCircle } from 'lucide-react';
-import { formatDateTimeInJST } from '@/lib/datetime';
-
-interface Log {
-  id: string;
-  serial_number: string;
-  company_id: string;
-  delivery_date: string;
-  delivered_by?: string;
-  myou_companies?: {
-    company_name: string;
-  };
-}
-
-interface Product {
-  serial_number: string;
-  expiration_date: string;
-  status: string;
-}
+import {
+  Package,
+  Truck,
+  Calendar,
+  MapPin,
+  User,
+  CheckCircle2,
+  AlertCircle,
+  Warehouse,
+} from 'lucide-react'
+import { formatDateTimeInJST } from '@/lib/datetime'
+import {
+  MYOU_STATUS_LABELS,
+  type ProductTraceResult,
+  type MyouProductStatus,
+} from '@/features/myou/types'
 
 interface TraceabilityResultsProps {
-  data: {
-    product: Product;
-    history: Log[];
-  } | null;
-  searched: boolean;
+  data: ProductTraceResult | null
+  searched: boolean
+}
+
+/** ステータスに応じたバッジ配色を返す */
+function statusBadgeClass(status: MyouProductStatus): string {
+  switch (status) {
+    case 'delivered':
+      return 'bg-green-100 text-green-700'
+    case 'in_stock':
+      return 'bg-blue-100 text-blue-700'
+    case 'issued':
+      return 'bg-gray-100 text-gray-700'
+    default:
+      return 'bg-gray-100 text-gray-700'
+  }
 }
 
 export default function TraceabilityResults({ data, searched }: TraceabilityResultsProps) {
-  if (!searched) return null;
+  if (!searched) return null
 
   if (!data) {
     return (
@@ -41,10 +49,11 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
           番号を再度お確かめください。
         </p>
       </div>
-    );
+    )
   }
 
-  const { product, history } = data;
+  const { product, history } = data
+  const status = (product.status as MyouProductStatus) ?? 'issued'
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -56,29 +65,40 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
             製品ステータス
           </h3>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">シリアル番号</p>
             <p className="text-xl font-mono font-black text-gray-900">{product.serial_number}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">有効期限</p>
-            <p className={`text-lg font-bold flex items-center ${
-              new Date(product.expiration_date) < new Date() ? 'text-red-600' : 'text-gray-900'
-            }`}>
+            <p
+              className={`text-lg font-bold flex items-center ${
+                product.expiration_date && new Date(product.expiration_date) < new Date()
+                  ? 'text-red-600'
+                  : 'text-gray-900'
+              }`}
+            >
               <Calendar className="h-4 w-4 mr-2" />
-              {product.expiration_date}
+              {product.expiration_date ?? '未設定'}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+              仕入納入日（入荷日）
+            </p>
+            <p className="text-lg font-bold text-gray-900 flex items-center">
+              <Warehouse className="h-4 w-4 mr-2" />
+              {product.received_at ?? '未登録'}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">現在の状態</p>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold shadow-sm ${
-              product.status === 'delivered' ? 'bg-green-100 text-green-700' : 
-              product.status === 'produced' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-            }`}>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold shadow-sm ${statusBadgeClass(status)}`}
+            >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              {product.status === 'delivered' ? '施工会社納入済' : 
-               product.status === 'produced' ? '製造完了・在庫中' : product.status}
+              {MYOU_STATUS_LABELS[status] ?? product.status}
             </span>
           </div>
         </div>
@@ -100,9 +120,11 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
               history.map((log, index) => (
                 <div key={log.id} className="flex group">
                   {/* アイコン */}
-                  <div className={`relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 border-white shadow-md transition-transform group-hover:scale-110 ${
-                    index === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'
-                  }`}>
+                  <div
+                    className={`relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 border-white shadow-md transition-transform group-hover:scale-110 ${
+                      index === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
                     <MapPin className="h-6 w-6" />
                   </div>
 
@@ -110,25 +132,30 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                   <div className="flex-grow ml-6 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-blue-200">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
                       <h4 className="text-lg font-black text-gray-900 flex items-center">
-                        {log.myou_companies?.company_name}
+                        {log.myou_companies?.name ?? '（不明な出荷先）'}
                         {index === 0 && (
-                          <span className="ml-3 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold">最終納入地</span>
+                          <span className="ml-3 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold">
+                            最終出荷先
+                          </span>
                         )}
                       </h4>
                       <div className="text-sm font-medium text-blue-600 flex items-center mt-1 md:mt-0">
                         <Calendar className="h-3.5 w-3.5 mr-1" />
-                        {formatDateTimeInJST(log.delivery_date)}
+                        出荷日: {formatDateTimeInJST(log.delivery_date)}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mt-4 border-t border-gray-50 pt-4">
                       <div className="flex items-center text-gray-600">
                         <User className="h-4 w-4 mr-2 text-gray-400" />
-                        納入担当者: <span className="font-semibold text-gray-900 ml-1">{log.delivered_by || 'システム登録'}</span>
+                        登録担当者:{' '}
+                        <span className="font-semibold text-gray-900 ml-1">
+                          {log.delivered_by || 'システム登録'}
+                        </span>
                       </div>
                       <div className="flex items-center text-gray-600">
                         <Truck className="h-4 w-4 mr-2 text-gray-400" />
-                        納入方式: <span className="font-semibold text-gray-900 ml-1">直接納入</span>
+                        出荷方式: <span className="font-semibold text-gray-900 ml-1">直接納入</span>
                       </div>
                     </div>
                   </div>
@@ -140,19 +167,30 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                   <Package className="h-6 w-6" />
                 </div>
                 <div className="bg-gray-50 p-5 rounded-2xl border border-dashed border-gray-300 flex-grow italic text-gray-500">
-                  納入履歴がまだありません。製造完了後、在庫状態です。
+                  出荷履歴がまだありません。
+                  {status === 'in_stock'
+                    ? '入荷済み・在庫状態です。'
+                    : 'ラベル発行済みの状態です。'}
                 </div>
               </div>
             )}
 
-            {/* 起点（製造完了など） */}
+            {/* 起点（入荷 or ラベル発行） */}
             <div className="flex">
               <div className="relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 border-white bg-green-500 text-white shadow-md">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div className="flex-grow ml-6 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm self-center">
-                <p className="font-black text-gray-900">製造・検品完了</p>
-                <p className="text-xs text-gray-500 mt-1">製品が正規ルートで製造されたことを確認しました。</p>
+                <p className="font-black text-gray-900">
+                  {product.received_at
+                    ? `入荷（仕入納入）: ${product.received_at}`
+                    : '製造・検品完了'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {product.issued_at
+                    ? `QRラベル発行: ${formatDateTimeInJST(product.issued_at)}`
+                    : '製品が正規ルートで製造されたことを確認しました。'}
+                </p>
               </div>
             </div>
           </div>
@@ -166,14 +204,18 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
             <CheckCircle2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h4 className="text-green-900 font-black">トレーサビリティ認証済み</h4>
-            <p className="text-green-700 text-xs mt-0.5">この製品は製造から納入まで全ての経路が記録されています。</p>
+            <h4 className="text-green-900 font-black">トレーサビリティ記録あり</h4>
+            <p className="text-green-700 text-xs mt-0.5">
+              この製品の入荷・出荷イベントはデータベースに記録されています。
+            </p>
           </div>
         </div>
         <div className="hidden sm:block">
-           <div className="text-[10px] font-bold text-green-600 uppercase tracking-widest bg-green-200/50 px-3 py-1 rounded-full">Secure Trace</div>
+          <div className="text-[10px] font-bold text-green-600 uppercase tracking-widest bg-green-200/50 px-3 py-1 rounded-full">
+            Secure Trace
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

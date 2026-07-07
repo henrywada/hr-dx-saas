@@ -1,1 +1,0 @@
-select id, tenant_id, service_id, status from tenant_service;

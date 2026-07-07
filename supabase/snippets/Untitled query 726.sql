@@ -1,1 +1,0 @@
-SELECT public.create_auth_user('sample6@gmail.com', 'aaaaaaaa');

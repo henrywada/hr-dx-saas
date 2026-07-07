@@ -1,1 +1,0 @@
-SELECT * FROM stress_group_analysis LIMIT 10;

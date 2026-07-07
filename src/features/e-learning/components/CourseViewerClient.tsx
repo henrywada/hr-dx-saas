@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
-import { completeCourse, recordSlideProgress } from '../actions'
+import { completeCourse, recordSlideProgress, saveLearningPreferences } from '../actions'
 import { SlideProgressBar } from './SlideProgressBar'
 import { SlideContentView } from './SlideContentView'
+import { PreferenceToggle } from './PreferenceToggle'
 import { QuizSlideView } from './QuizSlideView'
 import { LearningObjectiveView } from './LearningObjectiveView'
 import { ScenarioView } from './ScenarioView'
@@ -15,7 +16,7 @@ import { ReflectionView } from './ReflectionView'
 import { ChecklistView } from './ChecklistView'
 import { CourseCompletionBanner } from './CourseCompletionBanner'
 import { SLIDE_TYPE_LABELS } from '../constants'
-import type { ElCourseViewerData, ElChecklistCompletion } from '../types'
+import type { ElCourseViewerData, ElChecklistCompletion, LearningPreferences } from '../types'
 
 interface Props {
   data: ElCourseViewerData
@@ -23,9 +24,10 @@ interface Props {
     employeeName: string
     tenantName: string
   }
+  initialPreferences: LearningPreferences
 }
 
-export function CourseViewerClient({ data, certificateMeta }: Props) {
+export function CourseViewerClient({ data, certificateMeta, initialPreferences }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showCompletion, setShowCompletion] = useState(false)
@@ -48,9 +50,46 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set(serverCompletedIds))
+  const [audioEnabled, setAudioEnabled] = useState(initialPreferences.audio_enabled)
+  const [captionsEnabled, setCaptionsEnabled] = useState(initialPreferences.captions_enabled)
+  const [isSavingPreferences, startSavePreferences] = useTransition()
 
   const currentSlide = slides[currentIndex]
   if (!currentSlide) return null
+
+  const hasAudioSource = Boolean(currentSlide.audio_url)
+
+  const persistPreferences = (next: LearningPreferences, revert: () => void) => {
+    startSavePreferences(async () => {
+      try {
+        await saveLearningPreferences(next)
+      } catch (err) {
+        revert()
+        console.error('Learning preferences save failed:', err)
+      }
+    })
+  }
+
+  const handleAudioToggle = (checked: boolean) => {
+    const prevAudio = audioEnabled
+    setAudioEnabled(checked)
+    persistPreferences({ audio_enabled: checked, captions_enabled: captionsEnabled }, () =>
+      setAudioEnabled(prevAudio)
+    )
+  }
+
+  const handleCaptionsToggle = (checked: boolean) => {
+    const prevCaptions = captionsEnabled
+    setCaptionsEnabled(checked)
+    persistPreferences({ audio_enabled: audioEnabled, captions_enabled: checked }, () =>
+      setCaptionsEnabled(prevCaptions)
+    )
+  }
+
+  const slideContentProps = {
+    audioEnabled,
+    captionsEnabled,
+  }
 
   const isLastSlide = currentIndex === slides.length - 1
   const isCourseAlreadyCompleted = assignment.completed_at !== null
@@ -110,7 +149,7 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
           />
         )
       case 'micro_content':
-        return <SlideContentView slide={currentSlide} />
+        return <SlideContentView slide={currentSlide} {...slideContentProps} />
       case 'scenario':
         return (
           <ScenarioView
@@ -146,7 +185,7 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
       case 'text':
       case 'image':
       default:
-        return <SlideContentView slide={currentSlide} />
+        return <SlideContentView slide={currentSlide} {...slideContentProps} />
     }
   }
 
@@ -157,7 +196,7 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
       case 'scenario':
         return isCurrentCompleted
       case 'checklist':
-        return true  // 未完了でも「後でチェックする」として先へ進める
+        return true // 未完了でも「後でチェックする」として先へ進める
       default:
         return true
     }
@@ -168,17 +207,14 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
     if (isPending) return '記録中...'
     if (isLastSlide) return '完了する'
     if (currentSlide.slide_type === 'checklist' && !isCurrentCompleted) return '後でチェックする'
-    return null  // デフォルトは「次へ」アイコン付き
+    return null // デフォルトは「次へ」アイコン付き
   }
 
   // 「次へ」クリックハンドラ
   const handleNext = () => {
     if (isPending || !canAdvance()) return
 
-    if (
-      currentSlide.slide_type === 'quiz' ||
-      currentSlide.slide_type === 'scenario'
-    ) {
+    if (currentSlide.slide_type === 'quiz' || currentSlide.slide_type === 'scenario') {
       // これらは子コンポーネント内で進捗記録済み → advanceOrFinish のみ
       advanceOrFinish()
     } else {
@@ -210,6 +246,16 @@ export function CourseViewerClient({ data, certificateMeta }: Props) {
             completedIds={completedIds}
             slideIds={slideIds}
           />
+          <div className="flex items-center justify-end gap-4 sm:gap-6 mt-2 pt-1 border-t border-gray-100">
+            <PreferenceToggle
+              label="音声"
+              checked={audioEnabled}
+              disabled={!hasAudioSource}
+              isPending={isSavingPreferences}
+              onChange={handleAudioToggle}
+            />
+            {/* 字幕トグル: VTT 書き起こし導入まで非表示。captions_enabled の state/保存は将来用に維持 */}
+          </div>
         </div>
       </header>
 

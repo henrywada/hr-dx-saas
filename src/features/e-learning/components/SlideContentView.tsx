@@ -4,6 +4,9 @@ import type { ElSlide } from '../types'
 
 interface Props {
   slide: ElSlide
+  audioEnabled: boolean
+  /** 将来の VTT 字幕制御用。当面 UI では未使用 */
+  captionsEnabled?: boolean
 }
 
 function isProbablyYoutubeUrl(url: string): boolean {
@@ -53,9 +56,50 @@ function SlideVideoPlayer({ url }: { url: string }) {
   )
 }
 
-export function SlideContentView({ slide }: Props) {
+// 当面 transcript 列を「要点(ポイント)」として流用。将来 音声書き起こし(VTT)を
+// 入れる際は summary 列を分離する（DBは未変更）。
+function SlidePointsPanel({ text }: { text: string }) {
+  if (!text) return null
+
+  return (
+    <details
+      className="w-full max-w-3xl rounded-xl border border-gray-200 bg-white overflow-hidden"
+      open
+    >
+      <summary className="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer select-none list-none flex items-center justify-between [&::-webkit-details-marker]:hidden">
+        <span>このスライドのポイント</span>
+        <span className="text-xs text-gray-400 font-normal">タップで開閉</span>
+      </summary>
+      <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words border-t border-gray-100">
+        {text}
+      </div>
+    </details>
+  )
+}
+
+function SlideMediaBlock({ slide, audioEnabled }: { slide: ElSlide; audioEnabled: boolean }) {
+  const hasVideo = Boolean(slide.video_url)
+  const hasAudio = Boolean(slide.audio_url)
+  if (!hasVideo && !hasAudio) return null
+
+  return (
+    <div className="space-y-3 w-full">
+      {hasVideo && slide.video_url && <SlideVideoPlayer url={slide.video_url} />}
+      {hasAudio && slide.audio_url && audioEnabled && (
+        <audio
+          src={slide.audio_url}
+          controls
+          className="w-full max-w-3xl rounded-xl border border-gray-200 bg-white"
+        />
+      )}
+    </div>
+  )
+}
+
+export function SlideContentView({ slide, audioEnabled }: Props) {
   const isImageSlide = slide.slide_type === 'image'
   const isMicro = slide.slide_type === 'micro_content'
+  const pointsText = slide.transcript?.trim() ?? ''
 
   if (isMicro) {
     return (
@@ -64,12 +108,12 @@ export function SlideContentView({ slide }: Props) {
           <h2 className="text-xl font-bold text-gray-800 leading-snug">{slide.title}</h2>
         )}
         {slide.content && (
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
             {slide.content}
           </div>
         )}
         {slide.image_url && (
-          <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-w-3xl">
+          <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-w-3xl w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slide.image_url}
@@ -78,7 +122,8 @@ export function SlideContentView({ slide }: Props) {
             />
           </div>
         )}
-        {slide.video_url && <SlideVideoPlayer url={slide.video_url} />}
+        <SlideMediaBlock slide={slide} audioEnabled={audioEnabled} />
+        <SlidePointsPanel text={pointsText} />
       </div>
     )
   }
@@ -91,8 +136,8 @@ export function SlideContentView({ slide }: Props) {
 
       {/* 画像スライド: 常に「左: 画像 / 右: 説明テキスト」2カラムレイアウト */}
       {isImageSlide ? (
-        <div className="flex gap-6 items-start">
-          <div className="w-1/2 shrink-0 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
+          <div className="w-full sm:w-1/2 shrink-0 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
             {slide.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -106,17 +151,20 @@ export function SlideContentView({ slide }: Props) {
               </div>
             )}
           </div>
-          <div className="flex-1 prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <div className="flex-1 w-full prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
             {slide.content ?? ''}
           </div>
         </div>
       ) : (
         slide.content && (
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
             {slide.content}
           </div>
         )
       )}
+
+      <SlideMediaBlock slide={slide} audioEnabled={audioEnabled} />
+      <SlidePointsPanel text={pointsText} />
     </div>
   )
 }

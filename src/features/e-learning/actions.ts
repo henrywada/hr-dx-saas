@@ -498,6 +498,30 @@ export async function recordSlideProgress(
   revalidatePath(`/el-courses/${assignmentId}`)
 }
 
+/** 受講者の音声・字幕プリファレンスを保存（従業員単位） */
+export async function saveLearningPreferences(input: {
+  audio_enabled: boolean
+  captions_enabled: boolean
+}) {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !user.employee_id) throw new Error('Unauthorized')
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('el_learning_preferences').upsert(
+    {
+      tenant_id: user.tenant_id,
+      employee_id: user.employee_id,
+      audio_enabled: input.audio_enabled,
+      captions_enabled: input.captions_enabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'employee_id' }
+  )
+
+  if (error) throw error
+}
+
 // シナリオスライドの選択肢を記録する
 export async function recordScenarioAnswer(
   assignmentId: string,

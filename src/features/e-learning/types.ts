@@ -4,23 +4,23 @@ export type CourseContentFormat = 'native' | 'scorm_12' | 'xapi_launch'
 
 // 既存3種 + マイクロラーニング用5フェーズ
 export type SlideType =
-  | 'text'          // 既存（テキストスライド）
-  | 'image'         // 既存（画像スライド）
-  | 'quiz'          // 既存（クイズ）
-  | 'objective'     // [Phase 1] 学習目標
+  | 'text' // 既存（テキストスライド）
+  | 'image' // 既存（画像スライド）
+  | 'quiz' // 既存（クイズ）
+  | 'objective' // [Phase 1] 学習目標
   | 'micro_content' // [Phase 2] マイクロコンテンツ
-  | 'scenario'      // [Phase 3] シナリオ問題（分岐）
-  | 'reflection'    // [Phase 4] 振り返り＋解説
-  | 'checklist'     // [Phase 5] 現場適用チェックリスト
+  | 'scenario' // [Phase 3] シナリオ問題（分岐）
+  | 'reflection' // [Phase 4] 振り返り＋解説
+  | 'checklist' // [Phase 5] 現場適用チェックリスト
 
 // Bloom's Taxonomy の6認知レベル
 export type BloomLevel =
-  | 'remember'   // 記憶する
+  | 'remember' // 記憶する
   | 'understand' // 理解する
-  | 'apply'      // 応用する
-  | 'analyze'    // 分析する
-  | 'evaluate'   // 評価する
-  | 'create'     // 創造する
+  | 'apply' // 応用する
+  | 'analyze' // 分析する
+  | 'evaluate' // 評価する
+  | 'create' // 創造する
 
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed'
 
@@ -57,10 +57,18 @@ export interface ElSlide {
   content: string | null
   image_url: string | null
   video_url: string | null
+  audio_url: string | null
+  transcript: string | null
   estimated_seconds: number | null
   quiz_questions?: ElQuizQuestion[]
   scenario_branches?: ElScenarioBranch[]
   checklist_items?: ElChecklistItem[]
+}
+
+/** 受講者の音声・字幕プリファレンス（行が無い場合は既定値で扱う） */
+export interface LearningPreferences {
+  audio_enabled: boolean
+  captions_enabled: boolean
 }
 
 export interface ElQuizQuestion {
@@ -89,7 +97,12 @@ export interface ElAssignment {
   due_date: string | null
   assigned_at: string
   course?: ElCourse
-  employee?: { id: string; name: string; division_id: string | null; divisions?: { name: string } | { name: string }[] | null }
+  employee?: {
+    id: string
+    name: string
+    division_id: string | null
+    divisions?: { name: string } | { name: string }[] | null
+  }
 }
 
 export interface ElCourseWithSlides extends ElCourse {
@@ -141,6 +154,8 @@ export interface ElCourseViewerData extends ElCourseWithSlides {
   assignment: ElAssignment & { completed_at: string | null }
   progress: ElSlideProgress[]
   checklistCompletions: ElChecklistCompletion[]
+  /** DB 行が無い場合は null（呼び出し側で既定値にフォールバック） */
+  preferences: LearningPreferences | null
 }
 
 export interface AiGeneratedCourse {

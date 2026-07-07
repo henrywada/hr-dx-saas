@@ -97,9 +97,7 @@ export function AssignmentListClient({
         const p = progressMap[item.id]
         const overdue = isAssignmentOverdue(item.due_date, p?.isCompleted ?? false)
         return (
-          <div
-            className={`text-sm ${overdue ? 'text-red-600 font-medium' : 'text-[#57606a]'}`}
-          >
+          <div className={`text-sm ${overdue ? 'text-red-600 font-medium' : 'text-[#57606a]'}`}>
             {item.due_date ?? '-'}
             {overdue && ' (超過)'}
           </div>
@@ -178,69 +176,80 @@ export function AssignmentListClient({
 
   if (assignments.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col items-center py-10 text-gray-400">
-          <Users className="w-10 h-10 mb-3" />
-          <p className="text-sm text-gray-600">まだ受講割り当てがありません</p>
-          <p className="text-xs mt-2 text-center text-gray-500 max-w-md">
-            下のコース一覧から選び、受講者を指定してください。
-            <br />
-            ステータスが「下書き」でも割り当ては可能ですが、受講開始前に
-            <Link
-              href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
-              className="text-[#FD7601] hover:underline mx-0.5"
-            >
-              コース管理
-            </Link>
-            で「公開中」にすると運用しやすくなります。
-          </p>
+      <>
+        <div className="space-y-6">
+          <div className="flex flex-col items-center py-10 text-gray-400">
+            <Users className="w-10 h-10 mb-3" />
+            <p className="text-sm text-gray-600">まだ受講割り当てがありません</p>
+            <p className="text-xs mt-2 text-center text-gray-500 max-w-md">
+              下のコース一覧から選び、受講者を指定してください。
+              <br />
+              ステータスが「下書き」でも割り当ては可能ですが、受講開始前に
+              <Link
+                href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
+                className="text-[#FD7601] hover:underline mx-0.5"
+              >
+                コース管理
+              </Link>
+              で「公開中」にすると運用しやすくなります。
+            </p>
+          </div>
+
+          {tenantCourses.length === 0 ? (
+            <div className="text-center text-sm text-gray-500">
+              自社コースがありません。
+              <Link
+                href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
+                className="text-[#FD7601] hover:underline ml-1"
+              >
+                コースを作成
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#e2e6ec] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 bg-[#f6f8fa] border-b border-[#e2e6ec]">
+                <h2 className="text-sm font-semibold text-gray-800">コースを選んで割り当て</h2>
+              </div>
+              <ul className="divide-y divide-[#e2e6ec]">
+                {tenantCourses.map(course => {
+                  const disabled = course.status === 'archived'
+                  return (
+                    <li
+                      key={course.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f6f8fa] transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="text-xs text-gray-500">{course.category}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => !disabled && openAssign(course.id)}
+                        disabled={disabled}
+                        className="flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        割り当て
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
         </div>
 
-        {tenantCourses.length === 0 ? (
-          <div className="text-center text-sm text-gray-500">
-            自社コースがありません。
-            <Link
-              href={APP_ROUTES.TENANT.ADMIN_EL_COURSES}
-              className="text-[#FD7601] hover:underline ml-1"
-            >
-              コースを作成
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-white border border-[#e2e6ec] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 bg-[#f6f8fa] border-b border-[#e2e6ec]">
-              <h2 className="text-sm font-semibold text-gray-800">コースを選んで割り当て</h2>
-            </div>
-            <ul className="divide-y divide-[#e2e6ec]">
-              {tenantCourses.map(course => {
-                const disabled = course.status === 'archived'
-                return (
-                  <li
-                    key={course.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f6f8fa] transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <span className="text-xs text-gray-500">{course.category}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => !disabled && openAssign(course.id)}
-                      disabled={disabled}
-                      className="flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#FD7601] hover:bg-orange-700 rounded-lg disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      割り当て
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+        {showModal && selectedCourseId && (
+          <AssignmentModal
+            courseId={selectedCourseId}
+            employees={employees}
+            onClose={() => setShowModal(false)}
+            onAssigned={() => router.refresh()}
+          />
         )}
-      </div>
+      </>
     )
   }
 

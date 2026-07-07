@@ -89,8 +89,7 @@ export async function getCourseWithSlides(courseId: string): Promise<ElCourseWit
   if (slidesError) throw supabaseQueryError('スライドの取得に失敗しました', slidesError)
 
   const slidesWithRelations = (slides ?? []).map(s => {
-    const { el_quiz_questions, el_scenario_branches, el_checklist_items, ...slideFields } =
-      s as any
+    const { el_quiz_questions, el_scenario_branches, el_checklist_items, ...slideFields } = s as any
     return {
       ...slideFields,
       quiz_questions: ((el_quiz_questions ?? []) as any[]).map((q: any) => ({
@@ -285,11 +284,27 @@ export async function getCourseViewerData(
 
   const checklistCompletions = await getChecklistCompletions(assignmentId)
 
+  const { data: preferencesRow, error: preferencesError } = await supabase
+    .from('el_learning_preferences')
+    .select('audio_enabled, captions_enabled')
+    .eq('employee_id', employeeId)
+    .maybeSingle()
+
+  if (preferencesError) {
+    throw supabaseQueryError('学習プリファレンスの取得に失敗しました', preferencesError)
+  }
+
   return {
     ...courseWithSlides,
     assignment: assignment as ElAssignment & { completed_at: string | null },
     progress: (progress ?? []) as ElSlideProgress[],
     checklistCompletions,
+    preferences: preferencesRow
+      ? {
+          audio_enabled: preferencesRow.audio_enabled,
+          captions_enabled: preferencesRow.captions_enabled,
+        }
+      : null,
   }
 }
 
@@ -315,13 +330,21 @@ export async function getChecklistCompletions(
 // スキル要件連携クエリ
 // ============================================================
 
-export async function getCourseRequirementMappings(courseId: string): Promise<
-  Array<{ id: string; requirement_id: string; requirement: { id: string; name: string; skill: { id: string; name: string } } }>
+export async function getCourseRequirementMappings(
+  courseId: string
+): Promise<
+  Array<{
+    id: string
+    requirement_id: string
+    requirement: { id: string; name: string; skill: { id: string; name: string } }
+  }>
 > {
   const supabase = await createClient()
   const { data, error } = await (supabase as any)
     .from('el_course_requirement_mappings')
-    .select('id, requirement_id, requirement:skill_requirements(id, name, skill:tenant_skills(id, name))')
+    .select(
+      'id, requirement_id, requirement:skill_requirements(id, name, skill:tenant_skills(id, name))'
+    )
     .eq('course_id', courseId)
     .order('created_at', { ascending: true })
   if (error) throw supabaseQueryError('スキル要件連携の取得に失敗しました', error)

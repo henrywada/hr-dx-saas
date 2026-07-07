@@ -1535,6 +1535,51 @@ export type Database = {
           },
         ]
       }
+      el_learning_preferences: {
+        Row: {
+          audio_enabled: boolean
+          captions_enabled: boolean
+          created_at: string
+          employee_id: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          audio_enabled?: boolean
+          captions_enabled?: boolean
+          created_at?: string
+          employee_id: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          audio_enabled?: boolean
+          captions_enabled?: boolean
+          created_at?: string
+          employee_id?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "el_learning_preferences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "el_learning_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       el_progress: {
         Row: {
           assignment_id: string
@@ -1814,6 +1859,7 @@ export type Database = {
       }
       el_slides: {
         Row: {
+          audio_url: string | null
           content: string | null
           course_id: string
           created_at: string
@@ -1823,10 +1869,12 @@ export type Database = {
           slide_order: number
           slide_type: string
           title: string | null
+          transcript: string | null
           updated_at: string
           video_url: string | null
         }
         Insert: {
+          audio_url?: string | null
           content?: string | null
           course_id: string
           created_at?: string
@@ -1836,10 +1884,12 @@ export type Database = {
           slide_order?: number
           slide_type?: string
           title?: string | null
+          transcript?: string | null
           updated_at?: string
           video_url?: string | null
         }
         Update: {
+          audio_url?: string | null
           content?: string | null
           course_id?: string
           created_at?: string
@@ -1849,6 +1899,7 @@ export type Database = {
           slide_order?: number
           slide_type?: string
           title?: string | null
+          transcript?: string | null
           updated_at?: string
           video_url?: string | null
         }

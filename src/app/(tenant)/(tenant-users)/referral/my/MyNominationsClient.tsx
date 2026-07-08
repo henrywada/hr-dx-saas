@@ -15,7 +15,7 @@ interface MyNominationsClientProps {
 /** マイ推薦一覧 クライアントコンポーネント */
 export function MyNominationsClient({ nominations, rewards }: MyNominationsClientProps) {
   return (
-    <div className="space-y-8">
+    <div className="px-4 sm:px-6 mx-auto w-full max-w-[1200px] space-y-8">
       {/* ヘッダー */}
       <div>
         <Link
@@ -56,12 +56,14 @@ export function MyNominationsClient({ nominations, rewards }: MyNominationsClien
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {nominations.map((nomination) => (
+                  {nominations.map(nomination => (
                     <tr key={nomination.id} className="hover:bg-slate-50 transition-colors">
                       {/* 推薦日 */}
                       <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                         {new Date(nomination.created_at).toLocaleDateString('ja-JP', {
-                          year: 'numeric', month: '2-digit', day: '2-digit',
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
                         })}
                       </td>
                       {/* 候補者名 */}
@@ -113,7 +115,7 @@ export function MyNominationsClient({ nominations, rewards }: MyNominationsClien
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {rewards.map((reward) => (
+                  {rewards.map(reward => (
                     <tr key={reward.id} className="hover:bg-slate-50 transition-colors">
                       {/* 金額 */}
                       <td className="px-4 py-3 font-bold text-[#ff6b00]">
@@ -127,7 +129,9 @@ export function MyNominationsClient({ nominations, rewards }: MyNominationsClien
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                         {reward.scheduled_date
                           ? new Date(reward.scheduled_date).toLocaleDateString('ja-JP', {
-                              year: 'numeric', month: '2-digit', day: '2-digit',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
                             })
                           : '—'}
                       </td>
@@ -135,7 +139,9 @@ export function MyNominationsClient({ nominations, rewards }: MyNominationsClien
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                         {reward.paid_at
                           ? new Date(reward.paid_at).toLocaleDateString('ja-JP', {
-                              year: 'numeric', month: '2-digit', day: '2-digit',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
                             })
                           : '—'}
                       </td>

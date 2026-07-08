@@ -7,6 +7,7 @@ import { APP_ROUTES } from '@/config/routes'
 import { getMyConsultations, getEligibleManagers } from '@/features/consultation/queries'
 import { ConsultationForm } from '@/features/consultation/components/ConsultationForm'
 import { CATEGORY_LABEL, STATUS_LABEL } from '@/features/consultation/labels'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: '悩み・相談窓口' }
 
@@ -21,7 +22,10 @@ export default async function ConsultationPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 sm:px-6 py-5 mx-auto max-w-300">
-      <h1 className="text-sm font-semibold">悩み・相談窓口</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-sm font-semibold">悩み・相談窓口</h1>
+        <TenantBackLink />
+      </div>
       <ConsultationForm eligibleManagers={eligibleManagers} />
       <div className="flex flex-col gap-2">
         {consultations.map(c => (

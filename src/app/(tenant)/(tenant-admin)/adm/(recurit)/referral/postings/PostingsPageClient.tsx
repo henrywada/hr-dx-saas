@@ -6,6 +6,7 @@ import { createReferralPosting } from '@/features/referral/actions'
 import type { ReferralPosting, UpsertReferralPostingInput } from '@/features/referral/types'
 import { EMPLOYMENT_TYPE_LABELS } from '@/features/referral/types'
 import { ReferralPostingCard } from '@/features/referral/components/ReferralPostingCard'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface PostingsPageClientProps {
   postings: (ReferralPosting & { nomination_count: number })[]
@@ -39,7 +40,8 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
       title,
       description: (data.get('description') as string).trim() || null,
       department: (data.get('department') as string).trim() || null,
-      employment_type: (data.get('employment_type') as UpsertReferralPostingInput['employment_type']) || null,
+      employment_type:
+        (data.get('employment_type') as UpsertReferralPostingInput['employment_type']) || null,
       reward_amount: rewardAmount,
       reward_condition: (data.get('reward_condition') as string).trim() || null,
       is_active: data.get('is_active') === 'on',
@@ -61,14 +63,17 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
       {/* ページヘッダー */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">リファラル求人管理</h1>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-        >
-          <Plus className="h-4 w-4" />
-          新規求人追加
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <TenantBackLink />
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-4 w-4" />
+            新規求人追加
+          </button>
+        </div>
       </div>
 
       {/* 求人カードグリッド */}
@@ -85,12 +90,8 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {postings.map((posting) => (
-            <ReferralPostingCard
-              key={posting.id}
-              posting={posting}
-              showToggle={true}
-            />
+          {postings.map(posting => (
+            <ReferralPostingCard key={posting.id} posting={posting} showToggle={true} />
           ))}
         </div>
       )}
@@ -131,7 +132,10 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
 
               {/* 説明 */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   求人説明 <span className="text-slate-400 text-xs font-normal">任意</span>
                 </label>
                 <textarea
@@ -145,7 +149,10 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
 
               {/* 部署 */}
               <div>
-                <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="department"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   部署 <span className="text-slate-400 text-xs font-normal">任意</span>
                 </label>
                 <input
@@ -159,7 +166,10 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
 
               {/* 雇用形態 */}
               <div>
-                <label htmlFor="employment_type" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="employment_type"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   雇用形態 <span className="text-slate-400 text-xs font-normal">任意</span>
                 </label>
                 <select
@@ -169,14 +179,19 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
                 >
                   <option value="">選択してください</option>
                   {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {/* 報奨金額 */}
               <div>
-                <label htmlFor="reward_amount" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="reward_amount"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   報奨金額（円）
                 </label>
                 <input
@@ -192,7 +207,10 @@ export function PostingsPageClient({ postings }: PostingsPageClientProps) {
 
               {/* 報奨金条件 */}
               <div>
-                <label htmlFor="reward_condition" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="reward_condition"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   報奨金支払い条件 <span className="text-slate-400 text-xs font-normal">任意</span>
                 </label>
                 <input

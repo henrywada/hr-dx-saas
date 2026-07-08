@@ -6,6 +6,7 @@ import { APP_ROUTES } from '@/config/routes'
 import { getTodayCheckin, getMyCheckinTrend } from '@/features/condition-checkin/queries'
 import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWidget'
 import { ConditionTrendChart } from '@/features/condition-checkin/components/ConditionTrendChart'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: 'コンディション記録' }
 
@@ -22,7 +23,10 @@ export default async function ConditionPage() {
 
   return (
     <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-[1200px] space-y-4">
-      <h1 className="text-sm font-semibold text-slate-900">コンディション記録</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-sm font-semibold text-slate-900">コンディション記録</h1>
+        <TenantBackLink />
+      </div>
 
       <CheckinWidget initialScore={todayCheckin?.score ?? null} />
 

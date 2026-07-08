@@ -7,6 +7,7 @@ import { EngagementKpiSection } from './EngagementKpiSection'
 import { DevelopmentKpiSection } from './DevelopmentKpiSection'
 import { ExportButton } from './ExportButton'
 import { HrKpiHubBanner } from './HrKpiHubBanner'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { HrKpiBundle } from '../types'
 
 interface Props {
@@ -40,7 +41,10 @@ export function HrKpiDashboard({ bundle }: Props) {
               集計基準：{periodLabel}　　取得日時：{fetchedLabel}
             </p>
           </div>
-          <ExportButton bundle={bundle} />
+          <div className="flex gap-2">
+            <TenantBackLink />
+            <ExportButton bundle={bundle} />
+          </div>
         </div>
 
         {/* カード本文 */}

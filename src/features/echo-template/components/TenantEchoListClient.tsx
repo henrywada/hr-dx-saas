@@ -12,6 +12,7 @@ import { getTenantEchoQuestionnaires } from '../queries'
 import { getQuestionnaireDetailAction } from '@/features/questionnaire/actions'
 import QuestionManagerModal from '@/features/questionnaire/components/QuestionManagerModal'
 import TenantEchoCopyModal from './TenantEchoCopyModal'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { TenantEchoQuestionnaire, EchoTemplate } from '../types'
 import type { QuestionnaireListItem } from '@/features/questionnaire/types'
 import type { PulseSurveyCadence } from '@/lib/datetime'
@@ -148,13 +149,16 @@ export default function TenantEchoListClient({
             パルスサーベイ（Echo）で使用する設問セットを管理します。本番指定すると従業員の回答画面に反映されます。
           </p>
         </div>
-        <button
-          onClick={() => setShowCopyModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90"
-        >
-          <Copy size={15} />
-          テンプレートからコピー
-        </button>
+        <div className="flex gap-2">
+          <TenantBackLink />
+          <button
+            onClick={() => setShowCopyModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90"
+          >
+            <Copy size={15} />
+            テンプレートからコピー
+          </button>
+        </div>
       </div>
 
       {error && (

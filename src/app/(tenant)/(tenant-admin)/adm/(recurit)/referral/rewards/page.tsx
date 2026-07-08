@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { getReferralRewards } from '@/features/referral/queries'
 import { RewardManagementTable } from '@/features/referral/components/RewardManagementTable'
 
@@ -20,13 +21,16 @@ export default async function ReferralRewardsPage() {
 
   // 未払い報奨金の合計を算出
   const pendingTotal = rewards
-    .filter((r) => r.status === 'pending' || r.status === 'approved')
+    .filter(r => r.status === 'pending' || r.status === 'approved')
     .reduce((sum, r) => sum + r.amount, 0)
 
   return (
     <div className="space-y-6">
       {/* ページヘッダー */}
-      <h1 className="text-2xl font-bold text-slate-900">報奨金管理</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">報奨金管理</h1>
+        <TenantBackLink className="self-start shrink-0" />
+      </div>
 
       {/* 未払い報奨金サマリー */}
       {pendingTotal > 0 && (

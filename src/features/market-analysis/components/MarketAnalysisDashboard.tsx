@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Card, Button, Badge } from '@/components/ui'
 import { fetchMarketJobs, JobResult } from '../actions'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default function MarketAnalysisDashboard() {
   const [jobTitle, setJobTitle] = useState('')
@@ -52,9 +53,8 @@ export default function MarketAnalysisDashboard() {
             入力された条件をもとに、Web上の求人情報を網羅する検索エンジンをリアルタイムに解析し、日本中の最新データを一括取得します。
           </p>
         </div>
+        <TenantBackLink />
       </div>
-
-      {/* 検索カード */}
       <Card variant="default">
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

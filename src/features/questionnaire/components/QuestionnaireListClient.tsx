@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { QuestionnaireListItem, CreatorType } from '../types'
 import {
   deleteQuestionnaire,
@@ -52,7 +53,9 @@ function buildQuestionnaireColumns(params: {
       label: 'タイトル',
       sortable: true,
       render: value => (
-        <span className="font-medium text-neutral-800 max-w-xs truncate block">{String(value)}</span>
+        <span className="font-medium text-neutral-800 max-w-xs truncate block">
+          {String(value)}
+        </span>
       ),
     },
     {
@@ -241,21 +244,22 @@ export default function QuestionnaireListClient({
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-        {isDeveloper && (
-          <>
-            <Button variant="secondary" size="sm" onClick={() => openCreate('system')}>
-              ＋ システム作成
-            </Button>
+          <TenantBackLink />
+          {isDeveloper && (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => openCreate('system')}>
+                ＋ システム作成
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
+                ＋ 新規作成
+              </Button>
+            </>
+          )}
+          {!isDeveloper && (
             <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
               ＋ 新規作成
             </Button>
-          </>
-        )}
-        {!isDeveloper && (
-          <Button variant="primary" size="sm" onClick={() => openCreate('tenant')}>
-            ＋ 新規作成
-          </Button>
-        )}
+          )}
         </div>
       </div>
 
@@ -291,7 +295,9 @@ export default function QuestionnaireListClient({
           {templates.length === 0 ? (
             <div className="text-center py-12 px-4">
               <LayoutTemplate className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
-              <p className="text-sm font-medium text-neutral-600">利用可能なテンプレートはありません</p>
+              <p className="text-sm font-medium text-neutral-600">
+                利用可能なテンプレートはありません
+              </p>
               <p className="text-xs text-neutral-400 mt-1">
                 SaaS 管理者がシステムテンプレートを登録すると、ここからコピーできます。
               </p>
@@ -302,9 +308,7 @@ export default function QuestionnaireListClient({
               tenantId={tenantId}
               onCreated={handleTemplateCreated}
               canDelete={isDeveloper}
-              onDeleted={(id: string) =>
-                setTemplates(prev => prev.filter(t => t.id !== id))
-              }
+              onDeleted={(id: string) => setTemplates(prev => prev.filter(t => t.id !== id))}
             />
           )}
         </div>

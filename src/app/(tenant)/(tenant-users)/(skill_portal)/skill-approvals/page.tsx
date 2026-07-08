@@ -8,6 +8,7 @@ import {
   getTeamGrowthCards,
 } from '@/features/skill-portal/queries'
 import { SkillApprovalsView } from '@/features/skill-portal/components/SkillApprovalsView'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default async function SkillApprovalsPage() {
   const user = await getServerUser()
@@ -24,11 +25,14 @@ export default async function SkillApprovalsPage() {
   return (
     <div className="min-h-full">
       <div className="mx-auto max-w-3xl px-6 pb-12 pt-8">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">チームの育成状況</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            あなたが先導するメンバーの成長をここで確認・サポートします
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">チームの育成状況</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              あなたが先導するメンバーの成長をここで確認・サポートします
+            </p>
+          </div>
+          <TenantBackLink />
         </div>
         <SkillApprovalsView
           roleApplications={roleApplications}

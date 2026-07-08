@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type {
   EmployeeAttendanceOverviewFilter,
   EmployeeAttendancePageResult,
@@ -33,8 +34,7 @@ export default function AttendanceDashboard({
   divisions,
   initialDetailEmployee = null,
 }: AttendanceDashboardProps) {
-  const [overviewFilter, setOverviewFilter] =
-    useState<EmployeeAttendanceOverviewFilter>('all')
+  const [overviewFilter, setOverviewFilter] = useState<EmployeeAttendanceOverviewFilter>('all')
 
   return (
     <div className="space-y-8 pb-10 max-w-[1400px] mx-auto">
@@ -62,6 +62,7 @@ export default function AttendanceDashboard({
           </CardExplanationModal>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <TenantBackLink />
           <MonthSelector year={year} month={month} />
           <Link
             href={APP_ROUTES.TENANT.ADMIN_CSV_ATENDANCE}
@@ -84,11 +85,7 @@ export default function AttendanceDashboard({
         year={year}
         month={month}
         overviewFilter={overviewFilter}
-        initialList={
-          overviewFilter === 'all'
-            ? initialList
-            : { rows: [], total: 0 }
-        }
+        initialList={overviewFilter === 'all' ? initialList : { rows: [], total: 0 }}
         divisions={divisions}
         initialDetailEmployee={initialDetailEmployee}
       />

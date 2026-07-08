@@ -9,6 +9,7 @@ import {
   DivisionNode,
 } from '@/features/adm/high-stress/queries'
 import HighStressClient from './HighStressClient'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { HeartHandshake, ShieldAlert } from 'lucide-react'
 
 /**
@@ -74,13 +75,16 @@ export default async function HighStressPage() {
 
 function PageHeader() {
   return (
-    <div className="relative pl-5">
-      <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full" />
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-        <HeartHandshake className="w-8 h-8 text-blue-600" />
-        高ストレス者一覧（人事用）
-      </h1>
-      <p className="text-sm text-gray-500 mt-1 font-medium pl-11">ステータス確認・更新</p>
+    <div className="flex items-start justify-between gap-3">
+      <div className="relative pl-5 min-w-0">
+        <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full" />
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+          <HeartHandshake className="w-8 h-8 text-blue-600" />
+          高ストレス者一覧（人事用）
+        </h1>
+        <p className="text-sm text-gray-500 mt-1 font-medium pl-11">ステータス確認・更新</p>
+      </div>
+      <TenantBackLink className="self-start shrink-0" />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import ReceivingForm from '../components/ReceivingForm'
+import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -10,10 +11,13 @@ export const metadata: Metadata = {
 export default function ReceivingScanPage() {
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-start justify-between">
         <h1 className="text-2xl font-bold text-blue-700">入荷登録（QRスキャン）</h1>
-        <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-          製品トレーサビリティ
+        <div className="flex flex-col items-end gap-1">
+          <MyouBackLink />
+          <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+            製品トレーサビリティ
+          </div>
         </div>
       </div>
 

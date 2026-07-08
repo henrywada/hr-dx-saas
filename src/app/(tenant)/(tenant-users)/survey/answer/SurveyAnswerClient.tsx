@@ -1,138 +1,139 @@
-'use client';
+'use client'
 
-import React, { useState, useTransition, useMemo, useEffect } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, Clock, Send, Sparkles } from 'lucide-react';
+import React, { useState, useTransition, useMemo, useEffect } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { CheckCircle2, Clock, Send, Sparkles } from 'lucide-react'
 import {
   submitSurvey,
   getEchoPulseSurveyQuestionsAction,
   type EchoPulseSurveyQuestion,
-} from '@/features/survey/actions';
-import { parsePulseSurveyPeriodFromSearchParam } from '@/lib/datetime';
-import { APP_ROUTES } from '@/config/routes';
-import { PULSE_LIKERT_OPTIONS } from '@/features/survey/constants';
+} from '@/features/survey/actions'
+import { parsePulseSurveyPeriodFromSearchParam } from '@/lib/datetime'
+import { APP_ROUTES } from '@/config/routes'
+import { PULSE_LIKERT_OPTIONS } from '@/features/survey/constants'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface SurveyAnswerClientProps {
   defaultSurveyPeriod: string
 }
 
 export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswerClientProps) {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()
   const surveyPeriod = useMemo(() => {
-    const p = searchParams.get('period');
-    const parsed = parsePulseSurveyPeriodFromSearchParam(p);
-    if (parsed) return parsed;
-    return defaultSurveyPeriod;
-  }, [searchParams, defaultSurveyPeriod]);
+    const p = searchParams.get('period')
+    const parsed = parsePulseSurveyPeriodFromSearchParam(p)
+    if (parsed) return parsed
+    return defaultSurveyPeriod
+  }, [searchParams, defaultSurveyPeriod])
 
-  const [questions, setQuestions] = useState<EchoPulseSurveyQuestion[] | null>(null);
-  const [surveyTitle, setSurveyTitle] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [noActiveQuestionnaire, setNoActiveQuestionnaire] = useState(false);
+  const [questions, setQuestions] = useState<EchoPulseSurveyQuestion[] | null>(null)
+  const [surveyTitle, setSurveyTitle] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [noActiveQuestionnaire, setNoActiveQuestionnaire] = useState(false)
 
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [freeComment, setFreeComment] = useState('');
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, number>>({})
+  const [freeComment, setFreeComment] = useState('')
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const res = await getEchoPulseSurveyQuestionsAction();
-      if (cancelled) return;
+    let cancelled = false
+    ;(async () => {
+      const res = await getEchoPulseSurveyQuestionsAction()
+      if (cancelled) return
       if (!res.success) {
-        setLoadError(res.error ?? '設問の読み込みに失敗しました');
-        setQuestions([]);
-        return;
+        setLoadError(res.error ?? '設問の読み込みに失敗しました')
+        setQuestions([])
+        return
       }
-      setNoActiveQuestionnaire(res.code === 'no_active_questionnaire');
-      setQuestions(res.questions ?? []);
-      setSurveyTitle(res.questionnaireTitle ?? null);
-    })();
+      setNoActiveQuestionnaire(res.code === 'no_active_questionnaire')
+      setQuestions(res.questions ?? [])
+      setSurveyTitle(res.questionnaireTitle ?? null)
+    })()
     return () => {
-      cancelled = true;
-    };
-  }, []);
+      cancelled = true
+    }
+  }, [])
 
   const groupedQuestions = useMemo(() => {
-    const list = questions ?? [];
+    const list = questions ?? []
     return list.reduce(
       (acc, q) => {
-        if (!acc[q.category]) acc[q.category] = [];
-        acc[q.category].push(q);
-        return acc;
+        if (!acc[q.category]) acc[q.category] = []
+        acc[q.category].push(q)
+        return acc
       },
       {} as Record<string, EchoPulseSurveyQuestion[]>
-    );
-  }, [questions]);
+    )
+  }, [questions])
 
   const categoriesInOrder = useMemo(() => {
-    const order: string[] = [];
-    const seen = new Set<string>();
+    const order: string[] = []
+    const seen = new Set<string>()
     for (const q of questions ?? []) {
       if (!seen.has(q.category)) {
-        seen.add(q.category);
-        order.push(q.category);
+        seen.add(q.category)
+        order.push(q.category)
       }
     }
-    return order;
-  }, [questions]);
+    return order
+  }, [questions])
 
   const displayNumberById = useMemo(() => {
-    const m = new Map<string, number>();
-    let n = 0;
+    const m = new Map<string, number>()
+    let n = 0
     for (const cat of categoriesInOrder) {
       for (const q of questions ?? []) {
-        if (q.category !== cat) continue;
-        n += 1;
-        m.set(q.id, n);
+        if (q.category !== cat) continue
+        n += 1
+        m.set(q.id, n)
       }
     }
-    return m;
-  }, [questions, categoriesInOrder]);
+    return m
+  }, [questions, categoriesInOrder])
 
   const handleRating = (questionId: string, value: number) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
-  };
+    setAnswers(prev => ({ ...prev, [questionId]: value }))
+  }
 
   const handleRadioSelect = (questionId: string, score: number) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: score }));
-  };
+    setAnswers(prev => ({ ...prev, [questionId]: score }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
+    e.preventDefault()
+    setErrorMsg(null)
 
-    if (!questions || questions.length === 0) return;
+    if (!questions || questions.length === 0) return
 
     const answersArray = Object.entries(answers).map(([question_id, score]) => ({
       question_id,
       score,
-    }));
+    }))
 
     startTransition(async () => {
       const res = await submitSurvey({
         answers: answersArray,
         freeComment: freeComment,
-        mockQuestionsData: questions.map((q) => ({
+        mockQuestionsData: questions.map(q => ({
           id: q.id,
           category: q.category,
           text: q.detail ? `${q.headline}\n（${q.detail}）` : q.headline,
           pulseAnswerType: q.type === 'radio' ? ('single_choice' as const) : ('rating' as const),
         })),
         surveyPeriod,
-      });
+      })
 
       if (res.success) {
-        setIsCompleted(true);
+        setIsCompleted(true)
       } else {
-        setErrorMsg(res.error || 'エラーが発生しました');
+        setErrorMsg(res.error || 'エラーが発生しました')
       }
-    });
-  };
+    })
+  }
 
   // 完了画面のレンダリング
   if (isCompleted) {
@@ -145,11 +146,14 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
         <p className="text-gray-600 max-w-lg text-lg leading-relaxed">
           あなたからの貴重なフィードバックは、より良い組織・職場環境づくりのために役立てられます。お疲れ様でした。
         </p>
-        <button className="mt-8 px-8 py-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-base font-medium shadow-sm" onClick={() => window.location.href = APP_ROUTES.TENANT.PORTAL}>
+        <button
+          className="mt-8 px-8 py-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-base font-medium shadow-sm"
+          onClick={() => (window.location.href = APP_ROUTES.TENANT.PORTAL)}
+        >
           ダッシュボードへ戻る
         </button>
       </div>
-    );
+    )
   }
 
   if (questions === null) {
@@ -157,7 +161,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
       <div className="max-w-4xl mx-auto py-24 px-4 text-center text-gray-500">
         <p className="text-sm font-medium">設問を読み込んでいます…</p>
       </div>
-    );
+    )
   }
 
   if (loadError) {
@@ -172,7 +176,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
           再読み込み
         </button>
       </div>
-    );
+    )
   }
 
   if (questions.length === 0) {
@@ -193,14 +197,17 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
           トップ画面へ戻る
         </Link>
       </div>
-    );
+    )
   }
 
-  const answeredCount = Object.keys(answers).length;
-  const progressPercent = Math.round((answeredCount / questions.length) * 100);
+  const answeredCount = Object.keys(answers).length
+  const progressPercent = Math.round((answeredCount / questions.length) * 100)
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <div className="flex justify-end mb-2">
+        <TenantBackLink />
+      </div>
       {/* ページヘッダー */}
       <div className="mb-12 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="inline-flex items-center justify-center space-x-2 bg-primary-light text-primary px-5 py-2 rounded-full text-sm font-semibold mb-2">
@@ -225,7 +232,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
           <span className="text-primary font-bold">{progressPercent}%</span>
         </div>
         <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-primary to-[#ff8a1e] transition-all duration-700 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
@@ -235,7 +242,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
       <form onSubmit={handleSubmit} className="space-y-16 pb-32">
         {/* カテゴリごとの設問エリア */}
         {categoriesInOrder.map((category, cIdx) => {
-          const categoryQuestions = groupedQuestions[category] ?? [];
+          const categoryQuestions = groupedQuestions[category] ?? []
           return (
             <div
               key={category}
@@ -248,9 +255,9 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
               </h2>
 
               <div className="grid gap-6">
-                {categoryQuestions.map((q) => {
-                  const isAnswered = answers[q.id] !== undefined;
-                  const qn = displayNumberById.get(q.id) ?? 0;
+                {categoryQuestions.map(q => {
+                  const isAnswered = answers[q.id] !== undefined
+                  const qn = displayNumberById.get(q.id) ?? 0
                   return (
                     <div
                       key={q.id}
@@ -275,8 +282,8 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                       <div className="p-4 sm:p-6 pt-4">
                         {q.type === 'radio' && q.options ? (
                           <div className="flex flex-col gap-2">
-                            {q.options.map((opt) => {
-                              const isSelected = answers[q.id] === opt.score;
+                            {q.options.map(opt => {
+                              const isSelected = answers[q.id] === opt.score
                               return (
                                 <button
                                   key={opt.score}
@@ -293,13 +300,13 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                                 >
                                   {opt.text}
                                 </button>
-                              );
+                              )
                             })}
                           </div>
                         ) : (
                           <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 sm:gap-2">
-                            {PULSE_LIKERT_OPTIONS.map((opt) => {
-                              const isSelected = answers[q.id] === opt.value;
+                            {PULSE_LIKERT_OPTIONS.map(opt => {
+                              const isSelected = answers[q.id] === opt.value
                               return (
                                 <button
                                   key={opt.value}
@@ -328,24 +335,30 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                                     <span className="inline lg:hidden">{opt.shortLabel}</span>
                                   </span>
                                 </button>
-                              );
+                              )
                             })}
                           </div>
                         )}
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
-          );
+          )
         })}
 
         {/* フリーコメント欄 (任意) */}
-        <div className="space-y-6 pt-6 animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: '600ms' }}>
+        <div
+          className="space-y-6 pt-6 animate-in fade-in slide-in-from-bottom-8"
+          style={{ animationDelay: '600ms' }}
+        >
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
             <span className="w-2 h-8 bg-primary/70 rounded-full inline-block"></span>
-            フリーコメント <span className="text-sm font-normal text-gray-400 ml-2">(任意 - 誰が書いたか特定されにくいよう配慮されます)</span>
+            フリーコメント{' '}
+            <span className="text-sm font-normal text-gray-400 ml-2">
+              (任意 - 誰が書いたか特定されにくいよう配慮されます)
+            </span>
           </h2>
           <div className="rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow bg-white">
             <div className="p-0">
@@ -354,7 +367,7 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                 placeholder="例：最近、部署間の連携が取りづらいと感じることがあります。ミーティングの仕組みを改善してほしいです。"
                 className="min-h-[180px] w-full resize-y text-base p-6 border-0 focus:ring-2 focus:ring-inset focus:ring-primary bg-gray-50/50 hover:bg-white transition-colors outline-none"
                 value={freeComment}
-                onChange={(e) => setFreeComment(e.target.value)}
+                onChange={e => setFreeComment(e.target.value)}
               />
             </div>
           </div>
@@ -374,26 +387,47 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
                   <CheckCircle2 size={18} className="mr-1.5" /> 全ての質問に回答済みです
                 </span>
               ) : (
-                <span>全 {questions.length} 問中、<strong className="text-gray-900 text-base">{answeredCount}</strong> 問を回答</span>
+                <span>
+                  全 {questions.length} 問中、
+                  <strong className="text-gray-900 text-base">{answeredCount}</strong> 問を回答
+                </span>
               )}
             </div>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               disabled={answeredCount === 0 || isPending}
               className={`
                 w-full sm:w-auto px-8 py-5 sm:px-12 rounded-xl text-lg font-bold shadow-lg transition-all duration-300 flex-shrink-0 flex items-center justify-center
-                ${answeredCount === 0 || isPending
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary text-white hover:bg-primary-dark hover:scale-[1.03] hover:shadow-xl'}
+                ${
+                  answeredCount === 0 || isPending
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary-dark hover:scale-[1.03] hover:shadow-xl'
+                }
                 ${answeredCount === questions.length && !isPending ? 'ring-2 ring-primary ring-offset-2' : ''}
               `}
             >
               {isPending ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white/70"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   送信中...
                 </span>
@@ -407,5 +441,5 @@ export default function SurveyAnswerClient({ defaultSurveyPeriod }: SurveyAnswer
         </div>
       </form>
     </div>
-  );
+  )
 }

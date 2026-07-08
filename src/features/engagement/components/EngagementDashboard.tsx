@@ -6,6 +6,7 @@ import { GrowthDevelopmentCards } from './GrowthDevelopmentCards'
 import { MonthlyTrendChart } from './MonthlyTrendChart'
 import { DepartmentHeatmap } from './DepartmentHeatmap'
 import { RecordSnapshotButton } from './RecordSnapshotButton'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { EngagementDashboardData } from '../types'
 
 interface Props {
@@ -47,7 +48,10 @@ export function EngagementDashboard({ data }: Props) {
               パルスサーベイ・ストレスチェック・Echoアンケートに加え、評価・1on1・スキル・eラーニングの成長KPIを統合表示
             </p>
           </div>
-          <RecordSnapshotButton layerFilter={selectedLayer} />
+          <div className="flex gap-2">
+            <TenantBackLink />
+            <RecordSnapshotButton layerFilter={selectedLayer} />
+          </div>
         </div>
 
         {/* カード本文 */}

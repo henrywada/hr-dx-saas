@@ -1,6 +1,7 @@
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import {
   getTenantStressSettingsRow,
   listDivisionsForAnchorPicker,
@@ -28,14 +29,17 @@ export default async function DivisionEstablishmentsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="relative pl-5">
-        <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-teal-500 rounded-full" />
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-          ストレスチェック実施拠点の登録
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          集団分析の拠点別表示・進捗集計・報告書出力の基礎となる事業場を定義します。
-        </p>
+      <header className="relative pl-5 flex items-start justify-between gap-3">
+        <div>
+          <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-500 to-teal-500 rounded-full" />
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+            ストレスチェック実施拠点の登録
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            集団分析の拠点別表示・進捗集計・報告書出力の基礎となる事業場を定義します。
+          </p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </header>
       <DivisionEstablishmentsClient
         tenantId={user.tenant_id}

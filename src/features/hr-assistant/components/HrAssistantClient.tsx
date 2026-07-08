@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SessionHistory } from './SessionHistory'
 import { ChatPanel } from './ChatPanel'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { HrAssistantSession, HrAssistantMessage, AssistantMode } from '../types'
 
 type Props = {
@@ -78,6 +79,9 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
             {isSidebarOpen ? '◀' : '▶'}
           </button>
           <span className="text-sm font-semibold text-[#24292f]">AI 人事相談アシスタント</span>
+          <div className="ml-auto">
+            <TenantBackLink />
+          </div>
         </div>
         <ChatPanel
           sessionId={activeSessionId}

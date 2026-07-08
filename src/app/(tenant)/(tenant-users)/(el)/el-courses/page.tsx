@@ -4,6 +4,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { createClient } from '@/lib/supabase/server'
 import { getMyAssignments } from '@/features/e-learning/queries'
 import { MyCourseListClient } from '@/features/e-learning/components/MyCourseListClient'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default async function MyCoursesPage() {
   const user = await getServerUser()
@@ -38,9 +39,12 @@ export default async function MyCoursesPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <BookOpen className="w-6 h-6 text-blue-600" />
-        <h1 className="text-xl font-bold text-gray-800">マイコース</h1>
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-6 h-6 text-blue-600" />
+          <h1 className="text-xl font-bold text-gray-800">マイコース</h1>
+        </div>
+        <TenantBackLink />
       </div>
 
       <MyCourseListClient

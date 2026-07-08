@@ -13,6 +13,7 @@ import type {
   FeedbackReportData,
 } from '@/features/evaluation/360-types'
 import { CAMPAIGN_STATUS_LABELS } from '@/features/evaluation/360-types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface Employee {
   id: string
@@ -69,7 +70,10 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
     setStatusError('')
     startTransition(async () => {
       const result = await setCampaignStatus(campaignId, newStatus)
-      if (result.success === false) { setStatusError(result.error); return }
+      if (result.success === false) {
+        setStatusError(result.error)
+        return
+      }
       setSelectedCampaign(prev => (prev ? { ...prev, status: newStatus } : null))
       setDetail(prev => (prev ? { ...prev, status: newStatus } : null))
     })
@@ -82,12 +86,15 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
           <h1 className="text-xl font-bold text-[#24292f]">360度評価</h1>
           <p className="text-sm text-[#57606a]">キャンペーン管理・フィードバックレポート</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-primary text-white text-sm rounded-xl hover:bg-primary/90"
-        >
-          + キャンペーン作成
-        </button>
+        <div className="flex gap-2">
+          <TenantBackLink />
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-primary text-white text-sm rounded-xl hover:bg-primary/90"
+          >
+            + キャンペーン作成
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -191,9 +198,7 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
               </div>
 
               <div className="p-4">
-                {loading && (
-                  <p className="text-sm text-[#57606a] py-8 text-center">読み込み中…</p>
-                )}
+                {loading && <p className="text-sm text-[#57606a] py-8 text-center">読み込み中…</p>}
                 {!loading && detail && (
                   <>
                     {activeTab === 'questions' && (
@@ -229,14 +234,9 @@ export function CampaignDashboard({ campaigns, employees }: Props) {
         </div>
       </div>
 
-      {showCreateModal && (
-        <CampaignFormModal onClose={() => setShowCreateModal(false)} />
-      )}
+      {showCreateModal && <CampaignFormModal onClose={() => setShowCreateModal(false)} />}
       {editingCampaign && (
-        <CampaignFormModal
-          campaign={editingCampaign}
-          onClose={() => setEditingCampaign(null)}
-        />
+        <CampaignFormModal campaign={editingCampaign} onClose={() => setEditingCampaign(null)} />
       )}
     </div>
   )

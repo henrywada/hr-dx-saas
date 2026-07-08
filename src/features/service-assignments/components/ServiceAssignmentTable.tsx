@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { ServiceAssignmentRow } from '../types'
 import { ServiceAssignmentFormDialog } from './ServiceAssignmentFormDialog'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface ServiceAssignmentTableProps {
   assignments: ServiceAssignmentRow[]
@@ -25,13 +26,16 @@ export function ServiceAssignmentTable({ assignments }: ServiceAssignmentTablePr
             サービスの対象ユーザーを一覧・編集・同期できます
           </p>
         </div>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          新規作成
-        </button>
+        <div className="flex gap-2">
+          <TenantBackLink />
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            新規作成
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm overflow-hidden">

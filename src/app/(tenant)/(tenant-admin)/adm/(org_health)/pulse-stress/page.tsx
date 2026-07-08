@@ -1,32 +1,32 @@
-import { getServerUser } from '@/lib/auth/server-user';
-import { redirect } from 'next/navigation';
-import { APP_ROUTES } from '@/config/routes';
-import { getCrossAnalysisData } from '@/features/adm/pulse-stress/queries';
-import { PulseStressCalculationModalTrigger } from '@/features/adm/pulse-stress/components/PulseStressCalculationModal';
-import PulseStressClient from './PulseStressClient';
-import { Activity } from 'lucide-react';
+import { getServerUser } from '@/lib/auth/server-user'
+import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
+import { getCrossAnalysisData } from '@/features/adm/pulse-stress/queries'
+import { PulseStressCalculationModalTrigger } from '@/features/adm/pulse-stress/components/PulseStressCalculationModal'
+import TenantBackLink from '@/components/common/TenantBackLink'
+import PulseStressClient from './PulseStressClient'
+import { Activity } from 'lucide-react'
 
 export default async function PulseStressPage() {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user?.tenant_id) {
-    redirect(APP_ROUTES.AUTH.LOGIN);
+    redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-
-
   // ストレスチェック × パルスサーベイ(Echo) の結合データを取得
-  const data = await getCrossAnalysisData(user.tenant_id);
+  const data = await getCrossAnalysisData(user.tenant_id)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader />
-        <div className="pl-5 sm:pl-0 sm:shrink-0 sm:pt-1">
+        <div className="flex gap-2 pl-5 sm:pl-0 sm:shrink-0 sm:pt-1">
+          <TenantBackLink />
           <PulseStressCalculationModalTrigger />
         </div>
       </div>
 
-      <PulseStressClient 
+      <PulseStressClient
         employees={data.employees}
         departments={data.departments}
         chartData={data.chartData}
@@ -36,7 +36,7 @@ export default async function PulseStressPage() {
         conditionStressAlerts={data.conditionStressAlerts}
       />
     </div>
-  );
+  )
 }
 
 /** ページヘッダー */
@@ -52,5 +52,5 @@ function PageHeader() {
         年1回の健康リスク調査・毎月のエンゲージメント・日次コンディション記録の統合分析
       </p>
     </div>
-  );
+  )
 }

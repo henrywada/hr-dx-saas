@@ -9,6 +9,7 @@ import EstablishmentProgressTable from '@/features/adm/stress-check/components/E
 import ReminderAction from '@/features/adm/stress-check/components/ReminderAction'
 import { ClipboardCheck, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type {
   DepartmentStat,
   EstablishmentProgressTableRow,
@@ -167,14 +168,17 @@ export default async function StressCheckProgressPage() {
 /** ページヘッダー */
 function PageHeader() {
   return (
-    <div className="relative pl-5">
-      <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-linear-to-b from-blue-500 to-violet-500 rounded-full" />
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-        ストレスチェック進捗管理
-      </h1>
-      <p className="text-sm text-gray-500 mt-1 font-medium pl-0.5">
-        拠点ごとの受検状況をリアルタイムで確認
-      </p>
+    <div className="flex items-start justify-between gap-3">
+      <div className="relative pl-5 min-w-0">
+        <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-linear-to-b from-blue-500 to-violet-500 rounded-full" />
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+          ストレスチェック進捗管理
+        </h1>
+        <p className="text-sm text-gray-500 mt-1 font-medium pl-0.5">
+          拠点ごとの受検状況をリアルタイムで確認
+        </p>
+      </div>
+      <TenantBackLink className="self-start shrink-0" />
     </div>
   )
 }

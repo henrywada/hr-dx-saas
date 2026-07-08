@@ -13,6 +13,7 @@ import {
 
 import { Badge } from '@/components/ui/Badge'
 import { SurveyDashboardHelpModalTrigger } from './SurveyDashboardHelpModal'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import ImprovementActionSection from './ImprovementActionSection'
 import { getSurveyDashboardData } from '@/features/survey/dashboard-queries'
 
@@ -73,7 +74,8 @@ export default async function PulseSurveyDashboardPage() {
             ストレスチェックの結果を分析の根拠として、全社のコンディションとAIによるフリーコメント分析結果を確認できます。
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="flex gap-2 shrink-0">
+          <TenantBackLink />
           <SurveyDashboardHelpModalTrigger />
         </div>
       </div>

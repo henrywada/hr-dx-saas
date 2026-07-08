@@ -5,6 +5,7 @@ import { PositionFormModal } from './PositionFormModal'
 import { PositionPanel } from './PositionPanel'
 import { NineBoxGrid } from './NineBoxGrid'
 import { RiskPanel } from './RiskPanel'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { SuccessionDashboardData, EmployeeOption, DivisionOption } from '../types'
 import type { CareerDiscussionRow } from '@/features/career-discussions/types'
 
@@ -54,12 +55,15 @@ export function SuccessionDashboard({
               重要ポジションの後継候補を管理し、組織の継続性リスクを可視化する
             </p>
           </div>
-          <button
-            onClick={() => setAddPositionOpen(true)}
-            className="rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#FD7601]"
-          >
-            + ポジションを追加
-          </button>
+          <div className="flex gap-2">
+            <TenantBackLink />
+            <button
+              onClick={() => setAddPositionOpen(true)}
+              className="rounded-lg bg-[#FD7601] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#FD7601]"
+            >
+              + ポジションを追加
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6 p-6">

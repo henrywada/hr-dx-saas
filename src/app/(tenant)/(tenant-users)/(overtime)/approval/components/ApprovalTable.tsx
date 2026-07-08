@@ -24,11 +24,12 @@ import type {
   OvertimeListThresholds,
 } from '../types'
 import { formatTimeInJSTFromIso } from '@/lib/datetime'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 function tableRowClass(
   isHoliday: boolean | undefined,
   workDateYmd: string,
-  status?: OvertimeApplicationStatus,
+  status?: OvertimeApplicationStatus
 ): string {
   if (status === '未申請') {
     return 'border-b border-slate-100 bg-slate-50/85 hover:bg-slate-50'
@@ -117,9 +118,7 @@ function OvertimeAttentionCell({
     >
       {warning ? (
         <span
-          className={`inline-flex ${
-            warning.level === 'limit' ? 'text-red-600' : 'text-amber-600'
-          }`}
+          className={`inline-flex ${warning.level === 'limit' ? 'text-red-600' : 'text-amber-600'}`}
         >
           <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
         </span>
@@ -188,7 +187,7 @@ export function OvertimeApprovalClient({
         filters.statuses.join(','),
         filters.showAllDivisionEmployees ? '1' : '0',
       ] as const,
-    [tenantId, filters.month, page, filters.statuses, filters.showAllDivisionEmployees],
+    [tenantId, filters.month, page, filters.statuses, filters.showAllDivisionEmployees]
   )
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(
@@ -202,7 +201,7 @@ export function OvertimeApprovalClient({
         status: filters.statuses.length ? filters.statuses : undefined,
         all_division_employees: filters.showAllDivisionEmployees,
       }),
-    { keepPreviousData: true },
+    { keepPreviousData: true }
   )
 
   useEffect(() => {
@@ -268,7 +267,7 @@ export function OvertimeApprovalClient({
         setSubmitting(false)
       }
     },
-    [modalApp, supervisorEmployeeId, closeModal, mutate],
+    [modalApp, supervisorEmployeeId, closeModal, mutate]
   )
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1
@@ -293,7 +292,10 @@ export function OvertimeApprovalClient({
       )}
 
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">残業申請の承認</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">残業申請の承認</h1>
+          <TenantBackLink />
+        </div>
         <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
           管理メニュー「月次締め管理」で、対象月の締めが集計済み以降（集計済・人事による承認・ロック）まで進んだ月は、集計結果と申請内容の食い違いを防ぐため、上長による承認・却下・修正依頼はできません。該当する月では操作欄に「詳細（締め済）」のみ表示され、内容の確認のみ可能です。締めが未完了の月は従来どおり承認操作ができます。
         </p>
@@ -336,8 +338,7 @@ export function OvertimeApprovalClient({
                       <dd className="font-semibold tabular-nums text-slate-900">
                         {!data && isLoading ? (
                           <span className="inline-flex items-center gap-1.5 text-slate-500">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                            …
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />…
                           </span>
                         ) : (
                           <>
@@ -352,8 +353,7 @@ export function OvertimeApprovalClient({
                       <dd className="font-semibold tabular-nums text-slate-900">
                         {!data && isLoading ? (
                           <span className="inline-flex items-center gap-1.5 text-slate-500">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                            …
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />…
                           </span>
                         ) : (
                           <>
@@ -425,7 +425,9 @@ export function OvertimeApprovalClient({
           </span>
         )}
         {error && (
-          <span className="text-red-600">{error instanceof Error ? error.message : '取得エラー'}</span>
+          <span className="text-red-600">
+            {error instanceof Error ? error.message : '取得エラー'}
+          </span>
         )}
       </div>
 
@@ -462,10 +464,7 @@ export function OvertimeApprovalClient({
               </tr>
             )}
             {items.map((app, index) => (
-              <tr
-                key={app.id}
-                className={tableRowClass(app.is_holiday, app.work_date, app.status)}
-              >
+              <tr key={app.id} className={tableRowClass(app.is_holiday, app.work_date, app.status)}>
                 <td className="whitespace-nowrap px-2 py-2 text-center tabular-nums text-slate-600">
                   {(page - 1) * pageLimit + index + 1}
                 </td>
@@ -479,10 +478,10 @@ export function OvertimeApprovalClient({
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums">{app.clock_out ?? '—'}</td>
                 <td className="px-3 py-2 text-center">{app.is_holiday ? '●' : '—'}</td>
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums">
-                  {app.overtime_start ? formatTimeInJSTFromIso(app.overtime_start) ?? '—' : '—'}
+                  {app.overtime_start ? (formatTimeInJSTFromIso(app.overtime_start) ?? '—') : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums">
-                  {app.overtime_end ? formatTimeInJSTFromIso(app.overtime_end) ?? '—' : '—'}
+                  {app.overtime_end ? (formatTimeInJSTFromIso(app.overtime_end) ?? '—') : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums">
                   {app.requested_hours != null ? Number(app.requested_hours).toFixed(2) : '—'}
@@ -511,37 +510,41 @@ export function OvertimeApprovalClient({
                   <div className="flex flex-wrap justify-end gap-1">
                     {app.status !== '未申請' && (
                       <>
-                        <button type="button" className={outlineBtn} onClick={() => openDetail(app)}>
+                        <button
+                          type="button"
+                          className={outlineBtn}
+                          onClick={() => openDetail(app)}
+                        >
                           {monthClosureBlocks ? '詳細（締め済）' : '詳細'}
                         </button>
                         {canApprove &&
                           app.status === '申請中' &&
                           !!supervisorEmployeeId &&
                           !monthClosureBlocks && (
-                          <>
-                            <button
-                              type="button"
-                              className={outlineBtn}
-                              onClick={() => openDecision(app, 'approve')}
-                            >
-                              承認
-                            </button>
-                            <button
-                              type="button"
-                              className={outlineBtn}
-                              onClick={() => openDecision(app, 'reject')}
-                            >
-                              却下
-                            </button>
-                            <button
-                              type="button"
-                              className={outlineBtn}
-                              onClick={() => openDecision(app, 'request_correction')}
-                            >
-                              修正依頼
-                            </button>
-                          </>
-                        )}
+                            <>
+                              <button
+                                type="button"
+                                className={outlineBtn}
+                                onClick={() => openDecision(app, 'approve')}
+                              >
+                                承認
+                              </button>
+                              <button
+                                type="button"
+                                className={outlineBtn}
+                                onClick={() => openDecision(app, 'reject')}
+                              >
+                                却下
+                              </button>
+                              <button
+                                type="button"
+                                className={outlineBtn}
+                                onClick={() => openDecision(app, 'request_correction')}
+                              >
+                                修正依頼
+                              </button>
+                            </>
+                          )}
                       </>
                     )}
                   </div>
@@ -604,11 +607,7 @@ export function OvertimeApprovalClient({
               </dd>
             </dl>
             <p className="mt-2 line-clamp-3 text-xs text-slate-600" title={app.reason}>
-              {app.status === '未申請'
-                ? '—'
-                : app.reason?.trim()
-                  ? app.reason
-                  : '（理由なし）'}
+              {app.status === '未申請' ? '—' : app.reason?.trim() ? app.reason : '（理由なし）'}
             </p>
             <div className="mt-3 flex flex-wrap gap-1">
               {app.status !== '未申請' && (
@@ -620,30 +619,30 @@ export function OvertimeApprovalClient({
                     app.status === '申請中' &&
                     !!supervisorEmployeeId &&
                     !monthClosureBlocks && (
-                    <>
-                      <button
-                        type="button"
-                        className={outlineBtn}
-                        onClick={() => openDecision(app, 'approve')}
-                      >
-                        承認
-                      </button>
-                      <button
-                        type="button"
-                        className={outlineBtn}
-                        onClick={() => openDecision(app, 'reject')}
-                      >
-                        却下
-                      </button>
-                      <button
-                        type="button"
-                        className={outlineBtn}
-                        onClick={() => openDecision(app, 'request_correction')}
-                      >
-                        修正依頼
-                      </button>
-                    </>
-                  )}
+                      <>
+                        <button
+                          type="button"
+                          className={outlineBtn}
+                          onClick={() => openDecision(app, 'approve')}
+                        >
+                          承認
+                        </button>
+                        <button
+                          type="button"
+                          className={outlineBtn}
+                          onClick={() => openDecision(app, 'reject')}
+                        >
+                          却下
+                        </button>
+                        <button
+                          type="button"
+                          className={outlineBtn}
+                          onClick={() => openDecision(app, 'request_correction')}
+                        >
+                          修正依頼
+                        </button>
+                      </>
+                    )}
                 </>
               )}
             </div>
@@ -655,7 +654,7 @@ export function OvertimeApprovalClient({
         <button
           type="button"
           disabled={page <= 1 || isLoading}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
           className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
         >
           Prev
@@ -666,7 +665,7 @@ export function OvertimeApprovalClient({
         <button
           type="button"
           disabled={page >= totalPages || isLoading}
-          onClick={() => setPage((p) => p + 1)}
+          onClick={() => setPage(p => p + 1)}
           className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
         >
           Next

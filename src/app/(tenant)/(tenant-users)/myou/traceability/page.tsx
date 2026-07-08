@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import TraceabilitySearchForm from '../components/TraceabilitySearchForm'
 import TraceabilityResults from '../components/TraceabilityResults'
+import MyouBackLink from '../components/MyouBackLink'
 import { getProductTrace } from '@/features/myou/actions'
 import type { ProductTraceResult } from '@/features/myou/types'
 import { PackageSearch, ArrowRight, History, ShieldCheck, AlertCircle } from 'lucide-react'
@@ -38,6 +39,9 @@ export default function TraceabilityPage() {
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative z-10">
+          <div className="flex justify-end mb-4">
+            <MyouBackLink variant="light" />
+          </div>
           <div className="flex flex-col items-center text-center space-y-6">
             <nav className="flex items-center space-x-2 text-blue-200 text-xs font-bold uppercase tracking-widest bg-white/10 px-4 py-1.5 rounded-full">
               <span>製品トレーサビリティ</span>

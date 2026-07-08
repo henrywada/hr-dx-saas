@@ -8,6 +8,7 @@ import type { ReferralPosting, ReferralRankingItem } from '@/features/referral/t
 import { ReferralPostingCard } from '@/features/referral/components/ReferralPostingCard'
 import { ReferralRankingCard } from '@/features/referral/components/ReferralRankingCard'
 import { NominationForm } from '@/features/referral/components/NominationForm'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface ReferralFormPageClientProps {
   postings: ReferralPosting[]
@@ -23,7 +24,7 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
 
   // 推薦ボタン押下時：対応する求人を selectedPosting にセット
   const handleNominate = (postingId: string) => {
-    const posting = postings.find((p) => p.id === postingId) ?? null
+    const posting = postings.find(p => p.id === postingId) ?? null
     setSelectedPosting(posting)
     setSuccessMessage(null)
   }
@@ -45,13 +46,16 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
             下記の求人から紹介したい求人を選んで推薦フォームをご利用ください。
           </p>
         </div>
-        <Link
-          href={APP_ROUTES.TENANT.REFERRAL_MY}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline flex-shrink-0 mt-1"
-        >
-          マイ推薦一覧へ
-          <ChevronRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <TenantBackLink />
+          <Link
+            href={APP_ROUTES.TENANT.REFERRAL_MY}
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-1"
+          >
+            マイ推薦一覧へ
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {/* 推薦成功メッセージ */}
@@ -70,12 +74,8 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
         <section>
           <h2 className="text-base font-semibold text-slate-700 mb-4">募集中の求人</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {postings.map((posting) => (
-              <ReferralPostingCard
-                key={posting.id}
-                posting={posting}
-                onNominate={handleNominate}
-              />
+            {postings.map(posting => (
+              <ReferralPostingCard key={posting.id} posting={posting} onNominate={handleNominate} />
             ))}
           </div>
         </section>
@@ -84,7 +84,9 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
       {/* 推薦ランキング */}
       {ranking.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold text-slate-700 mb-4">推薦ランキング（社内 Top 5）</h2>
+          <h2 className="text-base font-semibold text-slate-700 mb-4">
+            推薦ランキング（社内 Top 5）
+          </h2>
           <div className="max-w-md">
             <ReferralRankingCard ranking={ranking} />
           </div>

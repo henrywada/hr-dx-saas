@@ -4,12 +4,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Info, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import TenantBackLink from '@/components/common/TenantBackLink'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import type { MonthlyClosureListRow } from '@/lib/overtime/closure-list'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
@@ -62,16 +58,15 @@ export function ClosureListClient({
 
   const [otDetailOpen, setOtDetailOpen] = useState(false)
   const [otDetail, setOtDetail] = useState<{ reason: string; supervisorRecommend: string } | null>(
-    null,
+    null
   )
 
   /** 締処理済（locked）のうち、対象月が最も新しい行（一覧は対象月降順のため 1 件） */
   const latestLockedClosureId = useMemo(() => {
-    const locked = items.filter((r) => !r.isPendingMonth && r.status === 'locked')
+    const locked = items.filter(r => !r.isPendingMonth && r.status === 'locked')
     if (locked.length === 0) return null
-    return locked.reduce((best, r) =>
-      String(r.year_month) >= String(best.year_month) ? r : best,
-    ).id
+    return locked.reduce((best, r) => (String(r.year_month) >= String(best.year_month) ? r : best))
+      .id
   }, [items])
 
   function handleDialogOpenChange(open: boolean) {
@@ -94,10 +89,9 @@ export function ClosureListClient({
     setDetailOpen(true)
     setDetailLoading(true)
     try {
-      const res = await fetch(
-        `/api/closure/month-detail?year_month=${encodeURIComponent(ym)}`,
-        { credentials: 'same-origin' },
-      )
+      const res = await fetch(`/api/closure/month-detail?year_month=${encodeURIComponent(ym)}`, {
+        credentials: 'same-origin',
+      })
       const json = (await res.json()) as { error?: string; rows?: MonthDetailRow[] }
       if (!res.ok) {
         setDetailError(json.error ?? '詳細の取得に失敗しました')
@@ -202,7 +196,10 @@ export function ClosureListClient({
   function detailModalStatusDisplay(raw: string | null | undefined): ReactNode {
     const t = raw?.trim() ?? ''
     if (t === '' || t === '—') return null
-    const parts = t.split('・').map((p) => p.trim()).filter(Boolean)
+    const parts = t
+      .split('・')
+      .map(p => p.trim())
+      .filter(Boolean)
     if (parts.length === 0) return null
     return (
       <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
@@ -242,9 +239,12 @@ export function ClosureListClient({
             締め処理の完了後は、「承認・却下・修正依頼」はできず、詳細の閲覧のみとなります。
           </p>
         </div>
-        <Button type="button" variant="primary" size="sm" className="shrink-0" onClick={openNewClosureModal}>
-          月次締め処理の実行
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <TenantBackLink />
+          <Button type="button" variant="primary" size="sm" onClick={openNewClosureModal}>
+            月次締め処理の実行
+          </Button>
+        </div>
       </div>
 
       <div className="relative w-full overflow-x-auto rounded-xl border border-neutral-200/80 bg-white">
@@ -262,7 +262,9 @@ export function ClosureListClient({
                 <TableHead className="h-auto py-2 px-3">対象月</TableHead>
                 <TableHead className="h-auto py-2 px-3">ステータス</TableHead>
                 <TableHead className="h-auto py-2 px-3">締め年月日時</TableHead>
-                <TableHead className="h-auto py-2 px-3 text-right tabular-nums">データ件数</TableHead>
+                <TableHead className="h-auto py-2 px-3 text-right tabular-nums">
+                  データ件数
+                </TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right tabular-nums">申請中</TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right tabular-nums">承認件数</TableHead>
                 <TableHead className="h-auto py-2 px-3 text-right tabular-nums">却下件数</TableHead>
@@ -280,9 +282,11 @@ export function ClosureListClient({
                   </TableCell>
                 </TableRow>
               ) : (
-                items.map((row) => (
+                items.map(row => (
                   <TableRow key={row.id}>
-                    <TableCell className="py-1.5 px-3 font-mono font-medium">{formatYmLabel(row.year_month)}</TableCell>
+                    <TableCell className="py-1.5 px-3 font-mono font-medium">
+                      {formatYmLabel(row.year_month)}
+                    </TableCell>
                     <TableCell className="py-1.5 px-3">
                       {row.isPendingMonth ? null : (
                         <ClosureStatusBadge status={row.status} className="px-2 py-0.5 text-xs" />
@@ -291,9 +295,15 @@ export function ClosureListClient({
                     <TableCell className="whitespace-nowrap px-3 py-1.5 text-xs text-neutral-600">
                       {closingDateTimeLabel(row)}
                     </TableCell>
-                    <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.data_count}</TableCell>
-                    <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.application_count}</TableCell>
-                    <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.approved_count}</TableCell>
+                    <TableCell className="px-3 py-1.5 text-right tabular-nums">
+                      {row.data_count}
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5 text-right tabular-nums">
+                      {row.application_count}
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5 text-right tabular-nums">
+                      {row.approved_count}
+                    </TableCell>
                     <TableCell className="px-3 py-1.5 text-right tabular-nums">
                       {row.rejected_count === 0 ? '' : row.rejected_count}
                     </TableCell>
@@ -310,9 +320,7 @@ export function ClosureListClient({
                               disabled={cancelingId !== null}
                               onClick={() => {
                                 if (
-                                  window.confirm(
-                                    '最新の締処理を取り消し、未完了状態に戻しますか？',
-                                  )
+                                  window.confirm('最新の締処理を取り消し、未完了状態に戻しますか？')
                                 ) {
                                   void handleCancelClosure(row.id)
                                 }
@@ -372,12 +380,20 @@ export function ClosureListClient({
               />
             </div>
             {createError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+              <div
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                role="alert"
+              >
                 {createError}
               </div>
             )}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={creating}
+              >
                 キャンセル
               </Button>
               <Button type="submit" variant="primary" disabled={creating}>
@@ -410,7 +426,10 @@ export function ClosureListClient({
                 読み込み中…
               </div>
             ) : detailError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800" role="alert">
+              <div
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800"
+                role="alert"
+              >
                 {detailError}
               </div>
             ) : detailRows.length === 0 ? (
@@ -422,17 +441,27 @@ export function ClosureListClient({
                     <tr>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">No</th>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">年月日</th>
-                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">従業員番号</th>
+                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">
+                        従業員番号
+                      </th>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">氏名</th>
-                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">出勤時間</th>
-                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">退勤時間</th>
-                      <th className="whitespace-nowrap px-2 py-1.5 text-center font-medium sm:px-3">残業時間</th>
-                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">ステータス</th>
+                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">
+                        出勤時間
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">
+                        退勤時間
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 text-center font-medium sm:px-3">
+                        残業時間
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">
+                        ステータス
+                      </th>
                       <th className="whitespace-nowrap px-2 py-1.5 font-medium sm:px-3">承認者</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {detailRows.map((r) => (
+                    {detailRows.map(r => (
                       <tr
                         key={`${r.workDate}-${r.employeeNo}-${r.no}`}
                         className="border-t border-neutral-100 transition-[background-color,box-shadow] duration-200 ease-out hover:bg-sky-50/90 hover:shadow-[inset_4px_0_0_0_rgb(14_165_233/0.45)]"
@@ -442,7 +471,9 @@ export function ClosureListClient({
                         <td className="whitespace-nowrap px-2 py-1 font-mono sm:px-3">
                           {detailModalBlankDash(r.employeeNo)}
                         </td>
-                        <td className="px-2 py-1 sm:px-3">{detailModalBlankDash(r.employeeName)}</td>
+                        <td className="px-2 py-1 sm:px-3">
+                          {detailModalBlankDash(r.employeeName)}
+                        </td>
                         <td className="whitespace-nowrap px-2 py-1 sm:px-3">
                           {detailModalBlankDash(r.clockIn)}
                         </td>
@@ -459,7 +490,7 @@ export function ClosureListClient({
                                 type="button"
                                 className="inline-flex shrink-0 rounded p-0.5 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                                 aria-label="残業理由・承認者コメントを表示"
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.stopPropagation()
                                   setOtDetail({
                                     reason: r.overtimeReason ?? '',
@@ -473,8 +504,12 @@ export function ClosureListClient({
                             ) : null}
                           </span>
                         </td>
-                        <td className="px-2 py-1 sm:px-3">{detailModalStatusDisplay(r.overtimeApplicationStatus)}</td>
-                        <td className="px-2 py-1 sm:px-3">{detailModalBlankDash(r.approverName)}</td>
+                        <td className="px-2 py-1 sm:px-3">
+                          {detailModalStatusDisplay(r.overtimeApplicationStatus)}
+                        </td>
+                        <td className="px-2 py-1 sm:px-3">
+                          {detailModalBlankDash(r.approverName)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -487,7 +522,7 @@ export function ClosureListClient({
 
       <Dialog
         open={otDetailOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setOtDetailOpen(open)
           if (!open) setOtDetail(null)
         }}

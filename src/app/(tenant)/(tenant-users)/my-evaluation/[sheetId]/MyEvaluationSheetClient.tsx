@@ -17,6 +17,7 @@ import {
   type EvaluationAxis,
   type FlowStatus,
 } from '@/features/evaluation/types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface Props {
   sheet: EvaluationSheet
@@ -145,6 +146,7 @@ export function MyEvaluationSheetClient({ sheet, template, goals, scores }: Prop
             <p className="mt-0.5 text-xs text-gray-500">{template.name}</p>
           </div>
           <div className="flex items-center gap-3">
+            <TenantBackLink />
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${FLOW_STATUS_COLORS[sheet.flow_status] ?? 'bg-gray-100 text-gray-600'}`}
             >

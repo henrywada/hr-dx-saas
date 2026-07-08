@@ -4,6 +4,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import DailyStatus from './components/DailyStatus'
 import EndWorkSection from './components/EndWorkSection'
 import StartWorkSection from './components/StartWorkSection'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 type Props = {
   params: Promise<Record<string, string>>
@@ -21,18 +22,20 @@ export default async function RemortWorkPage({ params, searchParams }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-10">
-      <div className="flex items-start gap-4">
-        <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-700 shadow-inner">
-          <Laptop className="w-8 h-8" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4 min-w-0">
+          <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-700 shadow-inner shrink-0">
+            <Laptop className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">テレワーク作業</h1>
+            <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+              1 日 1
+              回、作業の開始・終了を記録します（終了後は同日に再開できません）。このブラウザで登録・承認された端末からのみ開始できます。位置情報は許可がある場合のみ送信されます。
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            テレワーク作業
-          </h1>
-          <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-            1 日 1 回、作業の開始・終了を記録します（終了後は同日に再開できません）。このブラウザで登録・承認された端末からのみ開始できます。位置情報は許可がある場合のみ送信されます。
-          </p>
-        </div>
+        <TenantBackLink />
       </div>
 
       <DailyStatus />

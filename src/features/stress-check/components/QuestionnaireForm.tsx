@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { CategoryGroup, AnswerMap, CategoryCode, StressCheckPeriod } from '../types'
 import { submitStressCheckAnswers } from '../actions'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 // カテゴリごとのアイコン・カラー設定
 const CATEGORY_CONFIG: Record<
@@ -145,6 +146,9 @@ export default function QuestionnaireForm({ period, domainGroups }: Questionnair
 
   return (
     <div ref={containerRef} className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <div className="flex justify-end mb-2">
+        <TenantBackLink />
+      </div>
       {/* ヘッダー */}
       <div className="mb-8 text-center space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="inline-flex items-center space-x-2 bg-[#f6f8fa] text-[#FD7601] px-5 py-2 rounded-full text-sm font-semibold">

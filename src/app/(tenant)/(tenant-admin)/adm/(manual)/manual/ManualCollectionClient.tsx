@@ -1,50 +1,54 @@
-'use client';
+'use client'
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { ChevronRight } from 'lucide-react';
-import { getHelpMarkdown } from '@/content/help';
-import { HelpMarkdownModal } from '@/components/help/HelpMarkdownModal';
-import { MANUAL_CATEGORIES, type ManualEntry } from './manualData';
+import React, { useState, useCallback, useMemo } from 'react'
+import { ChevronRight } from 'lucide-react'
+import TenantBackLink from '@/components/common/TenantBackLink'
+import { getHelpMarkdown } from '@/content/help'
+import { HelpMarkdownModal } from '@/components/help/HelpMarkdownModal'
+import { MANUAL_CATEGORIES, type ManualEntry } from './manualData'
 
 /** マニュアル集：カテゴリー一覧とモーダル制御 */
 export function ManualCollectionClient() {
-  const [selected, setSelected] = useState<ManualEntry | null>(null);
+  const [selected, setSelected] = useState<ManualEntry | null>(null)
 
   const openEntry = useCallback((entry: ManualEntry) => {
-    setSelected(entry);
-  }, []);
+    setSelected(entry)
+  }, [])
 
   const closeModal = useCallback(() => {
-    setSelected(null);
-  }, []);
+    setSelected(null)
+  }, [])
 
-  const markdown = selected ? getHelpMarkdown(selected.id) : '';
+  const markdown = selected ? getHelpMarkdown(selected.id) : ''
 
   const srDescription = useMemo(() => {
-    if (!selected) return undefined;
+    if (!selected) return undefined
     if (selected.id === 'att-attendance-three-methods') {
-      return 'QRコード打刻・CSV一括取り込み・PC端末ログの3方式の仕組みと手順の説明です。';
+      return 'QRコード打刻・CSV一括取り込み・PC端末ログの3方式の仕組みと手順の説明です。'
     }
     if (selected.id === 'att-qr') {
-      return 'QR 打刻時のカメラ・位置情報・端末設定に関する注意事項です。';
+      return 'QR 打刻時のカメラ・位置情報・端末設定に関する注意事項です。'
     }
-    return 'マニュアルの説明文です。';
-  }, [selected]);
+    return 'マニュアルの説明文です。'
+  }, [selected])
 
   return (
     <>
       <div className="space-y-10 max-w-4xl mx-auto pb-12 animate-in fade-in duration-500">
-        <header className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
-            マニュアル集
-          </h1>
-          <p className="text-sm text-slate-500">
-            カテゴリーを選び、項目をクリックすると説明が表示されます。
-          </p>
+        <header className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+              マニュアル集
+            </h1>
+            <p className="text-sm text-slate-500">
+              カテゴリーを選び、項目をクリックすると説明が表示されます。
+            </p>
+          </div>
+          <TenantBackLink className="self-start shrink-0" />
         </header>
 
         <div className="space-y-12">
-          {MANUAL_CATEGORIES.map((cat) => (
+          {MANUAL_CATEGORIES.map(cat => (
             <section
               key={cat.id}
               className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
@@ -57,7 +61,7 @@ export function ManualCollectionClient() {
               </div>
 
               <ul className="divide-y divide-slate-100">
-                {cat.entries.map((entry) => (
+                {cat.entries.map(entry => (
                   <li key={entry.id}>
                     <button
                       type="button"
@@ -77,13 +81,13 @@ export function ManualCollectionClient() {
 
       <HelpMarkdownModal
         open={selected !== null}
-        onOpenChange={(o) => {
-          if (!o) closeModal();
+        onOpenChange={o => {
+          if (!o) closeModal()
         }}
         title={selected?.title ?? ''}
         markdown={markdown}
         srDescription={srDescription}
       />
     </>
-  );
+  )
 }

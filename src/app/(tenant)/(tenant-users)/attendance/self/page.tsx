@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
 import { AttendanceSelfView } from './components/AttendanceSelfView'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default async function AttendanceSelfPage() {
   const user = await getServerUser()
@@ -16,13 +17,11 @@ export default async function AttendanceSelfPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-8">
-        わたしの勤退カレンダー
-      </h1>
-      <AttendanceSelfView
-        initialYear={initialYear}
-        initialMonth={initialMonth}
-      />
+      <div className="flex items-start justify-between gap-3 mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">わたしの勤退カレンダー</h1>
+        <TenantBackLink />
+      </div>
+      <AttendanceSelfView initialYear={initialYear} initialMonth={initialMonth} />
     </div>
   )
 }

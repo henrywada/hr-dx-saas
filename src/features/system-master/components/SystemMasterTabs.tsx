@@ -8,6 +8,7 @@ import ServiceTab from './ServiceTab'
 import AppRoleTab from './AppRoleTab'
 import AppRoleServiceTab from './AppRoleServiceTab'
 import TenantServiceTab from './TenantServiceTab'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 type TabType =
   | 'service_class'
@@ -52,7 +53,7 @@ export default function SystemMasterTabs({
   return (
     // max-w-4xl などの制限を外し、w-full で横いっぱいに広げます
     <div className="w-full px-4 py-6">
-      <div className="mb-8 border-b border-gray-200">
+      <div className="mb-8 flex items-end justify-between gap-4 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {tabs.map(tab => (
             <button
@@ -71,6 +72,7 @@ export default function SystemMasterTabs({
             </button>
           ))}
         </nav>
+        <TenantBackLink className="mb-4 shrink-0" />
       </div>
 
       {/* コンテンツエリアも横幅いっぱいに */}

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
 import { listRagDocuments } from '@/features/inquiry-chat/queries'
 import { KnowledgeAdminClient } from '@/features/inquiry-chat/components/KnowledgeAdminClient'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { APP_ROUTES } from '@/config/routes'
 
 /**
@@ -35,12 +36,15 @@ export default async function InquiryChatKnowledgePage() {
             チャットの参照元になります。
           </p>
         </div>
-        <Link
-          href={APP_ROUTES.TENANT.PORTAL}
-          className="text-sm font-medium text-blue-600 hover:underline shrink-0"
-        >
-          ポータルへ
-        </Link>
+        <div className="flex gap-4 shrink-0">
+          <TenantBackLink />
+          <Link
+            href={APP_ROUTES.TENANT.PORTAL}
+            className="text-sm font-medium text-blue-600 hover:underline shrink-0"
+          >
+            ポータルへ
+          </Link>
+        </div>
       </div>
       <KnowledgeAdminClient initialDocuments={docs} />
     </div>

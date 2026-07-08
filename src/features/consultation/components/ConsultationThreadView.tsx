@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { claimConsultation, replyToConsultation, updateConsultationStatus } from '../actions'
 import { STATUS_LABEL } from '../labels'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { ConsultationThread, ConsultationStatus } from '../types'
 
 interface ConsultationThreadViewProps {
@@ -50,7 +51,12 @@ export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadVi
   if (showClaimGate) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs">{thread.consultation.body}</div>
+        <div className="flex justify-end">
+          <TenantBackLink />
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs">
+          {thread.consultation.body}
+        </div>
         {claimError && <p className="text-xs text-red-600">{claimError}</p>}
         <button
           type="button"
@@ -66,6 +72,9 @@ export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadVi
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex justify-end">
+        <TenantBackLink />
+      </div>
       <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4">
         <span className="text-xs text-(--text-secondary)">
           状態: {STATUS_LABEL[thread.consultation.status]}
@@ -84,7 +93,9 @@ export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadVi
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs">{thread.consultation.body}</div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs">
+          {thread.consultation.body}
+        </div>
         {thread.replies.map(reply => (
           <div
             key={reply.id}

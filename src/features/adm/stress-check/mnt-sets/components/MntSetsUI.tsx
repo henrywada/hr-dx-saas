@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { Plus, Edit2, Trash2, Users } from 'lucide-react'
 import { PeriodFormDialog } from './PeriodFormDialog'
 import { PeriodTargetsModal } from './PeriodTargetsModal'
@@ -86,13 +87,16 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
             対象部署を指定してストレスチェックの実施グループを設定します。
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg shadow-sm hover:from-teal-600 hover:to-emerald-700 transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="font-semibold text-sm">新規作成</span>
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <TenantBackLink className="self-start shrink-0" />
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg shadow-sm hover:from-teal-600 hover:to-emerald-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="font-semibold text-sm">新規作成</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border text-sm border-[#e2e6ec] rounded-xl shadow-sm overflow-hidden">

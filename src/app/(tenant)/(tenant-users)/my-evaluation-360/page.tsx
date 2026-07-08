@@ -4,6 +4,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { createClient } from '@/lib/supabase/server'
 import { getMyPending360Reviews } from '@/features/evaluation/360-queries'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: '360度評価 依頼一覧' }
 
@@ -22,9 +23,12 @@ export default async function My360EvaluationPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">360度評価 依頼一覧</h1>
-        <p className="text-sm text-slate-500">あなたに依頼された評価フィードバックです</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">360度評価 依頼一覧</h1>
+          <p className="text-sm text-slate-500">あなたに依頼された評価フィードバックです</p>
+        </div>
+        <TenantBackLink />
       </div>
 
       {items.length === 0 && (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { TimecardCorrectionDialog } from './TimecardCorrectionDialog'
@@ -91,22 +92,25 @@ export function TimecardAnomaliesClient({ closureId }: Props) {
             )}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-              再読込
-            </>
-          ) : (
-            '再取得'
-          )}
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <TenantBackLink />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                再読込
+              </>
+            ) : (
+              '再取得'
+            )}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -141,7 +145,7 @@ export function TimecardAnomaliesClient({ closureId }: Props) {
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((row) => {
+              items.map(row => {
                 const det = row.details as { start_time?: string; end_time?: string } | null
                 const start = det?.start_time
                 const end = det?.end_time
@@ -158,7 +162,9 @@ export function TimecardAnomaliesClient({ closureId }: Props) {
                     </TableCell>
                     <TableCell className="font-medium">{row.employee_name}</TableCell>
                     <TableCell className="font-mono text-xs">{row.record_date}</TableCell>
-                    <TableCell className="max-w-[280px] text-xs text-neutral-600">{preview}</TableCell>
+                    <TableCell className="max-w-[280px] text-xs text-neutral-600">
+                      {preview}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"
@@ -184,7 +190,7 @@ export function TimecardAnomaliesClient({ closureId }: Props) {
         closureId={closureId}
         row={selected}
         open={dialogOpen}
-        onOpenChange={(o) => {
+        onOpenChange={o => {
           setDialogOpen(o)
           if (!o) setSelected(null)
         }}

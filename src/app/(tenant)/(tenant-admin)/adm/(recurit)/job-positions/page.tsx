@@ -4,6 +4,7 @@ import { CreateJobDraftButton } from '@/features/job-postings/components/CreateJ
 import { DeleteJobButton } from '@/features/job-postings/components/DeleteJobButton'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = {
   title: '求人票管理 (Job Positions) | Smart HR App',
@@ -22,6 +23,7 @@ export default async function JobPositionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <TenantBackLink className="self-start shrink-0" />
           <Link
             href={APP_ROUTES.TENANT.ADMIN_RECRUIT_FUNNEL}
             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium px-4 py-2 rounded shadow-sm transition"

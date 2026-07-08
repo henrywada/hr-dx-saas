@@ -7,6 +7,7 @@ import { OvertimeAlertPanel } from './OvertimeAlertPanel'
 import { PaidLeavePanel } from './PaidLeavePanel'
 import { Article36Panel } from './Article36Panel'
 import { DivisionHeatmap } from './DivisionHeatmap'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 type Tab = 'overtime' | 'paid_leave' | 'article36' | 'heatmap'
 
@@ -65,6 +66,7 @@ export default function LaborComplianceDashboard({ bundle }: Props) {
         </div>
         {/* 月選択 */}
         <div className="flex items-center gap-2">
+          <TenantBackLink />
           <button
             onClick={() => handleMonthChange(shiftMonth(yearMonth, -1))}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm"

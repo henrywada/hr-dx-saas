@@ -2,13 +2,11 @@
 
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { Shield, ChevronDown } from 'lucide-react'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { KpiCards } from './KpiCards'
 import { DeptGroupedBarChart, type DeptGroupData } from './DeptGroupedBarChart'
 import { OvertimeTrendChart } from './OvertimeTrendChart'
-import {
-  EmployeeMonthlyTable,
-  type EmpMonthlyRow,
-} from './EmployeeMonthlyTable'
+import { EmployeeMonthlyTable, type EmpMonthlyRow } from './EmployeeMonthlyTable'
 import {
   calcOvertimeKpi,
   getSingleMonthStatus,
@@ -82,9 +80,7 @@ function buildDivTree(divisions: DivisionRow[]): DivNode[] {
 
   // フルパスを再帰的に構築
   function buildPaths(node: DivNode, parentPath: string) {
-    node.fullPath = parentPath
-      ? `${parentPath} / ${node.name ?? ''}`
-      : (node.name ?? '')
+    node.fullPath = parentPath ? `${parentPath} / ${node.name ?? ''}` : (node.name ?? '')
     for (const child of node.children) {
       buildPaths(child, node.fullPath)
     }
@@ -102,10 +98,7 @@ function buildDivTree(divisions: DivisionRow[]): DivNode[] {
  *  - あるノードが targetLayer 未満のlayerを持ちかつ子孫に targetLayer のノードがない場合、
  *    そのノード自体を「リーフとして」返す（例: 関西事務所にlayer=3の子なし → level3でも表示）
  */
-function getDivisionsAtLevel(
-  roots: DivNode[],
-  targetLayer: number,
-): DivNode[] {
+function getDivisionsAtLevel(roots: DivNode[], targetLayer: number): DivNode[] {
   const result: DivNode[] = []
 
   function walk(node: DivNode) {
@@ -169,7 +162,7 @@ function buildDeptGroupData(
   deptNodes: DivNode[],
   employees: EmployeeRow[],
   overtimeRows: OvertimeMonthRow[],
-  thresholds: OvertimeThresholds,
+  thresholds: OvertimeThresholds
 ): DeptGroupData[] {
   // employeeId → 最新月の残業時間 マップ
   const latestOvertimeByEmp = new Map<string, number>()
@@ -184,16 +177,18 @@ function buildDeptGroupData(
   const empById = new Map<string, EmployeeRow>()
   for (const emp of employees) empById.set(emp.id, emp)
 
-  return deptNodes.map((node) => {
+  return deptNodes.map(node => {
     const descendantIds = collectDescendantIds(node)
 
     // この部署（配下含む）の従業員
-    const deptEmps = employees.filter(
-      (e) => e.division_id && descendantIds.has(e.division_id),
-    )
+    const deptEmps = employees.filter(e => e.division_id && descendantIds.has(e.division_id))
 
     const counts: Record<OvertimeStatus, number> = {
-      safe: 0, warning: 0, danger: 0, critical: 0, violation: 0,
+      safe: 0,
+      warning: 0,
+      danger: 0,
+      critical: 0,
+      violation: 0,
     }
 
     for (const emp of deptEmps) {
@@ -217,7 +212,7 @@ function buildDeptGroupData(
 
 function buildEmployeeAnnualSummaries(
   employees: EmployeeRow[],
-  overtimeRows: OvertimeMonthRow[],
+  overtimeRows: OvertimeMonthRow[]
 ): EmployeeAnnualSummary[] {
   // employeeId → 月別マップ
   const monthsByEmp = new Map<string, Map<string, number>>()
@@ -225,12 +220,10 @@ function buildEmployeeAnnualSummaries(
     if (!monthsByEmp.has(row.employee_id)) {
       monthsByEmp.set(row.employee_id, new Map())
     }
-    monthsByEmp
-      .get(row.employee_id)!
-      .set(row.year_month, row.total_overtime_hours ?? 0)
+    monthsByEmp.get(row.employee_id)!.set(row.year_month, row.total_overtime_hours ?? 0)
   }
 
-  return employees.map((emp) => {
+  return employees.map(emp => {
     const monthMap = monthsByEmp.get(emp.id) ?? new Map()
     const months = Array.from(monthMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
@@ -288,10 +281,8 @@ function buildYmOptions(currentYm: string): { value: string; label: string }[] {
 // =============================================================================
 
 function buildLevelOptions(divisions: DivisionRow[]) {
-  const layers = [...new Set(divisions.map((d) => d.layer ?? 0))].sort(
-    (a, b) => a - b,
-  )
-  return layers.map((l) => ({
+  const layers = [...new Set(divisions.map(d => d.layer ?? 0))].sort((a, b) => a - b)
+  return layers.map(l => ({
     value: String(l),
     label: `レベル ${l}${l === 0 ? '（全社）' : ''}`,
   }))
@@ -301,16 +292,11 @@ function buildLevelOptions(divisions: DivisionRow[]) {
 // メインコンポーネント
 // =============================================================================
 
-export function AnalysisDashboard({
-  thresholds,
-  divisions,
-  employees,
-  overtimeRows,
-}: Props) {
+export function AnalysisDashboard({ thresholds, divisions, employees, overtimeRows }: Props) {
   // ===== 年月レンジ state =====
-  const currentYm = getJSTYearMonth()          // 例: '2026-04'
+  const currentYm = getJSTYearMonth() // 例: '2026-04'
   const defaultStartYm = shiftYm(currentYm, -12) // 1年前
-  const defaultEndYm = currentYm               // 当月
+  const defaultEndYm = currentYm // 当月
 
   const ymOptions = useMemo(() => buildYmOptions(currentYm), [currentYm])
 
@@ -320,11 +306,11 @@ export function AnalysisDashboard({
   // 選択範囲で overtimeRows をフィルタリング
   const filteredOvertimeRows = useMemo(
     () =>
-      overtimeRows.filter((row) => {
+      overtimeRows.filter(row => {
         const ym = row.year_month.slice(0, 7)
         return ym >= startYm && ym <= endYm
       }),
-    [overtimeRows, startYm, endYm],
+    [overtimeRows, startYm, endYm]
   )
 
   // ===== 部署ツリー =====
@@ -332,10 +318,7 @@ export function AnalysisDashboard({
   const divTree = useMemo(() => buildDivTree(divisions), [divisions])
 
   // 利用可能なレベル一覧
-  const levelOptions = useMemo(
-    () => buildLevelOptions(divisions),
-    [divisions],
-  )
+  const levelOptions = useMemo(() => buildLevelOptions(divisions), [divisions])
 
   // デフォルトは最小レイヤー
   const defaultLevel = levelOptions[0]?.value ?? '0'
@@ -343,34 +326,31 @@ export function AnalysisDashboard({
 
   // 選択レベルの部署ノード
   const targetLayer = Number(selectedLevel)
-  const deptNodes = useMemo(
-    () => getDivisionsAtLevel(divTree, targetLayer),
-    [divTree, targetLayer],
-  )
+  const deptNodes = useMemo(() => getDivisionsAtLevel(divTree, targetLayer), [divTree, targetLayer])
 
   // KPI 用: 全従業員の年間サマリー（フィルタ済み）
   const employeeSummaries = useMemo(
     () => buildEmployeeAnnualSummaries(employees, filteredOvertimeRows),
-    [employees, filteredOvertimeRows],
+    [employees, filteredOvertimeRows]
   )
 
   // KPI 集計
   const kpi = useMemo(
     () => calcOvertimeKpi(employeeSummaries, thresholds),
-    [employeeSummaries, thresholds],
+    [employeeSummaries, thresholds]
   )
 
   // グラフデータ（フィルタ済み）
   const deptGroupData = useMemo(
     () => buildDeptGroupData(deptNodes, employees, filteredOvertimeRows, thresholds),
-    [deptNodes, employees, filteredOvertimeRows, thresholds],
+    [deptNodes, employees, filteredOvertimeRows, thresholds]
   )
 
   // ===== クリックされた部署 State =====
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null)
 
   const handleDeptClick = useCallback((divisionId: string) => {
-    setSelectedDivisionId((prev) => (prev === divisionId ? null : divisionId))
+    setSelectedDivisionId(prev => (prev === divisionId ? null : divisionId))
     setTimeout(() => {
       document
         .getElementById('employee-monthly-table')
@@ -381,11 +361,11 @@ export function AnalysisDashboard({
   // 選択部署ノード & 子孫 ID セット
   const selectedNode = useMemo(
     () => (selectedDivisionId ? findNodeById(divTree, selectedDivisionId) : null),
-    [divTree, selectedDivisionId],
+    [divTree, selectedDivisionId]
   )
   const selectedDescendantIds = useMemo(
     () => (selectedNode ? collectDescendantIds(selectedNode) : new Set<string>()),
-    [selectedNode],
+    [selectedNode]
   )
 
   // ===== 集計対象月リスト（startYm〜endYm） =====
@@ -412,8 +392,8 @@ export function AnalysisDashboard({
   const deptEmployees = useMemo((): EmpMonthlyRow[] => {
     if (!selectedNode) return []
     return employees
-      .filter((e) => e.division_id && selectedDescendantIds.has(e.division_id))
-      .map((e) => ({
+      .filter(e => e.division_id && selectedDescendantIds.has(e.division_id))
+      .map(e => ({
         employeeId: e.id,
         employeeName: e.name ?? '（名前なし）',
         divisionName: e.division_id ? (divNameMap.get(e.division_id) ?? '') : '',
@@ -422,7 +402,6 @@ export function AnalysisDashboard({
   }, [selectedNode, employees, selectedDescendantIds, divNameMap])
 
   return (
-
     <div className="space-y-8 max-w-7xl mx-auto pt-6 pb-12">
       {/* ===== ページヘッダー ===== */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -441,21 +420,21 @@ export function AnalysisDashboard({
         </div>
 
         {/* しきい値バッジ */}
-        <div className="flex flex-wrap gap-2 text-xs ml-11 sm:ml-0">
+        <div className="flex flex-wrap gap-2 items-center ml-11 sm:ml-0">
+          <TenantBackLink />
           <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">
             原則上限: 月{thresholds.monthlyLimit}h / 年{thresholds.annualLimit}h
           </span>
           <span className="px-2.5 py-1 bg-rose-100 text-rose-700 rounded-full font-medium">
-            特別条項: 単月{thresholds.singleMonthSpecialLimit}h未満 / 平均{thresholds.averageLimit}h以内
+            特別条項: 単月{thresholds.singleMonthSpecialLimit}h未満 / 平均{thresholds.averageLimit}
+            h以内
           </span>
         </div>
       </div>
 
       {/* ===== 年月レンジセレクター ===== */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-        <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">
-          集計期間
-        </span>
+        <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">集計期間</span>
 
         {/* 開始年月 */}
         <div className="flex items-center gap-2">
@@ -469,14 +448,14 @@ export function AnalysisDashboard({
             <select
               id="start-ym-select"
               value={startYm}
-              onChange={(e) => {
+              onChange={e => {
                 setStartYm(e.target.value)
                 // 開始 > 終了になった場合は終了を開始に合わせる
                 if (e.target.value > endYm) setEndYm(e.target.value)
               }}
               className="appearance-none bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition-colors cursor-pointer"
             >
-              {ymOptions.map((opt) => (
+              {ymOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -500,7 +479,7 @@ export function AnalysisDashboard({
             <select
               id="end-ym-select"
               value={endYm}
-              onChange={(e) => {
+              onChange={e => {
                 setEndYm(e.target.value)
                 // 終了 < 開始になった場合は開始を終了に合わせる
                 if (e.target.value < startYm) setStartYm(e.target.value)
@@ -508,8 +487,8 @@ export function AnalysisDashboard({
               className="appearance-none bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition-colors cursor-pointer"
             >
               {ymOptions
-                .filter((opt) => opt.value >= startYm)
-                .map((opt) => (
+                .filter(opt => opt.value >= startYm)
+                .map(opt => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -546,10 +525,10 @@ export function AnalysisDashboard({
           <select
             id="level-select"
             value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
+            onChange={e => setSelectedLevel(e.target.value)}
             className="appearance-none bg-white border border-slate-300 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition-colors cursor-pointer"
           >
-            {levelOptions.map((opt) => (
+            {levelOptions.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -557,9 +536,7 @@ export function AnalysisDashboard({
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         </div>
-        <span className="text-xs text-slate-400">
-          ※ 選択レベルの部署単位で集計（子孫を含む）
-        </span>
+        <span className="text-xs text-slate-400">※ 選択レベルの部署単位で集計（子孫を含む）</span>
       </div>
 
       {/* ===== KPI カード ===== */}

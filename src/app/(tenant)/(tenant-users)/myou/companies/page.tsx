@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getCompanies } from '@/features/myou/queries'
 import CompanyMaintenance from '../components/CompanyMaintenance'
 import TestQrModal from '../components/TestQrModal'
+import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
 import { Building2, Info } from 'lucide-react'
 
@@ -18,6 +19,9 @@ export default async function CompaniesPage() {
       {/* ページヘッダー */}
       <div className="bg-white border-b border-gray-200 mb-8">
         <div className="max-w-7xl mx-auto">
+          <div className="flex justify-end mb-2">
+            <MyouBackLink />
+          </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div>
               <div className="flex items-center space-x-2 text-blue-600 text-xs font-black uppercase tracking-widest mb-2">

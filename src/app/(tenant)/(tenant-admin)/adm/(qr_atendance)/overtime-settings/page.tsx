@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { getServerUser } from '@/lib/auth/server-user'
 import { createClient } from '@/lib/supabase/server'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { OvertimeSettingsForm } from './components/OvertimeSettingsForm'
 import type { Database } from '@/lib/supabase/types'
 
@@ -37,9 +38,7 @@ async function OvertimeSettingsSection() {
     )
   }
 
-  return (
-    <OvertimeSettingsForm key={data?.id ?? 'no-row'} initialRow={data as OvertimeRow | null} />
-  )
+  return <OvertimeSettingsForm key={data?.id ?? 'no-row'} initialRow={data as OvertimeRow | null} />
 }
 
 export default async function OvertimeSettingsPage() {
@@ -50,11 +49,14 @@ export default async function OvertimeSettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">残業閾値設定</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          月間・年間・平均の残業上限と警告閾値を、テナント単位で設定します。
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">残業閾値設定</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            月間・年間・平均の残業上限と警告閾値を、テナント単位で設定します。
+          </p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </div>
 
       <Suspense

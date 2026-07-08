@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import {
   getCareerDiscussionsForAdmin,
   getActiveEmployeesForCareerDiscussion,
@@ -45,7 +46,8 @@ export default async function AdminCareerDiscussionsPage() {
     <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-[1920px] space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-sm font-semibold text-slate-900">キャリア面談管理</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <TenantBackLink className="self-start shrink-0" />
           <ScheduleAppointmentButton employees={employees} templates={templates} />
           <RecordDiscussionButton
             employees={employees}

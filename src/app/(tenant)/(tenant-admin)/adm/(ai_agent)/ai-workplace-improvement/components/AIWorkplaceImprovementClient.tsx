@@ -13,6 +13,7 @@ import AIProposalCards from './AIProposalCards'
 import FollowUpStatus from './FollowUpStatus'
 import OrgLayerAnalysis from './OrgLayerAnalysis'
 import { AIWorkplaceImprovementHelpModalTrigger } from './AIWorkplaceImprovementHelpModal'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface AIWorkplaceImprovementClientProps {
   tenantId: string
@@ -84,7 +85,8 @@ export default function AIWorkplaceImprovementClient({
             第8章準拠｜集団分析結果をAIが読み、具体的な職場改善提案を生成
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="flex gap-2 shrink-0">
+          <TenantBackLink />
           <AIWorkplaceImprovementHelpModalTrigger />
         </div>
       </div>

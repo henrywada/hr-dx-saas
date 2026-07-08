@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { getServerUser } from '@/lib/auth/server-user'
 import { createClient } from '@/lib/supabase/server'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { Database } from '@/lib/supabase/types'
 import { TenantPortalSettingsForm } from '@/features/tenant-settings/components/TenantPortalSettingsForm'
 
@@ -31,7 +32,9 @@ async function SettingsSection() {
   }
 
   return (
-    <TenantPortalSettingsForm initialHrInquiryEmail={(data as PortalEmailRow | null)?.hr_inquiry_email ?? null} />
+    <TenantPortalSettingsForm
+      initialHrInquiryEmail={(data as PortalEmailRow | null)?.hr_inquiry_email ?? null}
+    />
   )
 }
 
@@ -43,11 +46,14 @@ export default async function TenantSettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">基本設定</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          ポータルから利用するお問合せ先メールなど、テナント単位の設定を行います。
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">基本設定</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            ポータルから利用するお問合せ先メールなど、テナント単位の設定を行います。
+          </p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </div>
 
       <Suspense

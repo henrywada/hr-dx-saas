@@ -9,6 +9,7 @@ import {
 } from '@/features/team-connect/queries'
 import { DivisionTreeView } from '@/features/team-connect/components/DivisionTreeView'
 import { DirectoryList } from '@/features/team-connect/components/DirectoryList'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: 'チームコネクト' }
 
@@ -28,17 +29,18 @@ export default async function TeamConnectPage() {
 
   return (
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-[1200px] space-y-4">
-      <header>
-        <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">チームコネクト</h1>
-        <p className="text-sm text-[#57606a] mt-1">
-          組織図で部署構成を確認し、社内ディレクトリで氏名・社員番号からメンバーを検索できます。
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">チームコネクト</h1>
+          <p className="text-sm text-[#57606a] mt-1">
+            組織図で部署構成を確認し、社内ディレクトリで氏名・社員番号からメンバーを検索できます。
+          </p>
+        </div>
+        <TenantBackLink />
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">
-            組織図
-          </h2>
+          <h2 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">組織図</h2>
           <p className="text-xs text-[#57606a] -mt-1">
             部署ツリーを展開して、所属メンバーと人数を確認できます。
           </p>

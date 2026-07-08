@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import {
   getTenantSkillsWithRequirements,
   getSkillLevels,
@@ -16,7 +17,10 @@ import {
 import { SkillMapTabs } from '@/features/skill-map/components/SkillMapTabs'
 import { buildDivisionPathLabel } from '@/features/skill-map/division-paths'
 import { getTrainingPlanDashboardData } from '@/features/skill-map/training-plan-queries'
-import { getQualificationMasters, getEmployeeQualifications } from '@/features/qualifications/queries'
+import {
+  getQualificationMasters,
+  getEmployeeQualifications,
+} from '@/features/qualifications/queries'
 import { getSkillMapDrafts } from '@/features/skill-map/draft-queries'
 import type { TrainingPlanDashboardData } from '@/features/skill-map/training-plan-types'
 
@@ -175,6 +179,7 @@ export default async function SkillMapPage() {
                 />
               </div>
             </div>
+            <TenantBackLink className="self-start shrink-0" />
           </div>
           <div className="p-6">
             <SkillMapTabs

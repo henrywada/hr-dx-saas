@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { getDivisions } from '@/features/organization/queries'
 import {
   getDivisionConditionTrend,
@@ -32,7 +33,10 @@ export default async function ConditionTrendPage({
 
   return (
     <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-[1200px] space-y-4">
-      <h1 className="text-sm font-semibold text-slate-900">部署別コンディション傾向</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-sm font-semibold text-slate-900">部署別コンディション傾向</h1>
+        <TenantBackLink className="self-start shrink-0" />
+      </div>
 
       <ConditionDropAlertPanel alerts={dropAlerts} />
 

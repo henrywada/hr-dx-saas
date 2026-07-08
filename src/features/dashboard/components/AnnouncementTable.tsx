@@ -6,6 +6,7 @@ import type { AnnouncementRow } from '../types'
 import { deleteAnnouncement } from '../actions'
 import { AnnouncementFormDialog } from './AnnouncementFormDialog'
 import { formatDateInJST } from '@/lib/datetime'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface AnnouncementTableProps {
   announcements: AnnouncementRow[]
@@ -41,13 +42,16 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
             バッジ付きで表示されます。
           </p>
         </div>
-        <button
-          onClick={() => setDialogState({ open: true })}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          お知らせを追加
-        </button>
+        <div className="flex gap-2">
+          <TenantBackLink />
+          <button
+            onClick={() => setDialogState({ open: true })}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            お知らせを追加
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-[#e2e6ec] shadow-sm overflow-hidden">
@@ -55,7 +59,9 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
           <Bell className="w-4 h-4 text-[#FD7601]" />
           <span className="text-sm font-medium text-[#57606a]">
             お知らせ一覧
-            <span className="text-xs text-[#57606a] ml-2">({announcements.length}件・トップ画面に連動)</span>
+            <span className="text-xs text-[#57606a] ml-2">
+              ({announcements.length}件・トップ画面に連動)
+            </span>
           </span>
         </div>
         <div className="overflow-x-auto">

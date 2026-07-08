@@ -218,5 +218,7 @@ export const APP_ROUTES = {
     EXPIRATION_ALERTS: '/myou/expiration-alerts',
     /** 施工会社（納入先）管理 */
     COMPANIES: '/myou/companies',
+    /** ユーザマニュアル（操作手順書） */
+    MANUAL: '/myou/manual',
   },
 } as const

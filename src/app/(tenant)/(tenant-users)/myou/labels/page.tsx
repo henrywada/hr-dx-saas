@@ -1,4 +1,5 @@
 import LabelIssueForm from '../components/LabelIssueForm'
+import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
 import { QrCode } from 'lucide-react'
 
@@ -10,13 +11,16 @@ export const metadata: Metadata = {
 export default function LabelsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-      <div className="mb-8 flex items-center justify-between print:hidden">
+      <div className="mb-8 flex items-start justify-between print:hidden">
         <h1 className="text-2xl font-bold text-blue-700 flex items-center">
           <QrCode className="h-6 w-6 mr-2" />
           QRラベル発行
         </h1>
-        <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-          製品トレーサビリティ
+        <div className="flex flex-col items-end gap-1">
+          <MyouBackLink />
+          <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+            製品トレーサビリティ
+          </div>
         </div>
       </div>
 

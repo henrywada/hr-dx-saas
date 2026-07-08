@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { ExitInterviewList } from './ExitInterviewList'
 import { ReasonDistributionChart } from './ReasonDistributionChart'
 import { TrendChart } from './TrendChart'
@@ -30,9 +31,12 @@ export function ExitInterviewDashboard({ records, analytics, employees }: Props)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-[#24292f]">退職理由分析</h1>
-        <p className="text-sm text-[#57606a]">退職面談記録の蓄積と傾向分析</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[#24292f]">退職理由分析</h1>
+          <p className="text-sm text-[#57606a]">退職面談記録の蓄積と傾向分析</p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </div>
 
       <div className="grid grid-cols-4 gap-4">

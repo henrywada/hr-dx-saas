@@ -1,18 +1,19 @@
-import { getServerUser } from '@/lib/auth/server-user';
-import { redirect } from 'next/navigation';
-import { APP_ROUTES } from '@/config/routes';
-import { getActivePeriod } from '@/features/stress-check/queries';
-import { getHighStressListForDoctor } from '@/features/adm/high-stress-followup/queries';
-import { HeartHandshake } from 'lucide-react';
-import { HighStressFollowupClient } from './components/HighStressFollowupClient';
+import { getServerUser } from '@/lib/auth/server-user'
+import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
+import { getActivePeriod } from '@/features/stress-check/queries'
+import { getHighStressListForDoctor } from '@/features/adm/high-stress-followup/queries'
+import { HeartHandshake } from 'lucide-react'
+import { HighStressFollowupClient } from './components/HighStressFollowupClient'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default async function HighStressFollowupPage() {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user?.tenant_id) {
-    redirect(APP_ROUTES.AUTH.LOGIN);
+    redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const period = await getActivePeriod();
+  const period = await getActivePeriod()
 
   if (!period) {
     return (
@@ -30,10 +31,10 @@ export default async function HighStressFollowupPage() {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
-  const listItems = await getHighStressListForDoctor(period.id);
+  const listItems = await getHighStressListForDoctor(period.id)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
@@ -44,20 +45,23 @@ export default async function HighStressFollowupPage() {
         initialList={listItems}
       />
     </div>
-  );
+  )
 }
 
 function PageHeader() {
   return (
-    <div className="relative pl-5">
-      <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full" />
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-        <HeartHandshake className="w-8 h-8 text-blue-600" />
-        高ストレス者フォロー管理
-      </h1>
-      <p className="text-sm text-gray-500 mt-1 font-medium pl-11">
-        第7章準拠｜面接指導・就業措置記録
-      </p>
+    <div className="flex items-start justify-between gap-3">
+      <div className="relative pl-5 min-w-0">
+        <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full" />
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+          <HeartHandshake className="w-8 h-8 text-blue-600" />
+          高ストレス者フォロー管理
+        </h1>
+        <p className="text-sm text-gray-500 mt-1 font-medium pl-11">
+          第7章準拠｜面接指導・就業措置記録
+        </p>
+      </div>
+      <TenantBackLink className="self-start shrink-0" />
     </div>
-  );
+  )
 }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Users, UserCheck, Gift } from 'lucide-react'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { getReferralSummary, getReferralNominations } from '@/features/referral/queries'
 import { ReferralListTable } from '@/features/referral/components/ReferralListTable'
 
@@ -26,6 +27,7 @@ export default async function ReferralAdminPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">リファラル採用管理</h1>
         <div className="flex items-center gap-2">
+          <TenantBackLink className="self-start shrink-0" />
           <Link
             href={APP_ROUTES.TENANT.ADMIN_REFERRAL_POSTINGS}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"

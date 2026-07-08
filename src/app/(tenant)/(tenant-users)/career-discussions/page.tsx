@@ -14,6 +14,7 @@ import { RecordDiscussionButton } from '@/features/career-discussions/components
 import { ScheduleAppointmentButton } from '@/features/career-discussions/components/ScheduleAppointmentButton'
 import { CareerAppointmentList } from '@/features/career-discussions/components/CareerAppointmentList'
 import { getRecentOneOnOneSessionsForEmployees } from '@/features/one-on-one/queries'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: 'キャリア面談' }
 
@@ -45,26 +46,27 @@ export default async function CareerDiscussionsPage() {
       : Promise.resolve([]),
   ])
 
-  const oneOnOneEmployeeIds = canRecord
-    ? employees.map(e => e.id)
-    : [user.employee_id]
+  const oneOnOneEmployeeIds = canRecord ? employees.map(e => e.id) : [user.employee_id]
   const oneOnOneByEmployee = await getRecentOneOnOneSessionsForEmployees(oneOnOneEmployeeIds)
 
   return (
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-300 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-sm font-semibold text-slate-900">キャリア面談</h1>
-        {canRecord && (
-          <div className="flex flex-wrap gap-2">
-            <ScheduleAppointmentButton employees={employees} templates={templates} />
-            <RecordDiscussionButton
-              employees={employees}
-              templates={templates}
-              evaluationPeriods={evaluationPeriods}
-              oneOnOneByEmployee={oneOnOneByEmployee}
-            />
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canRecord && (
+            <>
+              <ScheduleAppointmentButton employees={employees} templates={templates} />
+              <RecordDiscussionButton
+                employees={employees}
+                templates={templates}
+                evaluationPeriods={evaluationPeriods}
+                oneOnOneByEmployee={oneOnOneByEmployee}
+              />
+            </>
+          )}
+          <TenantBackLink />
+        </div>
       </div>
 
       {(myAppointments.length > 0 || (canRecord && scheduledByMe.length > 0)) && (

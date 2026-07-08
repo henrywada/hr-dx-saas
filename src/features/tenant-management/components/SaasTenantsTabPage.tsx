@@ -4,6 +4,7 @@ import { useState } from 'react'
 import TenantManagementPage from './TenantManagementPage'
 import SaasEmployeeList from './SaasEmployeeList'
 import type { TenantWithManager, SaasEmployee } from '../types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface Props {
   initialTenants: TenantWithManager[]
@@ -20,7 +21,7 @@ export default function SaasTenantsTabPage({ initialTenants, employees }: Props)
   return (
     <div className="space-y-6">
       {/* タブヘッダー */}
-      <div className="border-b border-gray-200">
+      <div className="flex items-center justify-between border-b border-gray-200">
         <nav className="-mb-px flex gap-6">
           <button
             onClick={() => setActiveTab('tenants')}
@@ -43,6 +44,7 @@ export default function SaasTenantsTabPage({ initialTenants, employees }: Props)
             従業員一覧
           </button>
         </nav>
+        <TenantBackLink className="mb-3 shrink-0" />
       </div>
 
       {/* タブコンテンツ */}

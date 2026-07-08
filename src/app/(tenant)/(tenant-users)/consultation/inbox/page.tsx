@@ -3,6 +3,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getConsultationQueue } from '@/features/consultation/queries'
 import { ConsultationQueueTable } from '@/features/consultation/components/ConsultationQueueTable'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: '対応が必要な相談' }
 
@@ -18,7 +19,10 @@ export default async function ConsultationInboxPage() {
 
   return (
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-300">
-      <h1 className="text-sm font-semibold mb-4">対応が必要な相談</h1>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <h1 className="text-sm font-semibold">対応が必要な相談</h1>
+        <TenantBackLink />
+      </div>
       <ConsultationQueueTable
         items={items}
         detailBasePath={APP_ROUTES.TENANT.CONSULTATION_INBOX_DETAIL('')}

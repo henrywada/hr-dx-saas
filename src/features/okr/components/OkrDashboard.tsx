@@ -5,6 +5,7 @@ import { ObjectiveCard } from './ObjectiveCard'
 import { ObjectiveFormModal } from './ObjectiveFormModal'
 import { CheckinFormModal } from './CheckinFormModal'
 import { AchievementRateChart } from './AchievementRateChart'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type { OkrDashboardData, DivisionAchievementRow } from '../types'
 
 type TabKey = 'company' | 'division' | 'my' | 'team'
@@ -73,14 +74,17 @@ export function OkrDashboard({
               {fiscalYear}年度 — 目標の設定・進捗管理・評価連動
             </p>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setAddOpen(true)}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 transition-colors"
-            >
-              + 目標を追加
-            </button>
-          )}
+          <div className="flex gap-2">
+            <TenantBackLink />
+            {isAdmin && (
+              <button
+                onClick={() => setAddOpen(true)}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 transition-colors"
+              >
+                + 目標を追加
+              </button>
+            )}
+          </div>
         </div>
 
         {/* カード本文 */}

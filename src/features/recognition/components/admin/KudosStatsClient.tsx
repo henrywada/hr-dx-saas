@@ -2,9 +2,15 @@
 
 import { Card } from '@/components/ui/Card'
 import { DataTable, type Column } from '@/components/ui/DataTable'
-import type { KudosDivisionStat, KudosPersonalRanking, KudosValueTag, MvpCandidate } from '../../types'
+import type {
+  KudosDivisionStat,
+  KudosPersonalRanking,
+  KudosValueTag,
+  MvpCandidate,
+} from '../../types'
 import { ValueTagAdminPanel } from './ValueTagAdminPanel'
 import { MvpCandidatePanel } from './MvpCandidatePanel'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface KudosStatsClientProps {
   divisionStats: KudosDivisionStat[]
@@ -40,11 +46,14 @@ export function KudosStatsClient({
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 lg:px-8 py-5 mx-auto max-w-[1920px]">
-      <div>
-        <h1 className="text-lg font-bold text-(--text-primary)">感謝・称賛（Kudos）集計</h1>
-        <p className="text-xs text-(--text-secondary) mt-1">
-          直近{periodDays}日間の部署別・個人別の送信・受信件数を集計しています。
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-bold text-(--text-primary)">感謝・称賛（Kudos）集計</h1>
+          <p className="text-xs text-(--text-secondary) mt-1">
+            直近{periodDays}日間の部署別・個人別の送信・受信件数を集計しています。
+          </p>
+        </div>
+        <TenantBackLink />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -60,11 +69,7 @@ export function KudosStatsClient({
 
       <ValueTagAdminPanel tags={valueTags} />
 
-      <MvpCandidatePanel
-        periodLabel={mvpPeriodLabel}
-        candidates={mvpCandidates}
-        showRegisterHint
-      />
+      <MvpCandidatePanel periodLabel={mvpPeriodLabel} candidates={mvpCandidates} showRegisterHint />
 
       <div>
         <h2 className="text-sm font-bold text-(--text-primary) mb-2">部署別 集計</h2>

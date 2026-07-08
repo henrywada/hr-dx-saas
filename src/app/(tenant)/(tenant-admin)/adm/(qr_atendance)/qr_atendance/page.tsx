@@ -1,6 +1,7 @@
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { SupervisorQrPermissionsClient } from './SupervisorQrPermissionsClient'
 
 /**
@@ -20,11 +21,14 @@ export default async function QrAtendanceSupervisorPermissionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">管理者 QR 表示権限</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          自分が監督する従業員の QR 表示を許可・停止できます。変更は監査ログに記録されます。
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">管理者 QR 表示権限</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            自分が監督する従業員の QR 表示を許可・停止できます。変更は監査ログに記録されます。
+          </p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </div>
       <SupervisorQrPermissionsClient
         supervisorUserId={user.id}

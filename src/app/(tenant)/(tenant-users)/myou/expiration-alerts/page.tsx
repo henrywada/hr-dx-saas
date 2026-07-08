@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getExpiringProducts, getAlertLogs } from '@/features/myou/queries'
 import ExpiringProductsTable from '../components/ExpiringProductsTable'
 import AlertLogTable from '../components/AlertLogTable'
+import MyouBackLink from '../components/MyouBackLink'
 import { formatDateInJST } from '@/lib/datetime'
 import { Metadata } from 'next'
 import { AlertTriangle, History, Calendar } from 'lucide-react'
@@ -20,6 +21,9 @@ export default async function ExpirationAlertsPage() {
       {/* ヒーローセクション風のヘッダー */}
       <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg mb-8">
         <div className="max-w-7xl mx-auto">
+          <div className="flex justify-end mb-2">
+            <MyouBackLink variant="light" />
+          </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div>
               <nav className="flex mb-3 text-blue-200 text-xs font-medium space-x-2">

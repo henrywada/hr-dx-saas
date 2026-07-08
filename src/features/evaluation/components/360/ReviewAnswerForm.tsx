@@ -6,6 +6,7 @@ import { submitReview } from '@/features/evaluation/360-actions'
 import { APP_ROUTES } from '@/config/routes'
 import type { Review360Question, ResponseInput } from '@/features/evaluation/360-types'
 import { QUESTION_CATEGORY_LABELS } from '@/features/evaluation/360-types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface Props {
   reviewerId: string
@@ -107,6 +108,9 @@ export function ReviewAnswerForm({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex justify-end">
+        <TenantBackLink />
+      </div>
       <div className="bg-[#f6f8fa] rounded-xl p-4 space-y-1">
         <h1 className="text-lg font-bold text-[#24292f]">{campaignName}</h1>
         <p className="text-sm text-[#57606a]">

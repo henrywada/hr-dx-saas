@@ -11,6 +11,7 @@ import { getMonthlyMvpCandidates } from '@/features/recognition/queries'
 import { EventFormDialog } from '@/features/internal-events/components/admin/EventFormDialog'
 import { EventAdminCard } from '@/features/internal-events/components/admin/EventAdminCard'
 import { AwardsAdminSection } from '@/features/internal-events/components/admin/AwardsAdminSection'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 const HR_ROLES = ['hr', 'hr_manager', 'developer']
 
@@ -43,7 +44,10 @@ export default async function EventsAwardsAdminPage() {
 
   return (
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-300 space-y-4">
-      <h1 className="text-sm font-semibold text-slate-900">イベント・表彰管理</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-sm font-semibold text-slate-900">イベント・表彰管理</h1>
+        <TenantBackLink />
+      </div>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -57,7 +61,12 @@ export default async function EventsAwardsAdminPage() {
         ) : (
           <div className="space-y-3">
             {eventsWithAttendees.map(({ event, attendees }) => (
-              <EventAdminCard key={event.id} event={event} attendees={attendees} divisions={divisions} />
+              <EventAdminCard
+                key={event.id}
+                event={event}
+                attendees={attendees}
+                divisions={divisions}
+              />
             ))}
           </div>
         )}

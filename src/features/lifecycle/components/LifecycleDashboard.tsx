@@ -8,6 +8,7 @@ import { InstanceList } from './InstanceList'
 import { NewInstanceModal } from './NewInstanceModal'
 import { TaskChecklistModal } from './TaskChecklistModal'
 import { TemplateManager } from './TemplateManager'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 type Tab = 'onboarding' | 'offboarding' | 'templates'
 
@@ -49,6 +50,7 @@ export function LifecycleDashboard({ data, employees }: Props) {
             入退社ライフサイクルワークフロー
           </h1>
           <div className="flex gap-2">
+            <TenantBackLink />
             <button
               onClick={() => {
                 setNewModalType('onboarding')

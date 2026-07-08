@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { getEvaluationPeriods } from '@/features/evaluation/queries'
 import { EvalPeriodsClient } from './EvalPeriodsClient'
 
@@ -19,7 +20,7 @@ export default async function EvaluationPeriodsPage() {
       <div className="w-full">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <header className="relative border-b border-gray-300 bg-gray-200 px-6 py-5">
-            <div className="flex min-w-0 flex-wrap items-start gap-3">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 pt-0.5">
                 <h1 className="bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-[1.35rem] font-bold leading-snug tracking-tight text-transparent sm:text-[1.65rem]">
                   評価期間管理
@@ -32,6 +33,7 @@ export default async function EvaluationPeriodsPage() {
                   評価期間の作成・ステータス管理を行います。
                 </p>
               </div>
+              <TenantBackLink className="self-start shrink-0" />
             </div>
           </header>
           <div className="p-6">

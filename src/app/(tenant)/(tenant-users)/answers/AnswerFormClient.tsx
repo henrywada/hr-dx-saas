@@ -1,30 +1,31 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { APP_ROUTES } from '@/config/routes';
-import { submitAnswers } from '@/features/questionnaire/actions';
-import type { QuestionnaireDetail, AnswerInput } from '@/features/questionnaire/types';
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
+import { submitAnswers } from '@/features/questionnaire/actions'
+import type { QuestionnaireDetail, AnswerInput } from '@/features/questionnaire/types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface ExistingAnswer {
-  question_id: string;
-  item_id: string | null;
-  option_id: string | null;
-  text_answer: string | null;
-  score: number | null;
+  question_id: string
+  item_id: string | null
+  option_id: string | null
+  text_answer: string | null
+  score: number | null
 }
 
 interface Props {
-  assignmentId: string;
-  detail: QuestionnaireDetail;
-  existingAnswers: ExistingAnswer[];
+  assignmentId: string
+  detail: QuestionnaireDetail
+  existingAnswers: ExistingAnswer[]
 }
 
 export default function AnswerFormClient({ assignmentId, detail, existingAnswers }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const [submitted, setSubmitted] = useState(false)
 
   // 回答状態の初期化
   // radio: { [question_id]: option_id }
@@ -32,115 +33,115 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
   // rating_table: { [`${question_id}-${item_id}`]: score }
   // text: { [question_id]: string }
   const [radioAnswers, setRadioAnswers] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    existingAnswers.forEach((a) => {
-      if (a.option_id && !a.item_id) init[a.question_id] = a.option_id;
-    });
-    return init;
-  });
+    const init: Record<string, string> = {}
+    existingAnswers.forEach(a => {
+      if (a.option_id && !a.item_id) init[a.question_id] = a.option_id
+    })
+    return init
+  })
 
   const [checkboxAnswers, setCheckboxAnswers] = useState<Record<string, Set<string>>>(() => {
-    const init: Record<string, Set<string>> = {};
-    existingAnswers.forEach((a) => {
+    const init: Record<string, Set<string>> = {}
+    existingAnswers.forEach(a => {
       if (a.option_id) {
-        if (!init[a.question_id]) init[a.question_id] = new Set();
-        init[a.question_id].add(a.option_id);
+        if (!init[a.question_id]) init[a.question_id] = new Set()
+        init[a.question_id].add(a.option_id)
       }
-    });
-    return init;
-  });
+    })
+    return init
+  })
 
   const [ratingAnswers, setRatingAnswers] = useState<Record<string, number>>(() => {
-    const init: Record<string, number> = {};
-    existingAnswers.forEach((a) => {
+    const init: Record<string, number> = {}
+    existingAnswers.forEach(a => {
       if (a.item_id && a.score != null) {
-        init[`${a.question_id}-${a.item_id}`] = a.score;
+        init[`${a.question_id}-${a.item_id}`] = a.score
       }
-    });
-    return init;
-  });
+    })
+    return init
+  })
 
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    existingAnswers.forEach((a) => {
-      if (a.text_answer != null) init[a.question_id] = a.text_answer;
-    });
-    return init;
-  });
+    const init: Record<string, string> = {}
+    existingAnswers.forEach(a => {
+      if (a.text_answer != null) init[a.question_id] = a.text_answer
+    })
+    return init
+  })
 
   // セクション別に設問をグループ化
-  const sections = detail.sections.length > 0 ? detail.sections : [{ id: null, title: null }];
-  const questionsBySection = sections.map((section) => ({
+  const sections = detail.sections.length > 0 ? detail.sections : [{ id: null, title: null }]
+  const questionsBySection = sections.map(section => ({
     section,
-    questions: detail.questions.filter((q) =>
+    questions: detail.questions.filter(q =>
       section.id == null ? q.section_id == null : q.section_id === section.id
     ),
-  }));
+  }))
 
   function handleSubmit() {
     // バリデーション
-    const answers: AnswerInput[] = [];
-    let hasError = false;
+    const answers: AnswerInput[] = []
+    let hasError = false
 
     for (const q of detail.questions) {
       if (q.question_type === 'radio') {
-        const selected = radioAnswers[q.id];
+        const selected = radioAnswers[q.id]
         if (q.is_required && !selected) {
-          hasError = true;
-          break;
+          hasError = true
+          break
         }
-        if (selected) answers.push({ question_id: q.id, option_id: selected });
+        if (selected) answers.push({ question_id: q.id, option_id: selected })
       }
 
       if (q.question_type === 'checkbox') {
-        const selected = checkboxAnswers[q.id];
+        const selected = checkboxAnswers[q.id]
         if (q.is_required && (!selected || selected.size === 0)) {
-          hasError = true;
-          break;
+          hasError = true
+          break
         }
-        selected?.forEach((opt) => {
-          answers.push({ question_id: q.id, option_id: opt });
-        });
+        selected?.forEach(opt => {
+          answers.push({ question_id: q.id, option_id: opt })
+        })
       }
 
       if (q.question_type === 'rating_table') {
         for (const item of q.items) {
-          const score = ratingAnswers[`${q.id}-${item.id}`];
+          const score = ratingAnswers[`${q.id}-${item.id}`]
           if (q.is_required && score == null) {
-            hasError = true;
-            break;
+            hasError = true
+            break
           }
           if (score != null) {
-            answers.push({ question_id: q.id, item_id: item.id, score });
+            answers.push({ question_id: q.id, item_id: item.id, score })
           }
         }
-        if (hasError) break;
+        if (hasError) break
       }
 
       if (q.question_type === 'text') {
-        const text = textAnswers[q.id] ?? '';
+        const text = textAnswers[q.id] ?? ''
         if (q.is_required && !text.trim()) {
-          hasError = true;
-          break;
+          hasError = true
+          break
         }
-        if (text.trim()) answers.push({ question_id: q.id, text_answer: text.trim() });
+        if (text.trim()) answers.push({ question_id: q.id, text_answer: text.trim() })
       }
     }
 
     if (hasError) {
-      setError('必須項目に回答してください。');
-      return;
+      setError('必須項目に回答してください。')
+      return
     }
 
-    setError('');
+    setError('')
     startTransition(async () => {
-      const res = await submitAnswers(assignmentId, answers);
+      const res = await submitAnswers(assignmentId, answers)
       if (res.success) {
-        setSubmitted(true);
+        setSubmitted(true)
       } else {
-        setError(res.error ?? '提出に失敗しました。');
+        setError(res.error ?? '提出に失敗しました。')
       }
-    });
+    })
   }
 
   if (submitted) {
@@ -156,20 +157,24 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
           アンケート一覧へ戻る
         </button>
       </div>
-    );
+    )
   }
 
-  const totalQuestions = detail.questions.length;
-  const answeredCount = detail.questions.filter((q) => {
-    if (q.question_type === 'radio') return !!radioAnswers[q.id];
-    if (q.question_type === 'checkbox') return (checkboxAnswers[q.id]?.size ?? 0) > 0;
-    if (q.question_type === 'rating_table') return q.items.every((it) => ratingAnswers[`${q.id}-${it.id}`] != null);
-    if (q.question_type === 'text') return !!(textAnswers[q.id]?.trim());
-    return false;
-  }).length;
+  const totalQuestions = detail.questions.length
+  const answeredCount = detail.questions.filter(q => {
+    if (q.question_type === 'radio') return !!radioAnswers[q.id]
+    if (q.question_type === 'checkbox') return (checkboxAnswers[q.id]?.size ?? 0) > 0
+    if (q.question_type === 'rating_table')
+      return q.items.every(it => ratingAnswers[`${q.id}-${it.id}`] != null)
+    if (q.question_type === 'text') return !!textAnswers[q.id]?.trim()
+    return false
+  }).length
 
   return (
     <div className="pb-16">
+      <div className="flex justify-end mb-3">
+        <TenantBackLink />
+      </div>
       {/* アンケートヘッダー */}
       <div className="bg-white rounded-xl border border-neutral-200 p-5 mb-5 shadow-sm">
         <h1 className="text-lg font-bold text-neutral-800 leading-snug">{detail.title}</h1>
@@ -182,7 +187,9 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
           <span>回答進捗</span>
-          <span>{answeredCount} / {totalQuestions}</span>
+          <span>
+            {answeredCount} / {totalQuestions}
+          </span>
         </div>
         <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
           <div
@@ -206,7 +213,7 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
 
             <div className="space-y-4">
               {questions.map((q, qIdx) => {
-                const globalIdx = detail.questions.findIndex((dq) => dq.id === q.id);
+                const globalIdx = detail.questions.findIndex(dq => dq.id === q.id)
                 return (
                   <div
                     key={q.id}
@@ -215,15 +222,13 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                     <p className="text-sm font-semibold text-neutral-800 mb-3">
                       <span className="text-primary font-bold mr-1">Q{globalIdx + 1}.</span>
                       {q.question_text}
-                      {q.is_required && (
-                        <span className="ml-1 text-xs text-red-500">*</span>
-                      )}
+                      {q.is_required && <span className="ml-1 text-xs text-red-500">*</span>}
                     </p>
 
                     {/* ラジオ */}
                     {q.question_type === 'radio' && (
                       <div className="space-y-2">
-                        {q.options.map((opt) => (
+                        {q.options.map(opt => (
                           <label
                             key={opt.id}
                             className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 cursor-pointer hover:bg-blue-50 hover:border-primary/40 transition-colors"
@@ -233,7 +238,9 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                               name={q.id}
                               value={opt.id}
                               checked={radioAnswers[q.id] === opt.id}
-                              onChange={() => setRadioAnswers((prev) => ({ ...prev, [q.id]: opt.id }))}
+                              onChange={() =>
+                                setRadioAnswers(prev => ({ ...prev, [q.id]: opt.id }))
+                              }
                               className="accent-primary"
                             />
                             <span className="text-sm text-neutral-700">{opt.option_text}</span>
@@ -245,8 +252,8 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                     {/* チェックボックス */}
                     {q.question_type === 'checkbox' && (
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {q.options.map((opt) => {
-                          const checked = checkboxAnswers[q.id]?.has(opt.id) ?? false;
+                        {q.options.map(opt => {
+                          const checked = checkboxAnswers[q.id]?.has(opt.id) ?? false
                           return (
                             <label
                               key={opt.id}
@@ -256,18 +263,18 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => {
-                                  setCheckboxAnswers((prev) => {
-                                    const next = new Set(prev[q.id] ?? []);
-                                    if (next.has(opt.id)) next.delete(opt.id);
-                                    else next.add(opt.id);
-                                    return { ...prev, [q.id]: next };
-                                  });
+                                  setCheckboxAnswers(prev => {
+                                    const next = new Set(prev[q.id] ?? [])
+                                    if (next.has(opt.id)) next.delete(opt.id)
+                                    else next.add(opt.id)
+                                    return { ...prev, [q.id]: next }
+                                  })
                                 }}
                                 className="accent-primary"
                               />
                               <span className="text-sm text-neutral-700">{opt.option_text}</span>
                             </label>
-                          );
+                          )
                         })}
                       </div>
                     )}
@@ -280,22 +287,27 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                             <tr>
                               <th className="text-left py-2 px-1 text-xs text-neutral-500 w-24" />
                               {(q.scale_labels ?? ['1', '2', '3', '4', '5']).map((label, i) => (
-                                <th key={i} className="text-center py-2 px-1 text-xs text-neutral-500 font-normal">
+                                <th
+                                  key={i}
+                                  className="text-center py-2 px-1 text-xs text-neutral-500 font-normal"
+                                >
                                   {label}
                                 </th>
                               ))}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-100">
-                            {q.items.map((item) => {
-                                const key = `${q.id}-${item.id}`;
-                                const scaleCount = (q.scale_labels ?? ['1', '2', '3', '4', '5']).length;
-                                return (
-                                  <tr key={item.id}>
-                                    <td className="py-3 px-1 text-xs text-neutral-700 font-medium">
-                                      {item.item_text}
-                                    </td>
-                                    {Array.from({ length: scaleCount }, (_, i) => i + 1).map((score) => (
+                            {q.items.map(item => {
+                              const key = `${q.id}-${item.id}`
+                              const scaleCount = (q.scale_labels ?? ['1', '2', '3', '4', '5'])
+                                .length
+                              return (
+                                <tr key={item.id}>
+                                  <td className="py-3 px-1 text-xs text-neutral-700 font-medium">
+                                    {item.item_text}
+                                  </td>
+                                  {Array.from({ length: scaleCount }, (_, i) => i + 1).map(
+                                    score => (
                                       <td key={score} className="text-center py-3 px-1">
                                         <label className="cursor-pointer">
                                           <input
@@ -304,16 +316,17 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                                             value={score}
                                             checked={ratingAnswers[key] === score}
                                             onChange={() =>
-                                              setRatingAnswers((prev) => ({ ...prev, [key]: score }))
+                                              setRatingAnswers(prev => ({ ...prev, [key]: score }))
                                             }
                                             className="accent-primary w-5 h-5"
                                           />
                                         </label>
                                       </td>
-                                    ))}
-                                  </tr>
-                                );
-                              })}
+                                    )
+                                  )}
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -323,8 +336,8 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                     {q.question_type === 'text' && (
                       <textarea
                         value={textAnswers[q.id] ?? ''}
-                        onChange={(e) =>
-                          setTextAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                        onChange={e =>
+                          setTextAnswers(prev => ({ ...prev, [q.id]: e.target.value }))
                         }
                         rows={4}
                         className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
@@ -332,7 +345,7 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
                       />
                     )}
                   </div>
-                );
+                )
               })}
             </div>
           </div>
@@ -363,5 +376,5 @@ export default function AnswerFormClient({ assignmentId, detail, existingAnswers
         </button>
       </div>
     </div>
-  );
+  )
 }

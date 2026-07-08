@@ -18,6 +18,7 @@ import {
   getSkillFeedbackComments,
 } from '@/features/skill-portal/queries'
 import { MySkillsView } from '@/features/skill-portal/components/MySkillsView'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 async function getElAchievedRequirementIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -77,9 +78,14 @@ export default async function MySkillsPage() {
   return (
     <div className="min-h-full">
       <div className="mx-auto max-w-3xl px-6 pb-12 pt-8">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">マイスキル</h1>
-          <p className="mt-1 text-sm text-gray-500">職種・要件の達成申請と申請状況を確認できます</p>
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">マイスキル</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              職種・要件の達成申請と申請状況を確認できます
+            </p>
+          </div>
+          <TenantBackLink />
         </div>
         <MySkillsView
           skills={skills}

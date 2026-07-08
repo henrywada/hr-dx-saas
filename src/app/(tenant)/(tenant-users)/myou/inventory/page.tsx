@@ -1,5 +1,6 @@
 import { getInventory } from '@/features/myou/queries'
 import InventoryTable from '../components/InventoryTable'
+import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
 import { Package } from 'lucide-react'
 
@@ -14,7 +15,7 @@ export default async function InventoryPage() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-[1920px]">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-blue-700 flex items-center">
             <Package className="h-6 w-6 mr-2" />
@@ -24,8 +25,11 @@ export default async function InventoryPage() {
             入荷済み・未出荷のスプレー缶（{items.length}本）。有効期限が近い順に表示しています。
           </p>
         </div>
-        <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-          製品トレーサビリティ
+        <div className="flex flex-col items-end gap-1">
+          <MyouBackLink />
+          <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+            製品トレーサビリティ
+          </div>
         </div>
       </div>
 

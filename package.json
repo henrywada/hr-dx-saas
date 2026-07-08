@@ -50,6 +50,7 @@
     "react-hook-form": "^7.76.1",
     "react-markdown": "^10.1.0",
     "recharts": "^3.7.0",
+    "remark-gfm": "^4.0.1",
     "stripe": "^22.1.1",
     "swr": "^2.4.1",
     "tailwind-merge": "^2.5.5",

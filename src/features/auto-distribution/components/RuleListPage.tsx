@@ -9,6 +9,7 @@ import { deleteAutoDistributionRule, fetchRuleHistory } from '../actions'
 import { RuleFormDialog } from './RuleFormDialog'
 import { RuleHistoryDrawer } from './RuleHistoryDrawer'
 import { TestRunButton } from './TestRunButton'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface RuleListPageProps {
   rules: AutoDistributionRule[]
@@ -113,17 +114,20 @@ export function RuleListPage({ rules }: RuleListPageProps) {
             指定テーマでWebを定期検索し、AIが要約・意見を生成してメールへ自動配信します。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEditingRule(null)
-            setFormOpen(true)
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          新規ルール
-        </button>
+        <div className="flex gap-2">
+          <TenantBackLink />
+          <button
+            type="button"
+            onClick={() => {
+              setEditingRule(null)
+              setFormOpen(true)
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#FD7601] rounded-lg hover:bg-[#FD7601] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            新規ルール
+          </button>
+        </div>
       </div>
 
       <DataTable

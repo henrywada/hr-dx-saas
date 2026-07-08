@@ -1,13 +1,14 @@
-import { getServerUser } from '@/lib/auth/server-user';
-import { redirect } from 'next/navigation';
-import { APP_ROUTES } from '@/config/routes';
-import { AiJobForm } from '@/features/recruitment-ai/components/AiJobForm';
-import { TipsModal } from '@/features/recruitment-ai/components/TipsModal';
+import { getServerUser } from '@/lib/auth/server-user'
+import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
+import { AiJobForm } from '@/features/recruitment-ai/components/AiJobForm'
+import { TipsModal } from '@/features/recruitment-ai/components/TipsModal'
 
 export default async function RecruitmentAiPage() {
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user?.tenant_id) {
-    redirect(APP_ROUTES.AUTH.LOGIN);
+    redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
   return (
@@ -21,12 +22,13 @@ export default async function RecruitmentAiPage() {
             3つの質問に答えるだけ。あなたの会社の「リアルな魅力」が伝わる求人原稿・スカウト文・面接ガイドをAIが瞬時に作成します。
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-3">
+          <TenantBackLink className="self-start shrink-0" />
           <TipsModal />
         </div>
       </div>
 
       <AiJobForm planType={user.planType} />
     </div>
-  );
+  )
 }

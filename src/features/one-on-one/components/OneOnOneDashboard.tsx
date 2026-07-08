@@ -9,6 +9,7 @@ import { ReminderBadge } from './ReminderBadge'
 import { UpcomingOneOnOnePanel } from './UpcomingOneOnOnePanel'
 import { UpcomingScheduleModal } from './UpcomingScheduleModal'
 import { ThemeTemplateManager } from './ThemeTemplateManager'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import type {
   OneOnOneDashboardData,
   SessionRow,
@@ -95,6 +96,7 @@ export function OneOnOneDashboard({
             </p>
           </div>
           <div className="flex gap-2">
+            <TenantBackLink />
             <button
               onClick={() => setScheduleOpen(true)}
               className="rounded-lg border border-[#FD7601] px-4 py-2.5 text-sm font-medium text-[#FD7601] hover:bg-orange-50 transition-colors"

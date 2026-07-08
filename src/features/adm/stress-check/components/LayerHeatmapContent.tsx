@@ -12,6 +12,7 @@ import {
   Minus,
 } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import OrgHealthMatrixHeatmap from './OrgHealthMatrixHeatmap'
@@ -92,12 +93,15 @@ export default function LayerHeatmapContent({
                 ストレスチェック集団分析｜組織レイヤー別ヒートマップ
               </p>
             </div>
-            <Link
-              href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
-              className="shrink-0 text-xs text-[#FD7601] hover:text-white underline underline-offset-2 transition-colors"
-            >
-              拠点・最低人数設定
-            </Link>
+            <div className="flex gap-2 shrink-0 items-center">
+              <TenantBackLink variant="light" />
+              <Link
+                href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
+                className="shrink-0 text-xs text-[#FD7601] hover:text-white underline underline-offset-2 transition-colors"
+              >
+                拠点・最低人数設定
+              </Link>
+            </div>
           </div>
 
           {/* レイヤー選択 pills */}

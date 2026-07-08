@@ -7,6 +7,7 @@ import { getEchoTemplateDetail, getEchoTemplates } from '../queries'
 import EchoTemplateFormModal from './EchoTemplateFormModal'
 import EchoTemplateQuestionManager from './EchoTemplateQuestionManager'
 import type { EchoTemplate, EchoTemplateDetail } from '../types'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface Props {
   initialTemplates: EchoTemplate[]
@@ -50,13 +51,16 @@ export default function EchoTemplateListClient({ initialTemplates }: Props) {
             パルスサーベイ用の設問テンプレートを管理します。
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90"
-        >
-          <Plus size={16} />
-          新規作成
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <TenantBackLink />
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90"
+          >
+            <Plus size={16} />
+            新規作成
+          </button>
+        </div>
       </div>
 
       {templates.length === 0 ? (

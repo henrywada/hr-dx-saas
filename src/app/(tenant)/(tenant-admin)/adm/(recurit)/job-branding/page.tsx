@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { getTenantJobPostings, getTenantBrandingInfo } from '@/features/job-postings/queries'
 import { BrandingWizard } from '@/features/job-postings/components/BrandingWizard'
 import { TenantBrandingInfo } from '@/features/job-postings/types'
@@ -28,11 +29,14 @@ export default async function JobBrandingPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">採用ブランディング支援</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          AIが求人票を媒体別に最適化し、応募率を高める文章を自動生成します。
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">採用ブランディング支援</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            AIが求人票を媒体別に最適化し、応募率を高める文章を自動生成します。
+          </p>
+        </div>
+        <TenantBackLink className="self-start shrink-0" />
       </div>
 
       {jobPostings.length === 0 ? (

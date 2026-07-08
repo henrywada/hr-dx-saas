@@ -1,3 +1,4 @@
+import TenantBackLink from '@/components/common/TenantBackLink'
 import { AlertHighlightPanel } from './AlertHighlightPanel'
 import { KpiHeadlineSection } from './KpiHeadlineSection'
 import { ExportButton } from './ExportButton'
@@ -31,7 +32,10 @@ export function ExecutiveSummaryDashboard({ summary }: Props) {
               集計基準：{periodLabel}　　取得日時：{fetchedLabel}
             </p>
           </div>
-          <ExportButton summary={summary} />
+          <div className="flex gap-2">
+            <TenantBackLink />
+            <ExportButton summary={summary} />
+          </div>
         </div>
 
         <div className="space-y-8 p-6">

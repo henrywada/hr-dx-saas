@@ -25,6 +25,23 @@ async function sha256Hex(text: string): Promise<string> {
     .join('')
 }
 
+/**
+ * チャンク作成（embedding 生成・登録）に失敗した際、既に登録済みの
+ * hr_law_documents 行を補償的に削除する。content_hash の UNIQUE 制約により、
+ * 削除しないと次回実行時の dedup チェックで再処理が永久にブロックされてしまうため。
+ * ベストエフォートのクリーンアップであり、削除自体が失敗しても関数はクラッシュさせない。
+ */
+async function deleteOrphanedDocument(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  docId: string
+): Promise<void> {
+  const { error: cleanupError } = await supabase.from('hr_law_documents').delete().eq('id', docId)
+  if (cleanupError) {
+    console.error('[hr-law-refresh] 孤立文書の削除に失敗しました', docId, cleanupError)
+  }
+}
+
 serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -144,22 +161,42 @@ serve(async req => {
               continue
             }
 
-            const embeddings = await embedChunksBatch(geminiApiKey, chunks)
-            const chunkRows = chunks.map((content, i) => ({
-              document_id: doc.id,
-              chunk_index: i,
-              content,
-              embedding: formatVectorForPg(embeddings[i]),
-              metadata: {
-                document_title: summary.title,
-                source_url: result.link,
-                fetched_at: doc.fetched_at,
-              },
-            }))
+            // チャンク作成（embedding 生成 + 登録）に失敗した場合、
+            // 既に登録済みの hr_law_documents 行が孤立（チャンクゼロ）しないよう
+            // 補償的に削除する。content_hash の UNIQUE 制約により、削除しないと
+            // 次回実行時のdedupチェックで再処理が永久にブロックされてしまうため。
+            let chunkRows: {
+              document_id: string
+              chunk_index: number
+              content: string
+              embedding: string
+              metadata: Record<string, unknown>
+            }[]
+            try {
+              const embeddings = await embedChunksBatch(geminiApiKey, chunks)
+              chunkRows = chunks.map((content, i) => ({
+                document_id: doc.id,
+                chunk_index: i,
+                content,
+                embedding: formatVectorForPg(embeddings[i]),
+                metadata: {
+                  document_title: summary.title,
+                  source_url: result.link,
+                  fetched_at: doc.fetched_at,
+                },
+              }))
+            } catch (e) {
+              errors.push(
+                `${source.topic}: チャンク登録失敗 ${e instanceof Error ? e.message : String(e)}`
+              )
+              await deleteOrphanedDocument(supabase, doc.id)
+              continue
+            }
 
             const { error: chunkError } = await supabase.from('hr_law_chunks').insert(chunkRows)
             if (chunkError) {
               errors.push(`${source.topic}: チャンク登録失敗 ${chunkError.message}`)
+              await deleteOrphanedDocument(supabase, doc.id)
               continue
             }
 

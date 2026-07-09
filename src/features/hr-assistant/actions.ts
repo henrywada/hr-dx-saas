@@ -9,6 +9,8 @@ import { RAG_TOP_K, CHAT_MODEL } from '../inquiry-chat/constants'
 import { buildSystemPrompt } from './prompts'
 import type { AssistantMode, SendMessageResult, Citation } from './types'
 import { getGeminiClient } from '@/lib/ai/gemini'
+import { formatLawContextBlocks, formatLawCitations } from './law-context'
+import type { LawChunkRow } from './law-context'
 
 /** 最大コンテキスト履歴ターン数（古いものは除外してトークンを節約） */
 const MAX_HISTORY_TURNS = 6
@@ -63,35 +65,62 @@ export async function sendHrAssistantMessage(input: {
     return { ok: false, error: 'メッセージの保存に失敗しました' }
   }
 
-  // RAG 検索（全モードで参照資料を活用）
+  // RAG 検索（社内資料 + 法令ナレッジの2系統を並列実行、全モードで活用）
   let citations: Citation[] = []
   let citedIds: string[] = []
   let contextBlocks: string[] = []
+  let hasLawContext = false
 
   try {
     const queryEmbedding = await embedQueryText(message)
-    const { data: hits, error: rpcErr } = await supabase.rpc('match_tenant_rag_chunks', {
-      query_embedding: formatVectorForPg(queryEmbedding),
-      match_count: RAG_TOP_K,
-    })
+    const embeddingVector = formatVectorForPg(queryEmbedding)
 
-    if (!rpcErr && hits) {
-      const rows = (hits ?? []) as {
+    const [tenantResult, lawResult] = await Promise.all([
+      supabase.rpc('match_tenant_rag_chunks', {
+        query_embedding: embeddingVector,
+        match_count: RAG_TOP_K,
+      }),
+      supabase.rpc('match_hr_law_chunks', {
+        query_embedding: embeddingVector,
+        match_count: 4,
+      }),
+    ])
+
+    if (!tenantResult.error && tenantResult.data) {
+      const rows = (tenantResult.data ?? []) as {
         id: string
         content: string
         metadata: { document_title?: string }
       }[]
 
-      contextBlocks = rows.map((r, i) => {
+      const tenantBlocks = rows.map((r, i) => {
         const title = r.metadata?.document_title || '文書'
-        return `【資料${i + 1}: ${title}】\n${r.content}`
+        return `【社内資料${i + 1}: ${title}】\n${r.content}`
       })
+      contextBlocks = [...contextBlocks, ...tenantBlocks]
 
-      citations = rows.slice(0, 5).map(r => ({
-        title: (r.metadata?.document_title as string) || '文書',
-        snippet: r.content.slice(0, 200) + (r.content.length > 200 ? '…' : ''),
-      }))
-      citedIds = rows.map(r => r.id)
+      citations = [
+        ...citations,
+        ...rows.slice(0, 5).map(r => ({
+          title: (r.metadata?.document_title as string) || '文書',
+          snippet: r.content.slice(0, 200) + (r.content.length > 200 ? '…' : ''),
+        })),
+      ]
+      citedIds = [...citedIds, ...rows.map(r => r.id)]
+    } else if (tenantResult.error) {
+      console.error('[hr-assistant] rag tenant', tenantResult.error)
+    }
+
+    if (!lawResult.error && lawResult.data) {
+      const lawRows = (lawResult.data ?? []) as LawChunkRow[]
+      if (lawRows.length > 0) {
+        hasLawContext = true
+        contextBlocks = [...contextBlocks, ...formatLawContextBlocks(lawRows)]
+        citations = [...citations, ...formatLawCitations(lawRows)]
+        citedIds = [...citedIds, ...lawRows.map(r => r.id)]
+      }
+    } else if (lawResult.error) {
+      console.error('[hr-assistant] rag law', lawResult.error)
     }
   } catch (e) {
     console.error('[hr-assistant] embedding/rag', e)
@@ -110,7 +139,7 @@ export async function sendHrAssistantMessage(input: {
   const recentHistory = ((historyRows ?? []) as { role: string; content: string }[]).reverse()
 
   // Gemini へ送信するメッセージ配列を構築（system は systemInstruction で渡す）
-  const systemPrompt = buildSystemPrompt(mode, contextBlocks.length > 0)
+  const systemPrompt = buildSystemPrompt(mode, contextBlocks.length > 0, hasLawContext)
 
   // Gemini の contents 形式（assistant ロールは 'model'）
   const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = []

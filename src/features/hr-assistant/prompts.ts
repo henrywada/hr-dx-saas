@@ -1,9 +1,23 @@
 import type { AssistantMode } from './types'
 
-export function buildSystemPrompt(mode: AssistantMode, hasRagContext: boolean): string {
-  const base = hasRagContext
-    ? '以下の「参照資料」に基づいて回答してください。参照資料にない情報は推測せず「登録された資料には記載がありません」と述べてください。'
-    : '参照資料は登録されていません。一般的な日本の労働法令・人事慣行に基づいて回答してください。'
+export function buildSystemPrompt(
+  mode: AssistantMode,
+  hasRagContext: boolean,
+  hasLawContext: boolean
+): string {
+  const contextNote = [
+    hasRagContext ? '「社内資料」として提示された参照資料に基づいて回答してください。' : null,
+    hasLawContext
+      ? '「法令情報」として提示された内容を引用する際は、必ず取得日と出典URLを明記してください。社内資料の内容と法令情報が矛盾する場合は両方を提示し、法改正への対応が必要な可能性を指摘してください。'
+      : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const base =
+    hasRagContext || hasLawContext
+      ? `${contextNote}\n参照資料・法令情報にない情報は推測せず「登録された資料には記載がありません」と述べてください。`
+      : '参照資料は登録されていません。一般的な日本の労働法令・人事慣行に基づいて回答してください。'
 
   const disclaimer = '重要: 最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。'
 

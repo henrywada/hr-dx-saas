@@ -35,7 +35,23 @@ export function MessageBubble({ message, citations }: Props) {
             <ul className="space-y-1">
               {citations.map((c, i) => (
                 <li key={i} className="text-xs text-[#57606a]">
-                  <span className="font-medium text-[#24292f]">{c.title}</span>
+                  {c.sourceUrl ? (
+                    <a
+                      href={c.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-[#FD7601] hover:underline"
+                    >
+                      {c.title}
+                    </a>
+                  ) : (
+                    <span className="font-medium text-[#24292f]">{c.title}</span>
+                  )}
+                  {c.fetchedAt && (
+                    <span className="ml-1 text-[10px] text-[#57606a]">
+                      （取得日: {c.fetchedAt}）
+                    </span>
+                  )}
                   <p className="text-[#57606a] line-clamp-1 mt-0.5">{c.snippet}</p>
                 </li>
               ))}

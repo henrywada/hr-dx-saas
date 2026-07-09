@@ -44,6 +44,10 @@ export type SendMessageResult =
 export type Citation = {
   title: string
   snippet: string
+  /** 法令情報の出典URL（社内資料の場合は undefined） */
+  sourceUrl?: string
+  /** 法令情報の取得日（YYYY-MM-DD、社内資料の場合は undefined） */
+  fetchedAt?: string
 }
 
 /** 質問テンプレート（tenant_id が null の行は全テナント共通 seed） */

@@ -118,26 +118,29 @@ export function ChatPanel({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isEmpty && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#f6f8fa] flex items-center justify-center">
-              <span className="text-2xl">🤖</span>
-            </div>
-            <h3 className="text-base font-semibold text-[#24292f]">AI 人事相談アシスタント</h3>
-            <p className="text-sm text-[#57606a] max-w-xs">
-              上のモードを選択して質問を入力してください。
-              社内規程・労務計算・評価コメントなど、人事業務をサポートします。
-            </p>
-            <QuestionTemplateChips
-              templates={templates}
-              mode={mode}
-              disabled={loading}
-              onSelect={handleTemplateSelect}
-            />
-            <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 max-w-sm text-left">
-              <p className="font-semibold mb-1">ご利用にあたって</p>
-              <p>
-                回答は登録されたナレッジ文書に基づきます。最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。
-              </p>
+          <div className="flex flex-col items-center justify-center h-full py-12">
+            <div className="w-full max-w-xl space-y-5 text-center">
+              <div className="flex flex-col items-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#f6f8fa] flex items-center justify-center">
+                  <span className="text-2xl">🤖</span>
+                </div>
+                <h3 className="text-base font-semibold text-[#24292f]">AI 人事相談アシスタント</h3>
+                <p className="text-sm text-[#57606a]">
+                  上のモードを選択して質問を入力してください。社内規程・労務計算・評価コメントなど、人事業務をサポートします。
+                </p>
+              </div>
+              <QuestionTemplateChips
+                templates={templates}
+                mode={mode}
+                disabled={loading}
+                onSelect={handleTemplateSelect}
+              />
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 text-left">
+                <p className="font-semibold mb-1">ご利用にあたって</p>
+                <p>
+                  回答は登録されたナレッジ文書に基づきます。最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。
+                </p>
+              </div>
             </div>
           </div>
         )}

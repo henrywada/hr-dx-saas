@@ -16,9 +16,9 @@ export function QuestionTemplateChips({ templates, mode, disabled, onSelect }: P
   if (displayed.length === 0) return null
 
   return (
-    <div className="w-full max-w-lg text-left">
+    <div className="w-full text-left">
       <p className="text-xs font-semibold text-[#57606a] mb-2">💡 こんな質問はありませんか？</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {displayed.map(t => (
           <button
             key={t.id}

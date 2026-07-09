@@ -3669,6 +3669,118 @@ export type Database = {
           },
         ]
       }
+      hr_law_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_law_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "hr_law_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_law_documents: {
+        Row: {
+          content_hash: string
+          created_at: string
+          fetched_at: string
+          id: string
+          published_at: string | null
+          source_id: string | null
+          source_url: string
+          status: string
+          summary: string
+          title: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          published_at?: string | null
+          source_id?: string | null
+          source_url: string
+          status?: string
+          summary: string
+          title: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          published_at?: string | null
+          source_id?: string | null
+          source_url?: string
+          status?: string
+          summary?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_law_documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hr_law_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_law_sources: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          search_query: string
+          topic: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          search_query: string
+          topic: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          search_query?: string
+          topic?: string
+        }
+        Relationships: []
+      }
       internal_event_attendees: {
         Row: {
           employee_id: string
@@ -10178,6 +10290,16 @@ export type Database = {
         Returns: {
           row_count: number
           year_month: string
+        }[]
+      }
+      match_hr_law_chunks: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
         }[]
       }
       match_tenant_rag_chunks: {

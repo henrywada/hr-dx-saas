@@ -177,6 +177,8 @@ export const APP_ROUTES = {
     EVAL_GLOBAL_TEMPLATES: '/saas_adm/evaluation-global-templates',
     /** グローバル評価テンプレート詳細 */
     EVAL_GLOBAL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/evaluation-global-templates/${id}`,
+    /** 法令ナレッジ自動更新の管理（収集文書一覧・無効化・手動再実行） */
+    HR_LAW_KNOWLEDGE: '/saas_adm/hr-law-knowledge',
   },
   EVALUATION: {
     /** 評価シート一覧（テナント管理者） */

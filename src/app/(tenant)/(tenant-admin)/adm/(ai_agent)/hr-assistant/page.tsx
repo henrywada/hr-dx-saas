@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { listHrAssistantSessions, listHrAssistantMessages } from '@/features/hr-assistant/queries'
+import {
+  listHrAssistantSessions,
+  listHrAssistantMessages,
+  listQuestionTemplates,
+} from '@/features/hr-assistant/queries'
 import { HrAssistantClient } from '@/features/hr-assistant/components'
 
 export default async function HrAssistantPage({
@@ -17,9 +21,10 @@ export default async function HrAssistantPage({
   const params = await searchParams
   const sessionId = typeof params.session === 'string' ? params.session : null
 
-  const [sessions, messages] = await Promise.all([
+  const [sessions, messages, templates] = await Promise.all([
     listHrAssistantSessions(),
     sessionId ? listHrAssistantMessages(sessionId) : Promise.resolve([]),
+    listQuestionTemplates(),
   ])
 
   return (
@@ -27,6 +32,7 @@ export default async function HrAssistantPage({
       initialSessions={sessions}
       initialSessionId={sessionId}
       initialMessages={messages}
+      templates={templates}
     />
   )
 }

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ModeSelector } from './ModeSelector'
 import { MessageBubble } from './MessageBubble'
-import { sendHrAssistantMessage } from '../actions'
-import type { AssistantMode, HrAssistantMessage, Citation } from '../types'
+import { QuestionTemplateChips } from './QuestionTemplateChips'
+import { sendHrAssistantMessage, recordTemplateUsage } from '../actions'
+import type { AssistantMode, HrAssistantMessage, Citation, QuestionTemplate } from '../types'
 import { ASSISTANT_MODE_DESCRIPTIONS } from '../types'
 
 type LocalMessage = HrAssistantMessage & { pendingCitations?: Citation[] }
@@ -14,10 +15,17 @@ type Props = {
   sessionId: string | null
   initialMessages: HrAssistantMessage[]
   initialMode: AssistantMode
+  templates: QuestionTemplate[]
   onSessionCreated: (sessionId: string, mode: AssistantMode, title: string) => void
 }
 
-export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCreated }: Props) {
+export function ChatPanel({
+  sessionId,
+  initialMessages,
+  initialMode,
+  templates,
+  onSessionCreated,
+}: Props) {
   const [mode, setMode] = useState<AssistantMode>(initialMode)
   const [messages, setMessages] = useState<LocalMessage[]>(initialMessages)
   const [input, setInput] = useState('')
@@ -37,11 +45,10 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim() || loading) return
+  async function sendMessage(text: string) {
+    const userMessage = text.trim()
+    if (!userMessage || loading) return
 
-    const userMessage = input.trim()
     setInput('')
     setLoading(true)
     setError(null)
@@ -89,6 +96,17 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
     setMessages(prev => [...prev, assistantMessage])
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    await sendMessage(input)
+  }
+
+  /** テンプレートチップ選択: 利用回数を記録（fire-and-forget）して即送信 */
+  function handleTemplateSelect(template: QuestionTemplate) {
+    void recordTemplateUsage(template.id)
+    void sendMessage(template.question_text)
+  }
+
   const isEmpty = messages.length === 0
 
   return (
@@ -109,6 +127,12 @@ export function ChatPanel({ sessionId, initialMessages, initialMode, onSessionCr
               上のモードを選択して質問を入力してください。
               社内規程・労務計算・評価コメントなど、人事業務をサポートします。
             </p>
+            <QuestionTemplateChips
+              templates={templates}
+              mode={mode}
+              disabled={loading}
+              onSelect={handleTemplateSelect}
+            />
             <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 max-w-sm text-left">
               <p className="font-semibold mb-1">ご利用にあたって</p>
               <p>

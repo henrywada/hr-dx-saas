@@ -4,15 +4,26 @@ import { useState } from 'react'
 import { SessionHistory } from './SessionHistory'
 import { ChatPanel } from './ChatPanel'
 import TenantBackLink from '@/components/common/TenantBackLink'
-import type { HrAssistantSession, HrAssistantMessage, AssistantMode } from '../types'
+import type {
+  HrAssistantSession,
+  HrAssistantMessage,
+  AssistantMode,
+  QuestionTemplate,
+} from '../types'
 
 type Props = {
   initialSessions: HrAssistantSession[]
   initialSessionId: string | null
   initialMessages: HrAssistantMessage[]
+  templates: QuestionTemplate[]
 }
 
-export function HrAssistantClient({ initialSessions, initialSessionId, initialMessages }: Props) {
+export function HrAssistantClient({
+  initialSessions,
+  initialSessionId,
+  initialMessages,
+  templates,
+}: Props) {
   const [sessions, setSessions] = useState<HrAssistantSession[]>(initialSessions)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId)
   const [activeMessages, setActiveMessages] = useState<HrAssistantMessage[]>(initialMessages)
@@ -87,6 +98,7 @@ export function HrAssistantClient({ initialSessions, initialSessionId, initialMe
           sessionId={activeSessionId}
           initialMessages={activeMessages}
           initialMode={activeMode}
+          templates={templates}
           onSessionCreated={handleSessionCreated}
         />
       </div>

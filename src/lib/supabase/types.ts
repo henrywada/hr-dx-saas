@@ -8933,6 +8933,50 @@ export type Database = {
           },
         ]
       }
+      tenant_hr_assistant_templates: {
+        Row: {
+          created_at: string
+          id: string
+          mode: string
+          question_text: string
+          source: string
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode?: string
+          question_text: string
+          source?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: string
+          question_text?: string
+          source?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_hr_assistant_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_inquiry_chat_messages: {
         Row: {
           cited_chunk_ids: string[] | null
@@ -10124,6 +10168,10 @@ export type Database = {
       get_tenant_employee_auth_email: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: string
+      }
+      increment_hr_template_usage: {
+        Args: { p_template_id: string }
+        Returns: undefined
       }
       list_work_time_record_monthly_counts: {
         Args: { p_tenant_id: string }

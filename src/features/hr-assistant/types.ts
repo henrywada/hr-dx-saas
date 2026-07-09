@@ -45,3 +45,15 @@ export type Citation = {
   title: string
   snippet: string
 }
+
+/** 質問テンプレート（tenant_id が null の行は全テナント共通 seed） */
+export type QuestionTemplate = {
+  id: string
+  tenant_id: string | null
+  mode: AssistantMode
+  question_text: string
+  source: 'seed' | 'mined'
+  usage_count: number
+  status: 'active' | 'archived'
+  created_at: string
+}

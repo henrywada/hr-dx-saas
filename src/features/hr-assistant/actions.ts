@@ -210,3 +210,20 @@ export async function deleteHrAssistantSession(
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HR_ASSISTANT)
   return { ok: true }
 }
+
+/**
+ * テンプレートチップの利用回数を記録する。
+ * 計測用途のため、失敗してもチャット体験を阻害しない（throw しない）。
+ */
+export async function recordTemplateUsage(templateId: string): Promise<void> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !templateId) return
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('increment_hr_template_usage', {
+    p_template_id: templateId,
+  })
+  if (error) {
+    console.error('[hr-assistant] recordTemplateUsage', error)
+  }
+}

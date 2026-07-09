@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import type { HrAssistantSession, HrAssistantMessage } from './types'
+import type { HrAssistantSession, HrAssistantMessage, QuestionTemplate } from './types'
 
 /** テナント管理者のセッション一覧（新しい順 20 件） */
 export async function listHrAssistantSessions(): Promise<HrAssistantSession[]> {
@@ -41,4 +41,24 @@ export async function listHrAssistantMessages(sessionId: string): Promise<HrAssi
     return []
   }
   return (data ?? []) as HrAssistantMessage[]
+}
+
+/** 質問テンプレート一覧（共通 seed + 自テナント mined。スコープは RLS が担保） */
+export async function listQuestionTemplates(): Promise<QuestionTemplate[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('tenant_hr_assistant_templates')
+    .select('id, tenant_id, mode, question_text, source, usage_count, status, created_at')
+    .eq('status', 'active')
+    .order('usage_count', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('[hr-assistant] listQuestionTemplates', error)
+    return []
+  }
+  return (data ?? []) as QuestionTemplate[]
 }

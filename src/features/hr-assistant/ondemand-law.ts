@@ -81,6 +81,7 @@ function isAllowedUrl(url: string): boolean {
 type StructuredDoc = {
   title: string
   summary: string
+  detail: string
   sourceUrl: string
   theme: string
   publishedAt: string | null
@@ -143,8 +144,10 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
         role: 'system',
         content:
           '人事担当者向けに公式情報を整理する。次の JSON 配列のみ返す: ' +
-          '[{"title":string,"summary":string,"sourceUrl":string,"theme":string,' +
+          '[{"title":string,"summary":string,"detail":string,"sourceUrl":string,"theme":string,' +
           '"publishedAt":"YYYY-MM-DD"|null,"expiresAt":"YYYY-MM-DD"|null,"isExpired":boolean}]。' +
+          'summary は一覧用2〜3文。detail は800〜2000字程度で、施行日・対象・実務対応・数値を含め、' +
+          '情報元URLを開かなくても足り、AI回答の根拠になる量にする。推測禁止。' +
           `theme は次のいずれか: ${THEME_OPTIONS.join(', ')}。` +
           '不確かな場合は空配列 []。',
       },
@@ -170,6 +173,7 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
 
   docs = docs
     .filter(d => d.summary && d.sourceUrl && isAllowedUrl(d.sourceUrl))
+    .map(d => ({ ...d, detail: (d.detail && d.detail.trim()) || d.summary }))
     .slice(0, MAX_ONDEMAND_URLS)
   if (docs.length === 0) return null
 
@@ -200,6 +204,7 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
           source_url: doc.sourceUrl,
           content_hash: contentHash,
           summary: doc.summary,
+          detail: doc.detail,
           published_at: doc.publishedAt,
           expires_at: doc.expiresAt,
           theme: doc.theme || 'その他',
@@ -212,7 +217,7 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
         console.error('[ondemand-law] insert doc', error)
         // 重複以外はコンテキストだけ使う
         contextBlocks.push(
-          `【法令情報（オンデマンド）: ${doc.title}（出典: ${doc.sourceUrl}）】\n${doc.summary}`
+          `【法令情報（オンデマンド）: ${doc.title}（出典: ${doc.sourceUrl}）】\n${doc.detail}`
         )
         citations.push({
           title: doc.title,
@@ -225,7 +230,7 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
       documentId = inserted.id
       fetchedAt = inserted.fetched_at
 
-      const chunks = chunkPlainText(doc.summary)
+      const chunks = chunkPlainText(doc.detail)
       if (chunks.length > 0) {
         try {
           const embeddings = await openRouterEmbedTexts(chunks)
@@ -256,7 +261,7 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
     }
 
     contextBlocks.push(
-      `【法令情報: ${doc.title}（取得日: ${fetchedAt.slice(0, 10)}、出典: ${doc.sourceUrl}）】\n${doc.summary}`
+      `【法令情報: ${doc.title}（取得日: ${fetchedAt.slice(0, 10)}、出典: ${doc.sourceUrl}）】\n${doc.detail}`
     )
     citations.push({
       title: doc.title,

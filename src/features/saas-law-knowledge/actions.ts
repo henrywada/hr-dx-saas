@@ -57,7 +57,7 @@ export async function triggerHrLawRefresh(sourceId: string): Promise<RefreshActi
         'Content-Type': 'application/json',
         Authorization: `Bearer ${serviceRoleKey}`,
       },
-      body: JSON.stringify({ sourceId }),
+      body: JSON.stringify({ sourceId, trigger: 'manual' }),
     })
 
     const data = await res.json()
@@ -77,4 +77,289 @@ export async function triggerHrLawRefresh(sourceId: string): Promise<RefreshActi
     console.error('[saas-law-knowledge] triggerHrLawRefresh', e)
     return { ok: false, error: '実行リクエストに失敗しました' }
   }
+}
+
+/** 収集文書を物理削除する（チャンクは CASCADE） */
+export async function deleteHrLawDocument(
+  documentId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!documentId) return { ok: false, error: '文書IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('hr_law_documents').delete().eq('id', documentId)
+
+  if (error) {
+    console.error('[saas-law-knowledge] deleteHrLawDocument', error)
+    return { ok: false, error: '削除に失敗しました' }
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** 実施ログを1件削除する */
+export async function deleteHrLawRefreshLog(
+  logId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!logId) return { ok: false, error: 'ログIDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('hr_law_refresh_logs').delete().eq('id', logId)
+
+  if (error) {
+    console.error('[saas-law-knowledge] deleteHrLawRefreshLog', error)
+    return { ok: false, error: '削除に失敗しました' }
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** 実施ログをすべて削除する */
+export async function deleteAllHrLawRefreshLogs(): Promise<{
+  ok: boolean
+  error?: string
+}> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+
+  const supabase = createAdminClient()
+  // 全件削除（id が null でない行 = 全行）
+  const { error } = await supabase
+    .from('hr_law_refresh_logs')
+    .delete()
+    .not('id', 'is', null)
+
+  if (error) {
+    console.error('[saas-law-knowledge] deleteAllHrLawRefreshLogs', error)
+    return { ok: false, error: '一括削除に失敗しました' }
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+
+function normalizeTopicKey(topic: string): string {
+  return topic
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s\u3000_\-・/／|｜,，.。:：;；()（）\[\]【】「」『』"'`]+/g, '')
+    .trim()
+}
+
+/** 監視トピックを手動追加 */
+export async function createHrLawSource(input: {
+  topic: string
+  searchQuery: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+
+  const topic = (input.topic ?? '').trim()
+  const searchQuery = (input.searchQuery ?? '').trim()
+  if (!topic || !searchQuery) return { ok: false, error: 'トピック名と検索クエリは必須です' }
+
+  const supabase = createAdminClient()
+  const key = normalizeTopicKey(topic)
+
+  const { data: existing } = await supabase
+    .from('hr_law_sources')
+    .select('id, enabled, topic')
+    .limit(200)
+
+  const dup = (existing ?? []).find(
+    (s: { topic: string }) => normalizeTopicKey(s.topic) === key
+  )
+  if (dup) {
+    if (dup.enabled) return { ok: false, error: '同名の有効トピックが既にあります' }
+    const { error } = await supabase
+      .from('hr_law_sources')
+      .update({
+        enabled: true,
+        disabled_at: null,
+        search_query: searchQuery,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', dup.id)
+    if (error) return { ok: false, error: '再有効化に失敗しました' }
+    revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+    return { ok: true }
+  }
+
+  const { error } = await supabase.from('hr_law_sources').insert({
+    topic,
+    search_query: searchQuery,
+    enabled: true,
+    origin: 'manual',
+  })
+  if (error) {
+    console.error('[saas-law-knowledge] createHrLawSource', error)
+    return { ok: false, error: '追加に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** 監視トピックを論理削除（無効化） */
+export async function disableHrLawSource(
+  sourceId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!sourceId) return { ok: false, error: 'IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from('hr_law_sources')
+    .update({
+      enabled: false,
+      disabled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sourceId)
+
+  if (error) {
+    console.error('[saas-law-knowledge] disableHrLawSource', error)
+    return { ok: false, error: '無効化に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** 監視トピックを再有効化 */
+export async function enableHrLawSource(
+  sourceId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!sourceId) return { ok: false, error: 'IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from('hr_law_sources')
+    .update({
+      enabled: true,
+      disabled_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sourceId)
+
+  if (error) {
+    console.error('[saas-law-knowledge] enableHrLawSource', error)
+    return { ok: false, error: '再有効化に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** トピック候補を承認して hr_law_sources へ反映 */
+export async function approveHrLawTopicProposal(
+  proposalId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!proposalId) return { ok: false, error: 'IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { data: proposal, error: pErr } = await supabase
+    .from('hr_law_topic_proposals')
+    .select('id, topic, topic_key, search_query, status')
+    .eq('id', proposalId)
+    .single()
+
+  if (pErr || !proposal) return { ok: false, error: '候補が見つかりません' }
+  if (proposal.status !== 'pending') return { ok: false, error: '既に処理済みです' }
+
+  const { data: sources } = await supabase
+    .from('hr_law_sources')
+    .select('id, topic, enabled')
+    .limit(300)
+
+  const match = (sources ?? []).find(
+    (s: { topic: string }) => normalizeTopicKey(s.topic) === proposal.topic_key
+  )
+
+  let sourceId: string | null = null
+  if (match) {
+    if (match.enabled) return { ok: false, error: '同名の有効トピックが既にあります' }
+    const { error } = await supabase
+      .from('hr_law_sources')
+      .update({
+        enabled: true,
+        disabled_at: null,
+        search_query: proposal.search_query,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', match.id)
+    if (error) return { ok: false, error: '再有効化に失敗しました' }
+    sourceId = match.id
+  } else {
+    const { data: inserted, error } = await supabase
+      .from('hr_law_sources')
+      .insert({
+        topic: proposal.topic,
+        search_query: proposal.search_query,
+        enabled: true,
+        origin: 'proposal',
+      })
+      .select('id')
+      .single()
+    if (error || !inserted) {
+      console.error('[saas-law-knowledge] approve insert', error)
+      return { ok: false, error: 'トピック作成に失敗しました' }
+    }
+    sourceId = inserted.id
+  }
+
+  const { error: uErr } = await supabase
+    .from('hr_law_topic_proposals')
+    .update({
+      status: 'approved',
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      created_source_id: sourceId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', proposalId)
+
+  if (uErr) {
+    console.error('[saas-law-knowledge] approve proposal', uErr)
+    return { ok: false, error: '候補の更新に失敗しました' }
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
+/** トピック候補を却下 */
+export async function rejectHrLawTopicProposal(
+  proposalId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!proposalId) return { ok: false, error: 'IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from('hr_law_topic_proposals')
+    .update({
+      status: 'rejected',
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', proposalId)
+    .eq('status', 'pending')
+
+  if (error) {
+    console.error('[saas-law-knowledge] rejectHrLawTopicProposal', error)
+    return { ok: false, error: '却下に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
 }

@@ -10,6 +10,62 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 const MODEL = 'google/gemini-2.5-flash'
 const MIN_QUESTIONS = 5
 
+
+function normalizeTopicKey(topic: string): string {
+  return topic
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s\u3000_\-・/／|｜,，.。:：;；()（）\[\]【】「」『』"'`]+/g, '')
+    .trim()
+}
+
+async function upsertChatThemeProposals(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  themes: { topic: string; count: number }[]
+): Promise<number> {
+  let created = 0
+  const { data: enabledSources } = await supabase
+    .from('hr_law_sources')
+    .select('topic')
+    .eq('enabled', true)
+  const enabledKeys = new Set(
+    (enabledSources ?? []).map((s: { topic: string }) => normalizeTopicKey(s.topic))
+  )
+
+  for (const t of themes) {
+    const topic_key = normalizeTopicKey(t.topic)
+    if (!topic_key || enabledKeys.has(topic_key)) continue
+
+    const { data: existing } = await supabase
+      .from('hr_law_topic_proposals')
+      .select('id')
+      .eq('topic_key', topic_key)
+      .eq('status', 'pending')
+      .maybeSingle()
+
+    const row = {
+      topic: t.topic.slice(0, 80),
+      topic_key,
+      search_query: `${t.topic} 改正 通達 ガイドライン`,
+      source: 'chat',
+      evidence: { count: t.count },
+      score: t.count,
+      status: 'pending',
+      updated_at: new Date().toISOString(),
+    }
+
+    if (existing) {
+      const { error } = await supabase.from('hr_law_topic_proposals').update(row).eq('id', existing.id)
+      if (!error) created++
+    } else {
+      const { error } = await supabase.from('hr_law_topic_proposals').insert(row)
+      if (!error) created++
+    }
+  }
+  return created
+}
+
 serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -116,9 +172,15 @@ serve(async req => {
     }
     topicSuggestions.sort((a, b) => b.count - a.count)
 
-    // SaaS 向けに提案をログ出力（自動上書きしない）
+    // sources は自動上書きしない。proposals へ候補として書き戻す
+    let proposalsCreated = 0
     if (topicSuggestions.length > 0) {
       console.log('[template-mining] topic suggestions', JSON.stringify(topicSuggestions.slice(0, 20)))
+      try {
+        proposalsCreated = await upsertChatThemeProposals(supabase, topicSuggestions.slice(0, 20))
+      } catch (e) {
+        errors.push(`proposals: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }
 
     return new Response(
@@ -126,6 +188,7 @@ serve(async req => {
         success: true,
         tenantsProcessed,
         templatesCreated,
+        proposalsCreated,
         topicSuggestions: topicSuggestions.slice(0, 20),
         errors,
       }),

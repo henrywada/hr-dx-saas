@@ -1,7 +1,7 @@
 # 実装計画: AI人事アシスタント進化版（人事アップデート + OpenRouter）
 
 作成日: 2026-07-09  
-最終更新: 2026-07-10
+最終更新: 2026-07-10（閉ループ追記）
 
 ---
 
@@ -30,15 +30,24 @@
 
 ## 4. アーキテクチャ
 
-- 週次 `hr-law-refresh`（月曜 6:00 JST）: OpenRouter 探索 → `hr_law_crawl_queue` → 要約・埋め込み → `hr_law_documents` / `hr_law_chunks`
-- 週次 `hr-assistant-template-mining`（月曜 7:00 JST）: 質問履歴 → mined テンプレ
+- 週次 `hr-law-refresh`（月曜 6:00 JST）:
+  1. 既存文書のハイブリッド鮮度チェック（ETag/Last-Modified → hash → 変化時のみ再要約）
+  2. 有効トピック探索 → `hr_law_crawl_queue` → 要約・埋め込み
+  3. 厚労省新着から `hr_law_topic_proposals` へ候補投入（自動で sources は増やさない）
+- 週次 `hr-assistant-template-mining`（月曜 7:00 JST）: 質問履歴 → mined テンプレ + themes → `hr_law_topic_proposals`
+- 監視トピック閉ループ: 候補 → SaaS管理者承認/手動CRUD（論理削除）→ 有効 `hr_law_sources`
+  - 詳細仕様: `docs/superpowers/specs/2026-07-10-hr-law-topic-closed-loop-design.md`
 - チャット: dual RAG + 低類似度時オンデマンド収集（最大 2 URL）
 - UI: `/adm/hr-assistant` に「人事アップデート」「AI人事アシスタント」タブ
+- SaaS UI: `/saas_adm/hr-law-knowledge` に監視トピック / トピック候補 / 収集済み文書 / ログ
 
 ## 5. データモデル拡張
 
 - `hr_law_documents.theme` / `expires_at` / `status=expired`
+- `hr_law_documents.http_etag` / `http_last_modified` / `content_checked_at`（鮮度）
 - `hr_law_crawl_queue`（pending を次回へ持ち越し）
+- `hr_law_topic_proposals`（監視トピック候補・承認ゲート）
+- `hr_law_sources.origin` / `disabled_at` / `updated_at`（手動・提案・論理削除）
 - `expire_hr_law_documents()` RPC
 
 ## 6. 実装フェーズ（完了状況）
@@ -50,6 +59,7 @@
 | P2 | 2タブ UI・ニュース/テーマ・情報元モーダル | 実装済 |
 | P3 | miss 時収集・template mining・mined サジェスチョン | 実装済 |
 | P4 | 再埋め込みスクリプト・PRD 更新・SaaS 表記 | 実装済 |
+| P5 | 監視トピック閉ループ（候補承認・CRUD）＋文書鮮度ハイブリッド | 実装済 |
 
 ## 7. 主要ファイル
 

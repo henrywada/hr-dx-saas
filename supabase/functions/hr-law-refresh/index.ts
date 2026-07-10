@@ -9,6 +9,8 @@ import {
   formatVectorForPg,
   isAllowedUrl,
 } from './openrouter.ts'
+import { runFreshnessChecks } from './freshness.ts'
+import { discoverMhlwTopicProposals } from './proposals.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,7 +49,7 @@ async function processQueueItem(
   apiKey: string,
   item: { id: string; source_id: string | null; topic: string; url: string; title: string | null },
   errors: string[]
-): Promise<'created' | 'skipped'> {
+): Promise<{ status: 'created' | 'skipped'; detailChars: number }> {
   await supabase
     .from('hr_law_crawl_queue')
     .update({ status: 'processing' })
@@ -63,7 +65,7 @@ async function processQueueItem(
           error_message: 'domain not allowed',
         })
         .eq('id', item.id)
-      return 'skipped'
+      return { status: 'skipped', detailChars: 0 }
     }
 
     let bodyText = ''
@@ -92,7 +94,7 @@ async function processQueueItem(
           error_message: 'body too short',
         })
         .eq('id', item.id)
-      return 'skipped'
+      return { status: 'skipped', detailChars: 0 }
     }
 
     const contentHash = await sha256Hex(bodyText)
@@ -107,7 +109,7 @@ async function processQueueItem(
         .from('hr_law_crawl_queue')
         .update({ status: 'done', processed_at: new Date().toISOString() })
         .eq('id', item.id)
-      return 'skipped'
+      return { status: 'skipped', detailChars: 0 }
     }
 
     const summary = await summarizeLawArticle(
@@ -125,7 +127,7 @@ async function processQueueItem(
           error_message: 'unrelated or unsummarizable',
         })
         .eq('id', item.id)
-      return 'skipped'
+      return { status: 'skipped', detailChars: 0 }
     }
 
     const today = new Date().toISOString().slice(0, 10)
@@ -142,6 +144,7 @@ async function processQueueItem(
         source_url: item.url,
         content_hash: contentHash,
         summary: summary.summary,
+        detail: summary.detail,
         published_at: summary.publishedAt,
         expires_at: summary.expiresAt,
         theme: summary.theme,
@@ -160,10 +163,10 @@ async function processQueueItem(
           error_message: docError?.message ?? 'insert failed',
         })
         .eq('id', item.id)
-      return 'skipped'
+      return { status: 'skipped', detailChars: 0 }
     }
 
-    const chunks = chunkPlainText(summary.summary)
+    const chunks = chunkPlainText(summary.detail)
     if (chunks.length > 0) {
       try {
         const embeddings = await embedChunksBatch(apiKey, chunks)
@@ -190,7 +193,7 @@ async function processQueueItem(
               error_message: chunkError.message,
             })
             .eq('id', item.id)
-          return 'skipped'
+          return { status: 'skipped', detailChars: 0 }
         }
       } catch (e) {
         errors.push(`${item.topic}: チャンク登録失敗 ${e instanceof Error ? e.message : String(e)}`)
@@ -203,7 +206,7 @@ async function processQueueItem(
             error_message: e instanceof Error ? e.message : String(e),
           })
           .eq('id', item.id)
-        return 'skipped'
+        return { status: 'skipped', detailChars: 0 }
       }
     }
 
@@ -211,7 +214,7 @@ async function processQueueItem(
       .from('hr_law_crawl_queue')
       .update({ status: 'done', processed_at: new Date().toISOString() })
       .eq('id', item.id)
-    return 'created'
+    return { status: 'created', detailChars: summary.detail.length }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     errors.push(`${item.topic}: ${msg}`)
@@ -223,7 +226,7 @@ async function processQueueItem(
         error_message: msg,
       })
       .eq('id', item.id)
-    return 'skipped'
+    return { status: 'skipped', detailChars: 0 }
   }
 }
 
@@ -231,6 +234,11 @@ serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const startedAt = new Date().toISOString()
+  let logId: string | null = null
+  // deno-lint-ignore no-explicit-any
+  let supabase: any = null
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
@@ -241,13 +249,30 @@ serve(async req => {
       throw new Error('OPENROUTER_API_KEY が未設定です')
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    let body: { sourceId?: string } = {}
+    let body: { sourceId?: string; trigger?: string } = {}
     try {
       body = await req.json()
     } catch {
       // cron からの空リクエストを許容
+    }
+
+    const triggerType = body.trigger === 'manual' || body.sourceId ? 'manual' : 'cron'
+
+    // 実施ログ開始行
+    {
+      const { data: logRow } = await supabase
+        .from('hr_law_refresh_logs')
+        .insert({
+          started_at: startedAt,
+          trigger_type: triggerType,
+          source_id: body.sourceId ?? null,
+          success: true,
+        })
+        .select('id')
+        .single()
+      logId = logRow?.id ?? null
     }
 
     // 失効処理
@@ -256,6 +281,10 @@ serve(async req => {
     } catch (e) {
       console.error('[hr-law-refresh] expire_hr_law_documents', e)
     }
+
+    let freshnessChecked = 0
+    let documentsUpdated = 0
+    let proposalsCreated = 0
 
     let sourcesQuery = supabase
       .from('hr_law_sources')
@@ -271,10 +300,25 @@ serve(async req => {
     const { data: sources, error: sourcesError } = await sourcesQuery
     if (sourcesError) throw sourcesError
 
+    const sourceTopic =
+      body.sourceId && sources?.length === 1 ? (sources[0].topic as string) : null
+
     let documentsCreated = 0
     let documentsSkipped = 0
     let queued = 0
     const errors: string[] = []
+
+    // 0) 週次のみ: 既存文書の鮮度チェック
+    if (!body.sourceId) {
+      try {
+        const fr = await runFreshnessChecks(supabase, openRouterKey)
+        freshnessChecked = fr.checked
+        documentsUpdated = fr.updated
+        errors.push(...fr.errors)
+      } catch (e) {
+        errors.push(`鮮度チェック失敗: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
 
     // 1) トピック探索 → キューへ投入
     for (const source of sources ?? []) {
@@ -286,6 +330,7 @@ serve(async req => {
           RESULTS_PER_SOURCE
         )
         for (const hit of hits) {
+          // 既存URLでも pending に戻す（文書削除後の再収集・手動再実行のため）
           const { error: qErr } = await supabase.from('hr_law_crawl_queue').upsert(
             {
               source_id: source.id,
@@ -294,10 +339,16 @@ serve(async req => {
               title: hit.title || null,
               priority: 100,
               status: 'pending',
+              processed_at: null,
+              error_message: null,
             },
-            { onConflict: 'url', ignoreDuplicates: true }
+            { onConflict: 'url' }
           )
           if (!qErr) queued++
+          else errors.push(`${source.topic}: キュー登録失敗 ${qErr.message}`)
+        }
+        if (hits.length === 0) {
+          errors.push(`${source.topic}: 検索ヒット0件（OpenRouter web_search 結果なし）`)
         }
         await supabase
           .from('hr_law_sources')
@@ -319,19 +370,71 @@ serve(async req => {
 
     if (queueError) throw queueError
 
+    let detailChars = 0
     for (const item of queueItems ?? []) {
       const result = await processQueueItem(supabase, openRouterKey, item, errors)
-      if (result === 'created') documentsCreated++
-      else documentsSkipped++
+      if (result.status === 'created') {
+        documentsCreated++
+        detailChars += result.detailChars
+      } else {
+        documentsSkipped++
+      }
+    }
+
+    // 3) 週次のみ: 厚労省新着からトピック候補
+    if (!body.sourceId) {
+      try {
+        const pr = await discoverMhlwTopicProposals(supabase, openRouterKey)
+        proposalsCreated = pr.created
+        errors.push(...pr.errors)
+      } catch (e) {
+        errors.push(`新着提案失敗: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
+
+    const sourcesProcessed = (sources ?? []).length
+    // 例外なしでも「何も処理していない」場合は詳細に理由を残す
+    if (
+      documentsCreated === 0 &&
+      documentsSkipped === 0 &&
+      queued === 0 &&
+      errors.length === 0
+    ) {
+      errors.push(
+        '処理対象なし: 新規キュー追加0・未処理キュー0。検索結果が空か、再投入に失敗しています。'
+      )
+    }
+    if (logId) {
+      await supabase
+        .from('hr_law_refresh_logs')
+        .update({
+          finished_at: new Date().toISOString(),
+          source_topic: sourceTopic,
+          sources_processed: sourcesProcessed,
+          queued,
+          documents_created: documentsCreated,
+          documents_skipped: documentsSkipped,
+          detail_chars: detailChars,
+          freshness_checked: freshnessChecked,
+          documents_updated: documentsUpdated,
+          proposals_created: proposalsCreated,
+          success: true,
+          errors,
+        })
+        .eq('id', logId)
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        sourcesProcessed: (sources ?? []).length,
+        sourcesProcessed,
         queued,
         documentsCreated,
         documentsSkipped,
+        detailChars,
+        freshnessChecked,
+        documentsUpdated,
+        proposalsCreated,
         queueRemainingHint: 'pending rows remain for next run if any',
         errors,
       }),
@@ -339,7 +442,34 @@ serve(async req => {
     )
   } catch (err) {
     console.error(err)
-    return new Response(JSON.stringify({ error: String(err) }), {
+    const msg = String(err)
+    if (supabase && logId) {
+      try {
+        await supabase
+          .from('hr_law_refresh_logs')
+          .update({
+            finished_at: new Date().toISOString(),
+            success: false,
+            error_message: msg,
+          })
+          .eq('id', logId)
+      } catch (logErr) {
+        console.error('[hr-law-refresh] log update failed', logErr)
+      }
+    } else if (supabase) {
+      try {
+        await supabase.from('hr_law_refresh_logs').insert({
+          started_at: startedAt,
+          finished_at: new Date().toISOString(),
+          trigger_type: 'cron',
+          success: false,
+          error_message: msg,
+        })
+      } catch (logErr) {
+        console.error('[hr-law-refresh] log insert failed', logErr)
+      }
+    }
+    return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

@@ -66,7 +66,10 @@ export type QuestionTemplate = {
 export type HrUpdateDocument = {
   id: string
   title: string
+  /** 一覧2行用の短い要約 */
   summary: string
+  /** モーダル・AI用の詳細説明（情報元を開かなくても足りる量） */
+  detail: string | null
   source_url: string
   theme: string | null
   published_at: string | null

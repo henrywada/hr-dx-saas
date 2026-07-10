@@ -1,20 +1,28 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
-import type { HrLawSource, HrLawDocument } from './types'
+import type {
+  HrLawSource,
+  HrLawDocument,
+  HrLawRefreshLog,
+  HrLawTopicProposal,
+} from './types'
 
 async function isSaasAdmin(): Promise<boolean> {
   const user = await getServerUser()
   return !!user && (user.role === 'supaUser' || user.appRole === 'developer')
 }
 
-/** 監視トピック一覧（SaaS管理者専用） */
+/** 監視トピック一覧（無効含む。有効を先に） */
 export async function listHrLawSources(): Promise<HrLawSource[]> {
   if (!(await isSaasAdmin())) return []
 
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('hr_law_sources')
-    .select('id, topic, search_query, enabled, last_run_at, created_at')
+    .select(
+      'id, topic, search_query, enabled, last_run_at, created_at, updated_at, disabled_at, origin'
+    )
+    .order('enabled', { ascending: false })
     .order('topic', { ascending: true })
 
   if (error) {
@@ -24,7 +32,32 @@ export async function listHrLawSources(): Promise<HrLawSource[]> {
   return (data ?? []) as HrLawSource[]
 }
 
-/** 収集済み文書一覧（新しい順、トピック名を結合。SaaS管理者専用） */
+/** トピック候補（pending 優先） */
+export async function listHrLawTopicProposals(): Promise<HrLawTopicProposal[]> {
+  if (!(await isSaasAdmin())) return []
+
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('hr_law_topic_proposals')
+    .select(
+      'id, topic, topic_key, search_query, source, evidence, score, status, reviewed_by, reviewed_at, created_source_id, created_at, updated_at'
+    )
+    .in('status', ['pending', 'approved', 'rejected'])
+    .order('status', { ascending: true })
+    .order('score', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('[saas-law-knowledge] listHrLawTopicProposals', error)
+    return []
+  }
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    evidence: row.evidence && typeof row.evidence === 'object' ? row.evidence : {},
+  })) as HrLawTopicProposal[]
+}
+
+/** 収集済み文書一覧 */
 export async function listHrLawDocuments(): Promise<HrLawDocument[]> {
   if (!(await isSaasAdmin())) return []
 
@@ -70,4 +103,28 @@ export async function countPendingCrawlQueue(): Promise<number> {
     return 0
   }
   return count ?? 0
+}
+
+/** 収集実施ログ（日時降順） */
+export async function listHrLawRefreshLogs(): Promise<HrLawRefreshLog[]> {
+  if (!(await isSaasAdmin())) return []
+
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('hr_law_refresh_logs')
+    .select(
+      'id, started_at, finished_at, trigger_type, source_id, source_topic, sources_processed, queued, documents_created, documents_skipped, detail_chars, freshness_checked, documents_updated, proposals_created, success, error_message, errors, created_at'
+    )
+    .order('started_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('[saas-law-knowledge] listHrLawRefreshLogs', error)
+    return []
+  }
+
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    errors: Array.isArray(row.errors) ? row.errors : [],
+  })) as HrLawRefreshLog[]
 }

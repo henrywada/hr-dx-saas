@@ -49,7 +49,7 @@ function DocumentList({
               onClick={() => onOpenSource(doc)}
               className="shrink-0 text-[#FD7601] hover:underline font-medium"
             >
-              情報元を見る
+              詳細をみる
             </button>
           </div>
         </li>

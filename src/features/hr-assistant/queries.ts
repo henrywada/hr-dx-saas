@@ -77,7 +77,7 @@ export async function listHrUpdateDocuments(): Promise<HrUpdateDocument[]> {
   const { data, error } = await supabase
     .from('hr_law_documents')
     .select(
-      'id, title, summary, source_url, theme, published_at, fetched_at, expires_at, status'
+      'id, title, summary, detail, source_url, theme, published_at, fetched_at, expires_at, status'
     )
     .in('status', ['published', 'expired'])
     .order('fetched_at', { ascending: false })

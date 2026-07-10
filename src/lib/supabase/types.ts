@@ -3756,10 +3756,14 @@ export type Database = {
       }
       hr_law_documents: {
         Row: {
+          content_checked_at: string | null
           content_hash: string
           created_at: string
+          detail: string | null
           expires_at: string | null
           fetched_at: string
+          http_etag: string | null
+          http_last_modified: string | null
           id: string
           published_at: string | null
           source_id: string | null
@@ -3770,10 +3774,14 @@ export type Database = {
           title: string
         }
         Insert: {
+          content_checked_at?: string | null
           content_hash: string
           created_at?: string
+          detail?: string | null
           expires_at?: string | null
           fetched_at?: string
+          http_etag?: string | null
+          http_last_modified?: string | null
           id?: string
           published_at?: string | null
           source_id?: string | null
@@ -3784,10 +3792,14 @@ export type Database = {
           title: string
         }
         Update: {
+          content_checked_at?: string | null
           content_hash?: string
           created_at?: string
+          detail?: string | null
           expires_at?: string | null
           fetched_at?: string
+          http_etag?: string | null
+          http_last_modified?: string | null
           id?: string
           published_at?: string | null
           source_id?: string | null
@@ -3807,32 +3819,168 @@ export type Database = {
           },
         ]
       }
-      hr_law_sources: {
+      hr_law_refresh_logs: {
         Row: {
           created_at: string
-          enabled: boolean
+          detail_chars: number
+          documents_created: number
+          documents_skipped: number
+          documents_updated: number
+          error_message: string | null
+          errors: Json
+          finished_at: string | null
+          freshness_checked: number
           id: string
-          last_run_at: string | null
-          search_query: string
-          topic: string
+          proposals_created: number
+          queued: number
+          source_id: string | null
+          source_topic: string | null
+          sources_processed: number
+          started_at: string
+          success: boolean
+          trigger_type: string
         }
         Insert: {
           created_at?: string
-          enabled?: boolean
+          detail_chars?: number
+          documents_created?: number
+          documents_skipped?: number
+          documents_updated?: number
+          error_message?: string | null
+          errors?: Json
+          finished_at?: string | null
+          freshness_checked?: number
           id?: string
-          last_run_at?: string | null
-          search_query: string
-          topic: string
+          proposals_created?: number
+          queued?: number
+          source_id?: string | null
+          source_topic?: string | null
+          sources_processed?: number
+          started_at?: string
+          success?: boolean
+          trigger_type?: string
         }
         Update: {
           created_at?: string
+          detail_chars?: number
+          documents_created?: number
+          documents_skipped?: number
+          documents_updated?: number
+          error_message?: string | null
+          errors?: Json
+          finished_at?: string | null
+          freshness_checked?: number
+          id?: string
+          proposals_created?: number
+          queued?: number
+          source_id?: string | null
+          source_topic?: string | null
+          sources_processed?: number
+          started_at?: string
+          success?: boolean
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_law_refresh_logs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hr_law_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_law_sources: {
+        Row: {
+          created_at: string
+          disabled_at: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          origin: string
+          search_query: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disabled_at?: string | null
           enabled?: boolean
           id?: string
           last_run_at?: string | null
+          origin?: string
+          search_query: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disabled_at?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          origin?: string
           search_query?: string
           topic?: string
+          updated_at?: string
         }
         Relationships: []
+      }
+      hr_law_topic_proposals: {
+        Row: {
+          created_at: string
+          created_source_id: string | null
+          evidence: Json
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          search_query: string
+          source: string
+          status: string
+          topic: string
+          topic_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_source_id?: string | null
+          evidence?: Json
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          search_query: string
+          source: string
+          status?: string
+          topic: string
+          topic_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_source_id?: string | null
+          evidence?: Json
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          search_query?: string
+          source?: string
+          status?: string
+          topic?: string
+          topic_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_law_topic_proposals_created_source_id_fkey"
+            columns: ["created_source_id"]
+            isOneToOne: false
+            referencedRelation: "hr_law_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       internal_event_attendees: {
         Row: {
@@ -10190,6 +10338,7 @@ export type Database = {
         Args: { p_employee_division_id: string; p_event_division_id: string }
         Returns: boolean
       }
+      expire_hr_law_documents: { Args: never; Returns: number }
       fn_supervisor_qr_permission_apply: {
         Args: {
           p_actor_user_id: string
@@ -10345,7 +10494,6 @@ export type Database = {
           year_month: string
         }[]
       }
-      expire_hr_law_documents: { Args: never; Returns: number }
       match_hr_law_chunks: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {

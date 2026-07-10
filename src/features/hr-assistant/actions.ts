@@ -4,16 +4,24 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { embedQueryText, formatVectorForPg } from '../inquiry-chat/embedding'
-import { RAG_TOP_K, CHAT_MODEL } from '../inquiry-chat/constants'
+import { RAG_TOP_K } from '../inquiry-chat/constants'
 import { buildSystemPrompt } from './prompts'
 import type { AssistantMode, SendMessageResult, Citation } from './types'
-import { getGeminiClient } from '@/lib/ai/gemini'
+import {
+  openRouterChat,
+  openRouterEmbedQuery,
+  formatOpenRouterVectorForPg,
+  OPENROUTER_CHAT_MODEL,
+} from '@/lib/ai/openrouter'
 import { formatLawContextBlocks, formatLawCitations } from './law-context'
 import type { LawChunkRow } from './law-context'
+import { fetchAndStoreLawOnMiss } from './ondemand-law'
 
 /** 最大コンテキスト履歴ターン数（古いものは除外してトークンを節約） */
 const MAX_HISTORY_TURNS = 6
+
+/** 法令 RAG の類似度がこの値未満ならオンデマンド収集を検討 */
+const LAW_MISS_SIMILARITY_THRESHOLD = 0.55
 
 export async function sendHrAssistantMessage(input: {
   sessionId?: string | null
@@ -23,7 +31,7 @@ export async function sendHrAssistantMessage(input: {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
   if (!input.message?.trim()) return { ok: false, error: 'メッセージを入力してください' }
-  if (!process.env.GEMINI_API_KEY) return { ok: false, error: 'GEMINI_API_KEY が未設定です' }
+  if (!process.env.OPENROUTER_API_KEY) return { ok: false, error: 'OPENROUTER_API_KEY が未設定です' }
 
   const message = input.message.trim()
   const mode = input.mode
@@ -70,10 +78,11 @@ export async function sendHrAssistantMessage(input: {
   let citedIds: string[] = []
   let contextBlocks: string[] = []
   let hasLawContext = false
+  let bestLawSimilarity = 0
 
   try {
-    const queryEmbedding = await embedQueryText(message)
-    const embeddingVector = formatVectorForPg(queryEmbedding)
+    const queryEmbedding = await openRouterEmbedQuery(message)
+    const embeddingVector = formatOpenRouterVectorForPg(queryEmbedding)
 
     const [tenantResult, lawResult] = await Promise.all([
       supabase.rpc('match_tenant_rag_chunks', {
@@ -114,6 +123,7 @@ export async function sendHrAssistantMessage(input: {
     if (!lawResult.error && lawResult.data) {
       const lawRows = (lawResult.data ?? []) as LawChunkRow[]
       if (lawRows.length > 0) {
+        bestLawSimilarity = Math.max(...lawRows.map(r => r.similarity ?? 0))
         hasLawContext = true
         contextBlocks = [...contextBlocks, ...formatLawContextBlocks(lawRows)]
         citations = [...citations, ...formatLawCitations(lawRows)]
@@ -121,6 +131,21 @@ export async function sendHrAssistantMessage(input: {
       }
     } else if (lawResult.error) {
       console.error('[hr-assistant] rag law', lawResult.error)
+    }
+
+    // 法令ヒットが弱い場合はオンデマンドで厚労省系を探索し KB に追加
+    if (bestLawSimilarity < LAW_MISS_SIMILARITY_THRESHOLD) {
+      try {
+        const onDemand = await fetchAndStoreLawOnMiss(message)
+        if (onDemand) {
+          hasLawContext = true
+          contextBlocks = [...contextBlocks, ...onDemand.contextBlocks]
+          citations = [...citations, ...onDemand.citations]
+          citedIds = [...citedIds, ...onDemand.citedIds]
+        }
+      } catch (e) {
+        console.error('[hr-assistant] ondemand law', e)
+      }
     }
   } catch (e) {
     console.error('[hr-assistant] embedding/rag', e)
@@ -138,24 +163,20 @@ export async function sendHrAssistantMessage(input: {
 
   const recentHistory = ((historyRows ?? []) as { role: string; content: string }[]).reverse()
 
-  // Gemini へ送信するメッセージ配列を構築（system は systemInstruction で渡す）
   const systemPrompt = buildSystemPrompt(mode, contextBlocks.length > 0, hasLawContext)
 
-  // Gemini の contents 形式（assistant ロールは 'model'）
-  const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = []
+  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: systemPrompt },
+  ]
 
   if (contextBlocks.length > 0) {
-    contents.push({
+    messages.push({
       role: 'user',
-      parts: [
-        {
-          text: `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n以上を踏まえて会話を続けてください。`,
-        },
-      ],
+      content: `参照資料:\n${contextBlocks.join('\n\n---\n\n')}\n\n以上を踏まえて会話を続けてください。`,
     })
-    contents.push({
-      role: 'model',
-      parts: [{ text: '参照資料を確認しました。ご質問をどうぞ。' }],
+    messages.push({
+      role: 'assistant',
+      content: '参照資料を確認しました。ご質問をどうぞ。',
     })
   }
 
@@ -163,28 +184,24 @@ export async function sendHrAssistantMessage(input: {
   const history = recentHistory.slice(0, -1)
   for (const h of history) {
     if (h.role === 'user' || h.role === 'assistant') {
-      contents.push({
-        role: h.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: h.content }],
+      messages.push({
+        role: h.role === 'assistant' ? 'assistant' : 'user',
+        content: h.content,
       })
     }
   }
 
-  contents.push({ role: 'user', parts: [{ text: message }] })
+  messages.push({ role: 'user', content: message })
 
   let answer: string
   try {
-    const ai = getGeminiClient()
-    const completion = await ai.models.generateContent({
-      model: CHAT_MODEL,
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.3,
-        maxOutputTokens: 2000,
-      },
+    const completion = await openRouterChat({
+      model: OPENROUTER_CHAT_MODEL,
+      messages,
+      temperature: 0.3,
+      maxTokens: 2000,
     })
-    answer = completion.text?.trim() || ''
+    answer = completion.content
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'AI 応答に失敗しました'
     return { ok: false, error: msg }

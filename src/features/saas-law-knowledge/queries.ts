@@ -32,7 +32,7 @@ export async function listHrLawDocuments(): Promise<HrLawDocument[]> {
   const { data, error } = await supabase
     .from('hr_law_documents')
     .select(
-      'id, source_id, title, source_url, summary, published_at, fetched_at, status, hr_law_sources(topic)'
+      'id, source_id, title, source_url, summary, theme, published_at, fetched_at, expires_at, status, hr_law_sources(topic)'
     )
     .order('fetched_at', { ascending: false })
     .limit(200)
@@ -48,9 +48,26 @@ export async function listHrLawDocuments(): Promise<HrLawDocument[]> {
     title: row.title,
     source_url: row.source_url,
     summary: row.summary,
+    theme: row.theme ?? null,
     published_at: row.published_at,
     fetched_at: row.fetched_at,
+    expires_at: row.expires_at ?? null,
     status: row.status,
     topic: row.hr_law_sources?.topic ?? null,
   })) as HrLawDocument[]
+}
+
+/** クロールキュー残件数 */
+export async function countPendingCrawlQueue(): Promise<number> {
+  if (!(await isSaasAdmin())) return 0
+  const supabase = createAdminClient()
+  const { count, error } = await supabase
+    .from('hr_law_crawl_queue')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
+  if (error) {
+    console.error('[saas-law-knowledge] countPendingCrawlQueue', error)
+    return 0
+  }
+  return count ?? 0
 }

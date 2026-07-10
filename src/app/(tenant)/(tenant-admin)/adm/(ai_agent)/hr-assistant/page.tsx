@@ -5,8 +5,11 @@ import {
   listHrAssistantSessions,
   listHrAssistantMessages,
   listQuestionTemplates,
+  listHrUpdateDocuments,
+  listRecentHrUpdates,
 } from '@/features/hr-assistant/queries'
 import { HrAssistantClient } from '@/features/hr-assistant/components'
+import type { HrAssistantMainTab } from '@/features/hr-assistant/types'
 
 export default async function HrAssistantPage({
   searchParams,
@@ -20,11 +23,16 @@ export default async function HrAssistantPage({
 
   const params = await searchParams
   const sessionId = typeof params.session === 'string' ? params.session : null
+  const tabParam = typeof params.tab === 'string' ? params.tab : null
+  const initialTab: HrAssistantMainTab =
+    tabParam === 'assistant' || sessionId ? 'assistant' : 'updates'
 
-  const [sessions, messages, templates] = await Promise.all([
+  const [sessions, messages, templates, updateDocuments, recentUpdates] = await Promise.all([
     listHrAssistantSessions(),
     sessionId ? listHrAssistantMessages(sessionId) : Promise.resolve([]),
     listQuestionTemplates(),
+    listHrUpdateDocuments(),
+    listRecentHrUpdates(),
   ])
 
   return (
@@ -33,6 +41,9 @@ export default async function HrAssistantPage({
       initialSessionId={sessionId}
       initialMessages={messages}
       templates={templates}
+      updateDocuments={updateDocuments}
+      recentUpdates={recentUpdates}
+      initialTab={initialTab}
     />
   )
 }

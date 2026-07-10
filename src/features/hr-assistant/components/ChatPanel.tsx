@@ -101,7 +101,6 @@ export function ChatPanel({
     await sendMessage(input)
   }
 
-  /** テンプレートチップ選択: 利用回数を記録（fire-and-forget）して即送信 */
   function handleTemplateSelect(template: QuestionTemplate) {
     void recordTemplateUsage(template.id)
     void sendMessage(template.question_text)
@@ -122,11 +121,13 @@ export function ChatPanel({
             <div className="w-full max-w-xl space-y-5 text-center">
               <div className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-[#f6f8fa] flex items-center justify-center">
-                  <span className="text-2xl">🤖</span>
+                  <span className="text-2xl" aria-hidden>
+                    AI
+                  </span>
                 </div>
-                <h3 className="text-base font-semibold text-[#24292f]">AI 人事相談アシスタント</h3>
+                <h3 className="text-base font-semibold text-[#24292f]">AI人事アシスタント</h3>
                 <p className="text-sm text-[#57606a]">
-                  上のモードを選択して質問を入力してください。社内規程・労務計算・評価コメントなど、人事業務をサポートします。
+                  最新の人事・労務情報を踏まえて質問に回答します。人事アップデートの内容も参照できます。
                 </p>
               </div>
               <QuestionTemplateChips
@@ -138,7 +139,7 @@ export function ChatPanel({
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 text-left">
                 <p className="font-semibold mb-1">ご利用にあたって</p>
                 <p>
-                  回答は登録されたナレッジ文書に基づきます。最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。
+                  回答は登録されたナレッジと公的情報に基づきます。最終的な判断は必ず人事責任者・社会保険労務士にご確認ください。
                 </p>
               </div>
             </div>
@@ -169,6 +170,16 @@ export function ChatPanel({
 
       <div className="border-t border-[#e2e6ec] p-4 bg-white">
         {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+        {!isEmpty && (
+          <div className="mb-2">
+            <QuestionTemplateChips
+              templates={templates}
+              mode={mode}
+              disabled={loading}
+              onSelect={handleTemplateSelect}
+            />
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="flex gap-2 items-end">
           <textarea
             value={input}
@@ -189,8 +200,9 @@ export function ChatPanel({
             variant="primary"
             disabled={loading || !input.trim()}
             className="shrink-0 h-[72px] px-5"
+            aria-label="実行"
           >
-            送信
+            ▶
           </Button>
         </form>
       </div>

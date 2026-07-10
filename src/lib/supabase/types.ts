@@ -3707,10 +3707,58 @@ export type Database = {
           },
         ]
       }
+      hr_law_crawl_queue: {
+        Row: {
+          discovered_at: string
+          error_message: string | null
+          id: string
+          priority: number
+          processed_at: string | null
+          source_id: string | null
+          status: string
+          title: string | null
+          topic: string
+          url: string
+        }
+        Insert: {
+          discovered_at?: string
+          error_message?: string | null
+          id?: string
+          priority?: number
+          processed_at?: string | null
+          source_id?: string | null
+          status?: string
+          title?: string | null
+          topic: string
+          url: string
+        }
+        Update: {
+          discovered_at?: string
+          error_message?: string | null
+          id?: string
+          priority?: number
+          processed_at?: string | null
+          source_id?: string | null
+          status?: string
+          title?: string | null
+          topic?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_law_crawl_queue_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hr_law_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_law_documents: {
         Row: {
           content_hash: string
           created_at: string
+          expires_at: string | null
           fetched_at: string
           id: string
           published_at: string | null
@@ -3718,11 +3766,13 @@ export type Database = {
           source_url: string
           status: string
           summary: string
+          theme: string | null
           title: string
         }
         Insert: {
           content_hash: string
           created_at?: string
+          expires_at?: string | null
           fetched_at?: string
           id?: string
           published_at?: string | null
@@ -3730,11 +3780,13 @@ export type Database = {
           source_url: string
           status?: string
           summary: string
+          theme?: string | null
           title: string
         }
         Update: {
           content_hash?: string
           created_at?: string
+          expires_at?: string | null
           fetched_at?: string
           id?: string
           published_at?: string | null
@@ -3742,6 +3794,7 @@ export type Database = {
           source_url?: string
           status?: string
           summary?: string
+          theme?: string | null
           title?: string
         }
         Relationships: [
@@ -10292,6 +10345,7 @@ export type Database = {
           year_month: string
         }[]
       }
+      expire_hr_law_documents: { Args: never; Returns: number }
       match_hr_law_chunks: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {

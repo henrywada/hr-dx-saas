@@ -61,3 +61,18 @@ export type QuestionTemplate = {
   status: 'active' | 'archived'
   created_at: string
 }
+
+/** 人事アップデート（hr_law_documents）一覧用 */
+export type HrUpdateDocument = {
+  id: string
+  title: string
+  summary: string
+  source_url: string
+  theme: string | null
+  published_at: string | null
+  fetched_at: string
+  expires_at: string | null
+  status: 'published' | 'disabled' | 'expired'
+}
+
+export type HrAssistantMainTab = 'updates' | 'assistant'

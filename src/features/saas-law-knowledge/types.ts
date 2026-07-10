@@ -13,12 +13,20 @@ export type HrLawDocument = {
   title: string
   source_url: string
   summary: string
+  theme: string | null
   published_at: string | null
   fetched_at: string
-  status: 'published' | 'disabled'
+  expires_at: string | null
+  status: 'published' | 'disabled' | 'expired'
   topic: string | null
 }
 
 export type RefreshActionResult =
-  | { ok: true; documentsCreated: number; documentsSkipped: number; errors: string[] }
+  | {
+      ok: true
+      documentsCreated: number
+      documentsSkipped: number
+      errors: string[]
+      queued?: number
+    }
   | { ok: false; error: string }

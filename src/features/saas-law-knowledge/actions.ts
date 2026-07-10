@@ -71,6 +71,7 @@ export async function triggerHrLawRefresh(sourceId: string): Promise<RefreshActi
       documentsCreated: data.documentsCreated ?? 0,
       documentsSkipped: data.documentsSkipped ?? 0,
       errors: data.errors ?? [],
+      queued: data.queued ?? 0,
     }
   } catch (e) {
     console.error('[saas-law-knowledge] triggerHrLawRefresh', e)

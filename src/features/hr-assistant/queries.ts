@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import type { HrAssistantSession, HrAssistantMessage, QuestionTemplate } from './types'
+import type {
+  HrAssistantSession,
+  HrAssistantMessage,
+  QuestionTemplate,
+  HrUpdateDocument,
+} from './types'
 
 /** テナント管理者のセッション一覧（新しい順 20 件） */
 export async function listHrAssistantSessions(): Promise<HrAssistantSession[]> {
@@ -61,4 +66,33 @@ export async function listQuestionTemplates(): Promise<QuestionTemplate[]> {
     return []
   }
   return (data ?? []) as QuestionTemplate[]
+}
+
+/** 人事アップデート一覧（全テナント共有・published/expired） */
+export async function listHrUpdateDocuments(): Promise<HrUpdateDocument[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('hr_law_documents')
+    .select(
+      'id, title, summary, source_url, theme, published_at, fetched_at, expires_at, status'
+    )
+    .in('status', ['published', 'expired'])
+    .order('fetched_at', { ascending: false })
+    .limit(300)
+
+  if (error) {
+    console.error('[hr-assistant] listHrUpdateDocuments', error)
+    return []
+  }
+  return (data ?? []) as HrUpdateDocument[]
+}
+
+/** 直近1ヶ月のニュース用 */
+export async function listRecentHrUpdates(): Promise<HrUpdateDocument[]> {
+  const all = await listHrUpdateDocuments()
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+  return all.filter(d => new Date(d.fetched_at).getTime() >= cutoff)
 }

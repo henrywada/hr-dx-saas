@@ -16,7 +16,7 @@ export function LawDocumentTable({ documents }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   function handleToggle(doc: HrLawDocument) {
-    const nextStatus = doc.status === 'published' ? 'disabled' : 'published'
+    const nextStatus = doc.status === 'disabled' ? 'published' : 'disabled'
     setPendingId(doc.id)
     startTransition(async () => {
       await toggleHrLawDocumentStatus(doc.id, nextStatus)
@@ -45,10 +45,15 @@ export function LawDocumentTable({ documents }: Props) {
       render: (value: string | null) => value ?? '—',
     },
     {
+      key: 'theme',
+      label: 'テーマ',
+      render: (value: string | null) => value ?? '—',
+    },
+    {
       key: 'status',
       label: 'ステータス',
-      render: (value: 'published' | 'disabled') =>
-        value === 'published' ? '公開中' : '無効化済み',
+      render: (value: 'published' | 'disabled' | 'expired') =>
+        value === 'published' ? '公開中' : value === 'expired' ? '終了' : '無効化済み',
     },
     {
       key: 'fetched_at',
@@ -65,7 +70,7 @@ export function LawDocumentTable({ documents }: Props) {
           onClick={() => handleToggle(item)}
           className="text-xs font-medium text-(--brand) hover:underline disabled:opacity-50"
         >
-          {item.status === 'published' ? '無効化' : '再公開'}
+          {item.status === 'disabled' ? '再公開' : '無効化'}
         </button>
       ),
     },

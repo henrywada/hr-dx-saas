@@ -10,7 +10,7 @@ function makeTemplate(overrides: Partial<QuestionTemplate>): QuestionTemplate {
     tenant_id: null,
     mode: 'general',
     question_text: '質問',
-    source: 'seed',
+    source: 'mined',
     usage_count: 0,
     status: 'active',
     created_at: '2026-07-01T00:00:00Z',
@@ -18,7 +18,7 @@ function makeTemplate(overrides: Partial<QuestionTemplate>): QuestionTemplate {
   }
 }
 
-test('mined テンプレートを seed より優先して返す', () => {
+test('mined のみ返し、seed は表示しない', () => {
   const templates = [
     makeTemplate({ id: 's1', source: 'seed', question_text: 'seed質問', usage_count: 100 }),
     makeTemplate({ id: 'm1', source: 'mined', question_text: 'mined質問', usage_count: 1 }),
@@ -26,8 +26,15 @@ test('mined テンプレートを seed より優先して返す', () => {
   const result = selectTemplatesForDisplay(templates, 'general')
   assert.deepEqual(
     result.map(t => t.id),
-    ['m1', 's1']
+    ['m1']
   )
+})
+
+test('mined が無い場合は空配列（履歴なしは空欄）', () => {
+  const templates = [
+    makeTemplate({ id: 's1', source: 'seed', question_text: 'seed質問' }),
+  ]
+  assert.deepEqual(selectTemplatesForDisplay(templates, 'general'), [])
 })
 
 test('同一 source 内は usage_count 降順で並べる', () => {
@@ -58,8 +65,8 @@ test('指定モード以外と archived を除外する', () => {
 
 test('question_text が重複する場合は先勝ちで排除する', () => {
   const templates = [
-    makeTemplate({ id: 'm1', source: 'mined', question_text: '同じ質問' }),
-    makeTemplate({ id: 's1', source: 'seed', question_text: '同じ質問' }),
+    makeTemplate({ id: 'm1', source: 'mined', question_text: '同じ質問', usage_count: 2 }),
+    makeTemplate({ id: 'm2', source: 'mined', question_text: '同じ質問', usage_count: 1 }),
   ]
   const result = selectTemplatesForDisplay(templates, 'general')
   assert.deepEqual(

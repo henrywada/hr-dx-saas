@@ -66,7 +66,7 @@ export function AppHeader({ variant }: AppHeaderProps) {
   return (
     <header
       style={headerStyle}
-      className={`${variant === 'admin' ? 'h-12' : 'h-16'} flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 rounded-b-2xl transition-all duration-300 border-b ${variant === 'portal' ? 'border-slate-100/50' : 'border-white/10'} backdrop-blur-md`}
+      className={`${variant === 'admin' ? 'h-12' : 'h-16'} flex items-center justify-between px-4 md:px-6 shrink-0 relative z-30 overflow-hidden rounded-b-2xl transition-all duration-300 border-b ${variant === 'portal' ? 'border-slate-100/50' : 'border-white/10'} backdrop-blur-md`}
     >
       <div className="flex items-center gap-4">
         <button

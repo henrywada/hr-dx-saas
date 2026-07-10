@@ -5,6 +5,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import type { RefreshActionResult } from './types'
+import { normalizeSeoTopicKey, rankSeoKeywords } from './seo-keyword-rank'
 
 async function getSaasAdminUser() {
   const user = await getServerUser()
@@ -129,10 +130,7 @@ export async function deleteAllHrLawRefreshLogs(): Promise<{
 
   const supabase = createAdminClient()
   // 全件削除（id が null でない行 = 全行）
-  const { error } = await supabase
-    .from('hr_law_refresh_logs')
-    .delete()
-    .not('id', 'is', null)
+  const { error } = await supabase.from('hr_law_refresh_logs').delete().not('id', 'is', null)
 
   if (error) {
     console.error('[saas-law-knowledge] deleteAllHrLawRefreshLogs', error)
@@ -143,13 +141,150 @@ export async function deleteAllHrLawRefreshLogs(): Promise<{
   return { ok: true }
 }
 
+/** SEOキー分析の実行結果 */
+export type SeoAnalyzeResult =
+  | {
+      ok: true
+      topCount: number
+      added: number
+      skipped: number
+      keywords: string[]
+    }
+  | { ok: false; error: string }
 
-function normalizeTopicKey(topic: string): string {
-  return topic
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[\s\u3000_\-・/／|｜,，.。:：;；()（）\[\]【】「」『』"'`]+/g, '')
-    .trim()
+/** SEOキー分析の固定シード語 */
+const SEO_SEED_QUERIES = ['人事', '労務', '労働基準法', '働き方改革', '社会保険'] as const
+
+/** SerpAPI から related_searches / related_questions を取得する */
+async function fetchRelatedTermsFromSerp(seed: string, apiKey: string): Promise<string[]> {
+  const url = new URL('https://serpapi.com/search.json')
+  url.searchParams.set('engine', 'google')
+  url.searchParams.set('q', seed)
+  url.searchParams.set('hl', 'ja')
+  url.searchParams.set('gl', 'jp')
+  url.searchParams.set('api_key', apiKey)
+
+  const res = await fetch(url.toString(), { method: 'GET' })
+  if (!res.ok) {
+    throw new Error(`SerpAPI HTTP ${res.status}`)
+  }
+
+  const data = await res.json()
+  if (data.error) {
+    throw new Error(String(data.error))
+  }
+
+  const terms: string[] = []
+  for (const item of data.related_searches ?? []) {
+    if (item?.query) terms.push(String(item.query))
+  }
+  for (const item of data.related_questions ?? []) {
+    if (item?.question) {
+      // 疑問文の末尾句読点を除去してキーワード化
+      const q = String(item.question)
+        .replace(/[？?。．.！!]+$/g, '')
+        .trim()
+      if (q) terms.push(q)
+    }
+  }
+  return terms
+}
+
+/** SerpAPI で SEO 近似キーワード TOP10 を取得し、未登録のみ候補へ追加する */
+export async function analyzeSeoKeywordsForTopicProposals(): Promise<SeoAnalyzeResult> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+
+  const apiKey = (process.env.SERPAPI_API_KEY ?? '').trim()
+  if (!apiKey) return { ok: false, error: 'SERPAPI_API_KEY が未設定です' }
+
+  const allTerms: string[] = []
+  let successCount = 0
+  for (const seed of SEO_SEED_QUERIES) {
+    try {
+      const terms = await fetchRelatedTermsFromSerp(seed, apiKey)
+      allTerms.push(...terms)
+      successCount++
+    } catch (e) {
+      console.error('[saas-law-knowledge] fetchRelatedTermsFromSerp', seed, e)
+    }
+  }
+  if (successCount === 0) {
+    return { ok: false, error: 'SerpAPI からキーワードを取得できませんでした' }
+  }
+
+  const seedKeys = new Set(SEO_SEED_QUERIES.map(s => normalizeSeoTopicKey(s)))
+  const ranked = rankSeoKeywords(allTerms, { seedKeys, limit: 10 })
+  if (ranked.length === 0) {
+    return { ok: false, error: 'SEO 関連キーワードが見つかりませんでした' }
+  }
+
+  const supabase = createAdminClient()
+
+  const { data: sources, error: sErr } = await supabase
+    .from('hr_law_sources')
+    .select('topic')
+    .eq('enabled', true)
+    .limit(500)
+  if (sErr) {
+    console.error('[saas-law-knowledge] analyzeSeo fetch sources', sErr)
+    return { ok: false, error: '監視トピックの取得に失敗しました' }
+  }
+  const enabledKeys = new Set(
+    (sources ?? []).map((s: { topic: string }) => normalizeSeoTopicKey(s.topic))
+  )
+
+  const { data: pending, error: pErr } = await supabase
+    .from('hr_law_topic_proposals')
+    .select('topic_key')
+    .eq('status', 'pending')
+    .limit(500)
+  if (pErr) {
+    console.error('[saas-law-knowledge] analyzeSeo fetch pending', pErr)
+    return { ok: false, error: '候補一覧の取得に失敗しました' }
+  }
+  const pendingKeys = new Set((pending ?? []).map((p: { topic_key: string }) => p.topic_key))
+
+  let added = 0
+  let skipped = 0
+  const collectedAt = new Date().toISOString()
+
+  for (const kw of ranked) {
+    if (enabledKeys.has(kw.topicKey) || pendingKeys.has(kw.topicKey)) {
+      skipped++
+      continue
+    }
+
+    const { error } = await supabase.from('hr_law_topic_proposals').insert({
+      topic: kw.topic,
+      topic_key: kw.topicKey,
+      search_query: kw.topic,
+      source: 'seo',
+      score: kw.hitCount,
+      status: 'pending',
+      evidence: {
+        seeds: [...SEO_SEED_QUERIES],
+        rank: kw.rank,
+        hit_count: kw.hitCount,
+        collected_at: collectedAt,
+      },
+    })
+    if (error) {
+      console.error('[saas-law-knowledge] analyzeSeo insert', error)
+      return { ok: false, error: '候補の追加に失敗しました' }
+    }
+    added++
+    pendingKeys.add(kw.topicKey)
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return {
+    ok: true,
+    topCount: ranked.length,
+    added,
+    skipped,
+    keywords: ranked.map(k => k.topic),
+  }
 }
 
 /** 監視トピックを手動追加 */
@@ -165,16 +300,14 @@ export async function createHrLawSource(input: {
   if (!topic || !searchQuery) return { ok: false, error: 'トピック名と検索クエリは必須です' }
 
   const supabase = createAdminClient()
-  const key = normalizeTopicKey(topic)
+  const key = normalizeSeoTopicKey(topic)
 
   const { data: existing } = await supabase
     .from('hr_law_sources')
     .select('id, enabled, topic')
     .limit(200)
 
-  const dup = (existing ?? []).find(
-    (s: { topic: string }) => normalizeTopicKey(s.topic) === key
-  )
+  const dup = (existing ?? []).find((s: { topic: string }) => normalizeSeoTopicKey(s.topic) === key)
   if (dup) {
     if (dup.enabled) return { ok: false, error: '同名の有効トピックが既にあります' }
     const { error } = await supabase
@@ -257,6 +390,28 @@ export async function enableHrLawSource(
   return { ok: true }
 }
 
+/**
+ * 監視トピックを物理削除する。
+ * 収集済み文書・チャンクは残す（source_id は ON DELETE SET NULL）。
+ */
+export async function deleteHrLawSource(
+  sourceId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSaasAdminUser()
+  if (!user) return { ok: false, error: '権限がありません' }
+  if (!sourceId) return { ok: false, error: 'IDが不正です' }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('hr_law_sources').delete().eq('id', sourceId)
+
+  if (error) {
+    console.error('[saas-law-knowledge] deleteHrLawSource', error)
+    return { ok: false, error: '物理削除に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.SAAS.HR_LAW_KNOWLEDGE)
+  return { ok: true }
+}
+
 /** トピック候補を承認して hr_law_sources へ反映 */
 export async function approveHrLawTopicProposal(
   proposalId: string
@@ -281,7 +436,7 @@ export async function approveHrLawTopicProposal(
     .limit(300)
 
   const match = (sources ?? []).find(
-    (s: { topic: string }) => normalizeTopicKey(s.topic) === proposal.topic_key
+    (s: { topic: string }) => normalizeSeoTopicKey(s.topic) === proposal.topic_key
   )
 
   let sourceId: string | null = null

@@ -109,8 +109,8 @@ export function ChatPanel({
   const isEmpty = messages.length === 0
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/80">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 px-4 py-3 border-b border-[#e2e6ec] bg-[#f6f8fa]/80">
         <ModeSelector value={mode} onChange={setMode} disabled={loading} />
         <p className="text-xs text-[#57606a] mt-1.5">{ASSISTANT_MODE_DESCRIPTIONS[mode]}</p>
       </div>
@@ -151,15 +151,18 @@ export function ChatPanel({
         ))}
 
         {loading && (
-          <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#FD7601] flex items-center justify-center shrink-0">
+          <div className="flex gap-3 justify-start" aria-live="polite" aria-busy="true">
+            <div className="w-8 h-8 rounded-full bg-[#FD7601] flex items-center justify-center shrink-0 animate-pulse">
               <span className="text-white text-xs font-bold">AI</span>
             </div>
-            <div className="bg-white border border-[#e2e6ec] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-              <div className="flex gap-1 items-center">
-                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-[#f6f8fa] animate-bounce" />
+            <div className="bg-white border border-[#e2e6ec] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm min-w-[140px]">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5 items-center" aria-hidden>
+                  <span className="w-2 h-2 rounded-full bg-[#FD7601] animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#FD7601] animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#FD7601] animate-bounce" />
+                </div>
+                <span className="text-xs text-[#57606a]">回答を作成中…</span>
               </div>
             </div>
           </div>
@@ -168,7 +171,7 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-[#e2e6ec] p-4 bg-white">
+      <div className="shrink-0 border-t border-[#e2e6ec] p-4 bg-white">
         {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
         {!isEmpty && (
           <div className="mb-2">

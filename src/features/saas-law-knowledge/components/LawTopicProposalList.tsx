@@ -3,7 +3,12 @@
 import { useState, useTransition } from 'react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { approveHrLawTopicProposal, rejectHrLawTopicProposal } from '../actions'
+import { Loader2 } from 'lucide-react'
+import {
+  analyzeSeoKeywordsForTopicProposals,
+  approveHrLawTopicProposal,
+  rejectHrLawTopicProposal,
+} from '../actions'
 import type { HrLawTopicProposal } from '../types'
 
 type Props = {
@@ -13,10 +18,12 @@ type Props = {
 const SOURCE_LABEL: Record<HrLawTopicProposal['source'], string> = {
   chat: 'チャット需要',
   mhlw_discover: '厚労省新着',
+  seo: 'SEOキー分析',
 }
 
 export function LawTopicProposalList({ proposals }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [analyzing, setAnalyzing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const pending = proposals.filter(p => p.status === 'pending')
@@ -38,6 +45,23 @@ export function LawTopicProposalList({ proposals }: Props) {
     })
   }
 
+  async function handleAnalyzeSeo() {
+    setMessage(null)
+    setAnalyzing(true)
+    try {
+      const result = await analyzeSeoKeywordsForTopicProposals()
+      if (result.ok === false) {
+        setMessage(`失敗 — ${result.error}`)
+      } else {
+        setMessage(
+          `SEO TOP${result.topCount} を取得 / 候補追加: ${result.added}件 / スキップ: ${result.skipped}件`
+        )
+      }
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   return (
     <div className="space-y-3">
       {message && (
@@ -45,9 +69,26 @@ export function LawTopicProposalList({ proposals }: Props) {
           {message}
         </p>
       )}
-      <p className="text-xs text-[#57606a]">
-        チャット需要・厚労省新着から自動提案されます。承認すると監視トピックに追加されます。
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs text-[#57606a] flex-1 min-w-0">
+          チャット需要・厚労省新着から自動提案されます。SEOキー分析でも候補を追加できます。承認すると監視トピックに追加されます。
+        </p>
+        <button
+          type="button"
+          disabled={analyzing}
+          onClick={handleAnalyzeSeo}
+          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[#FD7601] text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {analyzing ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              分析中…
+            </>
+          ) : (
+            'SEOキー分析'
+          )}
+        </button>
+      </div>
 
       {pending.length === 0 ? (
         <p className="text-xs text-[#57606a] rounded-lg border border-[#e2e6ec] bg-white px-4 py-6 text-center">

@@ -8,6 +8,7 @@ import {
   createHrLawSource,
   disableHrLawSource,
   enableHrLawSource,
+  deleteHrLawSource,
 } from '../actions'
 import type { HrLawSource } from '../types'
 
@@ -54,7 +55,8 @@ export function LawSourceList({ sources }: Props) {
   }
 
   function handleDisable(source: HrLawSource) {
-    if (!confirm(`「${source.topic}」を監視から外しますか？（収集済み文書は残ります）`)) return
+    if (!confirm(`「${source.topic}」を監視から外しますか？（無効化。収集済み文書は残ります）`))
+      return
     setMessage(null)
     startTransition(async () => {
       const result = await disableHrLawSource(source.id)
@@ -67,6 +69,22 @@ export function LawSourceList({ sources }: Props) {
     startTransition(async () => {
       const result = await enableHrLawSource(source.id)
       setMessage(result.ok ? `再有効化: ${source.topic}` : `失敗 — ${result.error}`)
+    })
+  }
+
+  function handleDelete(source: HrLawSource) {
+    if (
+      !confirm(
+        `「${source.topic}」を監視トピックから完全削除しますか？\n` +
+          `収集済み文書・詳細情報は残ります（トピック行のみ削除）。\nこの操作は元に戻せません。`
+      )
+    ) {
+      return
+    }
+    setMessage(null)
+    startTransition(async () => {
+      const result = await deleteHrLawSource(source.id)
+      setMessage(result.ok ? `完全削除: ${source.topic}` : `失敗 — ${result.error}`)
     })
   }
 
@@ -149,9 +167,9 @@ export function LawSourceList({ sources }: Props) {
                     type="button"
                     disabled={isPending}
                     onClick={() => handleDisable(source)}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg text-[#cf222e] hover:underline disabled:opacity-50"
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg text-[#57606a] hover:underline disabled:opacity-50"
                   >
-                    削除
+                    無効化
                   </button>
                 </>
               ) : (
@@ -164,6 +182,14 @@ export function LawSourceList({ sources }: Props) {
                   再有効化
                 </button>
               )}
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleDelete(source)}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg text-[#cf222e] hover:underline disabled:opacity-50"
+              >
+                完全削除
+              </button>
             </div>
           </li>
         ))}

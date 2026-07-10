@@ -97,7 +97,7 @@ export function SidebarNav({
       )}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 min-w-64 shrink-0 bg-white border-r border-[#e2e6ec] flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
+        className={`fixed top-0 left-0 z-50 h-dvh w-64 min-w-64 shrink-0 bg-white border-r border-[#e2e6ec] flex-col transition-transform duration-300 ease-in-out md:static md:z-0 md:h-full md:max-h-full md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl flex' : '-translate-x-full md:flex hidden'}`}
       >
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           {/* Dynamic Business Menu & Logout */}

@@ -34,14 +34,15 @@ export async function AppLayout({ children, variant }: AppLayoutProps) {
             style={bgStyle}
           >
             <AppHeader variant={variant} />
-            <div className="flex flex-1 min-w-0 overflow-hidden" style={bgStyle}>
+            <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden" style={bgStyle}>
               <AppSidebar variant={variant} />
               <main
-                className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-hidden"
+                className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 style={mainBgStyle}
               >
-                <div className="flex-1 min-w-0 overflow-y-auto overflow-x-auto scroll-smooth">
-                  <div className="mx-auto w-full min-w-0 max-w-[1920px] px-[24px] py-6">
+                {/* flex-1 + min-h-0 で子の flex-1 / h-full が効く（チャット全画面用） */}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1920px] flex-1 flex-col overflow-y-auto overflow-x-auto px-[24px] py-6 scroll-smooth">
                     {children}
                   </div>
                 </div>

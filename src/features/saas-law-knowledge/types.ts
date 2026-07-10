@@ -15,7 +15,7 @@ export type HrLawTopicProposal = {
   topic: string
   topic_key: string
   search_query: string
-  source: 'chat' | 'mhlw_discover'
+  source: 'chat' | 'mhlw_discover' | 'seo'
   evidence: Record<string, unknown>
   score: number
   status: 'pending' | 'approved' | 'rejected' | 'dismissed'

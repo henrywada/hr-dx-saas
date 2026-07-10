@@ -19,8 +19,8 @@ export function AdmKpiOverviewSection({ children }: AdmKpiOverviewSectionProps) 
           </p>
         </div>
         <Link
-          href={APP_ROUTES.TENANT.ADMIN_HR_ASSISTANT}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-medium text-[#161b22] shadow-xs transition-colors hover:bg-[#f6f8fa]"
+          href={`${APP_ROUTES.TENANT.ADMIN_HR_ASSISTANT}?tab=assistant`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-[#FD7601] bg-white px-3 py-1.5 text-xs font-medium text-[#161b22] shadow-xs transition-colors hover:bg-[#FFF4EB]"
         >
           <Bot className="h-4 w-4 text-[#FD7601]" />
           AI人事アシスタント

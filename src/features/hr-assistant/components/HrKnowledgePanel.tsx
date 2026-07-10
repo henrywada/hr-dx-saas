@@ -110,7 +110,7 @@ export function HrKnowledgePanel({ documents, recentDocuments }: Props) {
               : 'border-[#e2e6ec] text-[#57606a] hover:bg-[#f6f8fa]'
           }`}
         >
-          テーマ
+          テーマ別へ進む
         </button>
       </div>
 

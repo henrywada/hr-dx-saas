@@ -82,27 +82,32 @@ export function HrAssistantClient({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e2e6ec] bg-white shrink-0">
-        <div className="flex gap-1">
+    // AppLayout の flex 連鎖で高さを受け取り、ヘッダー/フッターと重ならない
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#f6f8fa]">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e2e6ec] bg-white shrink-0">
+        <div className="flex gap-2" role="tablist" aria-label="メイン切替">
           <button
             type="button"
+            role="tab"
+            aria-selected={mainTab === 'updates'}
             onClick={() => switchTab('updates')}
-            className={`px-3 py-1.5 text-xs rounded-lg border ${
+            className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
               mainTab === 'updates'
-                ? 'border-[#FD7601] bg-[#FFF4EB] text-[#FD7601] font-semibold'
-                : 'border-transparent text-[#57606a] hover:bg-[#f6f8fa]'
+                ? 'border-[#FD7601] bg-[#FFF4EB] text-[#FD7601] font-semibold shadow-xs'
+                : 'border-[#e2e6ec] bg-white text-[#24292f] hover:border-[#FD7601] hover:text-[#FD7601]'
             }`}
           >
-            人事アップデート
+            人事情報集へ進む
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={mainTab === 'assistant'}
             onClick={() => switchTab('assistant')}
-            className={`px-3 py-1.5 text-xs rounded-lg border ${
+            className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
               mainTab === 'assistant'
-                ? 'border-[#FD7601] bg-[#FFF4EB] text-[#FD7601] font-semibold'
-                : 'border-transparent text-[#57606a] hover:bg-[#f6f8fa]'
+                ? 'border-[#FD7601] bg-[#FFF4EB] text-[#FD7601] font-semibold shadow-xs'
+                : 'border-[#e2e6ec] bg-white text-[#24292f] hover:border-[#FD7601] hover:text-[#FD7601]'
             }`}
           >
             AI人事アシスタント
@@ -132,7 +137,7 @@ export function HrAssistantClient({
             />
           </div>
 
-          <div className="flex-1 flex flex-col min-w-0 bg-[#f6f8fa]">
+          <div className="flex min-h-0 flex-1 flex-col min-w-0 bg-[#f6f8fa]">
             <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e2e6ec] bg-white">
               <button
                 type="button"

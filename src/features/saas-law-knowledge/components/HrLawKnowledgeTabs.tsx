@@ -24,18 +24,12 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'logs', label: 'ログ' },
 ]
 
-export function HrLawKnowledgeTabs({
-  sources,
-  proposals,
-  documents,
-  logs,
-  pendingQueue,
-}: Props) {
+export function HrLawKnowledgeTabs({ sources, proposals, documents, logs, pendingQueue }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('sources')
   const pendingCount = proposals.filter(p => p.status === 'pending').length
 
   return (
-    <div className="px-4 sm:px-6 py-6 mx-auto w-full max-w-300 space-y-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-480 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-sm font-semibold">人事アップデート管理</h1>

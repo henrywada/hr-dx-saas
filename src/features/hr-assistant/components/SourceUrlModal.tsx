@@ -22,7 +22,7 @@ export function SourceUrlModal({ document, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-lg border border-[#e2e6ec] bg-white shadow-lg"
+        className="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-lg border border-[#e2e6ec] bg-white shadow-lg"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 shrink-0 border-b border-[#e2e6ec]">

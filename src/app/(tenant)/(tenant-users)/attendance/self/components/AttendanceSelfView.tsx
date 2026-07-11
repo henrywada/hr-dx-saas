@@ -15,12 +15,7 @@ import { toJSTDateString } from '@/lib/datetime'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MonthlyStats } from './MonthlyStats'
 import { AttendanceCalendar } from './AttendanceCalendar'
 import { DailyRecordCard } from './DailyRecordCard'
@@ -36,12 +31,8 @@ function lastDayOfCalendarMonth(year: number, month: number): string {
 }
 
 /** 同一日は created_at が新しい行を優先 */
-function buildRecordsByDate(
-  records: WorkTimeRecordRow[],
-): Map<string, WorkTimeRecordRow> {
-  const sorted = [...records].sort((a, b) =>
-    (b.created_at ?? '').localeCompare(a.created_at ?? ''),
-  )
+function buildRecordsByDate(records: WorkTimeRecordRow[]): Map<string, WorkTimeRecordRow> {
+  const sorted = [...records].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
   const m = new Map<string, WorkTimeRecordRow>()
   for (const r of sorted) {
     if (!m.has(r.record_date)) m.set(r.record_date, r)
@@ -91,7 +82,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
     setLoading(false)
 
     if (r1.ok === false || r2.ok === false || r3.ok === false) {
-      const err = [r1, r2, r3].find((x) => x.ok === false)
+      const err = [r1, r2, r3].find(x => x.ok === false)
       setError(err && err.ok === false ? err.error : '読み込みに失敗しました')
       setStats(null)
       setRecords([])
@@ -130,17 +121,22 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
     setM(d.getMonth() + 1)
   }
 
+  const goToCurrentMonth = () => {
+    const [ty, tm] = toJSTDateString(new Date()).split('-').map(Number)
+    setY(ty)
+    setM(tm)
+  }
+
+  const isCurrentMonth = `${y}-${pad2(m)}` === toJSTDateString(new Date()).slice(0, 7)
+
   const title = `${y}年${m}月`
 
-  const selectedRecord = selectedDate
-    ? (byDate.get(selectedDate) ?? null)
-    : null
-  const detailTitle =
-    !selectedDate
-      ? '日別の記録'
-      : !selectedRecord
-        ? `${selectedDate} の記録`
-        : `${selectedRecord.record_date} の詳細`
+  const selectedRecord = selectedDate ? (byDate.get(selectedDate) ?? null) : null
+  const detailTitle = !selectedDate
+    ? '日別の記録'
+    : !selectedRecord
+      ? `${selectedDate} の記録`
+      : `${selectedRecord.record_date} の詳細`
 
   return (
     <div className="space-y-6 pb-10">
@@ -156,7 +152,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
           <AlertTitle>未解決のアラートが {alerts.length} 件あります</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4 mt-2 space-y-1">
-              {alerts.slice(0, 5).map((a) => (
+              {alerts.slice(0, 5).map(a => (
                 <li key={a.id}>
                   {a.alert_type}
                   {a.triggered_at && (
@@ -189,6 +185,15 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
             variant="outline"
             size="sm"
             type="button"
+            onClick={goToCurrentMonth}
+            disabled={loading || isCurrentMonth}
+          >
+            今月
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
             onClick={() => shiftMonth(1)}
             disabled={loading}
             className="inline-flex items-center gap-1"
@@ -198,18 +203,12 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
           </Button>
         </div>
         <div className="flex items-center gap-2 text-lg font-bold text-slate-800">
-          {loading && (
-            <Loader2 className="w-5 h-5 animate-spin text-slate-400" aria-hidden />
-          )}
+          {loading && <Loader2 className="w-5 h-5 animate-spin text-slate-400" aria-hidden />}
           {title}
         </div>
       </div>
 
-      <MonthlyStats
-        stats={stats}
-        unresolvedAlertCount={alerts.length}
-        loadError={error}
-      />
+      <MonthlyStats stats={stats} unresolvedAlertCount={alerts.length} loadError={error} />
 
       <Card variant="default" title="勤務カレンダー">
         <AttendanceCalendar
@@ -219,7 +218,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
           alertDates={alertDates}
           monthlyOvertimePositive={monthlyOvertimePositive}
           selectedDate={selectedDate}
-          onSelectDate={(d) => {
+          onSelectDate={d => {
             setSelectedDate(d)
             setDetailModalOpen(true)
           }}
@@ -235,11 +234,7 @@ export function AttendanceSelfView({ initialYear, initialMonth }: Props) {
             <DialogTitle className="text-white">{detailTitle}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[min(70vh,calc(90vh-8rem))] overflow-y-auto px-6 pb-6 pt-4 sm:px-8 sm:pb-8 sm:pt-5">
-            <DailyRecordCard
-              embedded
-              workDate={selectedDate}
-              record={selectedRecord}
-            />
+            <DailyRecordCard embedded workDate={selectedDate} record={selectedRecord} />
           </div>
         </DialogContent>
       </Dialog>

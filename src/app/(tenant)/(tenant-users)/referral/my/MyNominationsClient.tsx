@@ -18,13 +18,15 @@ export function MyNominationsClient({ nominations, rewards }: MyNominationsClien
     <div className="px-4 sm:px-6 mx-auto w-full max-w-[1200px] space-y-8">
       {/* ヘッダー */}
       <div>
-        <Link
-          href={APP_ROUTES.TENANT.REFERRAL_FORM}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors mb-3"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          求人一覧に戻る
-        </Link>
+        <div className="flex justify-end">
+          <Link
+            href={APP_ROUTES.TENANT.REFERRAL_FORM}
+            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors mb-3"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            求人一覧に戻る
+          </Link>
+        </div>
         <h1 className="text-2xl font-bold text-slate-900">マイ推薦一覧</h1>
       </div>
 

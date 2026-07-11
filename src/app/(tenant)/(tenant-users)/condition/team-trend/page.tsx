@@ -9,9 +9,26 @@ export const metadata = { title: '部署のコンディション傾向' }
 
 export default async function ConditionTeamTrendPage() {
   const user = await getServerUser()
+  if (!user) {
+    redirect(APP_ROUTES.AUTH.LOGIN)
+  }
+
   // is_manager=true かつ division_id を持つ従業員のみ対象。
   // hr/hr_manager/company_doctor/company_nurse/hsc は /adm/condition-trend で同等の機能を持つ。
-  if (!user?.employee_id || !user.is_manager || !user.division_id) {
+  if (!user.is_manager) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-accent-teal px-4">
+        <div className="max-w-sm rounded-2xl border border-[#e2e6ec] bg-white p-6 text-center shadow-sm">
+          <p className="text-sm font-semibold text-[#24292f]">あなたはこの画面を使えません</p>
+          <p className="mt-2 text-xs text-[#57606a]">
+            部署のコンディション傾向は上長向けの機能です。
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user.employee_id || !user.division_id) {
     redirect(APP_ROUTES.TENANT.CONDITION)
   }
 

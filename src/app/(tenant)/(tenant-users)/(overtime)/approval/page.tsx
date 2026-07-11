@@ -7,10 +7,7 @@ import { getJSTYearMonth } from '@/lib/datetime'
 import { APP_ROUTES } from '@/config/routes'
 import { createClient } from '@/lib/supabase/server'
 import { OvertimeApprovalClient } from './components/ApprovalTable'
-import {
-  canApproveOvertimeInDivision,
-  type OvertimeApprovalTargetPeer,
-} from './types'
+import { canApproveOvertimeInDivision, type OvertimeApprovalTargetPeer } from './types'
 import { getOvertimeApprovalTargetPeers } from '@/features/overtime/queries'
 
 export const metadata = {
@@ -21,6 +18,17 @@ export default async function OvertimeApprovalPage() {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) {
     redirect(APP_ROUTES.AUTH.LOGIN)
+  }
+
+  if (user.is_manager !== true) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-accent-teal px-4">
+        <div className="max-w-sm rounded-2xl border border-[#e2e6ec] bg-white p-6 text-center shadow-sm">
+          <p className="text-sm font-semibold text-[#24292f]">あなたはこの画面を使えません</p>
+          <p className="mt-2 text-xs text-[#57606a]">残業申請の承認は上長向けの機能です。</p>
+        </div>
+      </div>
+    )
   }
 
   let approvalTargetPeers: OvertimeApprovalTargetPeer[] = []

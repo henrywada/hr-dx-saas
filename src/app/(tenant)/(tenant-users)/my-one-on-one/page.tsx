@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import { getMyOneOnOneSessions, getMyUpcomingOneOnOnes } from '@/features/one-on-one/queries'
 import { MyOneOnOneListClient } from '@/features/one-on-one/components/MyOneOnOneListClient'
+import { MyOneOnOneHelpModalTrigger } from '@/features/one-on-one/components/MyOneOnOneHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,10 @@ export default async function MyOneOnOnePage() {
                   上長との 1on1 記録と、事前共有されたアジェンダを確認できます。
                 </p>
               </div>
-              <TenantBackLink />
+              <div className="flex items-center gap-2 shrink-0">
+                <MyOneOnOneHelpModalTrigger />
+                <TenantBackLink />
+              </div>
             </div>
           </header>
           <div className="p-6">

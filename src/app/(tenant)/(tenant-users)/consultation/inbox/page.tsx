@@ -18,7 +18,7 @@ export default async function ConsultationInboxPage() {
   const items = await getConsultationQueue()
 
   return (
-    <div className="px-4 sm:px-6 py-5 mx-auto max-w-300">
+    <div className="px-4 sm:px-6 py-5 mx-auto w-full max-w-300">
       <div className="flex items-start justify-between gap-3 mb-4">
         <h1 className="text-sm font-semibold">対応が必要な相談</h1>
         <TenantBackLink />

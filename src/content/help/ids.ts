@@ -9,6 +9,10 @@ export const HELP_CONTENT_IDS = {
   ATT_QR_PERM: 'att-qr-perm',
   ATT_OVERTIME: 'att-overtime',
   ATT_TELEWORK: 'att-telework',
-} as const;
+  /** チームコネクト（組織図・社内ディレクトリ閲覧）の使い方 */
+  ORG_TEAM_CONNECT: 'org-team-connect-guide',
+  /** 私の1on1（従業員向け 受けた1on1履歴・予定確認）の使い方 */
+  MY_ONE_ON_ONE: 'oo-my-history',
+} as const
 
-export type HelpContentId = (typeof HELP_CONTENT_IDS)[keyof typeof HELP_CONTENT_IDS];
+export type HelpContentId = (typeof HELP_CONTENT_IDS)[keyof typeof HELP_CONTENT_IDS]

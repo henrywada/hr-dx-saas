@@ -104,13 +104,16 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5"
+    >
       <label className="flex flex-col gap-1 text-xs text-(--text-secondary)">
         カテゴリ
         <select
           value={category}
           onChange={e => setCategory(e.target.value as ConsultationCategory)}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+          className="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
         >
           {CATEGORY_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>
@@ -128,7 +131,7 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
           maxLength={2000}
           rows={6}
           required
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+          className="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
         />
       </label>
 
@@ -160,7 +163,7 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
           <select
             value={otherTarget}
             onChange={e => setOtherTarget(e.target.value as OtherTarget)}
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+            className="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
           >
             {OTHER_TARGET_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>
@@ -177,7 +180,7 @@ export function ConsultationForm({ eligibleManagers }: ConsultationFormProps) {
           <select
             value={managerId}
             onChange={e => setManagerId(e.target.value)}
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+            className="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
           >
             <option value="">選択してください</option>
             {eligibleManagers.map(m => (

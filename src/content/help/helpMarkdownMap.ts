@@ -7,6 +7,8 @@ import attOvertime from './markdown/attendance/att-overtime.md'
 import attQr from './markdown/attendance/att-qr.md'
 import attQrPerm from './markdown/attendance/att-qr-perm.md'
 import attTelework from './markdown/attendance/att-telework.md'
+import ooMyHistory from './markdown/one-on-one/oo-my-history.md'
+import orgTeamConnectGuide from './markdown/organization/org-team-connect-guide.md'
 import othBrowser from './markdown/other/oth-browser.md'
 import othData from './markdown/other/oth-data.md'
 import othSecurity from './markdown/other/oth-security.md'
@@ -34,6 +36,8 @@ export const HELP_MARKDOWN_BY_ID: Record<string, string> = {
   'att-qr': attQr,
   'att-qr-perm': attQrPerm,
   'att-telework': attTelework,
+  'oo-my-history': ooMyHistory,
+  'org-team-connect-guide': orgTeamConnectGuide,
   'oth-browser': othBrowser,
   'oth-data': othData,
   'oth-security': othSecurity,

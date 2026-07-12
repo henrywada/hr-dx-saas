@@ -17,7 +17,7 @@ export default async function ConsultationDetailPage({
   if (!thread) redirect(APP_ROUTES.TENANT.CONSULTATION)
 
   return (
-    <div className="px-4 sm:px-6 py-5 mx-auto max-w-300">
+    <div className="px-4 sm:px-6 py-5 mx-auto w-full max-w-300">
       <ConsultationThreadView thread={thread} isStaff={false} />
     </div>
   )

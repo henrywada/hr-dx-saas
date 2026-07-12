@@ -9,6 +9,7 @@ import {
 } from '@/features/team-connect/queries'
 import { DivisionTreeView } from '@/features/team-connect/components/DivisionTreeView'
 import { DirectoryList } from '@/features/team-connect/components/DirectoryList'
+import { TeamConnectHelpModalTrigger } from '@/features/team-connect/components/TeamConnectHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: 'チームコネクト' }
@@ -36,7 +37,10 @@ export default async function TeamConnectPage() {
             組織図で部署構成を確認し、社内ディレクトリで氏名・社員番号からメンバーを検索できます。
           </p>
         </div>
-        <TenantBackLink />
+        <div className="flex items-center gap-2 shrink-0">
+          <TeamConnectHelpModalTrigger />
+          <TenantBackLink />
+        </div>
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <section className="space-y-3">

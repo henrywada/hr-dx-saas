@@ -119,7 +119,7 @@ export function ConsultationThreadView({ thread, isStaff }: ConsultationThreadVi
             onChange={e => setReplyBody(e.target.value)}
             maxLength={2000}
             rows={3}
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+            className="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
           />
           <button
             type="button"

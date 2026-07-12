@@ -21,8 +21,8 @@ export default async function ConsultationPage() {
   ])
 
   return (
-    <div className="flex flex-col gap-4 px-4 sm:px-6 py-5 mx-auto max-w-300">
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex w-full flex-col gap-4 px-4 sm:px-6 py-5 mx-auto max-w-300">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <h1 className="text-sm font-semibold">悩み・相談窓口</h1>
         <TenantBackLink />
       </div>
@@ -32,7 +32,7 @@ export default async function ConsultationPage() {
           <Link
             key={c.id}
             href={APP_ROUTES.TENANT.CONSULTATION_DETAIL(c.id)}
-            className="rounded-lg border border-slate-200 bg-white p-4 text-xs"
+            className="block w-full rounded-lg border border-slate-200 bg-white p-4 text-xs"
           >
             {CATEGORY_LABEL[c.category]} - {STATUS_LABEL[c.status]} -{' '}
             {format(new Date(c.created_at), 'M/d (E) HH:mm', { locale: ja })}

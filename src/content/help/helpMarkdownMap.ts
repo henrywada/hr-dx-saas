@@ -2,6 +2,7 @@
  * マニュアル・ヘルプ本文（.md）をエントリ id にひもづける。
  * 新規項目は markdown/ 配下に .md を追加し、ここに import とマップを追記する。
  */
+import aiHrAssistantGuide from './markdown/ai-agent/ai-hr-assistant-guide.md'
 import attAttendanceThreeMethods from './markdown/attendance/att-attendance-three-methods.md'
 import attOvertime from './markdown/attendance/att-overtime.md'
 import attQr from './markdown/attendance/att-qr.md'
@@ -31,6 +32,7 @@ import stressProgress from './markdown/stress/stress-progress.md'
 import stressSurveyDash from './markdown/stress/stress-survey-dash.md'
 
 export const HELP_MARKDOWN_BY_ID: Record<string, string> = {
+  'ai-hr-assistant-guide': aiHrAssistantGuide,
   'att-attendance-three-methods': attAttendanceThreeMethods,
   'att-overtime': attOvertime,
   'att-qr': attQr,

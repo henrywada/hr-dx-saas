@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { SessionHistory } from './SessionHistory'
 import { ChatPanel } from './ChatPanel'
 import { HrKnowledgePanel } from './HrKnowledgePanel'
+import { HrAssistantHelpModalTrigger } from './HrAssistantHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import type {
   HrAssistantSession,
@@ -113,7 +114,8 @@ export function HrAssistantClient({
             AI人事アシスタント
           </button>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <HrAssistantHelpModalTrigger />
           <TenantBackLink />
         </div>
       </div>

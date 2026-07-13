@@ -377,8 +377,18 @@ GEMINI_API_KEY = "env(GEMINI_API_KEY)"
 
 # hr-law-refresh は chunk.ts/gemini.ts/serpapi.ts/mailer.ts を同階層に置く唯一の複数ファイル構成の関数。
 # entrypoint を明示しないと Edge Runtime がエントリーポイントを特定できず BOOT_ERROR になる。
+# pg_cron / 手動実行ボタンから apikey ヘッダー（secret key）で呼び出すため JWT 検証は無効化する。
 [functions.hr-law-refresh]
 entrypoint = "./functions/hr-law-refresh/index.ts"
+verify_jwt = false
+
+# pg_cron から apikey ヘッダー（secret key）で呼び出すため JWT 検証は無効化する。
+[functions.hr-assistant-template-mining]
+verify_jwt = false
+
+# pg_cron から apikey ヘッダー（secret key）で呼び出すため JWT 検証は無効化する。
+[functions.qualification-expiry-alert]
+verify_jwt = false
 
 # QR 打刻: Kong 前段の JWT 検証だけが 401 になるケース（ローカル・一部環境）を避ける。
 # いずれの関数内でも Authorization + supabase.auth.getUser() で再検証する。

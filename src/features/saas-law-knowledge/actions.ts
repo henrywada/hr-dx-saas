@@ -56,7 +56,7 @@ export async function triggerHrLawRefresh(sourceId: string): Promise<RefreshActi
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
       },
       body: JSON.stringify({ sourceId, trigger: 'manual' }),
     })

@@ -50,10 +50,7 @@ async function processQueueItem(
   item: { id: string; source_id: string | null; topic: string; url: string; title: string | null },
   errors: string[]
 ): Promise<{ status: 'created' | 'skipped'; detailChars: number }> {
-  await supabase
-    .from('hr_law_crawl_queue')
-    .update({ status: 'processing' })
-    .eq('id', item.id)
+  await supabase.from('hr_law_crawl_queue').update({ status: 'processing' }).eq('id', item.id)
 
   try {
     if (!isAllowedUrl(item.url)) {
@@ -112,12 +109,7 @@ async function processQueueItem(
       return { status: 'skipped', detailChars: 0 }
     }
 
-    const summary = await summarizeLawArticle(
-      apiKey,
-      item.title || item.url,
-      item.url,
-      bodyText
-    )
+    const summary = await summarizeLawArticle(apiKey, item.title || item.url, item.url, bodyText)
     if (!summary) {
       await supabase
         .from('hr_law_crawl_queue')
@@ -242,7 +234,7 @@ serve(async req => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const serviceRoleKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''
     const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') ?? ''
 
     if (!openRouterKey) {
@@ -300,8 +292,7 @@ serve(async req => {
     const { data: sources, error: sourcesError } = await sourcesQuery
     if (sourcesError) throw sourcesError
 
-    const sourceTopic =
-      body.sourceId && sources?.length === 1 ? (sources[0].topic as string) : null
+    const sourceTopic = body.sourceId && sources?.length === 1 ? (sources[0].topic as string) : null
 
     let documentsCreated = 0
     let documentsSkipped = 0
@@ -394,12 +385,7 @@ serve(async req => {
 
     const sourcesProcessed = (sources ?? []).length
     // 例外なしでも「何も処理していない」場合は詳細に理由を残す
-    if (
-      documentsCreated === 0 &&
-      documentsSkipped === 0 &&
-      queued === 0 &&
-      errors.length === 0
-    ) {
+    if (documentsCreated === 0 && documentsSkipped === 0 && queued === 0 && errors.length === 0) {
       errors.push(
         '処理対象なし: 新規キュー追加0・未処理キュー0。検索結果が空か、再投入に失敗しています。'
       )

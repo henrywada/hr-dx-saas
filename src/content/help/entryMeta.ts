@@ -7,3 +7,5 @@ export const ATT_QR_DISPLAY_TITLE = 'スマホ端末の設定について'
 export const TEAM_CONNECT_DISPLAY_TITLE = 'チームコネクトの使い方'
 /** oo-my-history: 私の1on1の使い方 */
 export const MY_ONE_ON_ONE_DISPLAY_TITLE = '私の1on1の使い方'
+/** ai-hr-assistant-guide: AI人事アシスタントの使い方 */
+export const HR_ASSISTANT_DISPLAY_TITLE = 'AI人事アシスタントの使い方'

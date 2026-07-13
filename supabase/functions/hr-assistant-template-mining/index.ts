@@ -10,7 +10,6 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 const MODEL = 'google/gemini-2.5-flash'
 const MIN_QUESTIONS = 5
 
-
 function normalizeTopicKey(topic: string): string {
   return topic
     .normalize('NFKC')
@@ -56,7 +55,10 @@ async function upsertChatThemeProposals(
     }
 
     if (existing) {
-      const { error } = await supabase.from('hr_law_topic_proposals').update(row).eq('id', existing.id)
+      const { error } = await supabase
+        .from('hr_law_topic_proposals')
+        .update(row)
+        .eq('id', existing.id)
       if (!error) created++
     } else {
       const { error } = await supabase.from('hr_law_topic_proposals').insert(row)
@@ -73,7 +75,7 @@ serve(async req => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const serviceRoleKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''
     const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') ?? ''
     if (!openRouterKey) throw new Error('OPENROUTER_API_KEY が未設定です')
 
@@ -108,7 +110,10 @@ serve(async req => {
       if (qs.length < MIN_QUESTIONS) continue
       tenantsProcessed++
 
-      const sample = qs.slice(0, 40).map(q => `- [${q.mode}] ${q.content}`).join('\n')
+      const sample = qs
+        .slice(0, 40)
+        .map(q => `- [${q.mode}] ${q.content}`)
+        .join('\n')
       try {
         const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
           method: 'POST',
@@ -175,7 +180,10 @@ serve(async req => {
     // sources は自動上書きしない。proposals へ候補として書き戻す
     let proposalsCreated = 0
     if (topicSuggestions.length > 0) {
-      console.log('[template-mining] topic suggestions', JSON.stringify(topicSuggestions.slice(0, 20)))
+      console.log(
+        '[template-mining] topic suggestions',
+        JSON.stringify(topicSuggestions.slice(0, 20))
+      )
       try {
         proposalsCreated = await upsertChatThemeProposals(supabase, topicSuggestions.slice(0, 20))
       } catch (e) {

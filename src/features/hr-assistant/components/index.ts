@@ -1,4 +1,5 @@
 export { HrAssistantClient } from './HrAssistantClient'
+export { HrAssistantHelpModalTrigger } from './HrAssistantHelpModalTrigger'
 export { MessageBubble } from './MessageBubble'
 export { ModeSelector } from './ModeSelector'
 export { SessionHistory } from './SessionHistory'

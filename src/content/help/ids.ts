@@ -13,6 +13,8 @@ export const HELP_CONTENT_IDS = {
   ORG_TEAM_CONNECT: 'org-team-connect-guide',
   /** 私の1on1（従業員向け 受けた1on1履歴・予定確認）の使い方 */
   MY_ONE_ON_ONE: 'oo-my-history',
+  /** AI人事アシスタント（人事情報集・AI相談）の使い方 */
+  HR_ASSISTANT: 'ai-hr-assistant-guide',
 } as const
 
 export type HelpContentId = (typeof HELP_CONTENT_IDS)[keyof typeof HELP_CONTENT_IDS]

@@ -9,6 +9,7 @@ import { ReminderBadge } from './ReminderBadge'
 import { UpcomingOneOnOnePanel } from './UpcomingOneOnOnePanel'
 import { UpcomingScheduleModal } from './UpcomingScheduleModal'
 import { ThemeTemplateManager } from './ThemeTemplateManager'
+import { AdminOneOnOneHelpModalTrigger } from './AdminOneOnOneHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import type {
   OneOnOneDashboardData,
@@ -109,6 +110,7 @@ export function OneOnOneDashboard({
             >
               + 記録する
             </button>
+            <AdminOneOnOneHelpModalTrigger />
           </div>
         </div>
 

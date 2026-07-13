@@ -5,6 +5,7 @@ import { getKudosFeed, getActiveValueTags } from '@/features/recognition/queries
 import { getEmployees } from '@/features/organization/queries'
 import { KudosFeed } from '@/features/recognition/components/KudosFeed'
 import { KudosComposer } from '@/features/recognition/components/KudosComposer'
+import { KudosHelpModalTrigger } from '@/features/recognition/components/KudosHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
 export const metadata = { title: '感謝・称賛' }
@@ -29,7 +30,10 @@ export default async function KudosPage() {
     <div className="px-4 sm:px-6 py-5 mx-auto max-w-300 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-sm font-semibold text-slate-900">感謝・称賛</h1>
-        <TenantBackLink />
+        <div className="flex items-center gap-2">
+          <KudosHelpModalTrigger />
+          <TenantBackLink />
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-1">

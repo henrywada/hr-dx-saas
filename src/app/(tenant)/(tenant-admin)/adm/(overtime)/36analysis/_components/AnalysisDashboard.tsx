@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { Shield, ChevronDown } from 'lucide-react'
 import TenantBackLink from '@/components/common/TenantBackLink'
+import { Analysis36HelpModalTrigger } from './Analysis36HelpModalTrigger'
 import { KpiCards } from './KpiCards'
 import { DeptGroupedBarChart, type DeptGroupData } from './DeptGroupedBarChart'
 import { OvertimeTrendChart } from './OvertimeTrendChart'
@@ -421,6 +422,7 @@ export function AnalysisDashboard({ thresholds, divisions, employees, overtimeRo
 
         {/* しきい値バッジ */}
         <div className="flex flex-wrap gap-2 items-center ml-11 sm:ml-0">
+          <Analysis36HelpModalTrigger />
           <TenantBackLink />
           <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">
             原則上限: 月{thresholds.monthlyLimit}h / 年{thresholds.annualLimit}h

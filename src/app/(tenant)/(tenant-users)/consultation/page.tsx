@@ -6,6 +6,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getMyConsultations, getEligibleManagers } from '@/features/consultation/queries'
 import { ConsultationForm } from '@/features/consultation/components/ConsultationForm'
+import { ConsultationHelpModalTrigger } from '@/features/consultation/components/ConsultationHelpModalTrigger'
 import { CATEGORY_LABEL, STATUS_LABEL } from '@/features/consultation/labels'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
@@ -24,7 +25,10 @@ export default async function ConsultationPage() {
     <div className="flex w-full flex-col gap-4 px-4 sm:px-6 py-5 mx-auto max-w-300">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <h1 className="text-sm font-semibold">悩み・相談窓口</h1>
-        <TenantBackLink />
+        <div className="flex items-center gap-2">
+          <ConsultationHelpModalTrigger />
+          <TenantBackLink />
+        </div>
       </div>
       <ConsultationForm eligibleManagers={eligibleManagers} />
       <div className="flex flex-col gap-2">

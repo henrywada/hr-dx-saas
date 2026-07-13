@@ -13,6 +13,7 @@ import { CareerDiscussionList } from '@/features/career-discussions/components/C
 import { RecordDiscussionButton } from '@/features/career-discussions/components/RecordDiscussionButton'
 import { ScheduleAppointmentButton } from '@/features/career-discussions/components/ScheduleAppointmentButton'
 import { CareerAppointmentList } from '@/features/career-discussions/components/CareerAppointmentList'
+import { CareerDiscussionsHelpModalTrigger } from '@/features/career-discussions/components/CareerDiscussionsHelpModalTrigger'
 import { getRecentOneOnOneSessionsForEmployees } from '@/features/one-on-one/queries'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
@@ -50,7 +51,7 @@ export default async function CareerDiscussionsPage() {
   const oneOnOneByEmployee = await getRecentOneOnOneSessionsForEmployees(oneOnOneEmployeeIds)
 
   return (
-    <div className="px-4 sm:px-6 py-5 mx-auto max-w-300 space-y-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-5 mx-auto w-full max-w-350 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-sm font-semibold text-slate-900">キャリア面談</h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -65,6 +66,7 @@ export default async function CareerDiscussionsPage() {
               />
             </>
           )}
+          <CareerDiscussionsHelpModalTrigger />
           <TenantBackLink />
         </div>
       </div>

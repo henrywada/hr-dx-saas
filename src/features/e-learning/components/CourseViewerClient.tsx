@@ -229,7 +229,7 @@ export function CourseViewerClient({ data, certificateMeta, initialPreferences }
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-1">
             <h1 className="text-sm font-semibold text-gray-700 line-clamp-1">{title}</h1>
             {currentSlide.slide_type !== 'text' &&
@@ -260,11 +260,11 @@ export function CourseViewerClient({ data, certificateMeta, initialPreferences }
       </header>
 
       {/* スライドコンテンツ */}
-      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">{renderSlide()}</main>
+      <main className="flex-1 px-4 py-6 max-w-3xl mx-auto w-full">{renderSlide()}</main>
 
       {/* 下部ナビゲーション */}
       <footer className="bg-white border-t border-gray-200 px-4 py-4 sticky bottom-0">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
             disabled={currentIndex === 0}

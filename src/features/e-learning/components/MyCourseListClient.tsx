@@ -67,7 +67,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
   return (
     <div className="space-y-4">
       {/* ステータスタブ */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 max-w-xl">
         {(Object.keys(TAB_LABELS) as Tab[]).map(t => (
           <button
             key={t}
@@ -87,7 +87,7 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
           <p className="text-sm">コースがありません</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {filtered.map(a => {
             const status = getStatus(a)
             const total = totalSlidesMap[a.course_id] ?? 0
@@ -190,7 +190,11 @@ export function MyCourseListClient({ assignments, totalSlidesMap, requirementCou
             )
 
             return canOpen ? (
-              <a key={a.id} href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(a.id)} className={outerClass}>
+              <a
+                key={a.id}
+                href={APP_ROUTES.TENANT.EL_MY_COURSE_VIEWER(a.id)}
+                className={outerClass}
+              >
                 {inner}
               </a>
             ) : (

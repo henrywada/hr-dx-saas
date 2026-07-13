@@ -1,40 +1,41 @@
-import { getStressCheckResult, getActivePeriod } from '@/features/stress-check/queries';
-import ProfileSummary from '@/features/stress-check/components/ProfileSummary';
-import ResultChart from '@/features/stress-check/components/ResultChart';
-import ConsentSwitch from '@/features/stress-check/components/ConsentSwitch';
-import { getServerUser } from '@/lib/auth/server-user';
-import { redirect } from 'next/navigation';
-import { AlertCircle, Home } from 'lucide-react';
+import { getStressCheckResult, getActivePeriod } from '@/features/stress-check/queries'
+import ProfileSummary from '@/features/stress-check/components/ProfileSummary'
+import ResultChart from '@/features/stress-check/components/ResultChart'
+import ConsentSwitch from '@/features/stress-check/components/ConsentSwitch'
+import { StressResultHelpModalTrigger } from '@/features/stress-check/components/StressResultHelpModalTrigger'
+import { getServerUser } from '@/lib/auth/server-user'
+import { redirect } from 'next/navigation'
+import { AlertCircle, Home } from 'lucide-react'
 
 // Next.js 15+ 準拠の型定義
 type Props = {
-  params: Promise<{ [key: string]: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-};
+  params: Promise<{ [key: string]: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
 
 export default async function StressCheckResultPage({ params, searchParams }: Props) {
   // 1. Props の解決
-  await params;
-  const sParams = await searchParams;
+  await params
+  const sParams = await searchParams
 
   // 2. 認証チェック
-  const user = await getServerUser();
+  const user = await getServerUser()
   if (!user) {
-    redirect('/login');
+    redirect('/login')
   }
 
   // 3. period_id の決定（クエリパラメータ or アクティブ期間）
-  let periodId = sParams.period_id as string | undefined;
+  let periodId = sParams.period_id as string | undefined
   if (!periodId) {
-    const activePeriod = await getActivePeriod();
+    const activePeriod = await getActivePeriod()
     if (!activePeriod) {
-      redirect('/top');
+      redirect('/top')
     }
-    periodId = activePeriod.id;
+    periodId = activePeriod.id
   }
 
   // 4. 結果データの取得
-  const result = await getStressCheckResult(periodId, user.id);
+  const result = await getStressCheckResult(periodId, user.id)
 
   if (!result) {
     return (
@@ -43,17 +44,27 @@ export default async function StressCheckResultPage({ params, searchParams }: Pr
           <AlertCircle size={80} strokeWidth={1.5} />
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900">結果データが見つかりません</h1>
-        <p className="text-gray-600 text-lg">回答データの取得に失敗しました。管理者にお問い合わせください。</p>
-        <a href="/top" className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg inline-block hover:bg-indigo-700 transition-colors">
+        <p className="text-gray-600 text-lg">
+          回答データの取得に失敗しました。管理者にお問い合わせください。
+        </p>
+        <a
+          href="/top"
+          className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg inline-block hover:bg-indigo-700 transition-colors"
+        >
           トップへ戻る
         </a>
       </div>
-    );
+    )
   }
 
   // 5. 結果ページレイアウト（上から順に表示）
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* 画面の説明ボタン */}
+      <div className="flex justify-end">
+        <StressResultHelpModalTrigger />
+      </div>
+
       {/* ① プロフィール要約（テキスト） */}
       <ProfileSummary result={result} />
 
@@ -61,15 +72,13 @@ export default async function StressCheckResultPage({ params, searchParams }: Pr
       <ResultChart result={result} />
 
       {/* ③ 同意トグル */}
-      <ConsentSwitch
-        periodId={periodId}
-        initialConsent={result.consentToEmployer}
-      />
+      <ConsentSwitch periodId={periodId} initialConsent={result.consentToEmployer} />
 
       {/* フッター */}
       <div className="text-center space-y-3 pt-4 pb-8">
         <p className="text-xs text-gray-500 max-w-2xl mx-auto">
-          ※ 本結果は法令に基づき厳重に管理されます。事業者への結果提供を希望しない場合は、上のスイッチをOFF（同意しない）に変更してからダッシュボードへお戻りください。
+          ※
+          本結果は法令に基づき厳重に管理されます。事業者への結果提供を希望しない場合は、上のスイッチをOFF（同意しない）に変更してからダッシュボードへお戻りください。
         </p>
         <a
           href="/top"
@@ -80,5 +89,5 @@ export default async function StressCheckResultPage({ params, searchParams }: Pr
         </a>
       </div>
     </div>
-  );
+  )
 }

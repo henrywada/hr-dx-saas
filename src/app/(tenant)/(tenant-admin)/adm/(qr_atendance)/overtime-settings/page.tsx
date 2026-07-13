@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { APP_ROUTES } from '@/config/routes'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import { OvertimeSettingsForm } from './components/OvertimeSettingsForm'
+import { OvertimeSettingsHelpModalTrigger } from './components/OvertimeSettingsHelpModalTrigger'
 import type { Database } from '@/lib/supabase/types'
 
 type OvertimeRow = Pick<
@@ -56,7 +57,10 @@ export default async function OvertimeSettingsPage() {
             月間・年間・平均の残業上限と警告閾値を、テナント単位で設定します。
           </p>
         </div>
-        <TenantBackLink className="self-start shrink-0" />
+        <div className="flex items-center gap-2 self-start shrink-0">
+          <OvertimeSettingsHelpModalTrigger />
+          <TenantBackLink />
+        </div>
       </div>
 
       <Suspense

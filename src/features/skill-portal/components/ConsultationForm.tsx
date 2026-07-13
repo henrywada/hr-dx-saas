@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { sendConsultation } from '../actions'
 import type { SkillConsultation } from '../types'
 import { APP_ROUTES } from '@/config/routes'
+import { SkillJourneyConsultHelpModalTrigger } from './SkillJourneyConsultHelpModalTrigger'
 
 const CATEGORY_OPTIONS = [
   '要件の達成方法がわからない',
@@ -47,12 +48,18 @@ export function ConsultationForm({ history }: ConsultationFormProps) {
   }
 
   return (
-    <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-primary">
-          ← 戻る
-        </button>
-        <h1 className="text-base font-bold text-gray-800">上司に相談する</h1>
+    <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-gray-500 hover:text-primary"
+          >
+            ← 戻る
+          </button>
+          <h1 className="text-base font-bold text-gray-800">上司に相談する</h1>
+        </div>
+        <SkillJourneyConsultHelpModalTrigger />
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border p-5 space-y-4">

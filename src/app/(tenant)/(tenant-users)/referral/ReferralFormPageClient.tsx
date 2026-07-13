@@ -8,6 +8,7 @@ import type { ReferralPosting, ReferralRankingItem } from '@/features/referral/t
 import { ReferralPostingCard } from '@/features/referral/components/ReferralPostingCard'
 import { ReferralRankingCard } from '@/features/referral/components/ReferralRankingCard'
 import { NominationForm } from '@/features/referral/components/NominationForm'
+import { ReferralHelpModalTrigger } from '@/features/referral/components/ReferralHelpModalTrigger'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface ReferralFormPageClientProps {
@@ -47,7 +48,10 @@ export function ReferralFormPageClient({ postings, ranking }: ReferralFormPageCl
           </p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <TenantBackLink />
+          <div className="flex items-center gap-2">
+            <ReferralHelpModalTrigger />
+            <TenantBackLink />
+          </div>
           <Link
             href={APP_ROUTES.TENANT.REFERRAL_MY}
             className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-1"

@@ -1,13 +1,5 @@
 import React from 'react'
-import {
-  AlertCircle,
-  Calendar,
-  ChevronRight,
-  Bell,
-  CheckCircle2,
-  ClipboardList,
-  Zap,
-} from 'lucide-react'
+import { AlertCircle, Calendar, ChevronRight, Bell, ClipboardList, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
 import {
@@ -33,6 +25,10 @@ import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickA
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
 import { MobileNavSection } from '@/features/dashboard/components/MobileNavSection'
+import {
+  getVisibleDashboardElementKeys,
+  isDashboardElementVisible,
+} from '@/features/dashboard-ui-visibility/queries'
 import { APP_ROUTES } from '@/config/routes'
 
 const CONSULTATION_STAFF_ROLES = ['hr', 'hr_manager', 'hsc', 'company_doctor', 'company_nurse']
@@ -53,6 +49,7 @@ export default async function DashboardPage() {
     todayCheckin,
     pendingKudosCount,
     pendingLifecycleTasks,
+    visibleKeys,
   ] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
     getTopAnnouncements(),
@@ -62,7 +59,10 @@ export default async function DashboardPage() {
     user?.employee_id ? getTodayCheckin(user.employee_id) : Promise.resolve(null),
     user?.employee_id ? getRecentKudosCountForRecipient(user.employee_id) : Promise.resolve(0),
     user?.employee_id ? getMyPendingLifecycleTasks(user.employee_id) : Promise.resolve([]),
+    getVisibleDashboardElementKeys(user?.tenant_id, 'top'),
   ])
+
+  const v = (key: string) => isDashboardElementVisible(visibleKeys, key)
 
   // 産業医・保健師・人事系の役割は /adm/consultation-queue、上司は /consultation/inbox へ誘導
   const consultationInboxHref = CONSULTATION_STAFF_ROLES.includes(user?.appRole ?? '')
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
   // ストレスチェック受検ボタン表示判定
   let showStressCheckTask = false
   let stressCheckAlreadyAnswered = false
-  if (activePeriod && user?.id) {
+  if (activePeriod && user?.id && v('top.card.stress_check')) {
     const [eligibility, alreadyAnswered] = await Promise.all([
       checkStressCheckEligibility(activePeriod.id, user.id),
       checkExistingResponse(activePeriod.id, user.id),
@@ -82,6 +82,11 @@ export default async function DashboardPage() {
   }
 
   const displayName = user?.name || 'ゲスト'
+  const showCondition = Boolean(user?.employee_id) && v('top.card.condition_checkin')
+  const showImportantTask = Boolean(importantTask?.isPending) && v('top.card.important_task')
+  const showTaskRow = showCondition || showImportantTask || showStressCheckTask
+  const showAnnouncements = v('top.section.announcements')
+  const showQuickAccess = v('top.section.quick_access')
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
@@ -104,18 +109,18 @@ export default async function DashboardPage() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-500">
-          <HrInquiryNavLink />
+          {v('top.button.hr_inquiry') && <HrInquiryNavLink />}
         </div>
       </div>
 
-      {/* 2. Top Priority Tasks - 2-Column Grid (コンディション記録は従業員なら常時表示) */}
-      {(importantTask?.isPending || showStressCheckTask || user?.employee_id) && (
+      {/* 2. Top Priority Tasks */}
+      {showTaskRow && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Condition Checkin Widget */}
-          {user?.employee_id && <CheckinWidget initialScore={todayCheckin?.score ?? null} />}
+          {showCondition && <CheckinWidget initialScore={todayCheckin?.score ?? null} />}
 
           {/* Important Task Card */}
-          {importantTask && importantTask.isPending && (
+          {showImportantTask && importantTask && (
             <div className="relative overflow-hidden bg-white rounded-lg border-t-4 border-t-orange-500 border border-slate-200 shadow-xs transition-all hover:shadow-sm hover:border-t-orange-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-backwards">
               <div className="p-5 flex flex-col justify-between h-full">
                 <div className="space-y-3">
@@ -201,82 +206,96 @@ export default async function DashboardPage() {
       )}
 
       {/* 3. 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Left: Notices */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
-          <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
-            <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md shadow-inner">
-              <Bell className="w-4 h-4" />
-            </div>
-            <h3 className="font-bold text-sm text-slate-800">お知らせ</h3>
-          </div>
-          <div className="p-0 flex-1">
-            <ConsultationPendingNotice
-              count={pendingConsultationCount}
-              href={consultationInboxHref}
-            />
-            <KudosPendingNotice count={pendingKudosCount} href={APP_ROUTES.TENANT.KUDOS} />
-            <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
-            <PendingLifecycleTaskNoticeCards
-              pending={pendingLifecycleTasks}
-              appRole={user?.appRole}
-            />
-            <ul
-              className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}
-            >
-              {announcements.map(item => (
-                <li key={item.id} className="group hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50">
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-semibold text-slate-400 font-mono tracking-tight">
-                          {item.dateLabel}
-                        </span>
-                        {item.targetAudience && (
-                          <span className="text-xs text-slate-500 bg-slate-100 px-1 py-0.5 rounded">
-                            対象: {item.targetAudience}
-                          </span>
-                        )}
-                        {item.isNew && (
-                          <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 leading-none">
-                            NEW
-                          </span>
-                        )}
+      {(showAnnouncements || showQuickAccess) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Left: Notices */}
+          {showAnnouncements && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
+              <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
+                <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md shadow-inner">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800">お知らせ</h3>
+              </div>
+              <div className="p-0 flex-1">
+                {v('top.notice.consultation') && (
+                  <ConsultationPendingNotice
+                    count={pendingConsultationCount}
+                    href={consultationInboxHref}
+                  />
+                )}
+                {v('top.notice.kudos') && (
+                  <KudosPendingNotice count={pendingKudosCount} href={APP_ROUTES.TENANT.KUDOS} />
+                )}
+                {v('top.notice.questionnaire') && (
+                  <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
+                )}
+                {v('top.notice.lifecycle') && (
+                  <PendingLifecycleTaskNoticeCards
+                    pending={pendingLifecycleTasks}
+                    appRole={user?.appRole}
+                  />
+                )}
+                <ul
+                  className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}
+                >
+                  {announcements.map(item => (
+                    <li key={item.id} className="group hover:bg-slate-50/80 transition-colors">
+                      <div className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50">
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-semibold text-slate-400 font-mono tracking-tight">
+                              {item.dateLabel}
+                            </span>
+                            {item.targetAudience && (
+                              <span className="text-xs text-slate-500 bg-slate-100 px-1 py-0.5 rounded">
+                                対象: {item.targetAudience}
+                              </span>
+                            )}
+                            {item.isNew && (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 leading-none">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-medium text-slate-800 group-hover:text-blue-600 transition-colors leading-relaxed">
+                            🔔 {item.title}
+                          </p>
+                          {item.body && (
+                            <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed whitespace-pre-line">
+                              {item.body}
+                            </p>
+                          )}
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
                       </div>
-                      <p className="text-xs font-medium text-slate-800 group-hover:text-blue-600 transition-colors leading-relaxed">
-                        🔔 {item.title}
-                      </p>
-                      {item.body && (
-                        <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed whitespace-pre-line">
-                          {item.body}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
 
-        {/* Right: Shortcuts */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
-          <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
-            <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-md shadow-inner">
-              <Zap className="w-4 h-4" />
+          {/* Right: Shortcuts */}
+          {showQuickAccess && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
+              <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
+                <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-md shadow-inner">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800">クイックアクセス</h3>
+              </div>
+              <div className="px-5 pt-2 pb-5 flex-1">
+                <div className="flex flex-col gap-3">
+                  {v('top.quick_access.interview_booking') && <InterviewBookingService />}
+                  <QuickAccessCards visibleKeys={visibleKeys} />
+                  <MobileNavSection />
+                </div>
+              </div>
             </div>
-            <h3 className="font-bold text-sm text-slate-800">クイックアクセス</h3>
-          </div>
-          <div className="px-5 pt-2 pb-5 flex-1">
-            <div className="flex flex-col gap-3">
-              <InterviewBookingService />
-              <QuickAccessCards />
-              <MobileNavSection />
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

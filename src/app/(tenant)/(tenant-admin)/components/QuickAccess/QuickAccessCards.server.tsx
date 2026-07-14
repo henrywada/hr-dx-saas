@@ -9,11 +9,18 @@ import {
 } from '@/lib/overtime/month-closure'
 import { QuickAccessCard } from './QuickAccessCard'
 import { QuickAccessTeleworkCard } from './QuickAccessTeleworkCard.client'
+import { isDashboardElementVisible } from '@/features/dashboard-ui-visibility/queries'
 
 const QR_ATTENDANCE_SERVICE_PATH = '/adm/qr_atendance'
 
-/** テナント契約サービス + 監督者 QR 権限 + 端末登録（テレワークはクライアント側）に応じたクイックアクセス */
-export default async function QuickAccessCards() {
+type QuickAccessCardsProps = {
+  /** null = マスタ未整備で全表示 */
+  visibleKeys?: Set<string> | null
+}
+
+/** テナント契約サービス + 監督者 QR 権限 + UI表示制御 + 端末登録（テレワークはクライアント側）に応じたクイックアクセス */
+export default async function QuickAccessCards({ visibleKeys = null }: QuickAccessCardsProps) {
+  const v = (key: string) => isDashboardElementVisible(visibleKeys, key)
   const supabase = await createClient()
   const user = await getServerUser()
   const tenantId = user?.tenant_id ?? null
@@ -105,8 +112,8 @@ export default async function QuickAccessCards() {
 
   return (
     <>
-      <QuickAccessTeleworkCard />
-      {showClockCard && (
+      {v('top.quick_access.telework') && <QuickAccessTeleworkCard />}
+      {v('top.quick_access.qr_clock') && showClockCard && (
         <QuickAccessCard
           href="/apps/attendance/scan"
           title="出退勤のQRコード打刻"
@@ -118,7 +125,7 @@ export default async function QuickAccessCards() {
           hideChevron={true}
         />
       )}
-      {showQrAdminCard && (
+      {v('top.quick_access.qr_clock') && showQrAdminCard && (
         <QuickAccessCard
           href="/apps/attendance/qr-punch"
           title="打刻用QRコード表示（監督者用）"
@@ -130,7 +137,7 @@ export default async function QuickAccessCards() {
           hideChevron={true}
         />
       )}
-      {user.is_manager === true && (
+      {v('top.quick_access.overtime_approve') && user.is_manager === true && (
         <QuickAccessCard
           href={APP_ROUTES.TENANT.OVERTIME_APPROVAL}
           title="残業申請の承認"

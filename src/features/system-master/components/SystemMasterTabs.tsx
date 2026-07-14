@@ -8,7 +8,9 @@ import ServiceTab from './ServiceTab'
 import AppRoleTab from './AppRoleTab'
 import AppRoleServiceTab from './AppRoleServiceTab'
 import TenantServiceTab from './TenantServiceTab'
+import TenantDashboardUiTab from '@/features/dashboard-ui-visibility/components/TenantDashboardUiTab'
 import TenantBackLink from '@/components/common/TenantBackLink'
+import type { UiDashboardElement } from '@/features/dashboard-ui-visibility/types'
 
 type TabType =
   | 'service_class'
@@ -17,6 +19,7 @@ type TabType =
   | 'app_role'
   | 'role_service'
   | 'tenant_service'
+  | 'dashboard_ui'
 
 const tabs: { key: TabType; label: string }[] = [
   { key: 'service_class', label: 'クラス' },
@@ -25,6 +28,7 @@ const tabs: { key: TabType; label: string }[] = [
   { key: 'app_role', label: 'アプリロール' },
   { key: 'role_service', label: 'ロール×サービス' },
   { key: 'tenant_service', label: 'テナント×サービス' },
+  { key: 'dashboard_ui', label: 'ダッシュボード表示' },
 ]
 
 interface Props {
@@ -36,6 +40,12 @@ interface Props {
   initialRoleServices: any[]
   initialTenants: any[]
   initialTenantServices: any[]
+  initialUiDashboardElements: UiDashboardElement[]
+  initialTenantUiDashboardElements: {
+    tenant_id: string
+    ui_dashboard_element_id: string
+    is_visible: boolean
+  }[]
 }
 
 export default function SystemMasterTabs({
@@ -47,6 +57,8 @@ export default function SystemMasterTabs({
   initialRoleServices,
   initialTenants,
   initialTenantServices,
+  initialUiDashboardElements,
+  initialTenantUiDashboardElements,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('service_class')
 
@@ -107,6 +119,13 @@ export default function SystemMasterTabs({
             initialServices={initialServices}
             initialTenantServices={initialTenantServices}
             initialCategories={initialCategories}
+          />
+        )}
+        {activeTab === 'dashboard_ui' && (
+          <TenantDashboardUiTab
+            initialTenants={initialTenants}
+            initialElements={initialUiDashboardElements}
+            initialOverrides={initialTenantUiDashboardElements}
           />
         )}
       </div>

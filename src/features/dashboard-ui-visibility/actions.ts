@@ -58,6 +58,56 @@ export async function setTenantUiElementVisibility(
   }
 }
 
+/**
+ * 一覧の要素について、テナントの表示/非表示を一括で合わせる。
+ * visible=true → 対象のオーバーライド行を削除（デフォルト表示）
+ * visible=false → 対象を明示非表示で upsert
+ */
+export async function bulkSetTenantUiElementVisibility(
+  tenantId: string,
+  uiDashboardElementIds: string[],
+  visible: boolean
+): Promise<{ success: boolean; error?: string }> {
+  if (!tenantId || uiDashboardElementIds.length === 0) {
+    return { success: true }
+  }
+  try {
+    const user = await getServerUser()
+    assertSaasAdmin(user)
+
+    const supabase = createAdminClient()
+
+    if (visible) {
+      const { error } = await supabase
+        .from('tenant_ui_dashboard_element')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .in('ui_dashboard_element_id', uiDashboardElementIds)
+      if (error) return { success: false, error: error.message }
+    } else {
+      const rows = uiDashboardElementIds.map(id => ({
+        tenant_id: tenantId,
+        ui_dashboard_element_id: id,
+        is_visible: false,
+        updated_by: user!.id,
+        updated_at: new Date().toISOString(),
+      }))
+      const { error } = await supabase
+        .from('tenant_ui_dashboard_element')
+        .upsert(rows, { onConflict: 'tenant_id,ui_dashboard_element_id' })
+      if (error) return { success: false, error: error.message }
+    }
+
+    revalidatePath('/saas_adm/system-master')
+    revalidatePath('/top')
+    revalidatePath('/adm')
+    return { success: true }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { success: false, error: message }
+  }
+}
+
 /** SaaS管理画面用: admin クライアントで全要素 + テナント表示状態を取得 */
 export async function getTenantDashboardUiRows(tenantId: string): Promise<TenantDashboardUiRow[]> {
   const user = await getServerUser()

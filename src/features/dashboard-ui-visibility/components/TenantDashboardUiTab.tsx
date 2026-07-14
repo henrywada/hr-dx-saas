@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
-import { setTenantUiElementVisibility } from '@/features/dashboard-ui-visibility/actions'
+import {
+  setTenantUiElementVisibility,
+  bulkSetTenantUiElementVisibility,
+} from '@/features/dashboard-ui-visibility/actions'
 import type { UiDashboardElement } from '@/features/dashboard-ui-visibility/types'
 
 interface Props {
@@ -29,6 +31,7 @@ export default function TenantDashboardUiTab({
   initialOverrides,
 }: Props) {
   const router = useRouter()
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
   const [tenants] = useState(initialTenants)
   const [elements] = useState(initialElements)
   const [overrides, setOverrides] = useState(initialOverrides)
@@ -48,12 +51,25 @@ export default function TenantDashboardUiTab({
     return row?.is_visible !== false
   }
 
+  const allRowsVisible = elements.length > 0 && elements.every(el => isVisible(el.id))
+  const noRowsVisible = elements.length === 0 || elements.every(el => !isVisible(el.id))
+
+  useEffect(() => {
+    const el = headerCheckboxRef.current
+    if (!el) return
+    el.indeterminate = !allRowsVisible && !noRowsVisible && elements.length > 0
+  }, [allRowsVisible, noRowsVisible, elements.length, overrides, selectedTenantId])
+
   const handleToggle = async (elementId: string, currentlyVisible: boolean) => {
     if (loading || !selectedTenantId) return
     setLoading(true)
     const nextVisible = !currentlyVisible
     try {
-      const result = await setTenantUiElementVisibility(selectedTenantId, elementId, nextVisible)
+      const result = await setTenantUiElementVisibility(
+        selectedTenantId,
+        elementId,
+        nextVisible
+      )
       if (!result.success) {
         alert(`更新に失敗しました: ${result.error}`)
         return
@@ -61,11 +77,16 @@ export default function TenantDashboardUiTab({
       setOverrides(prev => {
         if (nextVisible) {
           return prev.filter(
-            o => !(o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId)
+            o =>
+              !(
+                o.tenant_id === selectedTenantId &&
+                o.ui_dashboard_element_id === elementId
+              )
           )
         }
         const exists = prev.some(
-          o => o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId
+          o =>
+            o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId
         )
         if (exists) {
           return prev.map(o =>
@@ -92,14 +113,58 @@ export default function TenantDashboardUiTab({
     }
   }
 
+  const handleBulkToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const wantVisible = e.target.checked
+    if (loading || !selectedTenantId || elements.length === 0) return
+    setLoading(true)
+    try {
+      const ids = elements.map(el => el.id)
+      const result = await bulkSetTenantUiElementVisibility(
+        selectedTenantId,
+        ids,
+        wantVisible
+      )
+      if (!result.success) {
+        alert(`更新に失敗しました: ${result.error}`)
+        return
+      }
+      setOverrides(prev => {
+        if (wantVisible) {
+          const idSet = new Set(ids)
+          return prev.filter(
+            o =>
+              !(
+                o.tenant_id === selectedTenantId &&
+                idSet.has(o.ui_dashboard_element_id)
+              )
+          )
+        }
+        return [
+          ...prev.filter(o => o.tenant_id !== selectedTenantId),
+          ...ids.map(id => ({
+            tenant_id: selectedTenantId,
+            ui_dashboard_element_id: id,
+            is_visible: false,
+          })),
+        ]
+      })
+      router.refresh()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      alert(`エラーが発生しました: ${message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
       <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
         <div className="mb-4">
           <h2 className="text-lg font-medium text-gray-900">ダッシュボード表示制御</h2>
           <p className="mt-1 text-xs text-gray-500">
-            オフにすると該当テナントの /top・/adm で要素が非表示になります（行なし＝表示）。 service
-            紐付けがある要素は、契約（テナント×サービス）も必要です。
+            オフにすると該当テナントの /top・/adm で要素が非表示になります（行なし＝表示）。
+            service 紐付けがある要素は、契約（テナント×サービス）も必要です。
           </p>
         </div>
         <label htmlFor="dashboard-ui-tenant-select" className="sr-only">
@@ -141,7 +206,21 @@ export default function TenantDashboardUiTab({
                   element_key
                 </th>
                 <th className="px-4 py-1 text-center text-xs font-semibold text-[#24292f] uppercase tracking-wider w-36">
-                  表示 / 非表示
+                  <div className="flex flex-col items-center gap-2">
+                    <span>表示 / 非表示</span>
+                    <label className="flex cursor-pointer items-center gap-1.5 font-normal normal-case tracking-normal">
+                      <input
+                        ref={headerCheckboxRef}
+                        type="checkbox"
+                        checked={allRowsVisible}
+                        onChange={handleBulkToggle}
+                        disabled={loading || elements.length === 0}
+                        className="h-4 w-4 rounded border-gray-300 text-[#FD7601] focus:ring-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="表示中の要素をすべて表示または非表示にする"
+                      />
+                      <span className="text-[11px] font-medium text-gray-600">すべて</span>
+                    </label>
+                  </div>
                 </th>
               </tr>
             </thead>

@@ -56,7 +56,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
   const onStep1Submit = async (values: Step1Input) => {
     setStep1Data(values)
 
-    if (plan === 'free') {
+    if (config.paymentMethod === 'free') {
       setStep(2)
       return
     }
@@ -68,7 +68,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
       setClientSecret(result.clientSecret)
       setPaymentIntentId(result.paymentIntentId)
 
-      if (plan === 'enterprise' && result.bankTransfer) {
+      if (config.paymentMethod === 'bank_transfer' && result.bankTransfer) {
         const bt = result.bankTransfer as Record<string, unknown>
         const financialAddresses = bt.financial_addresses as Array<Record<string, unknown>>
         const fa = financialAddresses?.[0]
@@ -190,6 +190,18 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">業種（任意）</label>
+            <input
+              {...register('industry')}
+              placeholder="例: 製造業"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            {errors.industry && (
+              <p className="mt-1 text-xs text-red-600">{errors.industry.message}</p>
+            )}
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               メールアドレス <span className="text-red-500">*</span>
             </label>
@@ -227,7 +239,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
         <div className="space-y-4">
           <p className="text-sm text-gray-500 text-center">STEP 2 / 3　お支払い</p>
 
-          {plan === 'pro' && clientSecret && (
+          {config.paymentMethod === 'card' && clientSecret && (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <StripeElementsForm
                 clientSecret={clientSecret}
@@ -238,7 +250,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
             </Elements>
           )}
 
-          {plan === 'enterprise' && bankTransferInfo && (
+          {config.paymentMethod === 'bank_transfer' && bankTransferInfo && (
             <div className="space-y-4">
               <p className="text-sm text-gray-700">以下の口座へお振込をお願いします。</p>
               <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
@@ -299,6 +311,12 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
               <span className="text-gray-500">会社名</span>
               <span className="font-medium">{step1Data.companyName}</span>
             </div>
+            {step1Data.industry && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">業種</span>
+                <span className="font-medium">{step1Data.industry}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-500">メールアドレス</span>
               <span className="font-medium break-all">{step1Data.email}</span>
@@ -307,7 +325,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
               <span className="text-gray-500">プラン</span>
               <span className="font-medium">{config.label}</span>
             </div>
-            {plan !== 'free' && (
+            {config.paymentMethod !== 'free' && (
               <div className="flex justify-between">
                 <span className="text-gray-500">お支払い</span>
                 <span className="font-medium text-green-600">確認済み ✓</span>
@@ -330,7 +348,7 @@ export function SignupWizard({ initialPlan }: SignupWizardProps) {
 
           <button
             type="button"
-            onClick={() => setStep(plan === 'free' ? 0 : 1)}
+            onClick={() => setStep(config.paymentMethod === 'free' ? 0 : 1)}
             className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
           >
             戻る

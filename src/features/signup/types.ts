@@ -1,19 +1,21 @@
-export type PlanType = 'free' | 'pro' | 'enterprise'
+export type PlanType = 'free' | 'plan100' | 'plan300' | 'plan500' | 'plan1000'
 
 export interface SignupStep1Data {
   applicantName: string
   companyName: string
   email: string
   phone?: string
+  /** 業種（任意入力） */
+  industry?: string
 }
 
 export interface SignupFormData extends SignupStep1Data {
   plan: PlanType
-  /** pro/enterprise のみ: Stripe PaymentIntent の client_secret */
+  /** 有料プランのみ: Stripe PaymentIntent の client_secret */
   paymentIntentClientSecret?: string
-  /** pro/enterprise のみ: PaymentIntent ID（Webhook 冪等性確保用） */
+  /** 有料プランのみ: PaymentIntent ID（Webhook 冪等性確保用） */
   paymentIntentId?: string
-  /** enterprise のみ: 銀行振込指示情報 */
+  /** 銀行振込プランのみ: 銀行振込指示情報 */
   bankTransferInstructions?: BankTransferInstructions
 }
 
@@ -46,6 +48,15 @@ export const PLAN_CONFIG: Record<
     paymentStatus: 'paid' | 'pending_transfer' | 'unpaid'
     /** contract_end_at を登録日から何ヶ月後にするか（null = 無制限） */
     contractMonths: number | null
+    /** 現在申込可能か（false は LP・サインアップ双方で「準備中」扱い） */
+    available: boolean
+    /** tenant_service のコピー元テンプレートテナント名（tenants.name） */
+    templateTenantName: string
+    /**
+     * Stripe Price ID を保持する環境変数名（有料プランのみ）。
+     * 有料プラン開通時は available: true に切り替え、対応する環境変数を設定する
+     */
+    stripePriceIdEnv?: string
   }
 > = {
   free: {
@@ -55,21 +66,51 @@ export const PLAN_CONFIG: Record<
     paymentMethod: 'free',
     paymentStatus: 'unpaid',
     contractMonths: 3,
+    available: true,
+    templateTenantName: 'PlanFree',
   },
-  pro: {
-    label: 'プロプラン',
+  plan100: {
+    label: 'プラン100',
     maxEmployees: 100,
     initialStatus: 'active',
     paymentMethod: 'card',
     paymentStatus: 'paid',
     contractMonths: 12,
+    available: false,
+    templateTenantName: 'Plan100',
+    stripePriceIdEnv: 'STRIPE_PLAN100_PRICE_ID',
   },
-  enterprise: {
-    label: 'エンタープライズプラン',
-    maxEmployees: 9999,
-    initialStatus: 'pending',
-    paymentMethod: 'bank_transfer',
-    paymentStatus: 'pending_transfer',
-    contractMonths: null,
+  plan300: {
+    label: 'プラン300',
+    maxEmployees: 300,
+    initialStatus: 'active',
+    paymentMethod: 'card',
+    paymentStatus: 'paid',
+    contractMonths: 12,
+    available: false,
+    templateTenantName: 'Plan300',
+    stripePriceIdEnv: 'STRIPE_PLAN300_PRICE_ID',
+  },
+  plan500: {
+    label: 'プラン500',
+    maxEmployees: 500,
+    initialStatus: 'active',
+    paymentMethod: 'card',
+    paymentStatus: 'paid',
+    contractMonths: 12,
+    available: false,
+    templateTenantName: 'Plan500',
+    stripePriceIdEnv: 'STRIPE_PLAN500_PRICE_ID',
+  },
+  plan1000: {
+    label: 'プラン1000',
+    maxEmployees: 1000,
+    initialStatus: 'active',
+    paymentMethod: 'card',
+    paymentStatus: 'paid',
+    contractMonths: 12,
+    available: false,
+    templateTenantName: 'Plan1000',
+    stripePriceIdEnv: 'STRIPE_PLAN1000_PRICE_ID',
   },
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendMail } from '@/lib/mail/send'
+import { sendMail, escapeHtml } from '@/lib/mail/send'
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY
@@ -61,7 +61,7 @@ async function handlePaymentSucceeded(
 ) {
   const { data: existing } = await supabase
     .from('tenant_contracts')
-    .select('id, tenant_id, payment_status, applicant_email, applicant_name, plan_type')
+    .select('id, tenant_id, payment_status, applicant_email, applicant_name, payment_method')
     .eq('stripe_payment_intent_id', pi.id)
     .maybeSingle()
 
@@ -81,14 +81,14 @@ async function handlePaymentSucceeded(
 
   await supabase.from('tenants').update({ status: 'active' }).eq('id', existing.tenant_id)
 
-  // enterprise 銀行振込入金確認後: 利用開始メール
-  if (existing.plan_type === 'enterprise') {
+  // 銀行振込プランの入金確認後: 利用開始メール
+  if (existing.payment_method === 'bank_transfer') {
     try {
       await sendMail({
         to: existing.applicant_email,
         subject: '【HR-DX】ご入金を確認しました・ご利用開始のご案内',
-        html: `<p>${existing.applicant_name} 様</p>
-<p>ご入金を確認いたしました。HR-DX エンタープライズプランをご利用いただけます。</p>
+        html: `<p>${escapeHtml(existing.applicant_name)} 様</p>
+<p>ご入金を確認いたしました。HR-DX をご利用いただけます。</p>
 <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.hr-dx.jp'}/login">ログイン画面へ</a></p>
 <p>よろしくお願いいたします。<br>HR-DX サポートチーム</p>`,
       })
@@ -122,7 +122,7 @@ async function handlePartiallyFunded(
     await sendMail({
       to: existing.applicant_email,
       subject: '【HR-DX】お振込の一部を受領しました',
-      html: `<p>${existing.applicant_name} 様</p>
+      html: `<p>${escapeHtml(existing.applicant_name)} 様</p>
 <p>ご入金を一部確認しました（受領額: ¥${received.toLocaleString('ja-JP')}）。</p>
 <p>残額 ¥${remaining.toLocaleString('ja-JP')} のお振込をお願いいたします。</p>
 <p>よろしくお願いいたします。<br>HR-DX サポートチーム</p>`,
@@ -155,7 +155,7 @@ async function handlePaymentFailed(
     await sendMail({
       to: existing.applicant_email,
       subject: '【HR-DX】お振込の期限が過ぎました',
-      html: `<p>${existing.applicant_name} 様</p>
+      html: `<p>${escapeHtml(existing.applicant_name)} 様</p>
 <p>お振込の期限が過ぎたため、アカウントを停止しました。</p>
 <p>ご利用を再開される場合は、お問い合わせください。</p>
 <p>よろしくお願いいたします。<br>HR-DX サポートチーム</p>`,

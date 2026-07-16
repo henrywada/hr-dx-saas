@@ -1,5 +1,6 @@
 import React from 'react'
 import { getServerUser } from '@/lib/auth/server-user'
+import { isPaidPlan } from '@/types/auth'
 import { redirect } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import TenantBackLink from '@/components/common/TenantBackLink'
@@ -16,7 +17,7 @@ export default async function RecruitmentAiLogPage() {
   }
 
   // 権限チェック
-  const isPro = user.planType === 'pro' || user.planType === 'enterprise'
+  const isPro = isPaidPlan(user.planType)
 
   // Proプランの場合のみログデータを取得
   let logs = []

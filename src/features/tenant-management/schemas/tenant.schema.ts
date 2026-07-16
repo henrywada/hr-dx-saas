@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 /** 契約終了日（任意・空文字は null） */
 const contractEndDayField = z
@@ -6,7 +6,7 @@ const contractEndDayField = z
     z.literal(''),
     z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '契約終了日の形式が正しくありません'),
   ])
-  .transform((v) => (v === '' ? null : v));
+  .transform(v => (v === '' ? null : v))
 
 /** 新規登録バリデーション */
 export const tenantCreateSchema = z.object({
@@ -22,7 +22,7 @@ export const tenantCreateSchema = z.object({
     .number()
     .int('最高ユーザ数は整数で入力してください')
     .min(1, '最高ユーザ数は1以上で入力してください'),
-  plan_type: z.enum(['free', 'pro', 'enterprise']),
+  plan_type: z.enum(['free', 'plan100', 'plan300', 'plan500', 'plan1000']),
   contract_end_day: contractEndDayField,
   manager_email: z
     .string()
@@ -32,7 +32,7 @@ export const tenantCreateSchema = z.object({
     .string()
     .min(1, '責任者名は必須です')
     .max(100, '責任者名は100文字以内で入力してください'),
-});
+})
 
 /** 更新バリデーション */
 export const tenantUpdateSchema = z.object({
@@ -48,9 +48,9 @@ export const tenantUpdateSchema = z.object({
     .number()
     .int('最高ユーザ数は整数で入力してください')
     .min(1, '最高ユーザ数は1以上で入力してください'),
-  plan_type: z.enum(['free', 'pro', 'enterprise']),
+  plan_type: z.enum(['free', 'plan100', 'plan300', 'plan500', 'plan1000']),
   contract_end_day: contractEndDayField,
-});
+})
 
-export type TenantCreateValues = z.output<typeof tenantCreateSchema>;
-export type TenantUpdateValues = z.output<typeof tenantUpdateSchema>;
+export type TenantCreateValues = z.output<typeof tenantCreateSchema>
+export type TenantUpdateValues = z.output<typeof tenantUpdateSchema>

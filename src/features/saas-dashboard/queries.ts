@@ -9,10 +9,11 @@ export async function getSaasStats() {
   try {
     const supabase = createAdminClient()
 
-    // 1. テナント数
+    // 1. テナント数（プラン別テンプレートは除外）
     const { count: tenantCount } = await supabase
       .from('tenants')
       .select('*', { count: 'exact', head: true })
+      .eq('is_template', false)
 
     // 2. 登録ユーザ数
     const { count: userCount } = await supabase
@@ -50,12 +51,18 @@ export async function getSaasTenants() {
   try {
     const supabase = createAdminClient()
 
-    const { data, error } = await supabase.from('tenants').select(`
+    // プラン別テンプレートは集計から除外
+    const { data, error } = await supabase
+      .from('tenants')
+      .select(
+        `
         id,
         name,
         max_employees,
         employees:employees(count)
-      `)
+      `
+      )
+      .eq('is_template', false)
 
     if (error) throw error
 

@@ -9,6 +9,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
+import { isPaidPlan } from '@/types/auth'
 import { generateGeminiContent, GEMINI_PRO_MODEL } from '@/lib/ai/gemini'
 import {
   AI_MONTHLY_FREE_LIMIT,
@@ -89,7 +90,7 @@ function formatGeminiFieldValue(val: unknown): string {
           ? Object.entries(v as Record<string, unknown>)
               .map(([key, value]) => `【${key}】 ${value}`)
               .join('\n')
-          : String(v),
+          : String(v)
       )
       .join('\n\n')
   }
@@ -188,7 +189,8 @@ ${input.uniquePoints.trim()}`
     const supabase = await createClient()
     const { error: dbError } = await supabase.from('recruitment_jobs').insert({
       tenant_id: user.tenant_id,
-      title: typeof parsed.catchphrase === 'string' ? parsed.catchphrase.substring(0, 100) : '未設定',
+      title:
+        typeof parsed.catchphrase === 'string' ? parsed.catchphrase.substring(0, 100) : '未設定',
       description: input.challenge,
       requirements: input.expectations,
       ai_catchphrase: parsed.catchphrase,
@@ -224,7 +226,7 @@ export async function getMonthlyUsageCount(): Promise<{
     return { count: 0, max: AI_MONTHLY_FREE_LIMIT, isUnlimited: false }
   }
 
-  const isPro = user.planType === 'pro' || user.planType === 'enterprise'
+  const isPro = isPaidPlan(user.planType)
   if (isPro) {
     return { count: 0, max: AI_MONTHLY_FREE_LIMIT, isUnlimited: true }
   }
@@ -243,7 +245,7 @@ export async function getRecruitmentAiLogs() {
   }
 
   // 権限チェック（Pro または Enterprise のみアクセス可）
-  const isPro = user.planType === 'pro' || user.planType === 'enterprise'
+  const isPro = isPaidPlan(user.planType)
   if (!isPro) {
     // サーバーサイドで厳密に遮断し、データは絶対に返さない
     return {

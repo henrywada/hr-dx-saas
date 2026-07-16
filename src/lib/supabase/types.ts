@@ -9095,6 +9095,7 @@ export type Database = {
           contract_start_at: string | null
           created_at: string
           id: string
+          industry: string | null
           max_employees: number
           paid_amount: number
           payment_method: string
@@ -9115,6 +9116,7 @@ export type Database = {
           contract_start_at?: string | null
           created_at?: string
           id?: string
+          industry?: string | null
           max_employees: number
           paid_amount?: number
           payment_method?: string
@@ -9135,6 +9137,7 @@ export type Database = {
           contract_start_at?: string | null
           created_at?: string
           id?: string
+          industry?: string | null
           max_employees?: number
           paid_amount?: number
           payment_method?: string
@@ -9592,51 +9595,6 @@ export type Database = {
           },
         ]
       }
-      tenant_ui_dashboard_element: {
-        Row: {
-          created_at: string
-          id: string
-          is_visible: boolean
-          tenant_id: string
-          ui_dashboard_element_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_visible?: boolean
-          tenant_id: string
-          ui_dashboard_element_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_visible?: boolean
-          tenant_id?: string
-          ui_dashboard_element_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tenant_ui_dashboard_element_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tenant_ui_dashboard_element_ui_dashboard_element_id_fkey"
-            columns: ["ui_dashboard_element_id"]
-            isOneToOne: false
-            referencedRelation: "ui_dashboard_element"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tenant_skill_level_sets: {
         Row: {
           category: string | null
@@ -9733,6 +9691,51 @@ export type Database = {
           },
         ]
       }
+      tenant_ui_dashboard_element: {
+        Row: {
+          created_at: string
+          id: string
+          is_visible: boolean
+          tenant_id: string
+          ui_dashboard_element_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          tenant_id: string
+          ui_dashboard_element_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          tenant_id?: string
+          ui_dashboard_element_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_ui_dashboard_element_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_ui_dashboard_element_ui_dashboard_element_id_fkey"
+            columns: ["ui_dashboard_element_id"]
+            isOneToOne: false
+            referencedRelation: "ui_dashboard_element"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           business_description: string | null
@@ -9745,6 +9748,7 @@ export type Database = {
           founding_year: number | null
           id: string
           industry: string | null
+          is_template: boolean
           max_employees: number
           mission_vision: string | null
           name: string | null
@@ -9768,6 +9772,7 @@ export type Database = {
           founding_year?: number | null
           id?: string
           industry?: string | null
+          is_template?: boolean
           max_employees?: number
           mission_vision?: string | null
           name?: string | null
@@ -9791,6 +9796,7 @@ export type Database = {
           founding_year?: number | null
           id?: string
           industry?: string | null
+          is_template?: boolean
           max_employees?: number
           mission_vision?: string | null
           name?: string | null
@@ -10108,6 +10114,56 @@ export type Database = {
           },
         ]
       }
+      ui_dashboard_element: {
+        Row: {
+          created_at: string
+          description: string | null
+          element_key: string
+          element_type: string
+          id: string
+          is_active: boolean
+          label: string
+          screen: string
+          service_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          element_key: string
+          element_type: string
+          id?: string
+          is_active?: boolean
+          label: string
+          screen: string
+          service_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          element_key?: string
+          element_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          screen?: string
+          service_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ui_dashboard_element_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_time_records: {
         Row: {
           created_at: string | null
@@ -10274,56 +10330,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ui_dashboard_element: {
-        Row: {
-          created_at: string
-          description: string | null
-          element_key: string
-          element_type: string
-          id: string
-          is_active: boolean
-          label: string
-          screen: string
-          service_id: string | null
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          element_key: string
-          element_type: string
-          id?: string
-          is_active?: boolean
-          label: string
-          screen: string
-          service_id?: string | null
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          element_key?: string
-          element_type?: string
-          id?: string
-          is_active?: boolean
-          label?: string
-          screen?: string
-          service_id?: string | null
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ui_dashboard_element_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "service"
             referencedColumns: ["id"]
           },
         ]

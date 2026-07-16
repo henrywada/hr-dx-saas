@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { PLAN_CONFIG, type PlanType } from '@/features/signup/types'
 
 /**
  * メール送信ユーティリティ
@@ -6,6 +7,19 @@ import nodemailer from 'nodemailer'
  * ローカル開発: Inbucket SMTP (localhost:55325) 経由で Mailpit に送信
  * 本番環境: SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS 環境変数で設定
  */
+
+/**
+ * メールHTMLへ埋め込むユーザー入力（氏名・会社名等）のエスケープ。
+ * 未認証フォーム由来の値をそのまま埋め込むと HTML インジェクションが成立するため必須
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'localhost',
@@ -57,17 +71,16 @@ export async function sendMail({
 export async function sendWelcomeEmail(
   email: string,
   name: string,
-  plan: 'free' | 'pro' | 'enterprise',
+  plan: PlanType,
   resetLink: string
 ) {
-  const planLabel = { free: '無料プラン', pro: 'プロプラン', enterprise: 'エンタープライズプラン' }[
-    plan
-  ]
+  const planLabel = PLAN_CONFIG[plan].label
+  const safeName = escapeHtml(name)
 
   await sendMail({
     to: email,
     subject: '【HR-DX】ご登録ありがとうございます',
-    html: `<p>${name} 様</p>
+    html: `<p>${safeName} 様</p>
 <p>HR-DX にご登録いただきありがとうございます。</p>
 <p>お申し込みプラン：<strong>${planLabel}</strong></p>
 <p>以下のリンクからパスワードを設定してログインしてください（72時間有効）。</p>
@@ -77,7 +90,7 @@ export async function sendWelcomeEmail(
 }
 
 /**
- * セルフサービス サインアップ: enterprise 銀行振込指示メール送信
+ * セルフサービス サインアップ: 銀行振込指示メール送信（銀行振込プラン用）
  */
 export async function sendBankTransferEmail(
   email: string,
@@ -94,12 +107,13 @@ export async function sendBankTransferEmail(
   resetLink: string
 ) {
   const amountFormatted = instructions.amount.toLocaleString('ja-JP')
+  const safeName = escapeHtml(name)
 
   await sendMail({
     to: email,
-    subject: '【HR-DX】お振込のご案内（エンタープライズプラン）',
-    html: `<p>${name} 様</p>
-<p>HR-DX エンタープライズプランにお申し込みいただきありがとうございます。</p>
+    subject: '【HR-DX】お振込のご案内',
+    html: `<p>${safeName} 様</p>
+<p>HR-DX にお申し込みいただきありがとうございます。</p>
 <p>以下の口座へお振込をお願いいたします。</p>
 <table border="1" cellpadding="6" cellspacing="0">
   <tr><th>銀行名</th><td>${instructions.bankName}${instructions.branchName ? '　' + instructions.branchName : ''}</td></tr>

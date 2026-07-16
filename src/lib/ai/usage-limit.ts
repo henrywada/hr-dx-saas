@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
+import { isPaidPlan } from '@/types/auth'
 
 /** 無料プランの月次 AI 利用上限（機能ごと） */
 export const AI_MONTHLY_FREE_LIMIT = 10
@@ -24,7 +25,7 @@ export async function getAiUsageContext(): Promise<
   if (!user?.tenant_id) {
     return { ok: false, error: 'テナント情報が見つかりません。ログインし直してください。' }
   }
-  const isUnlimited = user.planType === 'pro' || user.planType === 'enterprise'
+  const isUnlimited = isPaidPlan(user.planType)
   const supabase = await createClient()
   return { ok: true, data: { supabase, tenantId: user.tenant_id, isUnlimited } }
 }
@@ -35,7 +36,7 @@ export async function getAiUsageContext(): Promise<
  */
 export async function tryConsumeAiUsage(
   ctx: AiUsageContext,
-  featureName: AiFeatureName,
+  featureName: AiFeatureName
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.isUnlimited) {
     await ctx.supabase.from('ai_usage_logs').insert({
@@ -49,7 +50,7 @@ export async function tryConsumeAiUsage(
     ctx.supabase as unknown as {
       rpc: (
         fn: string,
-        args: Record<string, unknown>,
+        args: Record<string, unknown>
       ) => Promise<{ data: boolean | null; error: { message: string } | null }>
     }
   ).rpc('try_consume_ai_usage', {
@@ -77,7 +78,7 @@ export async function tryConsumeAiUsage(
 /** 今月の利用回数（表示用） */
 export async function getMonthlyAiUsageCount(
   tenantId: string,
-  featureName: AiFeatureName,
+  featureName: AiFeatureName
 ): Promise<number> {
   const supabase = await createClient()
   const startOfMonth = new Date()

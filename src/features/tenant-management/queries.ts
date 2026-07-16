@@ -9,10 +9,11 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
   const supabase = createAdminClient()
 
   try {
-    // ===== Step 1: tenants を全件取得 =====
+    // ===== Step 1: tenants を全件取得（プラン別テンプレートは除外） =====
     const { data: tenants, error } = await supabase
       .from('tenants')
       .select('*')
+      .eq('is_template', false)
       .order('created_at', { ascending: false })
 
     if (error) {

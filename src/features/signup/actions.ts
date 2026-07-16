@@ -6,6 +6,7 @@ import { sendWelcomeEmail, sendBankTransferEmail } from '@/lib/mail/send'
 import type { SignupFormData, SignupActionResult, PlanType } from './types'
 import { PLAN_CONFIG } from './types'
 import { signupSchema } from './schemas'
+import { copyTenantServicesFromTemplate } from './lib/copy-tenant-services'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stripe インスタンス（サーバー専用）
@@ -50,7 +51,14 @@ export async function createPaymentIntent(
   email: string,
   companyName: string
 ): Promise<{ clientSecret: string; paymentIntentId: string; bankTransfer?: object }> {
-  if (plan === 'free') throw new Error('無料プランに PaymentIntent は不要です')
+  const config = PLAN_CONFIG[plan]
+  if (!config.available) throw new Error('このプランは現在準備中です')
+  if (config.paymentMethod === 'free') throw new Error('無料プランに PaymentIntent は不要です')
+
+  // プランごとの Stripe Price ID（環境変数名は PLAN_CONFIG で定義）
+  const priceIdEnv = config.stripePriceIdEnv
+  const priceId = priceIdEnv ? process.env[priceIdEnv] : undefined
+  if (!priceId) throw new Error(`${priceIdEnv ?? 'Stripe Price ID 環境変数'} が未設定です`)
 
   const stripe = getStripe()
 
@@ -60,13 +68,10 @@ export async function createPaymentIntent(
     metadata: { plan, source: 'self_signup' },
   })
 
-  if (plan === 'pro') {
-    const priceId = process.env.STRIPE_PRO_PRICE_ID
-    if (!priceId) throw new Error('STRIPE_PRO_PRICE_ID が未設定です')
+  const price = await stripe.prices.retrieve(priceId)
+  const amount = price.unit_amount ?? 0
 
-    const price = await stripe.prices.retrieve(priceId)
-    const amount = price.unit_amount ?? 0
-
+  if (config.paymentMethod === 'card') {
     const pi = await stripe.paymentIntents.create({
       amount,
       currency: 'jpy',
@@ -81,12 +86,7 @@ export async function createPaymentIntent(
     }
   }
 
-  // enterprise: 銀行振込（customer_balance）
-  const priceId = process.env.STRIPE_ENTERPRISE_PRICE_ID
-  if (!priceId) throw new Error('STRIPE_ENTERPRISE_PRICE_ID が未設定です')
-
-  const price = await stripe.prices.retrieve(priceId)
-  const amount = price.unit_amount ?? 0
+  // 銀行振込（customer_balance）プラン
 
   const pi = await stripe.paymentIntents.create({
     amount,
@@ -129,8 +129,14 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
     return { success: false, error: '入力内容に誤りがあります: ' + parsed.error.issues[0].message }
   }
 
-  const { plan, applicantName, companyName, email, paymentIntentId } = data
+  const { plan, applicantName, companyName, email, industry, paymentIntentId } = data
   const config = PLAN_CONFIG[plan]
+
+  // 準備中プランは UI をバイパスした直接 POST も拒否する
+  if (!config.available) {
+    return { success: false, error: 'このプランは現在準備中です' }
+  }
+
   const supabase = createAdminClient()
 
   let tenantId: string | null = null
@@ -138,6 +144,25 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
   let userId: string | null = null
 
   try {
+    // ⓪ 決済検証（テナント作成前に実施）: カードプランは決済成立を必須とする。
+    //    UI をバイパスして未決済の PaymentIntent ID を渡されても登録させない
+    let stripeCustomerId: string | undefined
+    let paidAmount = 0
+    if (config.paymentMethod !== 'free') {
+      if (!paymentIntentId) {
+        return { success: false, error: '決済情報が確認できません' }
+      }
+      const stripe = getStripe()
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+
+      if (config.paymentMethod === 'card' && pi.status !== 'succeeded') {
+        return { success: false, error: 'お支払いが完了していません' }
+      }
+
+      stripeCustomerId = typeof pi.customer === 'string' ? pi.customer : undefined
+      paidAmount = pi.amount
+    }
+
     // ① tenants INSERT
     const contractEndAt = calcContractEndAt(config.contractMonths)
 
@@ -149,6 +174,7 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
         max_employees: config.maxEmployees,
         status: config.initialStatus,
         contract_end_at: contractEndAt,
+        industry: industry ?? null,
       })
       .select('id')
       .single()
@@ -157,16 +183,6 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
       return { success: false, error: 'テナント作成失敗: ' + (tenantError?.message ?? '') }
     }
     tenantId = tenant.id
-
-    // Stripe Customer ID と支払金額を取得（有料プランのみ）
-    let stripeCustomerId: string | undefined
-    let paidAmount = 0
-    if (plan !== 'free' && paymentIntentId) {
-      const stripe = getStripe()
-      const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
-      stripeCustomerId = typeof pi.customer === 'string' ? pi.customer : undefined
-      paidAmount = pi.amount
-    }
 
     // ② tenant_contracts INSERT
     const now = new Date().toISOString()
@@ -185,8 +201,10 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
         stripe_customer_id: stripeCustomerId ?? null,
         stripe_payment_intent_id: paymentIntentId ?? null,
         payment_status: config.paymentStatus,
-        contract_start_at: plan !== 'enterprise' ? now : null,
+        // 銀行振込プランは入金確認（Webhook）まで契約開始日を保留する
+        contract_start_at: config.paymentMethod !== 'bank_transfer' ? now : null,
         contract_end_at: contractEndAt,
+        industry: industry ?? null,
       })
       .select('id')
       .single()
@@ -248,6 +266,10 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
       return { success: false, error: '従業員登録失敗: ' + empError.message }
     }
 
+    // ⑤ プランのテンプレートテナントから tenant_service をコピー
+    //    （失敗は非致命: 警告ログのみでサインアップは続行。詳細はヘルパーのコメント参照）
+    await copyTenantServicesFromTemplate(supabase, plan, tenantId)
+
     // ⑥ パスワード設定リンク生成（72時間有効）
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const { data: recoveryToken } = await supabase.rpc('generate_recovery_token', {
@@ -261,7 +283,7 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
 
     // ⑦ メール送信
     try {
-      if (plan === 'enterprise' && data.bankTransferInstructions) {
+      if (config.paymentMethod === 'bank_transfer' && data.bankTransferInstructions) {
         await sendBankTransferEmail(email, applicantName, data.bankTransferInstructions, resetLink)
       } else {
         await sendWelcomeEmail(email, applicantName, plan, resetLink)

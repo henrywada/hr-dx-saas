@@ -139,34 +139,46 @@ export default function TenantManagementPage({ initialTenants }: Props) {
     return `¥${amount.toLocaleString()}`
   }
 
-  // プランバッジのスタイル
+  // プランバッジのスタイル（プランコード → 表示名・配色）
+  const PLAN_BADGE_MAP: Record<string, { label: string; className: string }> = {
+    free: {
+      label: '無料プラン',
+      className: 'bg-gray-100 text-gray-700 border border-gray-200',
+    },
+    plan100: {
+      label: 'プラン100',
+      className: 'bg-orange-50 text-[#FD7601] border border-[#e2e6ec]',
+    },
+    plan300: {
+      label: 'プラン300',
+      className: 'bg-blue-50 text-blue-700 border border-blue-200',
+    },
+    plan500: {
+      label: 'プラン500',
+      className: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+    },
+    plan1000: {
+      label: 'プラン1000',
+      className: 'bg-purple-100 text-purple-700 border border-purple-200',
+    },
+  }
+
   const getPlanBadge = (planType: string | null) => {
-    switch (planType) {
-      case 'enterprise':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
-            Enterprise
-          </span>
-        )
-      case 'pro':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#FD7601]-10 text-[#FD7601] border border-[#e2e6ec]">
-            Pro
-          </span>
-        )
-      case 'free':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-            Free
-          </span>
-        )
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">
-            —
-          </span>
-        )
+    const badge = planType ? PLAN_BADGE_MAP[planType] : undefined
+    if (!badge) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">
+          —
+        </span>
+      )
     }
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${badge.className}`}
+      >
+        {badge.label}
+      </span>
+    )
   }
 
   return (

@@ -1,4 +1,5 @@
-import Link from 'next/link'
+// 遷移先はサービス紹介サイト（LP）。環境変数で上書き可能
+const LP_URL = process.env.NEXT_PUBLIC_LP_URL ?? 'https://hr-dx.jp/'
 
 export default function SignupCompletePage() {
   return (
@@ -26,12 +27,12 @@ export default function SignupCompletePage() {
         メールが届かない場合は、迷惑メールフォルダをご確認ください。
       </div>
 
-      <Link
-        href="/login"
+      <a
+        href={LP_URL}
         className="inline-block px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors"
       >
-        ログイン画面へ
-      </Link>
+        戻る
+      </a>
     </div>
   )
 }

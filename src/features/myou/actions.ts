@@ -529,6 +529,8 @@ export async function issueTraceLabel(
     label: {
       trace_no: traceNo,
       company_no: company.company_no,
+      serial_number: input.serial_number,
+      expiration_date: input.expiration_date,
       qr_payload: buildTraceQrPayload(
         input.serial_number,
         input.expiration_date,

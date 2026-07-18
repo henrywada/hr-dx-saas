@@ -158,5 +158,7 @@ export type IssueTraceLabelInput = z.infer<typeof issueTraceLabelSchema>
 export interface TraceLabel {
   trace_no: string
   company_no: number
+  serial_number: string
+  expiration_date: string
   qr_payload: string
 }

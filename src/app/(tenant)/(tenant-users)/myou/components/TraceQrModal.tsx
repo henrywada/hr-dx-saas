@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Printer, X, Loader2, AlertCircle } from 'lucide-react'
 import { issueTraceLabel } from '@/features/myou/actions'
@@ -30,8 +30,21 @@ export default function TraceQrModal({
   const [issuedLabel, setIssuedLabel] = useState<TraceLabel | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  // 印刷待ちフラグ。再レンダリングを伴わないrefで保持し、
+  // 直後のuseEffect（state更新コミット後に発火）から読んで印刷を実行する。
+  const pendingPrintRef = useRef(false)
 
   const canIssue = serial.trim().length > 0 && DATE_PATTERN.test(expiration)
+
+  // 発行直後のstate更新はwindow.print()と同期実行されるため、
+  // 印刷用DOMがコミットされる前に印刷ダイアログが開き、初回印刷が空白になる。
+  // そのためstate更新のコミット後（issuedLabel確定後）に印刷を実行する。
+  useEffect(() => {
+    if (pendingPrintRef.current && issuedLabel) {
+      window.print()
+      pendingPrintRef.current = false
+    }
+  }, [issuedLabel])
 
   const handlePrint = () => {
     // 発行済みなら新たに登録せず、そのまま再印刷する（TraceNoの二重消費を防ぐ）
@@ -51,7 +64,7 @@ export default function TraceQrModal({
 
       if (result.success && result.label) {
         setIssuedLabel(result.label)
-        window.print()
+        pendingPrintRef.current = true
       } else {
         setError(result.error || 'トレーサビリティQRの発行に失敗しました。')
       }
@@ -167,8 +180,8 @@ export default function TraceQrModal({
         <div className="hidden print:flex print:flex-col print:items-center print:justify-center print:p-12">
           <QRCodeSVG value={issuedLabel.qr_payload} size={220} marginSize={2} />
           <div className="mt-6 text-center font-mono text-sm space-y-1">
-            <p className="font-bold">{serial}</p>
-            <p>有効期限: {expiration}</p>
+            <p className="font-bold">{issuedLabel.serial_number}</p>
+            <p>有効期限: {issuedLabel.expiration_date}</p>
             <p>出荷先No: {issuedLabel.company_no}</p>
             <p>TraceNo: {issuedLabel.trace_no}</p>
           </div>

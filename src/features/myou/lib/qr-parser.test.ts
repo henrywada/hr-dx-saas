@@ -4,8 +4,12 @@ import test from 'node:test'
 import {
   buildQrPayload,
   buildSerialNumber,
+  buildTraceNo,
+  buildTraceQrPayload,
   extractSerialSequence,
+  extractTraceSequence,
   getMaxSerialSequence,
+  getMaxTraceSequence,
   parseQrContent,
 } from './qr-parser'
 
@@ -71,4 +75,32 @@ test('getMaxSerialSequence は別日・別形式のシリアルを無視する',
 test('getMaxSerialSequence は該当なしのとき 0 を返す', () => {
   assert.equal(getMaxSerialSequence([], '2026-07-07'), 0)
   assert.equal(getMaxSerialSequence(['MS-20260706-0001'], '2026-07-07'), 0)
+})
+
+test('buildTraceNo は YYYYMMDD-NNNN 形式（4桁ゼロ埋め）を生成する', () => {
+  assert.equal(buildTraceNo('2026-07-18', 1), '20260718-0001')
+  assert.equal(buildTraceNo('2026-07-18', 42), '20260718-0042')
+})
+
+test('extractTraceSequence は当日分のTraceNoから通番を取り出す', () => {
+  assert.equal(extractTraceSequence('20260718-0007', '2026-07-18'), 7)
+})
+
+test('extractTraceSequence は日付が異なるTraceNoに対してnullを返す', () => {
+  assert.equal(extractTraceSequence('20260717-0007', '2026-07-18'), null)
+})
+
+test('extractTraceSequence は形式に合わないTraceNoに対してnullを返す', () => {
+  assert.equal(extractTraceSequence('INVALID', '2026-07-18'), null)
+})
+
+test('getMaxTraceSequence は当日分の最大通番を返す（該当なしは0）', () => {
+  const traceNos = ['20260718-0001', '20260718-0005', '20260717-0099']
+  assert.equal(getMaxTraceSequence(traceNos, '2026-07-18'), 5)
+  assert.equal(getMaxTraceSequence([], '2026-07-18'), 0)
+})
+
+test('buildTraceQrPayload は SERIAL/EXP/ShipTo/TraceNo を含むペイロードを組み立てる', () => {
+  const payload = buildTraceQrPayload('MS-20260707-0001', '2026-12-31', 3, '20260718-0001')
+  assert.equal(payload, 'SERIAL:MS-20260707-0001,EXP:2026-12-31,ShipTo:3,TraceNo:20260718-0001')
 })

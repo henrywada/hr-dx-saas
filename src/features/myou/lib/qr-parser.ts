@@ -75,3 +75,46 @@ export function extractSerialSequence(serial: string, dateYmd: string): number |
   const sequence = Number.parseInt(match[1], 10)
   return Number.isNaN(sequence) ? null : sequence
 }
+
+/**
+ * トレーサビリティQR用の当日通番文字列を組み立てる（接頭辞なし）。
+ * 形式: YYYYMMDD-NNNN（例: 20260718-0001）
+ */
+export function buildTraceNo(dateYmd: string, sequence: number): string {
+  const compactDate = dateYmd.replaceAll('-', '')
+  return `${compactDate}-${String(sequence).padStart(4, '0')}`
+}
+
+/**
+ * 既存TraceNo文字列から当日通番を取り出す。
+ * 形式に合わない場合は null を返す。
+ */
+export function extractTraceSequence(traceNo: string, dateYmd: string): number | null {
+  const compactDate = dateYmd.replaceAll('-', '')
+  const pattern = new RegExp(`^${compactDate}-(\\d{4,})$`)
+  const match = traceNo.match(pattern)
+  if (!match) return null
+  const sequence = Number.parseInt(match[1], 10)
+  return Number.isNaN(sequence) ? null : sequence
+}
+
+/**
+ * 当日発行済みTraceNo一覧から最大通番を求める（該当なしは 0）。
+ * buildSerialNumber と同様、文字列の辞書順比較では通番5桁以上を誤るため数値変換して比較する。
+ */
+export function getMaxTraceSequence(traceNos: string[], dateYmd: string): number {
+  return traceNos.reduce((max, traceNo) => {
+    const sequence = extractTraceSequence(traceNo, dateYmd)
+    return sequence !== null && sequence > max ? sequence : max
+  }, 0)
+}
+
+/** シリアル番号・有効期限・出荷先No・TraceNoからトレーサビリティQRペイロード文字列を組み立てる */
+export function buildTraceQrPayload(
+  serial: string,
+  expiration: string,
+  shipToNo: number,
+  traceNo: string
+): string {
+  return `SERIAL:${serial},EXP:${expiration},ShipTo:${shipToNo},TraceNo:${traceNo}`
+}

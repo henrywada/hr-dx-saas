@@ -47,6 +47,10 @@ export default function ReceivingScanPage() {
           <li>読み取りが完了すると、シリアル番号・有効期限・入荷日が在庫として登録されます。</li>
           <li>連続して複数の製品を登録することが可能です。</li>
           <li>登録した在庫は「在庫一覧」画面で確認できます。</li>
+          <li>QRコード形式：SERIAL:&lt;シリアル番号&gt;,EXP:&lt;有効期限YYYY-MM-DD&gt;</li>
+          <li>
+            製品シリアル番号：MS-YYYYMMDD-NNNN（MS=製品セルフィール接頭辞、発行日、当日通番4桁ゼロ埋め）
+          </li>
         </ul>
       </div>
     </div>

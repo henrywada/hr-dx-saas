@@ -179,8 +179,8 @@ export default function TraceQrModal({
           QRコード自体にSERIAL/EXP/ShipTo/TraceNoが全て符号化されているため、印刷はQRコードのみとする。
           .print-target により、サイドバー等の共通レイアウトを含め印刷時はこの要素のみが表示される */}
       {issuedLabel && (
-        <div className="print-target hidden print:flex print:items-center print:justify-center">
-          <QRCodeSVG value={issuedLabel.qr_payload} size={220} marginSize={2} />
+        <div className="print-target hidden print:flex print:items-start print:justify-start print:p-4">
+          <QRCodeSVG value={issuedLabel.qr_payload} size={110} marginSize={2} />
         </div>
       )}
     </>

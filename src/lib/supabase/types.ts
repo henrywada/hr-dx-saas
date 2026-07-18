@@ -4809,6 +4809,7 @@ export type Database = {
       }
       myou_companies: {
         Row: {
+          company_no: number
           created_at: string
           email_address: string | null
           id: string
@@ -4816,6 +4817,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          company_no: number
           created_at?: string
           email_address?: string | null
           id?: string
@@ -4823,6 +4825,7 @@ export type Database = {
           tenant_id?: string
         }
         Update: {
+          company_no?: number
           created_at?: string
           email_address?: string | null
           id?: string
@@ -4914,6 +4917,44 @@ export type Database = {
           {
             foreignKeyName: "myou_products_current_company_id_fkey"
             columns: ["current_company_id"]
+            isOneToOne: false
+            referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myou_trace_labels: {
+        Row: {
+          company_id: string
+          created_at: string
+          expiration_date: string
+          id: string
+          serial_number: string
+          tenant_id: string
+          trace_no: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          expiration_date: string
+          id?: string
+          serial_number: string
+          tenant_id?: string
+          trace_no: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expiration_date?: string
+          id?: string
+          serial_number?: string
+          tenant_id?: string
+          trace_no?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myou_trace_labels_company_id_fkey"
+            columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
             referencedColumns: ["id"]

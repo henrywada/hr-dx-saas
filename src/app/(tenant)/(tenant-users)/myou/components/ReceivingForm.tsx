@@ -1,18 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { parseQrContent } from '@/features/myou/lib/qr-parser'
+import { parseLotQrContent } from '@/features/myou/lib/qr-parser'
 import QrScanner from './QrScanner'
 import ReceivingProcessModal from './ReceivingProcessModal'
 
 /**
  * 入荷登録フォーム（製造元 →（株）ミュー）
- * QRスキャンで読み取ったシリアル番号・有効期限を保持し、「入荷処理へ進む」から
+ * QRスキャンで読み取った製造ロット番号・有効期限を保持し、「入荷処理へ進む」から
  * モーダルで数量を確認したうえで在庫登録する
  */
 export default function ReceivingForm() {
   const [lastScanned, setLastScanned] = useState<{
-    serial: string
+    lotNo: string
     expiration: string
   } | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -22,8 +22,8 @@ export default function ReceivingForm() {
   } | null>(null)
 
   const handleScanSuccess = (decodedText: string) => {
-    const { serial, expiration } = parseQrContent(decodedText)
-    setLastScanned({ serial, expiration })
+    const { lotNo, expiration } = parseLotQrContent(decodedText)
+    setLastScanned({ lotNo, expiration })
     setMessage(null)
   }
 
@@ -48,7 +48,7 @@ export default function ReceivingForm() {
       {lastScanned && (
         <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
           <h3 className="text-sm font-semibold text-blue-900 mb-1">直前のスキャン内容:</h3>
-          <p className="text-xs text-blue-800">シリアル: {lastScanned.serial}</p>
+          <p className="text-xs text-blue-800">ロット番号: {lastScanned.lotNo}</p>
           <p className="text-xs text-blue-800">有効期限: {lastScanned.expiration}</p>
         </div>
       )}
@@ -71,7 +71,7 @@ export default function ReceivingForm() {
       {isModalOpen && (
         <ReceivingProcessModal
           hasScanned={!!lastScanned}
-          scannedSerial={lastScanned?.serial ?? ''}
+          scannedLotNo={lastScanned?.lotNo ?? ''}
           scannedExpiration={lastScanned?.expiration ?? ''}
           onClose={() => setIsModalOpen(false)}
           onSuccess={setMessage}

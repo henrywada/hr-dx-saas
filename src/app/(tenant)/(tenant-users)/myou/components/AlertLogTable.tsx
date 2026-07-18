@@ -38,7 +38,7 @@ export default function AlertLogTable({ logs }: Props) {
                 施工会社
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                対象シリアル件数
+                対象トレース件数
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ステータス
@@ -60,7 +60,7 @@ export default function AlertLogTable({ logs }: Props) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                   <span className="font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 mr-2">
-                    {log.target_serials?.length || 0}
+                    {log.target_trace_nos?.length || 0}
                   </span>
                   件
                 </td>
@@ -87,7 +87,7 @@ export default function AlertLogTable({ logs }: Props) {
                 </td>
                 <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
                   {log.status === 'success'
-                    ? log.target_serials?.join(', ') || '-'
+                    ? log.target_trace_nos?.join(', ') || '-'
                     : log.error_message || '不明なエラー'}
                 </td>
               </tr>

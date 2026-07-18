@@ -2,35 +2,35 @@
 
 import { useTransition, useState } from 'react'
 import { sendManualAlert } from '@/features/myou/actions'
-import type { ExpiringProduct } from '@/features/myou/types'
+import type { ExpiringTraceLabel } from '@/features/myou/types'
 import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { Bell, Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 interface Props {
-  products: ExpiringProduct[]
+  labels: ExpiringTraceLabel[]
 }
 
-export default function ExpiringProductsTable({ products }: Props) {
+export default function ExpiringTraceLabelsTable({ labels }: Props) {
   const [isPending, startTransition] = useTransition()
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  // 会社ごとに製品をグループ化（出荷先情報が欠落しているレコードは表示対象外）
-  const groupedByCompany = products.reduce(
-    (acc, product) => {
-      const company = product.myou_companies
+  // 会社ごとにグループ化（出荷先情報が欠落しているレコードは表示対象外）
+  const groupedByCompany = labels.reduce(
+    (acc, label) => {
+      const company = label.myou_companies
       if (!company) return acc
       if (!acc[company.id]) {
         acc[company.id] = {
           name: company.name,
           email: company.email_address ?? '',
-          products: [],
+          labels: [],
         }
       }
-      acc[company.id].products.push(product)
+      acc[company.id].labels.push(label)
       return acc
     },
-    {} as Record<string, { name: string; email: string; products: ExpiringProduct[] }>
+    {} as Record<string, { name: string; email: string; labels: ExpiringTraceLabel[] }>
   )
 
   const handleSendAlert = (companyId: string) => {
@@ -48,11 +48,11 @@ export default function ExpiringProductsTable({ products }: Props) {
     })
   }
 
-  if (products.length === 0) {
+  if (labels.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
         <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <p className="text-gray-600 font-medium">現在、期限間近の製品はありません。</p>
+        <p className="text-gray-600 font-medium">現在、期限間近の出荷分はありません。</p>
       </div>
     )
   }
@@ -119,7 +119,13 @@ export default function ExpiringProductsTable({ products }: Props) {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    シリアル番号
+                    TraceNo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ロット番号
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    数量
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     有効期限
@@ -133,15 +139,21 @@ export default function ExpiringProductsTable({ products }: Props) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {company.products.map(p => {
-                  const daysLeft = getDaysUntilExpiration(p.expiration_date) ?? 0
+                {company.labels.map(label => {
+                  const daysLeft = getDaysUntilExpiration(label.expiration_date) ?? 0
                   return (
-                    <tr key={p.serial_number} className="hover:bg-gray-50 transition-colors">
+                    <tr key={label.trace_no} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                        {p.serial_number}
+                        {label.trace_no}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
+                        {label.lot_no}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {p.expiration_date}
+                        {label.quantity}個
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {label.expiration_date}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

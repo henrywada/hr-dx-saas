@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { QrCode, X, Copy, Check } from 'lucide-react'
-import { buildQrPayload } from '@/features/myou/lib/qr-parser'
+import { buildLotQrPayload } from '@/features/myou/lib/qr-parser'
 
 // 外部サービスに依存せず、同梱の qrcode.react でローカル生成する
 function generateTestPayload(): string {
-  const serial = 'TEST-' + Math.floor(1000 + Math.random() * 9000)
-  return buildQrPayload(serial, '2026-12-31')
+  const lotNo = 'LOT-TEST-' + Math.floor(1000 + Math.random() * 9000)
+  return buildLotQrPayload(lotNo, '2026-01-01', '2026-12-31')
 }
 
 export default function TestQrModal() {
@@ -119,7 +119,7 @@ export default function TestQrModal() {
                 <p className="font-black mb-1 flex items-center">
                   <span className="mr-1">⚠️</span> 使い方
                 </p>
-                「納入登録（QRスキャン）」画面を開き、このQRコードをカメラで読み取ってください。ランダムなシリアル番号で登録テストが可能です。
+                「入荷登録（QRスキャン）」画面を開き、このQRコードをカメラで読み取ってください。ランダムなロット番号で登録テストが可能です。
               </div>
 
               <button

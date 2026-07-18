@@ -4,24 +4,24 @@ import { useState, useTransition } from 'react'
 import TraceabilitySearchForm from '../components/TraceabilitySearchForm'
 import TraceabilityResults from '../components/TraceabilityResults'
 import MyouBackLink from '../components/MyouBackLink'
-import { getProductTrace } from '@/features/myou/actions'
-import type { ProductTraceResult } from '@/features/myou/types'
+import { getLotTrace } from '@/features/myou/actions'
+import type { LotTraceResult } from '@/features/myou/types'
 import { PackageSearch, ArrowRight, History, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function TraceabilityPage() {
   const [isPending, startTransition] = useTransition()
-  const [searchResult, setSearchResult] = useState<ProductTraceResult | null>(null)
+  const [searchResult, setSearchResult] = useState<LotTraceResult | null>(null)
   const [searched, setSearched] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
 
-  const handleSearch = (serial: string) => {
+  const handleSearch = (identifier: string) => {
     setSearched(true)
     setSearchError(null)
     startTransition(async () => {
       // Server Action が throw してもルートの error.tsx に飛ばさず、
       // 検索コンテキストを保ったままエラーバナーで通知する
       try {
-        const data = await getProductTrace(serial)
+        const data = await getLotTrace(identifier)
         setSearchResult(data)
       } catch (error) {
         console.error('Traceability search failed:', error)
@@ -53,7 +53,7 @@ export default function TraceabilityPage() {
               流通経路上での照会
             </h1>
             <p className="max-w-2xl text-lg text-blue-100/80 leading-relaxed font-medium">
-              シリアル番号を入力またはQRコードをスキャンして、製品の有効期限・入荷日・
+              ロット番号またはTraceNoを入力・QRコードをスキャンして、ロットの有効期限・入荷日・
               出荷先・出荷日といった流通データを即座に照会できます。
             </p>
 
@@ -107,7 +107,7 @@ export default function TraceabilityPage() {
             <div className="md:w-2/3 space-y-4 text-center md:text-left">
               <h3 className="text-xl font-black text-gray-900">どのように動作しますか？</h3>
               <p className="text-gray-500 text-sm leading-relaxed">
-                各製品には固有のシリアル番号が割り振られています。入荷時・出荷時に担当者が
+                各製造ロットには固有のロット番号が割り振られています。入荷時・出荷時に担当者が
                 QRスキャンを行うと、その記録がタイムスタンプとともにデータベースへ保存され、
                 後からいつでもこの画面で流通経路を確認できるようになります。
               </p>

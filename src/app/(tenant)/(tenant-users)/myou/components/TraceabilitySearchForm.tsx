@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { Search, QrCode, XCircle } from 'lucide-react'
-import { parseQrContent } from '@/features/myou/lib/qr-parser'
+import { extractSearchIdentifier } from '@/features/myou/lib/qr-parser'
 import QrScanner from './QrScanner'
 
 interface TraceabilitySearchFormProps {
-  onSearch: (serial: string) => void
+  onSearch: (identifier: string) => void
   isPending: boolean
 }
 
@@ -14,28 +14,28 @@ export default function TraceabilitySearchForm({
   onSearch,
   isPending,
 }: TraceabilitySearchFormProps) {
-  const [inputSerial, setInputSerial] = useState('')
+  const [inputIdentifier, setInputIdentifier] = useState('')
   const [showScanner, setShowScanner] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (inputSerial.trim()) {
-      onSearch(inputSerial.trim())
+    if (inputIdentifier.trim()) {
+      onSearch(inputIdentifier.trim())
     }
   }
 
   const handleScanSuccess = (decodedText: string) => {
-    const { serial } = parseQrContent(decodedText)
+    const identifier = extractSearchIdentifier(decodedText)
 
-    setInputSerial(serial)
+    setInputIdentifier(identifier)
     setShowScanner(false)
-    onSearch(serial)
+    onSearch(identifier)
   }
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-8">
       <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">製品シリアル番号で検索</h2>
+        <h2 className="text-sm font-semibold text-gray-700">ロット番号／TraceNoで検索</h2>
         <button
           onClick={() => setShowScanner(!showScanner)}
           className={`flex items-center space-x-1 text-xs px-3 py-1.5 rounded-full transition-colors ${
@@ -61,7 +61,7 @@ export default function TraceabilitySearchForm({
           <div className="mb-6">
             <QrScanner onScanSuccess={handleScanSuccess} />
             <p className="text-center text-xs text-gray-500 mt-2">
-              製品ラベルのQRコードをスキャンしてください
+              ロットQR（段ボール）またはトレーサビリティQR（出荷ラベル）をスキャンしてください
             </p>
           </div>
         ) : (
@@ -75,15 +75,15 @@ export default function TraceabilitySearchForm({
               </div>
               <input
                 type="text"
-                value={inputSerial}
-                onChange={e => setInputSerial(e.target.value)}
-                placeholder="シリアル番号を入力（例: S-20240310-001）"
+                value={inputIdentifier}
+                onChange={e => setInputIdentifier(e.target.value)}
+                placeholder="ロット番号またはTraceNoを入力（例: LOT-20260707-0001）"
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
               />
             </div>
             <button
               type="submit"
-              disabled={isPending || !inputSerial.trim()}
+              disabled={isPending || !inputIdentifier.trim()}
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
             >
               {isPending ? (

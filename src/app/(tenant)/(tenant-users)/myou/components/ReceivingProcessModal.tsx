@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { X, Loader2, AlertCircle, PackageCheck } from 'lucide-react'
-import { processReceiving } from '@/features/myou/actions'
+import { receiveLot } from '@/features/myou/actions'
 
 interface ReceivingProcessModalProps {
   hasScanned: boolean
-  scannedSerial: string
+  scannedLotNo: string
   scannedExpiration: string
   onClose: () => void
   onSuccess: (message: { type: 'success' | 'warning'; text: string }) => void
@@ -16,12 +16,12 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * 入荷処理モーダル。
- * スキャン済みならそのシリアル番号・有効期限を起点に、未スキャンなら本日日付で
- * 新規採番し、数量分の連番シリアルをまとめて在庫登録する。
+ * スキャン済みならそのロット番号を起点に数量を加算登録し、未スキャンなら本日日付で
+ * 新規ロット番号を採番して数量分を新規ロットとして在庫登録する。
  */
 export default function ReceivingProcessModal({
   hasScanned,
-  scannedSerial,
+  scannedLotNo,
   scannedExpiration,
   onClose,
   onSuccess,
@@ -31,24 +31,25 @@ export default function ReceivingProcessModal({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const canSubmit = quantity >= 1 && DATE_PATTERN.test(expiration)
+  const canSubmit = !Number.isNaN(quantity) && quantity >= 1 && DATE_PATTERN.test(expiration)
 
   const handleSubmit = () => {
     if (!canSubmit || isPending) return
 
     setError(null)
     startTransition(async () => {
-      const result = await processReceiving({
-        scanned_serial: hasScanned ? scannedSerial : undefined,
+      const result = await receiveLot({
+        scanned_lot_no: hasScanned ? scannedLotNo : undefined,
         expiration_date: expiration,
         quantity,
       })
 
       if (result.success) {
-        const count = result.registered_serials?.length ?? quantity
         onSuccess({
           type: result.warning ? 'warning' : 'success',
-          text: result.warning ?? `入荷処理が完了しました（${count}件）`,
+          text:
+            result.warning ??
+            `入荷処理が完了しました（${result.registered_lot_no} / ${quantity}個）`,
         })
         onClose()
       } else {
@@ -73,10 +74,10 @@ export default function ReceivingProcessModal({
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">シリアル番号</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">ロット番号</label>
             <input
               type="text"
-              value={hasScanned ? scannedSerial : '自動採番されます'}
+              value={hasScanned ? scannedLotNo : '自動採番されます'}
               readOnly
               className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
             />
@@ -102,13 +103,13 @@ export default function ReceivingProcessModal({
               htmlFor="receiving-quantity"
               className="block text-xs font-medium text-gray-700 mb-1"
             >
-              数量
+              数量（缶の本数）
             </label>
             <input
               id="receiving-quantity"
               type="number"
               min={1}
-              max={1000}
+              max={100000}
               required
               value={quantity}
               onChange={e => setQuantity(Number(e.target.value))}

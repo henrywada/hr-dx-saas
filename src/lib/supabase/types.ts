@@ -4776,7 +4776,7 @@ export type Database = {
           id: string
           sent_at: string
           status: string
-          target_serials: string[]
+          target_trace_nos: string[]
           tenant_id: string
         }
         Insert: {
@@ -4785,7 +4785,7 @@ export type Database = {
           id?: string
           sent_at?: string
           status?: string
-          target_serials: string[]
+          target_trace_nos: string[]
           tenant_id?: string
         }
         Update: {
@@ -4794,7 +4794,7 @@ export type Database = {
           id?: string
           sent_at?: string
           status?: string
-          target_serials?: string[]
+          target_trace_nos?: string[]
           tenant_id?: string
         }
         Relationships: [
@@ -4840,8 +4840,9 @@ export type Database = {
           delivered_by: string | null
           delivery_date: string
           id: string
+          lot_id: string
+          quantity: number
           registered_at: string
-          serial_number: string
           tenant_id: string
         }
         Insert: {
@@ -4849,8 +4850,9 @@ export type Database = {
           delivered_by?: string | null
           delivery_date?: string
           id?: string
+          lot_id: string
+          quantity?: number
           registered_at?: string
-          serial_number: string
           tenant_id?: string
         }
         Update: {
@@ -4858,8 +4860,9 @@ export type Database = {
           delivered_by?: string | null
           delivery_date?: string
           id?: string
+          lot_id?: string
+          quantity?: number
           registered_at?: string
-          serial_number?: string
           tenant_id?: string
         }
         Relationships: [
@@ -4871,57 +4874,55 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "myou_delivery_logs_product_fkey"
-            columns: ["tenant_id", "serial_number"]
+            foreignKeyName: "myou_delivery_logs_lot_id_fkey"
+            columns: ["lot_id"]
             isOneToOne: false
-            referencedRelation: "myou_products"
-            referencedColumns: ["tenant_id", "serial_number"]
+            referencedRelation: "myou_lots"
+            referencedColumns: ["id"]
           },
         ]
       }
-      myou_products: {
+      myou_lots: {
         Row: {
           created_at: string
-          current_company_id: string | null
-          expiration_date: string | null
-          issued_at: string | null
-          last_delivery_at: string | null
+          expiration_date: string
+          id: string
+          lot_no: string
+          manufactured_date: string | null
+          qr_payload: string
+          quantity_remaining: number
+          quantity_total: number
           received_at: string | null
-          serial_number: string
           status: string
           tenant_id: string
         }
         Insert: {
           created_at?: string
-          current_company_id?: string | null
-          expiration_date?: string | null
-          issued_at?: string | null
-          last_delivery_at?: string | null
+          expiration_date: string
+          id?: string
+          lot_no: string
+          manufactured_date?: string | null
+          qr_payload: string
+          quantity_remaining?: number
+          quantity_total?: number
           received_at?: string | null
-          serial_number: string
           status?: string
           tenant_id?: string
         }
         Update: {
           created_at?: string
-          current_company_id?: string | null
-          expiration_date?: string | null
-          issued_at?: string | null
-          last_delivery_at?: string | null
+          expiration_date?: string
+          id?: string
+          lot_no?: string
+          manufactured_date?: string | null
+          qr_payload?: string
+          quantity_remaining?: number
+          quantity_total?: number
           received_at?: string | null
-          serial_number?: string
           status?: string
           tenant_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "myou_products_current_company_id_fkey"
-            columns: ["current_company_id"]
-            isOneToOne: false
-            referencedRelation: "myou_companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       myou_trace_labels: {
         Row: {
@@ -4929,7 +4930,8 @@ export type Database = {
           created_at: string
           expiration_date: string
           id: string
-          serial_number: string
+          lot_id: string
+          quantity: number
           tenant_id: string
           trace_no: string
         }
@@ -4938,7 +4940,8 @@ export type Database = {
           created_at?: string
           expiration_date: string
           id?: string
-          serial_number: string
+          lot_id: string
+          quantity?: number
           tenant_id?: string
           trace_no: string
         }
@@ -4947,7 +4950,8 @@ export type Database = {
           created_at?: string
           expiration_date?: string
           id?: string
-          serial_number?: string
+          lot_id?: string
+          quantity?: number
           tenant_id?: string
           trace_no?: string
         }
@@ -4957,6 +4961,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "myou_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myou_trace_labels_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "myou_lots"
             referencedColumns: ["id"]
           },
         ]
@@ -10657,17 +10668,33 @@ export type Database = {
           similarity: number
         }[]
       }
-      myou_register_delivery: {
+      myou_deliver_from_lot: {
         Args: {
           p_company_id: string
           p_delivered_by: string
           p_delivery_date: string
-          p_expiration_date: string
-          p_last_delivery_at: string
-          p_registered_at: string
-          p_serial_number: string
+          p_lot_no: string
+          p_quantity: number
+          p_trace_no: string
         }
-        Returns: undefined
+        Returns: {
+          expiration_date: string
+          lot_id: string
+        }[]
+      }
+      myou_receive_lot: {
+        Args: {
+          p_expiration_date: string
+          p_lot_no: string
+          p_qr_payload: string
+          p_quantity: number
+          p_received_at: string
+        }
+        Returns: {
+          is_new: boolean
+          lot_id: string
+          previous_status: string
+        }[]
       }
       rag_session_tenant_id: { Args: never; Returns: string }
       resolve_active_period_for_employee_v2: {

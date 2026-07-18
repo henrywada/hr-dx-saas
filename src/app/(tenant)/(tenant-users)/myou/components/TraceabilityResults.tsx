@@ -12,20 +12,20 @@ import {
 } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import {
-  MYOU_STATUS_LABELS,
-  type ProductTraceResult,
-  type MyouProductStatus,
+  MYOU_LOT_STATUS_LABELS,
+  type LotTraceResult,
+  type MyouLotStatus,
 } from '@/features/myou/types'
 
 interface TraceabilityResultsProps {
-  data: ProductTraceResult | null
+  data: LotTraceResult | null
   searched: boolean
 }
 
 /** ステータスに応じたバッジ配色を返す */
-function statusBadgeClass(status: MyouProductStatus): string {
+function statusBadgeClass(status: MyouLotStatus): string {
   switch (status) {
-    case 'delivered':
+    case 'depleted':
       return 'bg-green-100 text-green-700'
     case 'in_stock':
       return 'bg-blue-100 text-blue-700'
@@ -43,53 +43,53 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-red-800 mb-2">製品が見つかりません</h3>
+        <h3 className="text-lg font-bold text-red-800 mb-2">ロットが見つかりません</h3>
         <p className="text-sm text-red-600">
-          入力されたシリアル番号はデータベースに登録されていないか、正しくありません。
+          入力されたロット番号／TraceNoはデータベースに登録されていないか、正しくありません。
           番号を再度お確かめください。
         </p>
       </div>
     )
   }
 
-  const { product, history } = data
-  const status = (product.status as MyouProductStatus) ?? 'issued'
+  const { lot, history } = data
+  const status = lot.status
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* 製品基本情報カード */}
+      {/* ロット基本情報カード */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
           <h3 className="text-white font-bold flex items-center">
             <Package className="h-5 w-5 mr-2" />
-            製品ステータス
+            ロットステータス
           </h3>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="space-y-1">
-            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">シリアル番号</p>
-            <p className="text-xl font-mono font-black text-gray-900">{product.serial_number}</p>
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">ロット番号</p>
+            <p className="text-xl font-mono font-black text-gray-900">{lot.lot_no}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">有効期限</p>
             <p
               className={`text-lg font-bold flex items-center ${
-                product.expiration_date && new Date(product.expiration_date) < new Date()
+                lot.expiration_date && new Date(lot.expiration_date) < new Date()
                   ? 'text-red-600'
                   : 'text-gray-900'
               }`}
             >
               <Calendar className="h-4 w-4 mr-2" />
-              {product.expiration_date ?? '未設定'}
+              {lot.expiration_date ?? '未設定'}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-              仕入納入日（入荷日）
+              在庫数量（残数 / 総数）
             </p>
             <p className="text-lg font-bold text-gray-900 flex items-center">
               <Warehouse className="h-4 w-4 mr-2" />
-              {product.received_at ?? '未登録'}
+              {lot.quantity_remaining} / {lot.quantity_total}
             </p>
           </div>
           <div className="space-y-1">
@@ -98,17 +98,17 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold shadow-sm ${statusBadgeClass(status)}`}
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              {MYOU_STATUS_LABELS[status] ?? product.status}
+              {MYOU_LOT_STATUS_LABELS[status] ?? lot.status}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 流通履歴タイムライン */}
+      {/* 出荷履歴タイムライン */}
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-gray-900 flex items-center pl-1">
           <Truck className="h-5 w-5 mr-2 text-blue-600" />
-          流通履歴タイムライン
+          出荷履歴タイムライン
         </h3>
 
         <div className="relative">
@@ -147,15 +147,16 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mt-4 border-t border-gray-50 pt-4">
                       <div className="flex items-center text-gray-600">
+                        <Package className="h-4 w-4 mr-2 text-gray-400" />
+                        出荷数量:{' '}
+                        <span className="font-semibold text-gray-900 ml-1">{log.quantity}個</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
                         <User className="h-4 w-4 mr-2 text-gray-400" />
                         登録担当者:{' '}
                         <span className="font-semibold text-gray-900 ml-1">
                           {log.delivered_by || 'システム登録'}
                         </span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Truck className="h-4 w-4 mr-2 text-gray-400" />
-                        出荷方式: <span className="font-semibold text-gray-900 ml-1">直接納入</span>
                       </div>
                     </div>
                   </div>
@@ -170,26 +171,24 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                   出荷履歴がまだありません。
                   {status === 'in_stock'
                     ? '入荷済み・在庫状態です。'
-                    : 'ラベル発行済みの状態です。'}
+                    : 'ロットQR発行済みの状態です。'}
                 </div>
               </div>
             )}
 
-            {/* 起点（入荷 or ラベル発行） */}
+            {/* 起点（入荷 or ロットQR発行） */}
             <div className="flex">
               <div className="relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 border-white bg-green-500 text-white shadow-md">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div className="flex-grow ml-6 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm self-center">
                 <p className="font-black text-gray-900">
-                  {product.received_at
-                    ? `入荷（仕入納入）: ${product.received_at}`
-                    : '製造・検品完了'}
+                  {lot.received_at ? `入荷（仕入納入）: ${lot.received_at}` : '製造・検品完了'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {product.issued_at
-                    ? `QRラベル発行: ${formatDateTimeInJST(product.issued_at)}`
-                    : '製品が正規ルートで製造されたことを確認しました。'}
+                  {lot.received_at
+                    ? `総数 ${lot.quantity_total}個 を入荷登録しました。`
+                    : '製造ロットQRが発行されました（数量未確定）。'}
                 </p>
               </div>
             </div>
@@ -206,7 +205,7 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
           <div>
             <h4 className="text-green-900 font-black">トレーサビリティ記録あり</h4>
             <p className="text-green-700 text-xs mt-0.5">
-              この製品の入荷・出荷イベントはデータベースに記録されています。
+              このロットの入荷・出荷イベントはデータベースに記録されています。
             </p>
           </div>
         </div>

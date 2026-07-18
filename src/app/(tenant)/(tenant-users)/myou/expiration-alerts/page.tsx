@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
-import { getExpiringProducts, getAlertLogs } from '@/features/myou/queries'
-import ExpiringProductsTable from '../components/ExpiringProductsTable'
+import { getExpiringTraceLabels, getAlertLogs } from '@/features/myou/queries'
+import ExpiringTraceLabelsTable from '../components/ExpiringTraceLabelsTable'
 import AlertLogTable from '../components/AlertLogTable'
 import MyouBackLink from '../components/MyouBackLink'
 import { formatDateInJST } from '@/lib/datetime'
@@ -9,12 +9,12 @@ import { AlertTriangle, History, Calendar } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: '製品有効期限監視・アラート管理',
-  description: '有効期限が近い製品を把握し、施工会社へアラートを送信します。',
+  description: '有効期限が近い出荷済み製品を把握し、施工会社へアラートを送信します。',
 }
 
 export default async function ExpirationAlertsPage() {
   // 並列でデータを取得
-  const [products, logs] = await Promise.all([getExpiringProducts(), getAlertLogs()])
+  const [labels, logs] = await Promise.all([getExpiringTraceLabels(), getAlertLogs()])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,7 +47,7 @@ export default async function ExpirationAlertsPage() {
                   アラート対象
                 </div>
                 <div className="text-2xl font-black text-white leading-none">
-                  {products.length}
+                  {labels.length}
                   <span className="text-sm font-normal ml-1">件</span>
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default async function ExpirationAlertsPage() {
               </div>
             }
           >
-            <ExpiringProductsTable products={products} />
+            <ExpiringTraceLabelsTable labels={labels} />
           </Suspense>
         </section>
 
@@ -114,7 +114,7 @@ export default async function ExpirationAlertsPage() {
             <div className="space-y-2">
               <p className="font-bold underline">監視対象</p>
               <p>
-                この画面を開いた時点の製品データベースを集計しています。ステータスが「出荷済」で有効期限が30日以内のものが対象です。
+                この画面を開いた時点のトレーサビリティQR発行履歴を集計しています。客先へ出荷済みで有効期限が30日以内のものが対象です。
               </p>
             </div>
             <div className="space-y-2">

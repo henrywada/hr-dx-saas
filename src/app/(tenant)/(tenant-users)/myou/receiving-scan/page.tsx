@@ -5,7 +5,8 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '入荷登録（QRスキャン）',
-  description: '製造元から納品されたスプレー缶のQRコードをスキャンして在庫として登録します。',
+  description:
+    '製造元から納品された段ボール（ロット）のQRコードをスキャンして在庫として登録します。',
 }
 
 export default function ReceivingScanPage() {
@@ -43,19 +44,23 @@ export default function ReceivingScanPage() {
       <div className="mt-8 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <h3 className="text-sm font-semibold text-gray-800 mb-2">💡 操作ガイド</h3>
         <ul className="text-xs text-gray-600 space-y-1 ml-4 list-disc">
-          <li>製造元からスプレー缶が納品されたら、この画面でQRコードをスキャンしてください。</li>
           <li>
-            スキャン後に「入荷処理へ進む」を押すと、シリアル番号・有効期限・数量を確認したうえで在庫登録できます。
+            製造元から段ボール（ロット）が納品されたら、この画面でロットQRコードをスキャンしてください。
           </li>
           <li>
-            QRコードをスキャンせずに「入荷処理へ進む」を押した場合は、シリアル番号を自動採番して登録できます。
+            スキャン後に「入荷処理へ進む」を押すと、ロット番号・有効期限を確認したうえで数量（缶の本数）を入力して在庫登録できます。
           </li>
-          <li>数量を指定すると、連番のシリアル番号をまとめて登録できます。</li>
+          <li>
+            QRコードをスキャンせずに「入荷処理へ進む」を押した場合は、ロット番号を自動採番して新規登録できます。
+          </li>
+          <li>
+            同じロットを複数回スキャンした場合は、数量が加算登録されます（複数回に分けて納品された場合など）。
+          </li>
           <li>登録した在庫は「在庫一覧」画面で確認できます。</li>
-          <li>QRコード形式：SERIAL:&lt;シリアル番号&gt;,EXP:&lt;有効期限YYYY-MM-DD&gt;</li>
           <li>
-            製品シリアル番号：MS-YYYYMMDD-NNNN（MS=製品セルフィール接頭辞、発行日、当日通番4桁ゼロ埋め）
+            QRコード形式：LOT:&lt;ロット番号&gt;,MFG:&lt;製造日YYYY-MM-DD&gt;,EXP:&lt;有効期限YYYY-MM-DD&gt;
           </li>
+          <li>ロット番号：LOT-YYYYMMDD-NNNN（発行日、当日通番4桁ゼロ埋め）</li>
         </ul>
       </div>
     </div>

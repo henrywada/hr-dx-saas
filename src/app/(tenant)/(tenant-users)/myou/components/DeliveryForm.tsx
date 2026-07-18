@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { registerDelivery } from '@/features/myou/actions'
-import { parseQrContent } from '@/features/myou/lib/qr-parser'
-import type { MyouCompany } from '@/features/myou/types'
+import { deliverFromLot } from '@/features/myou/actions'
+import { parseLotQrContent } from '@/features/myou/lib/qr-parser'
+import type { MyouCompany, TraceLabel } from '@/features/myou/types'
 import QrScanner from './QrScanner'
 import TraceQrModal from './TraceQrModal'
 
@@ -12,16 +12,15 @@ interface DeliveryFormProps {
 }
 
 /**
- * 出荷登録フォーム（（株）ミュー → 施工会社）
- * 出荷先を選択したうえでQRスキャンし、出荷履歴を記録する
+ * 出荷登録フォーム（（株）ミュー → 施工会社、ロット引当）
+ * 出荷先・受注数量を指定したうえでロットQRをスキャンし、数量分をロット残数から
+ * 引き当てて出荷登録する。登録成功時はトレーサビリティQRを自動発行し、印刷モーダルを開く。
+ * ロット残数が不足する場合は自動分割せず、別ロットの再スキャンを促す。
  */
 export default function DeliveryForm({ companies }: DeliveryFormProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [isTraceModalOpen, setIsTraceModalOpen] = useState(false)
-  const [lastScanned, setLastScanned] = useState<{
-    serial: string
-    expiration: string
-  } | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [issuedLabel, setIssuedLabel] = useState<TraceLabel | null>(null)
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<{
     type: 'success' | 'error' | 'warning'
@@ -35,25 +34,24 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
       setMessage({ type: 'error', text: '先に出荷先（施工会社）を選択してください。' })
       return
     }
+    if (Number.isNaN(quantity) || quantity < 1) {
+      setMessage({ type: 'error', text: '受注数量を入力してください。' })
+      return
+    }
 
-    const { serial, expiration } = parseQrContent(decodedText)
-    setLastScanned({ serial, expiration })
+    const { lotNo } = parseLotQrContent(decodedText)
     setMessage(null)
 
-    // 登録実行
     startTransition(async () => {
-      const result = await registerDelivery({
-        serial_number: serial,
-        expiration_date: expiration,
+      const result = await deliverFromLot({
+        lot_no: lotNo,
         company_id: selectedCompanyId,
+        quantity,
       })
 
-      if (result.success) {
-        if (result.warning) {
-          setMessage({ type: 'warning', text: result.warning })
-        } else {
-          setMessage({ type: 'success', text: `出荷登録成功: ${serial}` })
-        }
+      if (result.success && result.label) {
+        setMessage({ type: 'success', text: `出荷登録成功: ${lotNo}（${quantity}個）` })
+        setIssuedLabel(result.label)
       } else {
         setMessage({ type: 'error', text: result.error || '登録に失敗しました。' })
       }
@@ -62,23 +60,38 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
-          出荷先（施工会社）を選択してください
-        </label>
-        <select
-          id="company"
-          value={selectedCompanyId}
-          onChange={e => setSelectedCompanyId(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">-- 選択してください --</option>
-          {companies.map(company => (
-            <option key={company.company_id} value={company.company_id}>
-              {company.company_name}
-            </option>
-          ))}
-        </select>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 space-y-4">
+        <div>
+          <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+            出荷先（施工会社）を選択してください
+          </label>
+          <select
+            id="company"
+            value={selectedCompanyId}
+            onChange={e => setSelectedCompanyId(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">-- 選択してください --</option>
+            {companies.map(company => (
+              <option key={company.company_id} value={company.company_id}>
+                {company.company_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+            受注数量（缶の本数）
+          </label>
+          <input
+            id="quantity"
+            type="number"
+            min={1}
+            value={quantity}
+            onChange={e => setQuantity(Number(e.target.value))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
       </div>
 
       <div className="relative">
@@ -104,39 +117,15 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
         </div>
       )}
 
-      {lastScanned && message?.type === 'success' && (
-        <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-          <h3 className="text-sm font-semibold text-blue-900 mb-1">直前のスキャン内容:</h3>
-          <p className="text-xs text-blue-800">シリアル: {lastScanned.serial}</p>
-          <p className="text-xs text-blue-800">有効期限: {lastScanned.expiration}</p>
-        </div>
-      )}
-
       <div className="text-center text-gray-500 text-sm">
-        <p>QRコードを枠内に収めてスキャンしてください</p>
+        <p>ロットQRコードを枠内に収めてスキャンしてください</p>
         <p className="mt-1">※カメラの使用許可が必要です</p>
+        <p className="mt-1">
+          残数が不足しているロットをスキャンした場合はエラーになります。別のロットをスキャンしてください。
+        </p>
       </div>
 
-      {selectedCompanyId && (
-        <div className="text-right">
-          <button
-            type="button"
-            onClick={() => setIsTraceModalOpen(true)}
-            className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            QRコード発行
-          </button>
-        </div>
-      )}
-
-      {isTraceModalOpen && (
-        <TraceQrModal
-          companyId={selectedCompanyId}
-          initialSerial={lastScanned?.serial ?? ''}
-          initialExpiration={lastScanned?.expiration ?? ''}
-          onClose={() => setIsTraceModalOpen(false)}
-        />
-      )}
+      {issuedLabel && <TraceQrModal label={issuedLabel} onClose={() => setIssuedLabel(null)} />}
     </div>
   )
 }

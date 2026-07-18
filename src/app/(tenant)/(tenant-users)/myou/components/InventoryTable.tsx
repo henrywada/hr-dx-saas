@@ -1,12 +1,12 @@
 'use client'
 
 import { DataTable, type Column } from '@/components/ui/DataTable'
-import type { InventoryItem } from '@/features/myou/types'
+import type { LotInventoryItem } from '@/features/myou/types'
 import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { Package } from 'lucide-react'
 
 interface InventoryTableProps {
-  items: InventoryItem[]
+  items: LotInventoryItem[]
 }
 
 export default function InventoryTable({ items }: InventoryTableProps) {
@@ -22,12 +22,22 @@ export default function InventoryTable({ items }: InventoryTableProps) {
     )
   }
 
-  const columns: Column<InventoryItem>[] = [
+  const columns: Column<LotInventoryItem>[] = [
     {
-      key: 'serial_number',
-      label: 'シリアル番号',
+      key: 'lot_no',
+      label: 'ロット番号',
       sortable: true,
       render: value => <span className="font-mono">{value}</span>,
+    },
+    {
+      key: 'quantity_remaining',
+      label: '残数',
+      sortable: true,
+      render: (value, item) => (
+        <span>
+          {value} <span className="text-gray-400">/ {item.quantity_total}</span>
+        </span>
+      ),
     },
     {
       key: 'expiration_date',
@@ -42,7 +52,9 @@ export default function InventoryTable({ items }: InventoryTableProps) {
       render: value => value ?? '-',
     },
     {
-      key: 'status',
+      // DataTable は column.key を React key ／ ソートキーとして使うため、
+      // 他列と重複しない実在フィールドを指定する（表示自体は item.expiration_date から計算する）
+      key: 'quantity_total',
       label: '期限状況',
       render: (_value, item) => {
         const daysLeft = getDaysUntilExpiration(item.expiration_date)
@@ -81,9 +93,9 @@ export default function InventoryTable({ items }: InventoryTableProps) {
       columns={columns}
       data={items}
       searchable={true}
-      searchPlaceholder="シリアル番号で検索..."
-      searchKey="serial_number"
-      getRowId={item => item.serial_number}
+      searchPlaceholder="ロット番号で検索..."
+      searchKey="lot_no"
+      getRowId={item => item.id}
     />
   )
 }

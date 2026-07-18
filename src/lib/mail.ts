@@ -4,7 +4,9 @@ import nodemailer from 'nodemailer'
 const getTransporter = () => {
   // 環境変数 SMTP_USER がない（未設定の）か、デフォルトプレースホルダーの場合は、MailpitなどのローカルSMTPサーバーに送信する
   if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-smtp-username') {
-    console.warn('⚠️ SMTP_USER is not configured. Routing emails to local Mailpit (smtp://127.0.0.1:55325).')
+    console.warn(
+      '⚠️ SMTP_USER is not configured. Routing emails to local Mailpit (smtp://127.0.0.1:55325).'
+    )
     return nodemailer.createTransport({
       host: '127.0.0.1',
       port: 55325, // Supabase local Mailpit SMTP port (shifted to 55325 based on web UI 55324)
@@ -111,13 +113,16 @@ HR-dx Candidate Pulse 自動通知
 export const sendExpirationAlertEmail = async (
   to: string,
   companyName: string,
-  products: { serial_number: string; expiration_date: string }[]
+  items: { lot_no: string; trace_no: string; quantity: number; expiration_date: string }[]
 ) => {
   const from = process.env.MAIL_FROM || '"HR-dx 製品管理" <noreply@hr-dx.jp>'
   const subject = `【重要】製品有効期限に関するお知らせ（${companyName}様）`
-  
-  const productList = products
-    .map((p) => `・シリアル番号: ${p.serial_number} / 有効期限: ${p.expiration_date}`)
+
+  const productList = items
+    .map(
+      item =>
+        `・ロット番号: ${item.lot_no} / 数量: ${item.quantity}個 / 有効期限: ${item.expiration_date}（TraceNo: ${item.trace_no}）`
+    )
     .join('\n')
 
   const text = `${companyName}

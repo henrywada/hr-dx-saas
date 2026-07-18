@@ -6,7 +6,7 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '出荷登録（QRスキャン）',
-  description: '施工会社へ出荷する製品のQRコードをスキャンして出荷情報を登録します。',
+  description: '施工会社への出荷数量を指定し、ロットQRコードをスキャンして出荷情報を登録します。',
 }
 
 export default async function DeliveryScanPage() {
@@ -47,11 +47,17 @@ export default async function DeliveryScanPage() {
       <div className="mt-8 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <h3 className="text-sm font-semibold text-gray-800 mb-2">💡 操作ガイド</h3>
         <ul className="text-xs text-gray-600 space-y-1 ml-4 list-disc">
-          <li>最初にプルダウンから「出荷先（施工会社）」を選択してください。</li>
-          <li>カメラを起動し、製品ラベルのQRコードを枠内に収めてください。</li>
-          <li>読み取りが完了すると、出荷先・出荷日とあわせて自動的に登録されます。</li>
-          <li>連続して複数の製品を登録することが可能です。</li>
-          <li>出荷した製品は「在庫一覧」から自動的に除外されます。</li>
+          <li>
+            最初にプルダウンから「出荷先（施工会社）」を選択し、受注数量（缶の本数）を入力してください。
+          </li>
+          <li>ロットQRコードを枠内に収めてスキャンしてください。</li>
+          <li>
+            読み取りが完了すると、出荷先・出荷日とあわせて自動的に登録され、トレーサビリティQRの印刷画面が開きます。
+          </li>
+          <li>
+            スキャンしたロットの残数が受注数量に満たない場合はエラーになります。自動で他ロットへ分割せず、別のロットを再スキャンしてください。
+          </li>
+          <li>ロットの残数が0になった在庫は「在庫一覧」から自動的に除外されます。</li>
         </ul>
       </div>
     </div>

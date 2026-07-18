@@ -3,35 +3,32 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-import { toJSTDateString, toJSTISOString } from '@/lib/datetime'
+import { toJSTDateString } from '@/lib/datetime'
 import { sendExpirationAlertEmail } from '@/lib/mail'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getAlertDateRange } from './queries'
 import {
-  buildQrPayload,
-  buildSerialNumber,
+  buildLotNo,
+  buildLotQrPayload,
   buildTraceNo,
   buildTraceQrPayload,
-  getMaxSerialSequence,
+  getMaxLotSequence,
   getMaxTraceSequence,
-  parseSerialNumber,
 } from './lib/qr-parser'
 import {
   companyIdSchema,
-  issueLabelsSchema,
-  issueTraceLabelSchema,
-  processReceivingSchema,
-  registerDeliverySchema,
+  deliverFromLotSchema,
+  issueLotsSchema,
+  receiveLotSchema,
   upsertCompanySchema,
+  type DeliverFromLotInput,
   type DeliveryLogWithCompany,
-  type IssueLabelsInput,
-  type IssuedLabel,
-  type IssueTraceLabelInput,
-  type MyouProduct,
-  type ProcessReceivingInput,
-  type ProductTraceResult,
-  type RegisterDeliveryInput,
+  type IssueLotsInput,
+  type IssuedLot,
+  type LotTraceResult,
+  type MyouLot,
+  type ReceiveLotInput,
   type TraceLabel,
 } from './types'
 
@@ -40,29 +37,49 @@ async function getSupabase() {
 }
 
 /**
- * 特定の製品（シリアル番号）の流通履歴を取得する
+ * ロット番号または TraceNo を起点に、ロットの現在状態と出荷履歴を取得する
  * ※ クライアントの検索フォームから呼び出すため Server Action として公開する
  */
-export async function getProductTrace(serialNumber: string): Promise<ProductTraceResult | null> {
+export async function getLotTrace(identifier: string): Promise<LotTraceResult | null> {
   const user = await getServerUser()
   if (!user?.tenant_id) return null
 
   const supabase = await getSupabase()
+  const trimmed = identifier.trim()
 
-  // 1. 製品基本情報を取得（RLS に加えて明示的にテナントを絞る）
-  const { data: product, error: productError } = await supabase
-    .from('myou_products')
+  // 1. まずロット番号として検索する
+  const { data: lotByNo } = await supabase
+    .from('myou_lots')
     .select('*')
-    .eq('serial_number', serialNumber.trim())
+    .eq('lot_no', trimmed)
     .eq('tenant_id', user.tenant_id)
     .maybeSingle()
 
-  if (productError || !product) {
-    if (productError) console.error('Product not found:', serialNumber, productError)
-    return null
+  let lot = lotByNo as MyouLot | null
+
+  // 2. 見つからなければ TraceNo として検索し、紐付くロットを取得する
+  if (!lot) {
+    const { data: traceLabel } = await supabase
+      .from('myou_trace_labels')
+      .select('lot_id')
+      .eq('trace_no', trimmed)
+      .eq('tenant_id', user.tenant_id)
+      .maybeSingle()
+
+    if (traceLabel?.lot_id) {
+      const { data: lotByTrace } = await supabase
+        .from('myou_lots')
+        .select('*')
+        .eq('id', traceLabel.lot_id)
+        .eq('tenant_id', user.tenant_id)
+        .maybeSingle()
+      lot = (lotByTrace as MyouLot) ?? null
+    }
   }
 
-  // 2. 流通履歴（出荷ログ）を取得
+  if (!lot) return null
+
+  // 3. 出荷履歴（このロットからの払い出し）を取得
   const { data: logs, error: logsError } = await supabase
     .from('myou_delivery_logs')
     .select(
@@ -73,7 +90,7 @@ export async function getProductTrace(serialNumber: string): Promise<ProductTrac
       )
     `
     )
-    .eq('serial_number', serialNumber.trim())
+    .eq('lot_id', lot.id)
     .eq('tenant_id', user.tenant_id)
     .order('delivery_date', { ascending: false })
     .order('registered_at', { ascending: false })
@@ -83,27 +100,26 @@ export async function getProductTrace(serialNumber: string): Promise<ProductTrac
   }
 
   return {
-    // 生成型の status は string のため、ドメイン型（union）へキャストする
-    product: product as MyouProduct,
+    lot,
     history: (logs || []) as DeliveryLogWithCompany[],
   }
 }
 
 /**
  * 入荷処理（製造元 →（株）ミュー）を実行する
- * スキャン済みシリアルがあればそれを起点に、無ければ本日日付で新規採番し、
- * 数量分の連番シリアルを在庫（in_stock）として登録する
+ * スキャン済みロットがあればそのロットに数量を加算登録し、無ければ本日日付で
+ * 新規ロット番号を採番して新規ロットとして在庫登録する
  */
-export async function processReceiving(formData: ProcessReceivingInput): Promise<{
+export async function receiveLot(formData: ReceiveLotInput): Promise<{
   success: boolean
   error?: string
   warning?: string
-  registered_serials?: string[]
+  registered_lot_no?: string
 }> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
-  const parsed = processReceivingSchema.safeParse(formData)
+  const parsed = receiveLotSchema.safeParse(formData)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
   }
@@ -112,97 +128,86 @@ export async function processReceiving(formData: ProcessReceivingInput): Promise
   const supabase = await getSupabase()
   const todayYmd = toJSTDateString()
 
-  let serials: string[]
-  let existingStatus: string | null = null
+  let lotNo: string
 
-  if (input.scanned_serial) {
-    const parsedSerial = parseSerialNumber(input.scanned_serial)
-    if (parsedSerial) {
-      serials = Array.from({ length: input.quantity }, (_, index) =>
-        buildSerialNumber(parsedSerial.dateYmd, parsedSerial.sequence + index)
-      )
-    } else {
-      // 形式外（手入力・旧ラベル等）は連番生成できないため、スキャンした1件のみ登録する
-      serials = [input.scanned_serial]
-    }
-
-    // 既存レコードの状態を確認（出荷済みの再入荷は警告付きで受け付ける）
-    const { data: existing } = await supabase
-      .from('myou_products')
-      .select('status')
-      .eq('serial_number', input.scanned_serial)
-      .eq('tenant_id', user.tenant_id)
-      .maybeSingle()
-    existingStatus = existing?.status ?? null
+  if (input.scanned_lot_no) {
+    lotNo = input.scanned_lot_no
   } else {
-    // 未スキャン: 本日発行分の最大通番を取得して続きから採番する
+    // 未スキャン: 本日発行分の最大通番を取得して続きから採番する（新規ロットとして登録）
     const compactDate = todayYmd.replaceAll('-', '')
     const { data: issuedToday, error: fetchError } = await supabase
-      .from('myou_products')
-      .select('serial_number')
+      .from('myou_lots')
+      .select('lot_no')
       .eq('tenant_id', user.tenant_id)
-      .like('serial_number', `MS-${compactDate}-%`)
+      .like('lot_no', `LOT-${compactDate}-%`)
 
     if (fetchError) {
-      console.error('Error fetching latest serial for receiving:', fetchError)
-      return { success: false, error: 'シリアル番号の採番に失敗しました。' }
+      console.error('Error fetching latest lot_no for receiving:', fetchError)
+      return { success: false, error: 'ロット番号の採番に失敗しました。' }
     }
 
-    const lastSequence = getMaxSerialSequence(
-      (issuedToday ?? []).map(row => row.serial_number),
+    const lastSequence = getMaxLotSequence(
+      (issuedToday ?? []).map(row => row.lot_no),
       todayYmd
     )
-    serials = Array.from({ length: input.quantity }, (_, index) =>
-      buildSerialNumber(todayYmd, lastSequence + index + 1)
-    )
+    lotNo = buildLotNo(todayYmd, lastSequence + 1)
   }
 
-  const { error: upsertError } = await supabase.from('myou_products').upsert(
-    serials.map(serial => ({
-      serial_number: serial,
-      expiration_date: input.expiration_date,
-      status: 'in_stock',
-      received_at: todayYmd,
-      tenant_id: user.tenant_id,
-    })),
-    { onConflict: 'tenant_id,serial_number' }
-  )
+  // ロットの検索・数量加算（または新規登録）は RPC 内で行ロック（FOR UPDATE）して
+  // アトミックに実行する。同時実行時に数量加算が失われる（lost update）事故を防ぐため。
+  const { data: result, error: rpcError } = await supabase
+    .rpc('myou_receive_lot', {
+      p_lot_no: lotNo,
+      p_qr_payload: buildLotQrPayload(lotNo, '', input.expiration_date),
+      p_expiration_date: input.expiration_date,
+      p_quantity: input.quantity,
+      p_received_at: todayYmd,
+    })
+    .single()
 
-  if (upsertError) {
-    console.error('Error upserting products (receiving):', upsertError)
+  if (rpcError || !result) {
+    console.error('Error receiving lot:', rpcError)
     return { success: false, error: '入荷登録に失敗しました。もう一度お試しください。' }
   }
 
   revalidatePath(APP_ROUTES.MYOU.RECEIVING_SCAN)
   revalidatePath(APP_ROUTES.MYOU.INVENTORY)
 
-  if (existingStatus === 'delivered') {
+  const typedResult = result as { is_new: boolean; previous_status: string | null }
+
+  if (typedResult.previous_status === 'depleted') {
     return {
       success: true,
-      registered_serials: serials,
-      warning: `${input.scanned_serial} は出荷済みでしたが、再入荷として在庫に戻しました。`,
+      registered_lot_no: lotNo,
+      warning: `${lotNo} は出荷済み（残数0）でしたが、再入荷として在庫に戻しました。`,
     }
   }
-  if (existingStatus === 'in_stock') {
+  if (typedResult.previous_status === 'in_stock') {
     return {
       success: true,
-      registered_serials: serials,
-      warning: `${input.scanned_serial} は既に入荷済みです（情報を更新しました）。`,
+      registered_lot_no: lotNo,
+      warning: `${lotNo} は既に入荷済みです（数量を追加登録しました）。`,
     }
   }
-  return { success: true, registered_serials: serials }
+  return { success: true, registered_lot_no: lotNo }
 }
 
 /**
- * 出荷登録（（株）ミュー → 施工会社）を実行する
- * 製品の状態更新と出荷履歴の挿入は RPC（myou_register_delivery）で
- * 単一トランザクションとして実行する（履歴だけ欠落する部分成功を防ぐ）
+ * 出荷登録（（株）ミュー → 施工会社、ロット引当）を実行する
+ * ロット残数の減算・出荷履歴・トレーサビリティQR発行は RPC（myou_deliver_from_lot）で
+ * 単一トランザクションとして実行する（在庫の過剰引当・履歴欠落を防ぐ）。
+ * 残数不足の場合はロットをまたぐ自動引き当ては行わず、エラーを返して
+ * 運用者に別ロットの再スキャンを促す。
  */
-export async function registerDelivery(formData: RegisterDeliveryInput) {
+export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
+  success: boolean
+  error?: string
+  label?: TraceLabel
+}> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
-  const parsed = registerDeliverySchema.safeParse(formData)
+  const parsed = deliverFromLotSchema.safeParse(formData)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
   }
@@ -210,53 +215,100 @@ export async function registerDelivery(formData: RegisterDeliveryInput) {
 
   const supabase = await getSupabase()
 
-  // 未入荷（在庫に無い）シリアルの出荷は運用初期を考慮して警告付きで受け付ける
-  const { data: existing } = await supabase
-    .from('myou_products')
-    .select('serial_number, status')
-    .eq('serial_number', input.serial_number)
+  // 出荷先がテナント内に存在するか検証しつつ company_no を取得する
+  const { data: company, error: companyError } = await supabase
+    .from('myou_companies')
+    .select('company_no')
+    .eq('id', input.company_id)
     .eq('tenant_id', user.tenant_id)
     .maybeSingle()
 
-  const { error } = await supabase.rpc('myou_register_delivery', {
-    p_serial_number: input.serial_number,
-    p_expiration_date: input.expiration_date,
-    p_company_id: input.company_id,
-    p_delivery_date: toJSTDateString(),
-    p_delivered_by: user.name ?? null,
-    p_last_delivery_at: toJSTISOString(),
-    p_registered_at: toJSTISOString(),
-  })
+  if (companyError || !company) {
+    console.error('Error fetching company for delivery:', companyError)
+    return { success: false, error: '出荷先（施工会社）が見つかりませんでした。' }
+  }
 
-  if (error) {
-    console.error('Error registering delivery:', error)
+  const todayYmd = toJSTDateString()
+  const compactDate = todayYmd.replaceAll('-', '')
+
+  // 当日発行分の最大TraceNo通番を取得して続きから採番する
+  // ※ 同時実行時に採番が衝突する可能性はあるが、低頻度運用のため許容し、失敗時は再実行を促す
+  const { data: issuedToday, error: latestError } = await supabase
+    .from('myou_trace_labels')
+    .select('trace_no')
+    .eq('tenant_id', user.tenant_id)
+    .like('trace_no', `${compactDate}-%`)
+
+  if (latestError) {
+    console.error('Error fetching latest trace_no:', latestError)
+    return { success: false, error: 'TraceNoの採番に失敗しました。' }
+  }
+
+  const lastSequence = getMaxTraceSequence(
+    (issuedToday ?? []).map(row => row.trace_no),
+    todayYmd
+  )
+  const traceNo = buildTraceNo(todayYmd, lastSequence + 1)
+
+  const { data: result, error: rpcError } = await supabase
+    .rpc('myou_deliver_from_lot', {
+      p_lot_no: input.lot_no,
+      p_company_id: input.company_id,
+      p_quantity: input.quantity,
+      p_delivered_by: user.name ?? null,
+      p_delivery_date: todayYmd,
+      p_trace_no: traceNo,
+    })
+    .single()
+
+  if (rpcError || !result) {
+    console.error('Error delivering from lot:', rpcError)
+    const message = rpcError?.message ?? ''
+    if (message.includes('見つかりません')) {
+      return { success: false, error: `ロット ${input.lot_no} が見つかりませんでした。` }
+    }
+    if (message.includes('不足')) {
+      return { success: false, error: `${message}。別のロットをスキャンしてください。` }
+    }
     return { success: false, error: '出荷登録に失敗しました。もう一度お試しください。' }
   }
 
   revalidatePath(APP_ROUTES.MYOU.DELIVERY_SCAN)
   revalidatePath(APP_ROUTES.MYOU.INVENTORY)
 
-  if (!existing || existing.status === 'issued') {
-    return {
-      success: true,
-      warning: `${input.serial_number} は入荷登録がありませんが、出荷として登録しました。`,
-    }
+  const typedResult = result as { expiration_date: string }
+
+  return {
+    success: true,
+    label: {
+      trace_no: traceNo,
+      lot_no: input.lot_no,
+      company_no: company.company_no,
+      quantity: input.quantity,
+      expiration_date: typedResult.expiration_date,
+      qr_payload: buildTraceQrPayload(
+        input.lot_no,
+        typedResult.expiration_date,
+        company.company_no,
+        traceNo,
+        input.quantity
+      ),
+    },
   }
-  return { success: true }
 }
 
 /**
- * QRラベルを発行する
- * シリアル番号（MS-YYYYMMDD-NNNN）をテナント内の当日通番で採番し、
- * status = 'issued' で myou_products に登録して QR ペイロードを返す
+ * 製造ロットQRを発行する
+ * ロット番号（LOT-YYYYMMDD-NNNN）をテナント内の当日通番で採番し、
+ * status = 'issued'（数量未確定）で myou_lots に登録して QR ペイロードを返す
  */
-export async function issueLabels(
-  formData: IssueLabelsInput
-): Promise<{ success: boolean; labels?: IssuedLabel[]; error?: string }> {
+export async function issueLots(
+  formData: IssueLotsInput
+): Promise<{ success: boolean; lots?: IssuedLot[]; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
-  const parsed = issueLabelsSchema.safeParse(formData)
+  const parsed = issueLotsSchema.safeParse(formData)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
   }
@@ -268,55 +320,55 @@ export async function issueLabels(
   // 当日発行分の最大通番を取得して続きから採番する
   // 文字列の辞書順ソートでは通番5桁（10000〜）を正しく比較できないため、
   // 当日分を全件取得して数値比較で最大値を求める（1日の発行量は少なく軽量）
-  // ※ 同時実行時に採番が衝突する可能性はあるが、(tenant_id, serial_number) の
-  //   主キー制約で重複登録は防がれる（低頻度運用のため許容し、失敗時は再実行を促す）
   const compactDate = todayYmd.replaceAll('-', '')
   const { data: issuedToday, error: latestError } = await supabase
-    .from('myou_products')
-    .select('serial_number')
+    .from('myou_lots')
+    .select('lot_no')
     .eq('tenant_id', user.tenant_id)
-    .like('serial_number', `MS-${compactDate}-%`)
+    .like('lot_no', `LOT-${compactDate}-%`)
 
   if (latestError) {
-    console.error('Error fetching latest serial:', latestError)
-    return { success: false, error: 'シリアル番号の採番に失敗しました。' }
+    console.error('Error fetching latest lot_no:', latestError)
+    return { success: false, error: 'ロット番号の採番に失敗しました。' }
   }
 
-  const lastSequence = getMaxSerialSequence(
-    (issuedToday ?? []).map(row => row.serial_number),
+  const lastSequence = getMaxLotSequence(
+    (issuedToday ?? []).map(row => row.lot_no),
     todayYmd
   )
 
-  const labels: IssuedLabel[] = Array.from({ length: input.quantity }, (_, index) => {
-    const serial = buildSerialNumber(todayYmd, lastSequence + index + 1)
+  const lots: IssuedLot[] = Array.from({ length: input.count }, (_, index) => {
+    const lotNo = buildLotNo(todayYmd, lastSequence + index + 1)
     return {
-      serial_number: serial,
+      lot_no: lotNo,
       expiration_date: input.expiration_date,
-      qr_payload: buildQrPayload(serial, input.expiration_date),
+      qr_payload: buildLotQrPayload(lotNo, input.manufactured_date ?? '', input.expiration_date),
     }
   })
 
-  const { error: insertError } = await supabase.from('myou_products').insert(
-    labels.map(label => ({
-      serial_number: label.serial_number,
-      expiration_date: label.expiration_date,
+  const { error: insertError } = await supabase.from('myou_lots').insert(
+    lots.map(lot => ({
+      lot_no: lot.lot_no,
+      qr_payload: lot.qr_payload,
+      manufactured_date: input.manufactured_date ?? null,
+      expiration_date: lot.expiration_date,
       status: 'issued',
-      issued_at: toJSTISOString(),
       tenant_id: user.tenant_id,
     }))
   )
 
   if (insertError) {
-    console.error('Error inserting issued labels:', insertError)
-    return { success: false, error: 'ラベルの発行登録に失敗しました。もう一度お試しください。' }
+    console.error('Error inserting issued lots:', insertError)
+    return { success: false, error: 'ロットQRの発行登録に失敗しました。もう一度お試しください。' }
   }
 
   revalidatePath(APP_ROUTES.MYOU.LABELS)
-  return { success: true, labels }
+  return { success: true, lots }
 }
 
 /**
  * 施工会社に手動でアラートメールを送信し、ログを記録する
+ * 対象は「有効期限が30日以内のトレーサビリティQR発行分（＝客先出荷済みで期限間近のもの）」
  */
 export async function sendManualAlert(companyId: string) {
   const user = await getServerUser()
@@ -329,19 +381,27 @@ export async function sendManualAlert(companyId: string) {
 
   const supabase = await getSupabase()
 
-  // 1. 対象の製品と会社情報を取得
+  // 1. 対象のトレーサビリティQR発行分と会社情報を取得
   const { from, to } = getAlertDateRange()
 
-  const { data: products, error: productError } = await supabase
-    .from('myou_products')
-    .select('serial_number, expiration_date')
+  const { data: labels, error: labelsError } = await supabase
+    .from('myou_trace_labels')
+    .select(
+      `
+      trace_no,
+      quantity,
+      expiration_date,
+      myou_lots (
+        lot_no
+      )
+    `
+    )
     .eq('tenant_id', user.tenant_id)
-    .eq('current_company_id', companyId)
-    .eq('status', 'delivered')
+    .eq('company_id', companyId)
     .gte('expiration_date', from)
     .lte('expiration_date', to)
 
-  if (productError || !products || products.length === 0) {
+  if (labelsError || !labels || labels.length === 0) {
     return { success: false, error: '対象の期限間近製品が見つかりませんでした。' }
   }
 
@@ -356,20 +416,27 @@ export async function sendManualAlert(companyId: string) {
     return { success: false, error: '送信先のメールアドレスが登録されていません。' }
   }
 
+  const items = (
+    labels as {
+      trace_no: string
+      quantity: number
+      expiration_date: string
+      myou_lots: { lot_no: string } | null
+    }[]
+  ).map(label => ({
+    trace_no: label.trace_no,
+    lot_no: label.myou_lots?.lot_no ?? '',
+    quantity: label.quantity,
+    expiration_date: label.expiration_date,
+  }))
+
   // 2. メール送信実行
-  const mailResult = await sendExpirationAlertEmail(
-    company.email_address,
-    company.name,
-    products.map((p: { serial_number: string; expiration_date: string }) => ({
-      serial_number: p.serial_number,
-      expiration_date: p.expiration_date,
-    }))
-  )
+  const mailResult = await sendExpirationAlertEmail(company.email_address, company.name, items)
 
   // 3. ログの記録
   const { error: logError } = await supabase.from('myou_alert_logs').insert({
     company_id: companyId,
-    target_serials: products.map((p: { serial_number: string }) => p.serial_number),
+    target_trace_nos: items.map(item => item.trace_no),
     status: mailResult.success ? 'success' : 'error',
     error_message: mailResult.success ? null : mailResult.error,
   })
@@ -486,11 +553,12 @@ export async function deleteCompany(id: string) {
 
   if (error) {
     console.error('Error deleting company:', error)
-    // 23503 = 外部キー制約違反（製品の納入先・出荷履歴から参照されている）
+    // 23503 = 外部キー制約違反（出荷履歴・トレーサビリティQR発行履歴から参照されている）
     if (error.code === '23503') {
       return {
         success: false,
-        error: 'この会社は製品の納入先または出荷履歴から参照されているため削除できません。',
+        error:
+          'この会社は出荷履歴またはトレーサビリティQR発行履歴から参照されているため削除できません。',
       }
     }
     return { success: false, error: '施工会社の削除に失敗しました。' }
@@ -500,90 +568,4 @@ export async function deleteCompany(id: string) {
   revalidatePath(APP_ROUTES.MYOU.DELIVERY_SCAN)
 
   return { success: true }
-}
-
-/**
- * トレーサビリティQRラベルを発行する
- * 当日・テナント内の通番（TraceNo）を採番し、myou_trace_labels に記録してQRペイロードを返す
- */
-export async function issueTraceLabel(
-  formData: IssueTraceLabelInput
-): Promise<{ success: boolean; label?: TraceLabel; error?: string }> {
-  const user = await getServerUser()
-  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
-
-  const parsed = issueTraceLabelSchema.safeParse(formData)
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
-  }
-  const input = parsed.data
-
-  const supabase = await getSupabase()
-
-  // 出荷先がテナント内に存在するか検証しつつ company_no を取得する
-  const { data: company, error: companyError } = await supabase
-    .from('myou_companies')
-    .select('company_no')
-    .eq('id', input.company_id)
-    .eq('tenant_id', user.tenant_id)
-    .maybeSingle()
-
-  if (companyError || !company) {
-    console.error('Error fetching company for trace label:', companyError)
-    return { success: false, error: '出荷先（施工会社）が見つかりませんでした。' }
-  }
-
-  const todayYmd = toJSTDateString()
-  const compactDate = todayYmd.replaceAll('-', '')
-
-  // 当日発行分の最大通番を取得して続きから採番する
-  // ※ 同時実行時に採番が衝突する可能性はあるが、低頻度運用のため許容し、失敗時は再実行を促す
-  const { data: issuedToday, error: latestError } = await supabase
-    .from('myou_trace_labels')
-    .select('trace_no')
-    .eq('tenant_id', user.tenant_id)
-    .like('trace_no', `${compactDate}-%`)
-
-  if (latestError) {
-    console.error('Error fetching latest trace_no:', latestError)
-    return { success: false, error: 'TraceNoの採番に失敗しました。' }
-  }
-
-  const lastSequence = getMaxTraceSequence(
-    (issuedToday ?? []).map(row => row.trace_no),
-    todayYmd
-  )
-  const traceNo = buildTraceNo(todayYmd, lastSequence + 1)
-
-  const { error: insertError } = await supabase.from('myou_trace_labels').insert({
-    tenant_id: user.tenant_id,
-    company_id: input.company_id,
-    serial_number: input.serial_number,
-    expiration_date: input.expiration_date,
-    trace_no: traceNo,
-  })
-
-  if (insertError) {
-    console.error('Error inserting trace label:', insertError)
-    return {
-      success: false,
-      error: 'トレーサビリティQRの発行に失敗しました。もう一度お試しください。',
-    }
-  }
-
-  return {
-    success: true,
-    label: {
-      trace_no: traceNo,
-      company_no: company.company_no,
-      serial_number: input.serial_number,
-      expiration_date: input.expiration_date,
-      qr_payload: buildTraceQrPayload(
-        input.serial_number,
-        input.expiration_date,
-        company.company_no,
-        traceNo
-      ),
-    },
-  }
 }

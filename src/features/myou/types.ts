@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
 /**
- * 製品ステータスのライフサイクル
- * issued（ラベル発行済） → in_stock（入荷済・在庫） → delivered（出荷済）
+ * 製造ロットのライフサイクル
+ * issued（ロットQR発行済・数量未確定） → in_stock（入荷済・残数あり） → depleted（残数0）
  */
-export type MyouProductStatus = 'issued' | 'in_stock' | 'delivered'
+export type MyouLotStatus = 'issued' | 'in_stock' | 'depleted'
 
 /** ステータスの表示ラベル */
-export const MYOU_STATUS_LABELS: Record<MyouProductStatus, string> = {
-  issued: 'ラベル発行済',
-  in_stock: '在庫（入荷済）',
-  delivered: '出荷済',
+export const MYOU_LOT_STATUS_LABELS: Record<MyouLotStatus, string> = {
+  issued: 'ロットQR発行済み',
+  in_stock: '在庫（入荷済み）',
+  depleted: '出荷済み（残数0）',
 }
 
 /** 施工会社（画面表示用にマッピング済み） */
@@ -21,30 +21,35 @@ export interface MyouCompany {
   email_address?: string
 }
 
-/** 製品レコード */
-export interface MyouProduct {
-  serial_number: string
-  expiration_date: string | null
-  status: MyouProductStatus
-  last_delivery_at: string | null
-  current_company_id: string | null
+/** 製造ロットレコード */
+export interface MyouLot {
+  id: string
+  lot_no: string
+  qr_payload: string
+  manufactured_date: string | null
+  expiration_date: string
+  quantity_total: number
+  quantity_remaining: number
+  status: MyouLotStatus
   received_at: string | null
-  issued_at: string | null
   created_at: string
 }
 
 /** 在庫一覧の行 */
-export interface InventoryItem {
-  serial_number: string
-  expiration_date: string | null
+export interface LotInventoryItem {
+  id: string
+  lot_no: string
+  expiration_date: string
+  quantity_total: number
+  quantity_remaining: number
   received_at: string | null
-  status: MyouProductStatus
 }
 
-/** 配送履歴（施工会社名JOIN済み） */
+/** 出荷履歴（施工会社名JOIN済み） */
 export interface DeliveryLogWithCompany {
   id: string
-  serial_number: string
+  lot_id: string
+  quantity: number
   company_id: string
   delivery_date: string
   delivered_by: string | null
@@ -52,9 +57,9 @@ export interface DeliveryLogWithCompany {
   myou_companies: { name: string } | null
 }
 
-/** トレース照会の結果 */
-export interface ProductTraceResult {
-  product: MyouProduct
+/** ロットトレース照会の結果 */
+export interface LotTraceResult {
+  lot: MyouLot
   history: DeliveryLogWithCompany[]
 }
 
@@ -63,18 +68,19 @@ export interface AlertLogRow {
   id: string
   company_id: string
   sent_at: string
-  target_serials: string[]
+  target_trace_nos: string[]
   status: string
   error_message: string | null
   myou_companies: { name: string } | null
 }
 
-/** 有効期限間近の製品（施工会社JOIN済み） */
-export interface ExpiringProduct {
-  serial_number: string
+/** 有効期限間近のトレーサビリティQR発行分（客先出荷済み、施工会社JOIN済み） */
+export interface ExpiringTraceLabel {
+  trace_no: string
+  lot_no: string
+  quantity: number
   expiration_date: string
-  status: MyouProductStatus
-  current_company_id: string | null
+  company_id: string
   myou_companies: {
     id: string
     name: string
@@ -90,25 +96,44 @@ export const dateStringSchema = z
     message: '存在しない日付です',
   })
 
-/** 入荷処理の入力（スキャン済みの場合は scanned_serial を指定し、その番号を起点に連番で数量分登録する） */
-export const processReceivingSchema = z.object({
-  scanned_serial: z.string().trim().optional(),
+/** 製造ロットQR発行の入力（数量はこの時点では未確定。入荷登録で確定する） */
+export const issueLotsSchema = z.object({
+  expiration_date: dateStringSchema,
+  manufactured_date: dateStringSchema.optional(),
+  count: z
+    .number()
+    .int()
+    .min(1, '1件以上を指定してください')
+    .max(100, '一度に発行できるのは100件までです'),
+})
+export type IssueLotsInput = z.infer<typeof issueLotsSchema>
+
+/** 発行された製造ロットQR1件分の情報 */
+export interface IssuedLot {
+  lot_no: string
+  expiration_date: string
+  qr_payload: string
+}
+
+/** 入荷登録の入力（スキャン済みの場合は scanned_lot_no を指定する） */
+export const receiveLotSchema = z.object({
+  scanned_lot_no: z.string().trim().optional(),
   expiration_date: dateStringSchema,
   quantity: z
     .number()
     .int()
     .min(1, '1以上を指定してください')
-    .max(1000, '一度に登録できるのは1000件までです'),
+    .max(100000, '一度に登録できるのは100000個までです'),
 })
-export type ProcessReceivingInput = z.infer<typeof processReceivingSchema>
+export type ReceiveLotInput = z.infer<typeof receiveLotSchema>
 
-/** 出荷登録の入力 */
-export const registerDeliverySchema = z.object({
-  serial_number: z.string().trim().min(1, 'シリアル番号が読み取れませんでした'),
-  expiration_date: dateStringSchema,
+/** 出荷登録（ロット引当）の入力 */
+export const deliverFromLotSchema = z.object({
+  lot_no: z.string().trim().min(1, 'ロット番号が読み取れませんでした'),
   company_id: z.string().uuid('出荷先（施工会社）を選択してください'),
+  quantity: z.number().int().min(1, '1以上を指定してください'),
 })
-export type RegisterDeliveryInput = z.infer<typeof registerDeliverySchema>
+export type DeliverFromLotInput = z.infer<typeof deliverFromLotSchema>
 
 /** 会社ID（UUID）の検証 */
 export const companyIdSchema = z.string().uuid('会社IDが不正です')
@@ -133,37 +158,12 @@ export const upsertCompanySchema = z.object({
 })
 export type UpsertCompanyInput = z.infer<typeof upsertCompanySchema>
 
-/** QRラベル発行の入力 */
-export const issueLabelsSchema = z.object({
-  expiration_date: dateStringSchema,
-  quantity: z
-    .number()
-    .int()
-    .min(1, '1枚以上を指定してください')
-    .max(100, '一度に発行できるのは100枚までです'),
-})
-export type IssueLabelsInput = z.infer<typeof issueLabelsSchema>
-
-/** 発行されたラベル1枚分の情報 */
-export interface IssuedLabel {
-  serial_number: string
-  expiration_date: string
-  qr_payload: string
-}
-
-/** トレーサビリティQR発行の入力 */
-export const issueTraceLabelSchema = z.object({
-  company_id: z.string().uuid('出荷先（施工会社）を選択してください'),
-  serial_number: z.string().trim().min(1, 'シリアル番号を入力してください'),
-  expiration_date: dateStringSchema,
-})
-export type IssueTraceLabelInput = z.infer<typeof issueTraceLabelSchema>
-
-/** 発行されたトレーサビリティラベル1件分の情報 */
+/** 発行されたトレーサビリティQR1件分の情報 */
 export interface TraceLabel {
   trace_no: string
+  lot_no: string
   company_no: number
-  serial_number: string
+  quantity: number
   expiration_date: string
   qr_payload: string
 }

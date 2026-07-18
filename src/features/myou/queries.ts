@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
-import type { AlertLogRow, ExpiringProduct, InventoryItem, MyouCompany } from './types'
+import type { AlertLogRow, ExpiringTraceLabel, LotInventoryItem, MyouCompany } from './types'
 
 /** アラート対象となる有効期限までの残日数 */
 export const EXPIRATION_ALERT_DAYS = 30
 
 /** 在庫一覧の一度に取得する最大件数（無制限取得によるメモリ・転送量の膨張を防ぐ） */
-export const INVENTORY_FETCH_LIMIT = 1000
+export const LOTS_FETCH_LIMIT = 1000
 
 async function getSupabase() {
   return await createClient()
@@ -59,39 +59,42 @@ export async function getCompanies(): Promise<MyouCompany[]> {
 }
 
 /**
- * 有効期限が近い出荷済み製品（30日以内）の一覧を取得する
- * 施工会社情報もJOINする
+ * 有効期限が近いトレーサビリティQR発行分（30日以内、＝客先出荷済みで有効期限間近のもの）の
+ * 一覧を取得する。施工会社情報もJOINする
  */
-export async function getExpiringProducts(): Promise<ExpiringProduct[]> {
+export async function getExpiringTraceLabels(): Promise<ExpiringTraceLabel[]> {
   const user = await getServerUser()
   if (!user?.tenant_id) return []
 
   const supabase = await getSupabase()
   const { from, to } = getAlertDateRange()
 
-  const { data, error } = await supabase
-    .from('myou_products')
+  const { data: labels, error } = await supabase
+    .from('myou_trace_labels')
     .select(
       `
-      serial_number,
+      trace_no,
+      quantity,
       expiration_date,
-      status,
-      current_company_id,
+      company_id,
+      lot_id,
       myou_companies (
         id,
         name,
         email_address
+      ),
+      myou_lots (
+        lot_no
       )
     `
     )
     .eq('tenant_id', user.tenant_id)
-    .eq('status', 'delivered')
     .gte('expiration_date', from)
     .lte('expiration_date', to)
     .order('expiration_date', { ascending: true })
 
   if (error) {
-    console.error('Error fetching expiring products:', {
+    console.error('Error fetching expiring trace labels:', {
       message: error.message,
       details: error.details,
       hint: error.hint,
@@ -100,7 +103,23 @@ export async function getExpiringProducts(): Promise<ExpiringProduct[]> {
     return []
   }
 
-  return (data || []) as ExpiringProduct[]
+  return (labels || []).map(
+    (row: {
+      trace_no: string
+      quantity: number
+      expiration_date: string
+      company_id: string
+      myou_companies: { id: string; name: string; email_address: string | null } | null
+      myou_lots: { lot_no: string } | null
+    }) => ({
+      trace_no: row.trace_no,
+      lot_no: row.myou_lots?.lot_no ?? '',
+      quantity: row.quantity,
+      expiration_date: row.expiration_date,
+      company_id: row.company_id,
+      myou_companies: row.myou_companies,
+    })
+  )
 }
 
 /**
@@ -138,24 +157,24 @@ export async function getAlertLogs(): Promise<AlertLogRow[]> {
 }
 
 /**
- * 在庫（入荷済み・未出荷）製品の一覧を取得する
+ * 在庫（残数がある）ロットの一覧を取得する
  * 有効期限が近い順に並べる
  */
-export async function getInventory(): Promise<InventoryItem[]> {
+export async function getLots(): Promise<LotInventoryItem[]> {
   const user = await getServerUser()
   if (!user?.tenant_id) return []
 
   const supabase = await getSupabase()
   const { data, error } = await supabase
-    .from('myou_products')
-    .select('serial_number, expiration_date, received_at, status')
+    .from('myou_lots')
+    .select('id, lot_no, expiration_date, quantity_total, quantity_remaining, received_at')
     .eq('tenant_id', user.tenant_id)
-    .eq('status', 'in_stock')
+    .gt('quantity_remaining', 0)
     .order('expiration_date', { ascending: true, nullsFirst: false })
-    .limit(INVENTORY_FETCH_LIMIT)
+    .limit(LOTS_FETCH_LIMIT)
 
   if (error) {
-    console.error('Error fetching inventory:', {
+    console.error('Error fetching lots:', {
       message: error.message,
       details: error.details,
       hint: error.hint,
@@ -163,5 +182,5 @@ export async function getInventory(): Promise<InventoryItem[]> {
     })
     return []
   }
-  return (data || []) as InventoryItem[]
+  return (data || []) as LotInventoryItem[]
 }

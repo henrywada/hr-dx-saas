@@ -3,17 +3,19 @@
 import { useState, useTransition } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Printer, QrCode, Loader2, AlertCircle } from 'lucide-react'
-import { issueLabels } from '@/features/myou/actions'
-import type { IssuedLabel } from '@/features/myou/types'
+import { issueLots } from '@/features/myou/actions'
+import type { IssuedLot } from '@/features/myou/types'
 
 /**
- * QRラベル発行フォーム
- * 有効期限と枚数を指定してシリアル番号を採番し、印刷用のQRラベルを生成する
+ * 製造ロットQR発行フォーム
+ * 有効期限と件数を指定してロット番号を採番し、印刷用のQRラベル（段ボール1箱に1枚）を生成する。
+ * 数量（缶の本数）はこの時点では確定しないため入力しない（入荷登録で確定する）。
  */
 export default function LabelIssueForm() {
   const [expirationDate, setExpirationDate] = useState('')
-  const [quantity, setQuantity] = useState(1)
-  const [labels, setLabels] = useState<IssuedLabel[]>([])
+  const [manufacturedDate, setManufacturedDate] = useState('')
+  const [count, setCount] = useState(1)
+  const [lots, setLots] = useState<IssuedLot[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -22,15 +24,16 @@ export default function LabelIssueForm() {
     setError(null)
 
     startTransition(async () => {
-      const result = await issueLabels({
+      const result = await issueLots({
         expiration_date: expirationDate,
-        quantity,
+        manufactured_date: manufacturedDate || undefined,
+        count,
       })
 
-      if (result.success && result.labels) {
-        setLabels(result.labels)
+      if (result.success && result.lots) {
+        setLots(result.lots)
       } else {
-        setError(result.error || 'ラベルの発行に失敗しました。')
+        setError(result.error || 'ロットQRの発行に失敗しました。')
       }
     })
   }
@@ -42,7 +45,19 @@ export default function LabelIssueForm() {
         onSubmit={handleSubmit}
         className="print:hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 space-y-4"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div>
+            <label htmlFor="manufactured" className="block text-xs font-medium text-gray-700 mb-1">
+              製造日（任意）
+            </label>
+            <input
+              id="manufactured"
+              type="date"
+              value={manufacturedDate}
+              onChange={e => setManufacturedDate(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
           <div>
             <label htmlFor="expiration" className="block text-xs font-medium text-gray-700 mb-1">
               有効期限
@@ -57,17 +72,17 @@ export default function LabelIssueForm() {
             />
           </div>
           <div>
-            <label htmlFor="quantity" className="block text-xs font-medium text-gray-700 mb-1">
-              発行枚数（最大100枚）
+            <label htmlFor="count" className="block text-xs font-medium text-gray-700 mb-1">
+              発行件数（最大100件）
             </label>
             <input
-              id="quantity"
+              id="count"
               type="number"
               min={1}
               max={100}
               required
-              value={quantity}
-              onChange={e => setQuantity(Number(e.target.value))}
+              value={count}
+              onChange={e => setCount(Number(e.target.value))}
               className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -84,7 +99,7 @@ export default function LabelIssueForm() {
             ) : (
               <>
                 <QrCode className="h-4 w-4" />
-                <span>ラベルを発行する</span>
+                <span>ロットQRを発行する</span>
               </>
             )}
           </button>
@@ -99,15 +114,15 @@ export default function LabelIssueForm() {
       </form>
 
       {/* 発行結果（ラベルシート） */}
-      {labels.length > 0 && (
+      {lots.length > 0 && (
         <div className="space-y-4">
           <div className="print:hidden flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                発行済みラベル（{labels.length}枚）
+                発行済みロットQR（{lots.length}件）
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                シリアル番号 {labels[0].serial_number} 〜 {labels[labels.length - 1].serial_number}
+                ロット番号 {lots[0].lot_no} 〜 {lots[lots.length - 1].lot_no}
               </p>
             </div>
             <button
@@ -122,19 +137,17 @@ export default function LabelIssueForm() {
           {/* ラベルグリッド: 印刷時にも同じレイアウトで出力される。
               .print-target により、サイドバー等の共通レイアウトを含め印刷時はこの要素のみが表示される */}
           <div className="print-target grid grid-cols-2 sm:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
-            {labels.map(label => (
+            {lots.map(lot => (
               <div
-                key={label.serial_number}
+                key={lot.lot_no}
                 className="bg-white border border-gray-300 rounded-lg p-4 flex flex-col items-center space-y-2 break-inside-avoid print:rounded-none print:border-gray-400"
               >
-                <QRCodeSVG value={label.qr_payload} size={112} marginSize={2} />
+                <QRCodeSVG value={lot.qr_payload} size={112} marginSize={2} />
                 <div className="text-center">
-                  <p className="font-mono text-[11px] font-bold text-gray-900">
-                    {label.serial_number}
-                  </p>
-                  <p className="text-[10px] text-gray-600">有効期限: {label.expiration_date}</p>
+                  <p className="font-mono text-[11px] font-bold text-gray-900">{lot.lot_no}</p>
+                  <p className="text-[10px] text-gray-600">有効期限: {lot.expiration_date}</p>
                   <p className="text-[9px] text-gray-400 mt-0.5">
-                    セルフィール MS ／ 高温・直射日光を避けて保管
+                    製造ロットQR ／ 段ボール1箱に1枚貼付
                   </p>
                 </div>
               </div>

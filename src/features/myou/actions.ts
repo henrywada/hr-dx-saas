@@ -8,20 +8,30 @@ import { sendExpirationAlertEmail } from '@/lib/mail'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { getAlertDateRange } from './queries'
-import { buildQrPayload, buildSerialNumber, getMaxSerialSequence } from './lib/qr-parser'
+import {
+  buildQrPayload,
+  buildSerialNumber,
+  buildTraceNo,
+  buildTraceQrPayload,
+  getMaxSerialSequence,
+  getMaxTraceSequence,
+} from './lib/qr-parser'
 import {
   companyIdSchema,
   issueLabelsSchema,
+  issueTraceLabelSchema,
   registerDeliverySchema,
   registerReceivingSchema,
   upsertCompanySchema,
   type DeliveryLogWithCompany,
   type IssueLabelsInput,
   type IssuedLabel,
+  type IssueTraceLabelInput,
   type MyouProduct,
   type ProductTraceResult,
   type RegisterDeliveryInput,
   type RegisterReceivingInput,
+  type TraceLabel,
 } from './types'
 
 async function getSupabase() {
@@ -369,8 +379,25 @@ export async function upsertCompany(formData: {
       .eq('id', input.id)
       .eq('tenant_id', user.tenant_id)
   } else {
-    // 新規作成
-    result = await supabase.from('myou_companies').insert(companyData)
+    // 新規作成: テナント内の現在最大値+1を出荷先No（company_no）として採番する
+    const { data: existingCompanies, error: fetchError } = await supabase
+      .from('myou_companies')
+      .select('company_no')
+      .eq('tenant_id', user.tenant_id)
+
+    if (fetchError) {
+      console.error('Error fetching company_no for numbering:', fetchError)
+      return { success: false, error: '出荷先Noの採番に失敗しました。' }
+    }
+
+    const maxCompanyNo = (existingCompanies ?? []).reduce(
+      (max, row) => (row.company_no > max ? row.company_no : max),
+      0
+    )
+
+    result = await supabase
+      .from('myou_companies')
+      .insert({ ...companyData, company_no: maxCompanyNo + 1 })
   }
 
   if (result.error) {
@@ -426,4 +453,88 @@ export async function deleteCompany(id: string) {
   revalidatePath(APP_ROUTES.MYOU.DELIVERY_SCAN)
 
   return { success: true }
+}
+
+/**
+ * トレーサビリティQRラベルを発行する
+ * 当日・テナント内の通番（TraceNo）を採番し、myou_trace_labels に記録してQRペイロードを返す
+ */
+export async function issueTraceLabel(
+  formData: IssueTraceLabelInput
+): Promise<{ success: boolean; label?: TraceLabel; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+
+  const parsed = issueTraceLabelSchema.safeParse(formData)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
+  }
+  const input = parsed.data
+
+  const supabase = await getSupabase()
+
+  // 出荷先がテナント内に存在するか検証しつつ company_no を取得する
+  const { data: company, error: companyError } = await supabase
+    .from('myou_companies')
+    .select('company_no')
+    .eq('id', input.company_id)
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle()
+
+  if (companyError || !company) {
+    console.error('Error fetching company for trace label:', companyError)
+    return { success: false, error: '出荷先（施工会社）が見つかりませんでした。' }
+  }
+
+  const todayYmd = toJSTDateString()
+  const compactDate = todayYmd.replaceAll('-', '')
+
+  // 当日発行分の最大通番を取得して続きから採番する
+  // ※ 同時実行時に採番が衝突する可能性はあるが、低頻度運用のため許容し、失敗時は再実行を促す
+  const { data: issuedToday, error: latestError } = await supabase
+    .from('myou_trace_labels')
+    .select('trace_no')
+    .eq('tenant_id', user.tenant_id)
+    .like('trace_no', `${compactDate}-%`)
+
+  if (latestError) {
+    console.error('Error fetching latest trace_no:', latestError)
+    return { success: false, error: 'TraceNoの採番に失敗しました。' }
+  }
+
+  const lastSequence = getMaxTraceSequence(
+    (issuedToday ?? []).map(row => row.trace_no),
+    todayYmd
+  )
+  const traceNo = buildTraceNo(todayYmd, lastSequence + 1)
+
+  const { error: insertError } = await supabase.from('myou_trace_labels').insert({
+    tenant_id: user.tenant_id,
+    company_id: input.company_id,
+    serial_number: input.serial_number,
+    expiration_date: input.expiration_date,
+    trace_no: traceNo,
+  })
+
+  if (insertError) {
+    console.error('Error inserting trace label:', insertError)
+    return {
+      success: false,
+      error: 'トレーサビリティQRの発行に失敗しました。もう一度お試しください。',
+    }
+  }
+
+  return {
+    success: true,
+    label: {
+      trace_no: traceNo,
+      company_no: company.company_no,
+      qr_payload: buildTraceQrPayload(
+        input.serial_number,
+        input.expiration_date,
+        company.company_no,
+        traceNo
+      ),
+    },
+  }
 }

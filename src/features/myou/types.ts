@@ -17,6 +17,7 @@ export const MYOU_STATUS_LABELS: Record<MyouProductStatus, string> = {
 export interface MyouCompany {
   company_id: string
   company_name: string
+  company_no: number
   email_address?: string
 }
 
@@ -142,5 +143,20 @@ export type IssueLabelsInput = z.infer<typeof issueLabelsSchema>
 export interface IssuedLabel {
   serial_number: string
   expiration_date: string
+  qr_payload: string
+}
+
+/** トレーサビリティQR発行の入力 */
+export const issueTraceLabelSchema = z.object({
+  company_id: z.string().uuid('出荷先（施工会社）を選択してください'),
+  serial_number: z.string().trim().min(1, 'シリアル番号を入力してください'),
+  expiration_date: dateStringSchema,
+})
+export type IssueTraceLabelInput = z.infer<typeof issueTraceLabelSchema>
+
+/** 発行されたトレーサビリティラベル1件分の情報 */
+export interface TraceLabel {
+  trace_no: string
+  company_no: number
   qr_payload: string
 }

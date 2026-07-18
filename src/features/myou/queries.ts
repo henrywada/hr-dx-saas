@@ -34,7 +34,7 @@ export async function getCompanies(): Promise<MyouCompany[]> {
   const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('myou_companies')
-    .select('id, name, email_address, created_at, tenant_id')
+    .select('id, name, email_address, company_no, created_at, tenant_id')
     .eq('tenant_id', user.tenant_id)
     .order('name')
 
@@ -48,11 +48,14 @@ export async function getCompanies(): Promise<MyouCompany[]> {
     return []
   }
   // スキーマは id/name、コンポーネントは company_id/company_name を期待するためマッピング
-  return (data || []).map((row: { id: string; name: string; email_address: string | null }) => ({
-    company_id: row.id,
-    company_name: row.name,
-    email_address: row.email_address ?? undefined,
-  }))
+  return (data || []).map(
+    (row: { id: string; name: string; email_address: string | null; company_no: number }) => ({
+      company_id: row.id,
+      company_name: row.name,
+      company_no: row.company_no,
+      email_address: row.email_address ?? undefined,
+    })
+  )
 }
 
 /**

@@ -119,8 +119,9 @@ export default function LabelIssueForm() {
             </button>
           </div>
 
-          {/* ラベルグリッド: 印刷時にも同じレイアウトで出力される */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
+          {/* ラベルグリッド: 印刷時にも同じレイアウトで出力される。
+              .print-target により、サイドバー等の共通レイアウトを含め印刷時はこの要素のみが表示される */}
+          <div className="print-target grid grid-cols-2 sm:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
             {labels.map(label => (
               <div
                 key={label.serial_number}

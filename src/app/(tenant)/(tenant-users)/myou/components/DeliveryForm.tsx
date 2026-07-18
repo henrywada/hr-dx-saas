@@ -5,6 +5,7 @@ import { registerDelivery } from '@/features/myou/actions'
 import { parseQrContent } from '@/features/myou/lib/qr-parser'
 import type { MyouCompany } from '@/features/myou/types'
 import QrScanner from './QrScanner'
+import TraceQrModal from './TraceQrModal'
 
 interface DeliveryFormProps {
   companies: MyouCompany[]
@@ -16,6 +17,7 @@ interface DeliveryFormProps {
  */
 export default function DeliveryForm({ companies }: DeliveryFormProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [isTraceModalOpen, setIsTraceModalOpen] = useState(false)
   const [lastScanned, setLastScanned] = useState<{
     serial: string
     expiration: string
@@ -114,6 +116,27 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
         <p>QRコードを枠内に収めてスキャンしてください</p>
         <p className="mt-1">※カメラの使用許可が必要です</p>
       </div>
+
+      {selectedCompanyId && (
+        <div className="text-left">
+          <button
+            type="button"
+            onClick={() => setIsTraceModalOpen(true)}
+            className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            QRコード発行
+          </button>
+        </div>
+      )}
+
+      {isTraceModalOpen && (
+        <TraceQrModal
+          companyId={selectedCompanyId}
+          initialSerial={lastScanned?.serial ?? ''}
+          initialExpiration={lastScanned?.expiration ?? ''}
+          onClose={() => setIsTraceModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -118,7 +118,7 @@ export default function DeliveryForm({ companies }: DeliveryFormProps) {
       </div>
 
       {selectedCompanyId && (
-        <div className="text-left">
+        <div className="text-right">
           <button
             type="button"
             onClick={() => setIsTraceModalOpen(true)}

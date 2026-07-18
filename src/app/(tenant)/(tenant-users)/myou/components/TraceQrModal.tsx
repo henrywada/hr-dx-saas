@@ -175,16 +175,11 @@ export default function TraceQrModal({
         </div>
       </div>
 
-      {/* 印刷用ビュー: モーダルのオーバーレイは print:hidden で消えるため、印刷対象は別要素として並置する */}
+      {/* 印刷用ビュー: モーダルのオーバーレイは print:hidden で消えるため、印刷対象は別要素として並置する。
+          QRコード自体にSERIAL/EXP/ShipTo/TraceNoが全て符号化されているため、印刷はQRコードのみとする */}
       {issuedLabel && (
-        <div className="hidden print:flex print:flex-col print:items-center print:justify-center print:p-12">
+        <div className="hidden print:flex print:items-center print:justify-center print:p-12">
           <QRCodeSVG value={issuedLabel.qr_payload} size={220} marginSize={2} />
-          <div className="mt-6 text-center font-mono text-sm space-y-1">
-            <p className="font-bold">{issuedLabel.serial_number}</p>
-            <p>有効期限: {issuedLabel.expiration_date}</p>
-            <p>出荷先No: {issuedLabel.company_no}</p>
-            <p>TraceNo: {issuedLabel.trace_no}</p>
-          </div>
         </div>
       )}
     </>

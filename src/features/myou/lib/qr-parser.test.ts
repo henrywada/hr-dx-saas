@@ -11,6 +11,7 @@ import {
   getMaxSerialSequence,
   getMaxTraceSequence,
   parseQrContent,
+  parseSerialNumber,
 } from './qr-parser'
 
 test('標準形式のQRペイロードからシリアル番号と有効期限を取り出せる', () => {
@@ -103,4 +104,17 @@ test('getMaxTraceSequence は当日分の最大通番を返す（該当なしは
 test('buildTraceQrPayload は SERIAL/EXP/ShipTo/TraceNo を含むペイロードを組み立てる', () => {
   const payload = buildTraceQrPayload('MS-20260707-0001', '2026-12-31', 3, '20260718-0001')
   assert.equal(payload, 'SERIAL:MS-20260707-0001,EXP:2026-12-31,ShipTo:3,TraceNo:20260718-0001')
+})
+
+test('parseSerialNumber は MS-YYYYMMDD-NNNN 形式から発行日と通番を取り出す', () => {
+  assert.deepEqual(parseSerialNumber('MS-20260707-0001'), { dateYmd: '2026-07-07', sequence: 1 })
+  assert.deepEqual(parseSerialNumber('MS-20261201-10000'), {
+    dateYmd: '2026-12-01',
+    sequence: 10000,
+  })
+})
+
+test('parseSerialNumber は形式に合わないシリアルに対してnullを返す', () => {
+  assert.equal(parseSerialNumber('TEST-1234'), null)
+  assert.equal(parseSerialNumber(''), null)
 })

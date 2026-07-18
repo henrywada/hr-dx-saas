@@ -90,12 +90,17 @@ export const dateStringSchema = z
     message: '存在しない日付です',
   })
 
-/** 入荷登録の入力 */
-export const registerReceivingSchema = z.object({
-  serial_number: z.string().trim().min(1, 'シリアル番号が読み取れませんでした'),
+/** 入荷処理の入力（スキャン済みの場合は scanned_serial を指定し、その番号を起点に連番で数量分登録する） */
+export const processReceivingSchema = z.object({
+  scanned_serial: z.string().trim().optional(),
   expiration_date: dateStringSchema,
+  quantity: z
+    .number()
+    .int()
+    .min(1, '1以上を指定してください')
+    .max(1000, '一度に登録できるのは1000件までです'),
 })
-export type RegisterReceivingInput = z.infer<typeof registerReceivingSchema>
+export type ProcessReceivingInput = z.infer<typeof processReceivingSchema>
 
 /** 出荷登録の入力 */
 export const registerDeliverySchema = z.object({

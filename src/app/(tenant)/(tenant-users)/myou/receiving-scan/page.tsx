@@ -44,8 +44,13 @@ export default function ReceivingScanPage() {
         <h3 className="text-sm font-semibold text-gray-800 mb-2">💡 操作ガイド</h3>
         <ul className="text-xs text-gray-600 space-y-1 ml-4 list-disc">
           <li>製造元からスプレー缶が納品されたら、この画面でQRコードをスキャンしてください。</li>
-          <li>読み取りが完了すると、シリアル番号・有効期限・入荷日が在庫として登録されます。</li>
-          <li>連続して複数の製品を登録することが可能です。</li>
+          <li>
+            スキャン後に「入荷処理へ進む」を押すと、シリアル番号・有効期限・数量を確認したうえで在庫登録できます。
+          </li>
+          <li>
+            QRコードをスキャンせずに「入荷処理へ進む」を押した場合は、シリアル番号を自動採番して登録できます。
+          </li>
+          <li>数量を指定すると、連番のシリアル番号をまとめて登録できます。</li>
           <li>登録した在庫は「在庫一覧」画面で確認できます。</li>
           <li>QRコード形式：SERIAL:&lt;シリアル番号&gt;,EXP:&lt;有効期限YYYY-MM-DD&gt;</li>
           <li>

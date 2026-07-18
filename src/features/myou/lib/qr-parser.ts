@@ -118,3 +118,18 @@ export function buildTraceQrPayload(
 ): string {
   return `SERIAL:${serial},EXP:${expiration},ShipTo:${shipToNo},TraceNo:${traceNo}`
 }
+
+/**
+ * シリアル番号（MS-YYYYMMDD-NNNN）から発行日と通番を取り出す。
+ * 入荷処理で、スキャン済みシリアルを起点に連番で追加採番する際に使う。
+ * 形式に合わない場合は null を返す。
+ */
+export function parseSerialNumber(serial: string): { dateYmd: string; sequence: number } | null {
+  const pattern = new RegExp(`^${SERIAL_PREFIX}-(\\d{4})(\\d{2})(\\d{2})-(\\d{4,})$`)
+  const match = serial.match(pattern)
+  if (!match) return null
+  const [, year, month, day, sequenceText] = match
+  const sequence = Number.parseInt(sequenceText, 10)
+  if (Number.isNaN(sequence)) return null
+  return { dateYmd: `${year}-${month}-${day}`, sequence }
+}

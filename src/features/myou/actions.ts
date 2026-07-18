@@ -15,22 +15,23 @@ import {
   buildTraceQrPayload,
   getMaxSerialSequence,
   getMaxTraceSequence,
+  parseSerialNumber,
 } from './lib/qr-parser'
 import {
   companyIdSchema,
   issueLabelsSchema,
   issueTraceLabelSchema,
+  processReceivingSchema,
   registerDeliverySchema,
-  registerReceivingSchema,
   upsertCompanySchema,
   type DeliveryLogWithCompany,
   type IssueLabelsInput,
   type IssuedLabel,
   type IssueTraceLabelInput,
   type MyouProduct,
+  type ProcessReceivingInput,
   type ProductTraceResult,
   type RegisterDeliveryInput,
-  type RegisterReceivingInput,
   type TraceLabel,
 } from './types'
 
@@ -89,61 +90,107 @@ export async function getProductTrace(serialNumber: string): Promise<ProductTrac
 }
 
 /**
- * 入荷登録（製造元 →（株）ミュー）を実行する
- * QRスキャンで読み取った製品を在庫（in_stock）として登録し、入荷日を記録する
+ * 入荷処理（製造元 →（株）ミュー）を実行する
+ * スキャン済みシリアルがあればそれを起点に、無ければ本日日付で新規採番し、
+ * 数量分の連番シリアルを在庫（in_stock）として登録する
  */
-export async function registerReceiving(formData: RegisterReceivingInput) {
+export async function processReceiving(formData: ProcessReceivingInput): Promise<{
+  success: boolean
+  error?: string
+  warning?: string
+  registered_serials?: string[]
+}> {
   const user = await getServerUser()
   if (!user?.tenant_id) return { success: false, error: '認証エラー' }
 
-  const parsed = registerReceivingSchema.safeParse(formData)
+  const parsed = processReceivingSchema.safeParse(formData)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
   }
   const input = parsed.data
 
   const supabase = await getSupabase()
+  const todayYmd = toJSTDateString()
 
-  // 既存レコードの状態を確認（出荷済みの再入荷は警告付きで受け付ける）
-  const { data: existing } = await supabase
-    .from('myou_products')
-    .select('serial_number, status')
-    .eq('serial_number', input.serial_number)
-    .eq('tenant_id', user.tenant_id)
-    .maybeSingle()
+  let serials: string[]
+  let existingStatus: string | null = null
 
-  const { error: productError } = await supabase.from('myou_products').upsert(
-    {
-      serial_number: input.serial_number,
+  if (input.scanned_serial) {
+    const parsedSerial = parseSerialNumber(input.scanned_serial)
+    if (parsedSerial) {
+      serials = Array.from({ length: input.quantity }, (_, index) =>
+        buildSerialNumber(parsedSerial.dateYmd, parsedSerial.sequence + index)
+      )
+    } else {
+      // 形式外（手入力・旧ラベル等）は連番生成できないため、スキャンした1件のみ登録する
+      serials = [input.scanned_serial]
+    }
+
+    // 既存レコードの状態を確認（出荷済みの再入荷は警告付きで受け付ける）
+    const { data: existing } = await supabase
+      .from('myou_products')
+      .select('status')
+      .eq('serial_number', input.scanned_serial)
+      .eq('tenant_id', user.tenant_id)
+      .maybeSingle()
+    existingStatus = existing?.status ?? null
+  } else {
+    // 未スキャン: 本日発行分の最大通番を取得して続きから採番する
+    const compactDate = todayYmd.replaceAll('-', '')
+    const { data: issuedToday, error: fetchError } = await supabase
+      .from('myou_products')
+      .select('serial_number')
+      .eq('tenant_id', user.tenant_id)
+      .like('serial_number', `MS-${compactDate}-%`)
+
+    if (fetchError) {
+      console.error('Error fetching latest serial for receiving:', fetchError)
+      return { success: false, error: 'シリアル番号の採番に失敗しました。' }
+    }
+
+    const lastSequence = getMaxSerialSequence(
+      (issuedToday ?? []).map(row => row.serial_number),
+      todayYmd
+    )
+    serials = Array.from({ length: input.quantity }, (_, index) =>
+      buildSerialNumber(todayYmd, lastSequence + index + 1)
+    )
+  }
+
+  const { error: upsertError } = await supabase.from('myou_products').upsert(
+    serials.map(serial => ({
+      serial_number: serial,
       expiration_date: input.expiration_date,
       status: 'in_stock',
-      received_at: toJSTDateString(),
+      received_at: todayYmd,
       tenant_id: user.tenant_id,
-    },
+    })),
     { onConflict: 'tenant_id,serial_number' }
   )
 
-  if (productError) {
-    console.error('Error upserting product (receiving):', productError)
-    return { success: false, error: '入荷情報の登録に失敗しました。' }
+  if (upsertError) {
+    console.error('Error upserting products (receiving):', upsertError)
+    return { success: false, error: '入荷登録に失敗しました。もう一度お試しください。' }
   }
 
   revalidatePath(APP_ROUTES.MYOU.RECEIVING_SCAN)
   revalidatePath(APP_ROUTES.MYOU.INVENTORY)
 
-  if (existing?.status === 'delivered') {
+  if (existingStatus === 'delivered') {
     return {
       success: true,
-      warning: `${input.serial_number} は出荷済みでしたが、再入荷として在庫に戻しました。`,
+      registered_serials: serials,
+      warning: `${input.scanned_serial} は出荷済みでしたが、再入荷として在庫に戻しました。`,
     }
   }
-  if (existing?.status === 'in_stock') {
+  if (existingStatus === 'in_stock') {
     return {
       success: true,
-      warning: `${input.serial_number} は既に入荷済みです（情報を更新しました）。`,
+      registered_serials: serials,
+      warning: `${input.scanned_serial} は既に入荷済みです（情報を更新しました）。`,
     }
   }
-  return { success: true }
+  return { success: true, registered_serials: serials }
 }
 
 /**

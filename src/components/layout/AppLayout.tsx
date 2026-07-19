@@ -30,23 +30,32 @@ export async function AppLayout({ children, variant }: AppLayoutProps) {
       <TenantProvider tenantId={user?.tenant_id} tenantName={user?.tenant_name}>
         <MobileMenuProvider>
           <div
-            className="flex flex-col h-screen font-sans text-slate-900 overflow-hidden"
+            className="flex flex-col h-screen font-sans text-slate-900 overflow-hidden print:h-auto print:overflow-visible"
             style={bgStyle}
           >
-            <AppHeader variant={variant} />
-            <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden" style={bgStyle}>
-              <AppSidebar variant={variant} />
+            <div className="print:hidden">
+              <AppHeader variant={variant} />
+            </div>
+            <div
+              className="flex min-h-0 min-w-0 flex-1 overflow-hidden print:h-auto print:overflow-visible"
+              style={bgStyle}
+            >
+              <div className="print:hidden">
+                <AppSidebar variant={variant} />
+              </div>
               <main
-                className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+                className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden print:h-auto print:overflow-visible"
                 style={mainBgStyle}
               >
                 {/* flex-1 + min-h-0 で子の flex-1 / h-full が効く（チャット全画面用） */}
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                  <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1920px] flex-1 flex-col overflow-y-auto overflow-x-auto px-[24px] py-6 scroll-smooth">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden print:h-auto print:overflow-visible">
+                  <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1920px] flex-1 flex-col overflow-y-auto overflow-x-auto px-[24px] py-6 scroll-smooth print:h-auto print:overflow-visible print:px-0 print:py-0">
                     {children}
                   </div>
                 </div>
-                <Footer />
+                <div className="print:hidden">
+                  <Footer />
+                </div>
               </main>
             </div>
           </div>

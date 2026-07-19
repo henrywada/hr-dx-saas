@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import ReceivingForm from '../components/ReceivingForm'
 import MyouBackLink from '../components/MyouBackLink'
+import ReceivingTestQrButton from '../components/ReceivingTestQrButton'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -62,6 +63,7 @@ export default function ReceivingScanPage() {
           </li>
           <li>ロット番号：LOT-YYYYMMDD-NNNN（発行日、当日通番4桁ゼロ埋め）</li>
         </ul>
+        <ReceivingTestQrButton />
       </div>
     </div>
   )

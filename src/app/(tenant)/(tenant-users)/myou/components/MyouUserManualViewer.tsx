@@ -296,7 +296,7 @@ export default function MyouUserManualViewer({ markdown, toc }: Props) {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8 lg:py-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:px-8 lg:py-8 print:block print:px-6 print:py-0">
         {/* デスクトップ目次 */}
         <aside className="hidden lg:block print:hidden">
           <div className="sticky top-28 max-h-[calc(100vh-15rem)] overflow-y-auto overscroll-contain scroll-pb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
@@ -313,7 +313,7 @@ export default function MyouUserManualViewer({ markdown, toc }: Props) {
         </aside>
 
         {/* 本文 */}
-        <article className="min-w-0 rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-xs sm:px-6 sm:py-8 print:border-0 print:shadow-none">
+        <article className="print-area min-w-0 rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-xs sm:px-6 sm:py-8 print:border-0 print:px-0 print:py-0 print:shadow-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={components} skipHtml>
             {markdown}
           </ReactMarkdown>

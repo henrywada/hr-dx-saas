@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { getCompanies } from '@/features/myou/queries'
 import CompanyMaintenance from '../components/CompanyMaintenance'
-import TestQrModal from '../components/TestQrModal'
 import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
 import { Building2, Info } from 'lucide-react'
@@ -55,7 +54,6 @@ export default async function CompaniesPage() {
               }
             >
               <CompanyMaintenance initialCompanies={companies} />
-              <TestQrModal />
             </Suspense>
           </div>
 

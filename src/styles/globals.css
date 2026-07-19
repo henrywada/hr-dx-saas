@@ -94,14 +94,20 @@ body {
   }
 }
 
-/* 印刷対象を .print-target のみに限定する（サイドバー・ヘッダー等の共通レイアウトが
-   印刷に混入するのを防ぐ）。印刷したい要素に .print-target を付与して使う。 */
+/* 印刷対象を .print-target / .print-area のみに限定する（サイドバー・ヘッダー等の
+   共通レイアウトが印刷に混入するのを防ぐ）。印刷したい要素にどちらかを付与して使う。
+   - .print-target: QRラベル等、1ページに収まる固定レイアウトの印刷物向け（position: fixed で
+     ビューポート全体に配置し、複製グリッド等を組む）。
+   - .print-area: マニュアル等、複数ページにまたがる通常の文書印刷向け（position は変更せず、
+     通常のドキュメントフローのままページ送りさせる）。 */
 @media print {
   body * {
     visibility: hidden;
   }
   .print-target,
-  .print-target * {
+  .print-target *,
+  .print-area,
+  .print-area * {
     visibility: visible;
   }
   .print-target {

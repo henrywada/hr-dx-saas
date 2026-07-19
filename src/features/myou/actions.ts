@@ -284,7 +284,11 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
 
   const typedResult = result as { expiration_date: string }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  // NEXT_PUBLIC_APP_URL が未設定の環境（Vercel の Preview/Production 等）でも
+  // QRコードのURLがlocalhostにならないよう、VERCEL_URLからも本番URLを推定する
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
   return {
     success: true,

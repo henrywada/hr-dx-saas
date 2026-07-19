@@ -275,6 +275,7 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
 
   revalidatePath(APP_ROUTES.MYOU.DELIVERY_SCAN)
   revalidatePath(APP_ROUTES.MYOU.INVENTORY)
+  revalidatePath(APP_ROUTES.MYOU.DELIVERY_HISTORY)
 
   const typedResult = result as { expiration_date: string }
 

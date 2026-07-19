@@ -5,11 +5,11 @@ const getTransporter = () => {
   // 環境変数 SMTP_USER がない（未設定の）か、デフォルトプレースホルダーの場合は、MailpitなどのローカルSMTPサーバーに送信する
   if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-smtp-username') {
     console.warn(
-      '⚠️ SMTP_USER is not configured. Routing emails to local Mailpit (smtp://127.0.0.1:55325).'
+      '⚠️ SMTP_USER is not configured. Routing emails to local Inbucket (smtp://127.0.0.1:55435).'
     )
     return nodemailer.createTransport({
       host: '127.0.0.1',
-      port: 55325, // Supabase local Mailpit SMTP port (shifted to 55325 based on web UI 55324)
+      port: 55435, // supabase/config.toml [inbucket].smtp_port と一致させる
       ignoreTLS: true,
     })
   }

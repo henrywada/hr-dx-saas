@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { getCompanies } from '@/features/myou/queries'
+import { getCompanies, getLots } from '@/features/myou/queries'
 import DeliveryForm from '../components/DeliveryForm'
 import MyouBackLink from '../components/MyouBackLink'
 import { Metadata } from 'next'
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 }
 
 export default async function DeliveryScanPage() {
-  // サーバーサイドで施工会社一覧を取得
-  const companies = await getCompanies()
+  // サーバーサイドで施工会社一覧・在庫一覧（「在庫表より」タブ用）を取得
+  const [companies, lots] = await Promise.all([getCompanies(), getLots()])
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -26,10 +26,6 @@ export default async function DeliveryScanPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-8">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-700">QRコードスキャン</h2>
-        </div>
-
         <div className="p-6">
           <Suspense
             fallback={
@@ -39,7 +35,7 @@ export default async function DeliveryScanPage() {
               </div>
             }
           >
-            <DeliveryForm companies={companies} />
+            <DeliveryForm companies={companies} lots={lots} />
           </Suspense>
         </div>
       </div>
@@ -50,14 +46,18 @@ export default async function DeliveryScanPage() {
           <li>
             最初にプルダウンから「出荷先（施工会社）」を選択し、受注数量（缶の本数）を入力してください。
           </li>
-          <li>ロットQRコードを枠内に収めてスキャンしてください。</li>
           <li>
-            読み取りが完了すると、出荷先・出荷日とあわせて自動的に登録され、トレーサビリティQRの印刷画面が開きます。
+            「QRスキャン」タブ：ロットQRコードを枠内に収めてスキャンしてください。「在庫表より」タブ：出荷したいロットの「出荷」ボタンから数量を指定して出荷できます。
           </li>
           <li>
-            スキャンしたロットの残数が受注数量に満たない場合はエラーになります。自動で他ロットへ分割せず、別のロットを再スキャンしてください。
+            登録が完了すると、出荷先・出荷日とあわせて自動的に登録され、トレーサビリティQRの印刷画面が開きます。
           </li>
-          <li>ロットの残数が0になった在庫は「在庫一覧」から自動的に除外されます。</li>
+          <li>
+            指定したロットの残数が出荷数量に満たない場合はエラーになります。自動で他ロットへ分割せず、別のロットを再スキャン・再選択してください。
+          </li>
+          <li>
+            ロットの残数が0になった在庫は「在庫表より」タブ・「在庫一覧」から自動的に除外されます。
+          </li>
         </ul>
       </div>
     </div>

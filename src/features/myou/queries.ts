@@ -1,13 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
-import type { AlertLogRow, ExpiringTraceLabel, LotInventoryItem, MyouCompany } from './types'
+import type {
+  AlertLogRow,
+  DeliveryHistoryRow,
+  ExpiringTraceLabel,
+  LotInventoryItem,
+  MyouCompany,
+} from './types'
 
 /** アラート対象となる有効期限までの残日数 */
 export const EXPIRATION_ALERT_DAYS = 30
 
 /** 在庫一覧の一度に取得する最大件数（無制限取得によるメモリ・転送量の膨張を防ぐ） */
 export const LOTS_FETCH_LIMIT = 1000
+
+/** 出荷リスト表の一度に取得する最大件数（無制限取得によるメモリ・転送量の膨張を防ぐ） */
+export const DELIVERY_LOGS_FETCH_LIMIT = 500
 
 async function getSupabase() {
   return await createClient()
@@ -158,7 +167,7 @@ export async function getAlertLogs(): Promise<AlertLogRow[]> {
 
 /**
  * 在庫（残数がある）ロットの一覧を取得する
- * 有効期限が近い順に並べる
+ * 有効期限・ロット番号・在庫残数の昇順に並べる
  */
 export async function getLots(): Promise<LotInventoryItem[]> {
   const user = await getServerUser()
@@ -171,6 +180,8 @@ export async function getLots(): Promise<LotInventoryItem[]> {
     .eq('tenant_id', user.tenant_id)
     .gt('quantity_remaining', 0)
     .order('expiration_date', { ascending: true, nullsFirst: false })
+    .order('lot_no', { ascending: true })
+    .order('quantity_remaining', { ascending: true })
     .limit(LOTS_FETCH_LIMIT)
 
   if (error) {
@@ -183,4 +194,69 @@ export async function getLots(): Promise<LotInventoryItem[]> {
     return []
   }
   return (data || []) as LotInventoryItem[]
+}
+
+/**
+ * 出荷リスト画面（/myou/delivery-history）の全件履歴を取得する
+ * 出荷日・登録日時の新しい順に並べる
+ */
+export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('myou_delivery_logs')
+    .select(
+      `
+      id,
+      company_id,
+      quantity,
+      delivery_date,
+      delivered_by,
+      registered_at,
+      myou_lots (
+        lot_no
+      ),
+      myou_companies (
+        name
+      )
+    `
+    )
+    .eq('tenant_id', user.tenant_id)
+    .order('delivery_date', { ascending: false })
+    .order('registered_at', { ascending: false })
+    .limit(DELIVERY_LOGS_FETCH_LIMIT)
+
+  if (error) {
+    console.error('Error fetching delivery logs:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    })
+    return []
+  }
+
+  return (data || []).map(
+    (row: {
+      id: string
+      company_id: string
+      quantity: number
+      delivery_date: string
+      delivered_by: string | null
+      registered_at: string
+      myou_lots: { lot_no: string } | null
+      myou_companies: { name: string } | null
+    }) => ({
+      id: row.id,
+      lot_no: row.myou_lots?.lot_no ?? '',
+      company_id: row.company_id,
+      company_name: row.myou_companies?.name ?? '不明',
+      quantity: row.quantity,
+      delivery_date: row.delivery_date,
+      delivered_by: row.delivered_by,
+      registered_at: row.registered_at,
+    })
+  )
 }

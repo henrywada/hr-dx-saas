@@ -214,6 +214,8 @@ export const APP_ROUTES = {
     INVENTORY: '/myou/inventory',
     /** 出荷登録（QRスキャン、ミュー→施工会社） */
     DELIVERY_SCAN: '/myou/delivery-scan',
+    /** 出荷リスト（出荷データ履歴、出荷先で絞り込み可） */
+    DELIVERY_HISTORY: '/myou/delivery-history',
     /** トレーサビリティ検索 */
     TRACEABILITY: '/myou/traceability',
     /** 有効期限監視・アラート */

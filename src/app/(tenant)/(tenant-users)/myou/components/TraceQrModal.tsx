@@ -107,9 +107,9 @@ export default function TraceQrModal({ label, onClose }: TraceQrModalProps) {
       {/* 印刷用ビュー: モーダルのオーバーレイは print:hidden で消えるため、印刷対象は別要素として並置する。
           同一QR画像を印刷部数分だけ複製表示する（内容はすべて同一のtrace_no）。
           .print-target により、サイドバー等の共通レイアウトを含め印刷時はこの要素のみが表示される */}
-      <div className="print-target hidden print:grid print:grid-cols-3 print:gap-2 print:p-4">
+      <div className="print-target hidden print:grid print:grid-cols-3 print:content-start print:items-start print:justify-items-start print:gap-2 print:p-4">
         {copies.map((_, index) => (
-          <div key={index} className="flex items-center justify-center">
+          <div key={index} className="flex items-start justify-start">
             <QRCodeSVG value={label.qr_payload} size={110} marginSize={2} />
           </div>
         ))}

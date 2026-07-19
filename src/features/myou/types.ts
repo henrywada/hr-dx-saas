@@ -57,6 +57,18 @@ export interface DeliveryLogWithCompany {
   myou_companies: { name: string } | null
 }
 
+/** 出荷リスト表の行（ロット番号・施工会社名を画面表示用にフラット化済み、出荷リスト画面の全件履歴表示用） */
+export interface DeliveryHistoryRow {
+  id: string
+  lot_no: string
+  company_id: string
+  company_name: string
+  quantity: number
+  delivery_date: string
+  delivered_by: string | null
+  registered_at: string
+}
+
 /** ロットトレース照会の結果 */
 export interface LotTraceResult {
   lot: MyouLot

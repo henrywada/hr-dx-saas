@@ -4,7 +4,7 @@ import { PLAN_CONFIG, type PlanType } from '@/features/signup/types'
 /**
  * メール送信ユーティリティ
  *
- * ローカル開発: Inbucket SMTP (localhost:55325) 経由で Mailpit に送信
+ * ローカル開発: Inbucket SMTP (localhost:55435, supabase/config.toml [inbucket].smtp_port) 経由で送信
  * 本番環境: SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS 環境変数で設定
  */
 

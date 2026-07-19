@@ -90,6 +90,17 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
           searchPlaceholder="ロット番号で検索..."
           searchKey="lot_no"
           getRowId={item => item.id}
+          footer={
+            <tr className="bg-accent-teal border-t-2 border-[#e2e6ec] font-semibold">
+              <td className="px-4 py-1 text-sm text-[#24292f]">合計</td>
+              <td className="px-4 py-1" />
+              <td className="px-4 py-1" />
+              <td className="px-4 py-1 text-sm text-[#24292f]">
+                {filteredLogs.reduce((sum, log) => sum + log.quantity, 0)}個
+              </td>
+              <td className="px-4 py-1" />
+            </tr>
+          }
         />
       )}
     </div>

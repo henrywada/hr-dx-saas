@@ -33,6 +33,8 @@ export interface DataTableProps<T> {
   sortKey?: keyof T | null
   sortOrder?: 'asc' | 'desc' | null
   onSortChange?: (key: keyof T | null, order: 'asc' | 'desc' | null) => void
+  /** 表の最終行に固定表示する合計行等。呼び出し側で columns 数に合わせた <tr> を組み立てて渡す */
+  footer?: ReactNode
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 20
@@ -51,6 +53,7 @@ export function DataTable<T extends Record<string, any>>({
   sortKey: externalSortKey,
   sortOrder: externalSortOrder,
   onSortChange,
+  footer,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<keyof T | null>(externalSortKey ?? null)
@@ -233,6 +236,7 @@ export function DataTable<T extends Record<string, any>>({
               )
             })}
           </tbody>
+          {footer && <tfoot>{footer}</tfoot>}
         </table>
       </div>
 

@@ -88,6 +88,21 @@ export default function InventoryTable({ items }: InventoryTableProps) {
     },
   ]
 
+  const totalRemaining = items.reduce((sum, item) => sum + item.quantity_remaining, 0)
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity_total, 0)
+
+  const footer = (
+    <tr className="bg-accent-teal border-t-2 border-[#e2e6ec] font-semibold">
+      <td className="px-4 py-1 text-sm text-[#24292f]">合計</td>
+      <td className="px-4 py-1 text-sm text-[#24292f]">
+        {totalRemaining} <span className="text-gray-400">/ {totalQuantity}</span>
+      </td>
+      <td className="px-4 py-1" />
+      <td className="px-4 py-1" />
+      <td className="px-4 py-1" />
+    </tr>
+  )
+
   return (
     <DataTable
       columns={columns}
@@ -96,6 +111,7 @@ export default function InventoryTable({ items }: InventoryTableProps) {
       searchPlaceholder="ロット番号で検索..."
       searchKey="lot_no"
       getRowId={item => item.id}
+      footer={footer}
     />
   )
 }

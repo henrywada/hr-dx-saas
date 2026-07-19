@@ -258,6 +258,7 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
       p_delivered_by: user.name ?? null,
       p_delivery_date: todayYmd,
       p_trace_no: traceNo,
+      p_customer_order_no: input.customer_order_no || null,
     })
     .single()
 

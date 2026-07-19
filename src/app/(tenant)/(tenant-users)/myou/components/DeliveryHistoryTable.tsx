@@ -41,6 +41,11 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
       sortable: true,
     },
     {
+      key: 'customer_order_no',
+      label: '客先注文番号',
+      render: value => value || '-',
+    },
+    {
       key: 'quantity',
       label: '出荷数量',
       render: value => `${value}個`,
@@ -93,6 +98,7 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
           footer={
             <tr className="bg-accent-teal border-t-2 border-[#e2e6ec] font-semibold">
               <td className="px-4 py-1 text-sm text-[#24292f]">合計</td>
+              <td className="px-4 py-1" />
               <td className="px-4 py-1" />
               <td className="px-4 py-1" />
               <td className="px-4 py-1 text-sm text-[#24292f]">

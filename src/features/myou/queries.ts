@@ -215,6 +215,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       delivery_date,
       delivered_by,
       registered_at,
+      customer_order_no,
       myou_lots (
         lot_no
       ),
@@ -246,6 +247,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       delivery_date: string
       delivered_by: string | null
       registered_at: string
+      customer_order_no: string | null
       myou_lots: { lot_no: string } | null
       myou_companies: { name: string } | null
     }) => ({
@@ -257,6 +259,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       delivery_date: row.delivery_date,
       delivered_by: row.delivered_by,
       registered_at: row.registered_at,
+      customer_order_no: row.customer_order_no,
     })
   )
 }

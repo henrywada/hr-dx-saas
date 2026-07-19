@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Warehouse,
+  Hash,
 } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import {
@@ -158,6 +159,15 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                           {log.delivered_by || 'システム登録'}
                         </span>
                       </div>
+                      {log.customer_order_no && (
+                        <div className="flex items-center text-gray-600">
+                          <Hash className="h-4 w-4 mr-2 text-gray-400" />
+                          客先注文番号:{' '}
+                          <span className="font-semibold text-gray-900 ml-1">
+                            {log.customer_order_no}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

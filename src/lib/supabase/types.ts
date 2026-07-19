@@ -4837,6 +4837,7 @@ export type Database = {
       myou_delivery_logs: {
         Row: {
           company_id: string
+          customer_order_no: string | null
           delivered_by: string | null
           delivery_date: string
           id: string
@@ -4847,6 +4848,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          customer_order_no?: string | null
           delivered_by?: string | null
           delivery_date?: string
           id?: string
@@ -4857,6 +4859,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          customer_order_no?: string | null
           delivered_by?: string | null
           delivery_date?: string
           id?: string
@@ -10671,6 +10674,7 @@ export type Database = {
       myou_deliver_from_lot: {
         Args: {
           p_company_id: string
+          p_customer_order_no?: string
           p_delivered_by: string
           p_delivery_date: string
           p_lot_no: string

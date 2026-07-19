@@ -54,6 +54,7 @@ export interface DeliveryLogWithCompany {
   delivery_date: string
   delivered_by: string | null
   registered_at: string
+  customer_order_no: string | null
   myou_companies: { name: string } | null
 }
 
@@ -67,6 +68,7 @@ export interface DeliveryHistoryRow {
   delivery_date: string
   delivered_by: string | null
   registered_at: string
+  customer_order_no: string | null
 }
 
 /** ロットトレース照会の結果 */
@@ -144,6 +146,11 @@ export const deliverFromLotSchema = z.object({
   lot_no: z.string().trim().min(1, 'ロット番号が読み取れませんでした'),
   company_id: z.string().uuid('出荷先（施工会社）を選択してください'),
   quantity: z.number().int().min(1, '1以上を指定してください'),
+  customer_order_no: z
+    .string()
+    .trim()
+    .max(50, '客先注文番号は50文字以内で入力してください')
+    .optional(),
 })
 export type DeliverFromLotInput = z.infer<typeof deliverFromLotSchema>
 

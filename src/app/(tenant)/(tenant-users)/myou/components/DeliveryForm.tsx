@@ -32,6 +32,7 @@ type Message = { type: 'success' | 'error' | 'warning'; text: string }
  */
 export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [customerOrderNo, setCustomerOrderNo] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState<DeliveryTab>('qr')
   const [issuedLabel, setIssuedLabel] = useState<TraceLabel | null>(null)
@@ -46,6 +47,7 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
         lot_no: lotNo,
         company_id: selectedCompanyId,
         quantity: qty,
+        customer_order_no: customerOrderNo.trim() || undefined,
       })
 
       if (result.success && result.label) {
@@ -130,6 +132,22 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label
+            htmlFor="customer-order-no"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            客先注文番号
+          </label>
+          <input
+            id="customer-order-no"
+            type="text"
+            value={customerOrderNo}
+            onChange={e => setCustomerOrderNo(e.target.value)}
+            placeholder="任意"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
         <div>
           <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">

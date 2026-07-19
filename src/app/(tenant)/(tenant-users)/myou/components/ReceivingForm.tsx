@@ -7,8 +7,8 @@ import ReceivingProcessModal from './ReceivingProcessModal'
 
 /**
  * 入荷登録フォーム（製造元 →（株）ミュー）
- * QRスキャンで読み取った製造ロット番号・有効期限を保持し、「入荷処理へ進む」から
- * モーダルで数量を確認したうえで在庫登録する
+ * QRスキャンで読み取った製造ロット番号・有効期限を保持し、スキャン成功時に自動で
+ * 入荷処理モーダルを開いて数量を確認したうえで在庫登録する
  */
 export default function ReceivingForm() {
   const [lastScanned, setLastScanned] = useState<{
@@ -25,6 +25,7 @@ export default function ReceivingForm() {
     const { lotNo, expiration } = parseLotQrContent(decodedText)
     setLastScanned({ lotNo, expiration })
     setMessage(null)
+    setIsModalOpen(true)
   }
 
   return (

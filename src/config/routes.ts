@@ -206,8 +206,6 @@ export const APP_ROUTES = {
   },
   /** mYou 製品トレーサビリティ・有効期限管理 */
   MYOU: {
-    /** QRラベル発行（シリアル採番・印刷） */
-    LABELS: '/myou/labels',
     /** 入荷登録（QRスキャン、製造元→ミュー） */
     RECEIVING_SCAN: '/myou/receiving-scan',
     /** 在庫一覧（入荷済み・未出荷） */

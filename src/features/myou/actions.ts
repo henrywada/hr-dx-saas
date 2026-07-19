@@ -20,13 +20,10 @@ import {
 import {
   companyIdSchema,
   deliverFromLotSchema,
-  issueLotsSchema,
   receiveLotSchema,
   upsertCompanySchema,
   type DeliverFromLotInput,
   type DeliveryLogWithCompany,
-  type IssueLotsInput,
-  type IssuedLot,
   type LotTraceResult,
   type MyouLot,
   type ReceiveLotInput,
@@ -301,75 +298,6 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
       qr_payload: buildTraceQrPayload(baseUrl, traceLabelId, traceNo),
     },
   }
-}
-
-/**
- * 製造ロットQRを発行する
- * ロット番号（LOT-YYYYMMDD-NNNN）をテナント内の当日通番で採番し、
- * status = 'issued'（数量未確定）で myou_lots に登録して QR ペイロードを返す
- */
-export async function issueLots(
-  formData: IssueLotsInput
-): Promise<{ success: boolean; lots?: IssuedLot[]; error?: string }> {
-  const user = await getServerUser()
-  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
-
-  const parsed = issueLotsSchema.safeParse(formData)
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? '入力内容が不正です。' }
-  }
-  const input = parsed.data
-
-  const supabase = await getSupabase()
-  const todayYmd = toJSTDateString()
-
-  // 当日発行分の最大通番を取得して続きから採番する
-  // 文字列の辞書順ソートでは通番5桁（10000〜）を正しく比較できないため、
-  // 当日分を全件取得して数値比較で最大値を求める（1日の発行量は少なく軽量）
-  const compactDate = todayYmd.replaceAll('-', '')
-  const { data: issuedToday, error: latestError } = await supabase
-    .from('myou_lots')
-    .select('lot_no')
-    .eq('tenant_id', user.tenant_id)
-    .like('lot_no', `LOT-${compactDate}-%`)
-
-  if (latestError) {
-    console.error('Error fetching latest lot_no:', latestError)
-    return { success: false, error: 'ロット番号の採番に失敗しました。' }
-  }
-
-  const lastSequence = getMaxLotSequence(
-    (issuedToday ?? []).map(row => row.lot_no),
-    todayYmd
-  )
-
-  const lots: IssuedLot[] = Array.from({ length: input.count }, (_, index) => {
-    const lotNo = buildLotNo(todayYmd, lastSequence + index + 1)
-    return {
-      lot_no: lotNo,
-      expiration_date: input.expiration_date,
-      qr_payload: buildLotQrPayload(lotNo, input.manufactured_date ?? '', input.expiration_date),
-    }
-  })
-
-  const { error: insertError } = await supabase.from('myou_lots').insert(
-    lots.map(lot => ({
-      lot_no: lot.lot_no,
-      qr_payload: lot.qr_payload,
-      manufactured_date: input.manufactured_date ?? null,
-      expiration_date: lot.expiration_date,
-      status: 'issued',
-      tenant_id: user.tenant_id,
-    }))
-  )
-
-  if (insertError) {
-    console.error('Error inserting issued lots:', insertError)
-    return { success: false, error: 'ロットQRの発行登録に失敗しました。もう一度お試しください。' }
-  }
-
-  revalidatePath(APP_ROUTES.MYOU.LABELS)
-  return { success: true, lots }
 }
 
 /**

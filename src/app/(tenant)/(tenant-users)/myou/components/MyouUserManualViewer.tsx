@@ -304,7 +304,6 @@ export default function MyouUserManualViewer({ markdown, toc }: Props) {
             {tocPanel}
             <div className="mt-6 space-y-2 border-t border-gray-100 pt-4">
               <p className="text-xs font-semibold text-gray-500">関連画面</p>
-              <QuickLink href={APP_ROUTES.MYOU.LABELS} label="QRラベル発行" />
               <QuickLink href={APP_ROUTES.MYOU.RECEIVING_SCAN} label="入荷登録" />
               <QuickLink href={APP_ROUTES.MYOU.INVENTORY} label="在庫一覧" />
               <QuickLink href={APP_ROUTES.MYOU.DELIVERY_SCAN} label="出荷登録" />

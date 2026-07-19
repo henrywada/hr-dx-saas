@@ -113,25 +113,6 @@ export const dateStringSchema = z
     message: '存在しない日付です',
   })
 
-/** 製造ロットQR発行の入力（数量はこの時点では未確定。入荷登録で確定する） */
-export const issueLotsSchema = z.object({
-  expiration_date: dateStringSchema,
-  manufactured_date: dateStringSchema.optional(),
-  count: z
-    .number()
-    .int()
-    .min(1, '1件以上を指定してください')
-    .max(100, '一度に発行できるのは100件までです'),
-})
-export type IssueLotsInput = z.infer<typeof issueLotsSchema>
-
-/** 発行された製造ロットQR1件分の情報 */
-export interface IssuedLot {
-  lot_no: string
-  expiration_date: string
-  qr_payload: string
-}
-
 /** 入荷登録の入力（スキャン済みの場合は scanned_lot_no を指定する） */
 export const receiveLotSchema = z.object({
   scanned_lot_no: z.string().trim().optional(),

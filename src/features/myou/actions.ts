@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
@@ -249,6 +250,8 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
     todayYmd
   )
   const traceNo = buildTraceNo(todayYmd, lastSequence + 1)
+  // myou_trace_labels の行IDを事前採番し、QRペイロード（公開ページURL）の組み立てに使う
+  const traceLabelId = randomUUID()
 
   const { data: result, error: rpcError } = await supabase
     .rpc('myou_deliver_from_lot', {
@@ -259,6 +262,7 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
       p_delivery_date: todayYmd,
       p_trace_no: traceNo,
       p_customer_order_no: input.customer_order_no || null,
+      p_trace_label_id: traceLabelId,
     })
     .single()
 
@@ -280,6 +284,8 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
 
   const typedResult = result as { expiration_date: string }
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
   return {
     success: true,
     label: {
@@ -288,13 +294,7 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
       company_no: company.company_no,
       quantity: input.quantity,
       expiration_date: typedResult.expiration_date,
-      qr_payload: buildTraceQrPayload(
-        input.lot_no,
-        typedResult.expiration_date,
-        company.company_no,
-        traceNo,
-        input.quantity
-      ),
+      qr_payload: buildTraceQrPayload(baseUrl, traceLabelId, traceNo),
     },
   }
 }

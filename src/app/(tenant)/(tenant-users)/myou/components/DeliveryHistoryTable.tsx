@@ -36,6 +36,18 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
       render: value => <span className="font-mono">{value}</span>,
     },
     {
+      key: 'trace_no',
+      label: 'トレースNo',
+      sortable: true,
+      render: value => <span className="font-mono">{value || '-'}</span>,
+    },
+    {
+      key: 'company_no',
+      label: '得意先No',
+      sortable: true,
+      render: value => <span className="font-mono">{value ?? '-'}</span>,
+    },
+    {
       key: 'company_name',
       label: '出荷先',
       sortable: true,
@@ -98,6 +110,8 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
           footer={
             <tr className="bg-accent-teal border-t-2 border-[#e2e6ec] font-semibold">
               <td className="px-4 py-1 text-sm text-[#24292f]">合計</td>
+              <td className="px-4 py-1" />
+              <td className="px-4 py-1" />
               <td className="px-4 py-1" />
               <td className="px-4 py-1" />
               <td className="px-4 py-1" />

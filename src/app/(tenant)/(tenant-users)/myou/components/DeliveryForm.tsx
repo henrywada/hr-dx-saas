@@ -34,7 +34,7 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [customerOrderNo, setCustomerOrderNo] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [activeTab, setActiveTab] = useState<DeliveryTab>('qr')
+  const [activeTab, setActiveTab] = useState<DeliveryTab>('inventory')
   const [issuedLabel, setIssuedLabel] = useState<TraceLabel | null>(null)
   const [deliveringItem, setDeliveringItem] = useState<LotInventoryItem | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
@@ -167,17 +167,6 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
       <div className="border-b border-gray-200 flex gap-2">
         <button
           type="button"
-          onClick={() => setActiveTab('qr')}
-          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
-            activeTab === 'qr'
-              ? 'border-blue-600 text-blue-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          QRスキャン
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveTab('inventory')}
           className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
             activeTab === 'inventory'
@@ -186,6 +175,17 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
           }`}
         >
           在庫表より
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('qr')}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'qr'
+              ? 'border-blue-600 text-blue-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          QRスキャン
         </button>
       </div>
 

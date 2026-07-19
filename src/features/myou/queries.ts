@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
 import type {
@@ -7,7 +8,11 @@ import type {
   ExpiringTraceLabel,
   LotInventoryItem,
   MyouCompany,
+  PublicTraceInfo,
 } from './types'
+
+/** UUID形式の簡易検証（公開ページのURLパラメータ検証用） */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** アラート対象となる有効期限までの残日数 */
 export const EXPIRATION_ALERT_DAYS = 30
@@ -216,11 +221,13 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       delivered_by,
       registered_at,
       customer_order_no,
+      trace_no,
       myou_lots (
         lot_no
       ),
       myou_companies (
-        name
+        name,
+        company_no
       )
     `
     )
@@ -248,18 +255,65 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       delivered_by: string | null
       registered_at: string
       customer_order_no: string | null
+      trace_no: string | null
       myou_lots: { lot_no: string } | null
-      myou_companies: { name: string } | null
+      myou_companies: { name: string; company_no: number } | null
     }) => ({
       id: row.id,
       lot_no: row.myou_lots?.lot_no ?? '',
       company_id: row.company_id,
       company_name: row.myou_companies?.name ?? '不明',
+      company_no: row.myou_companies?.company_no ?? null,
       quantity: row.quantity,
       delivery_date: row.delivery_date,
       delivered_by: row.delivered_by,
       registered_at: row.registered_at,
       customer_order_no: row.customer_order_no,
+      trace_no: row.trace_no,
     })
   )
+}
+
+/**
+ * トレーサビリティQR公開ページ（/p/myou/trace/[id]）用の情報を取得する。
+ * 一般客がスマホでスキャンした際にログインなしで開く想定のため、
+ * テナントを跨いでIDのみで検索する（myou_trace_labels.id はテナント非依存の主キーで一意）。
+ * RLSは通常テナント認証を前提とするため、この公開ページに限り管理クライアントで参照する。
+ */
+export async function getPublicTraceInfo(traceLabelId: string): Promise<PublicTraceInfo | null> {
+  if (!UUID_PATTERN.test(traceLabelId)) return null
+
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('myou_trace_labels')
+    .select(
+      `
+      trace_no,
+      expiration_date,
+      myou_lots (
+        lot_no
+      ),
+      myou_companies (
+        company_no
+      )
+    `
+    )
+    .eq('id', traceLabelId)
+    .maybeSingle()
+
+  if (error || !data) return null
+
+  const row = data as unknown as {
+    trace_no: string
+    expiration_date: string
+    myou_lots: { lot_no: string } | null
+    myou_companies: { company_no: number } | null
+  }
+
+  return {
+    lot_no: row.myou_lots?.lot_no ?? '',
+    trace_no: row.trace_no,
+    company_no: row.myou_companies?.company_no ?? null,
+    expiration_date: row.expiration_date,
+  }
 }

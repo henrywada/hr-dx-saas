@@ -100,15 +100,30 @@ test('getMaxTraceSequence は当日分の最大通番を返す（該当なしは
   assert.equal(getMaxTraceSequence([], '2026-07-18'), 0)
 })
 
-test('buildTraceQrPayload は LOT/ShipTo/TraceNo/QTY/EXP を含むペイロードを組み立てる', () => {
-  const payload = buildTraceQrPayload('LOT-20260707-0001', '2026-12-31', 3, '20260718-0001', 12)
+test('buildTraceQrPayload は公開ページURL（?traceNo=...付き）を組み立てる', () => {
+  const payload = buildTraceQrPayload(
+    'https://app.hr-dx.jp',
+    '3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e',
+    '20260718-0001'
+  )
   assert.equal(
     payload,
-    'LOT:LOT-20260707-0001,ShipTo:3,TraceNo:20260718-0001,QTY:12,EXP:2026-12-31'
+    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
   )
 })
 
-test('parseTraceQrContent はトレーサビリティQRペイロードから各項目を取り出す', () => {
+test('parseTraceQrContent は新形式（公開ページURL）からTraceNoを取り出す', () => {
+  const result = parseTraceQrContent(
+    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
+  )
+  assert.equal(result.traceNo, '20260718-0001')
+  assert.equal(result.lotNo, '')
+  assert.equal(result.shipToNo, null)
+  assert.equal(result.quantity, null)
+  assert.equal(result.expiration, '')
+})
+
+test('parseTraceQrContent は旧形式（KEY:VALUE）のペイロードから各項目を取り出す（既発行の物理ラベル互換）', () => {
   const result = parseTraceQrContent(
     'LOT:LOT-20260707-0001,ShipTo:3,TraceNo:20260718-0001,QTY:12,EXP:2026-12-31'
   )
@@ -131,6 +146,13 @@ test('parseTraceQrContent は欠落フィールドに対して null を返す', 
 test('extractSearchIdentifier はトレーサビリティQRからTraceNoを優先して取り出す', () => {
   const id = extractSearchIdentifier(
     'LOT:LOT-20260707-0001,ShipTo:3,TraceNo:20260718-0001,QTY:12,EXP:2026-12-31'
+  )
+  assert.equal(id, '20260718-0001')
+})
+
+test('extractSearchIdentifier は新形式（公開ページURL）からもTraceNoを取り出せる', () => {
+  const id = extractSearchIdentifier(
+    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
   )
   assert.equal(id, '20260718-0001')
 })

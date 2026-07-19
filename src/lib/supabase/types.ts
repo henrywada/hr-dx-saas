@@ -4845,6 +4845,7 @@ export type Database = {
           quantity: number
           registered_at: string
           tenant_id: string
+          trace_no: string | null
         }
         Insert: {
           company_id: string
@@ -4856,6 +4857,7 @@ export type Database = {
           quantity?: number
           registered_at?: string
           tenant_id?: string
+          trace_no?: string | null
         }
         Update: {
           company_id?: string
@@ -4867,6 +4869,7 @@ export type Database = {
           quantity?: number
           registered_at?: string
           tenant_id?: string
+          trace_no?: string | null
         }
         Relationships: [
           {
@@ -10679,6 +10682,7 @@ export type Database = {
           p_delivery_date: string
           p_lot_no: string
           p_quantity: number
+          p_trace_label_id?: string
           p_trace_no: string
         }
         Returns: {

@@ -4,9 +4,12 @@
  * 製造ロットQR: 「LOT:<ロット番号>,MFG:<製造日 YYYY-MM-DD>,EXP:<有効期限 YYYY-MM-DD>」
  * 例: LOT:LOT-20260707-0001,MFG:2026-07-01,EXP:2026-12-31
  *
- * トレーサビリティQR（客先出荷単位）:
- *   「LOT:<ロット番号>,ShipTo:<出荷先No>,TraceNo:<YYYYMMDD-NNNN>,QTY:<数量>,EXP:<有効期限>」
- * 例: LOT:LOT-20260707-0001,ShipTo:3,TraceNo:20260718-0001,QTY:12,EXP:2026-12-31
+ * トレーサビリティQR（客先出荷単位）: 一般客がスマホでスキャンした際に案内ページが
+ * 開くよう、公開ページ（/p/myou/trace/[id]）へのURLを埋め込む。
+ * 例: https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-...?traceNo=20260718-0001
+ * ※ 旧形式「LOT:...,ShipTo:...,TraceNo:...,QTY:...,EXP:...」で既に発行済みの
+ *   物理ラベルも、社内のトレーサビリティ検索で引き続きスキャンできるよう
+ *   parseTraceQrContent は両形式を解釈できるようにしている。
  */
 
 export interface ParsedLotQrContent {
@@ -54,8 +57,28 @@ export function parseLotQrContent(text: string): ParsedLotQrContent {
   }
 }
 
-/** トレーサビリティQRの読み取りテキストを解析して各項目を取り出す（欠落フィールドは null/空文字） */
+/**
+ * トレーサビリティQRの読み取りテキストを解析して各項目を取り出す（欠落フィールドは null/空文字）。
+ * 新形式（公開ページURL、?traceNo=... クエリ付き）・旧形式（KEY:VALUE 形式）の両方に対応する。
+ */
 export function parseTraceQrContent(text: string): ParsedTraceQrContent {
+  const trimmed = text.trim()
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed)
+      return {
+        lotNo: '',
+        shipToNo: null,
+        traceNo: url.searchParams.get('traceNo') ?? '',
+        quantity: null,
+        expiration: '',
+      }
+    } catch {
+      // URLとして解釈できない場合は下の旧形式パースにフォールバックする
+    }
+  }
+
   const pairs = parseKeyValuePairs(text)
   const shipToRaw = pairs.get('SHIPTO')
   const quantityRaw = pairs.get('QTY')
@@ -159,13 +182,18 @@ export function getMaxTraceSequence(traceNos: string[], dateYmd: string): number
   }, 0)
 }
 
-/** ロット番号・有効期限・出荷先No・TraceNo・数量からトレーサビリティQRペイロード文字列を組み立てる */
+/**
+ * トレーサビリティQRペイロード（公開ページURL）を組み立てる。
+ * スマホの標準カメラでスキャンした一般客が案内ページを開けるよう、
+ * 表示に必要な項目（LOT／ShipTo／TraceNo／EXP等）はURLに埋め込まず、
+ * 公開ページ側（/p/myou/trace/[id]）でDBから都度取得して表示する
+ * （URL改ざんによる表示内容の偽装を防ぐため）。
+ * traceNo のみ、社内のトレーサビリティ検索でのQR再スキャン対応のためクエリに含める。
+ */
 export function buildTraceQrPayload(
-  lotNo: string,
-  expiration: string,
-  shipToNo: number,
-  traceNo: string,
-  quantity: number
+  baseUrl: string,
+  traceLabelId: string,
+  traceNo: string
 ): string {
-  return `LOT:${lotNo},ShipTo:${shipToNo},TraceNo:${traceNo},QTY:${quantity},EXP:${expiration}`
+  return `${baseUrl}/p/myou/trace/${traceLabelId}?traceNo=${encodeURIComponent(traceNo)}`
 }

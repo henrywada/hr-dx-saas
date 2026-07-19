@@ -55,6 +55,7 @@ export interface DeliveryLogWithCompany {
   delivered_by: string | null
   registered_at: string
   customer_order_no: string | null
+  trace_no: string | null
   myou_companies: { name: string } | null
 }
 
@@ -64,11 +65,13 @@ export interface DeliveryHistoryRow {
   lot_no: string
   company_id: string
   company_name: string
+  company_no: number | null
   quantity: number
   delivery_date: string
   delivered_by: string | null
   registered_at: string
   customer_order_no: string | null
+  trace_no: string | null
 }
 
 /** ロットトレース照会の結果 */
@@ -185,4 +188,12 @@ export interface TraceLabel {
   quantity: number
   expiration_date: string
   qr_payload: string
+}
+
+/** トレーサビリティQR公開ページ（/p/myou/trace/[id]）に表示する情報 */
+export interface PublicTraceInfo {
+  lot_no: string
+  trace_no: string
+  company_no: number | null
+  expiration_date: string
 }

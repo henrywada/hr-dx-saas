@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { DeliveryHistoryRow, MyouCompany } from '@/features/myou/types'
+import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { History } from 'lucide-react'
 
 interface DeliveryHistoryTableProps {
@@ -63,6 +64,39 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
       render: value => `${value}個`,
     },
     {
+      key: 'expiration_date',
+      label: '期限状況',
+      render: (_value, item) => {
+        const daysLeft = getDaysUntilExpiration(item.expiration_date)
+        if (daysLeft === null) {
+          return (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+              期限未設定
+            </span>
+          )
+        }
+        if (daysLeft <= 0) {
+          return (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 font-medium">
+              期限切れ
+            </span>
+          )
+        }
+        if (daysLeft <= 30) {
+          return (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 font-medium">
+              残り{daysLeft}日
+            </span>
+          )
+        }
+        return (
+          <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
+            残り{daysLeft}日
+          </span>
+        )
+      },
+    },
+    {
       key: 'delivered_by',
       label: '登録担当者',
       render: value => value || 'システム登録',
@@ -118,6 +152,7 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
               <td className="px-4 py-1 text-sm text-[#24292f]">
                 {filteredLogs.reduce((sum, log) => sum + log.quantity, 0)}個
               </td>
+              <td className="px-4 py-1" />
               <td className="px-4 py-1" />
             </tr>
           }

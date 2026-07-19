@@ -72,6 +72,7 @@ export interface DeliveryHistoryRow {
   registered_at: string
   customer_order_no: string | null
   trace_no: string | null
+  expiration_date: string | null
 }
 
 /** ロットトレース照会の結果 */

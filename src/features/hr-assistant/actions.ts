@@ -16,6 +16,7 @@ import {
 import { formatLawContextBlocks, formatLawCitations } from './law-context'
 import type { LawChunkRow } from './law-context'
 import { fetchAndStoreLawOnMiss } from './ondemand-law'
+import { fetchLawArticleContext } from './egov-law'
 
 /** 最大コンテキスト履歴ターン数（古いものは除外してトークンを節約） */
 const MAX_HISTORY_TURNS = 6
@@ -31,7 +32,8 @@ export async function sendHrAssistantMessage(input: {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
   if (!input.message?.trim()) return { ok: false, error: 'メッセージを入力してください' }
-  if (!process.env.OPENROUTER_API_KEY) return { ok: false, error: 'OPENROUTER_API_KEY が未設定です' }
+  if (!process.env.OPENROUTER_API_KEY)
+    return { ok: false, error: 'OPENROUTER_API_KEY が未設定です' }
 
   const message = input.message.trim()
   const mode = input.mode
@@ -79,6 +81,13 @@ export async function sendHrAssistantMessage(input: {
   let contextBlocks: string[] = []
   let hasLawContext = false
   let bestLawSimilarity = 0
+
+  // 「労基法第32条」等、条文が明示された質問は e-Gov 原文取得を試行する
+  // （RAG検索と並行実行してレイテンシを吸収する）
+  const egovLawPromise = fetchLawArticleContext(message).catch(e => {
+    console.error('[hr-assistant] egov law', e)
+    return null
+  })
 
   try {
     const queryEmbedding = await openRouterEmbedQuery(message)
@@ -150,6 +159,13 @@ export async function sendHrAssistantMessage(input: {
   } catch (e) {
     console.error('[hr-assistant] embedding/rag', e)
     // RAG 失敗は致命的でない。contextBlocks が空のまま続行。
+  }
+
+  const egovLawResult = await egovLawPromise
+  if (egovLawResult) {
+    hasLawContext = true
+    contextBlocks = [...contextBlocks, ...egovLawResult.contextBlocks]
+    citations = [...citations, ...egovLawResult.citations]
   }
 
   // 会話履歴の取得（multi-turn 対応）

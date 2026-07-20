@@ -1,7 +1,7 @@
 # 実装計画: AI人事アシスタント進化版（人事アップデート + OpenRouter）
 
 作成日: 2026-07-09  
-最終更新: 2026-07-10（閉ループ追記）
+最終更新: 2026-07-20（e-Gov条文原文取得を追記）
 
 ---
 
@@ -20,11 +20,11 @@
 
 ## 3. 必要な設定
 
-| 変数 | 用途 |
-|------|------|
-| `OPENROUTER_API_KEY` | Next.js + Edge Function（必須） |
-| `SERPAPI_API_KEY` | 本機能では未使用（他機能用に残置） |
-| `GEMINI_API_KEY` | 他機能用に残置。人事アシスタント本線は OpenRouter |
+| 変数                 | 用途                                              |
+| -------------------- | ------------------------------------------------- |
+| `OPENROUTER_API_KEY` | Next.js + Edge Function（必須）                   |
+| `SERPAPI_API_KEY`    | 本機能では未使用（他機能用に残置）                |
+| `GEMINI_API_KEY`     | 他機能用に残置。人事アシスタント本線は OpenRouter |
 
 `web_search`（Exa 等）は OpenRouter クレジット課金あり。モデル本体を free にしても検索は有料。
 
@@ -52,14 +52,14 @@
 
 ## 6. 実装フェーズ（完了状況）
 
-| Phase | 内容 | 状態 |
-|-------|------|------|
-| P0 | OpenRouter クライアント・チャット移行 | 実装済 |
-| P1 | DB 拡張・週次ジョブ OpenRouter 化・失効 | 実装済（migration 適用はローカル DB 起動後） |
-| P2 | 2タブ UI・ニュース/テーマ・情報元モーダル | 実装済 |
-| P3 | miss 時収集・template mining・mined サジェスチョン | 実装済 |
-| P4 | 再埋め込みスクリプト・PRD 更新・SaaS 表記 | 実装済 |
-| P5 | 監視トピック閉ループ（候補承認・CRUD）＋文書鮮度ハイブリッド | 実装済 |
+| Phase | 内容                                                         | 状態                                         |
+| ----- | ------------------------------------------------------------ | -------------------------------------------- |
+| P0    | OpenRouter クライアント・チャット移行                        | 実装済                                       |
+| P1    | DB 拡張・週次ジョブ OpenRouter 化・失効                      | 実装済（migration 適用はローカル DB 起動後） |
+| P2    | 2タブ UI・ニュース/テーマ・情報元モーダル                    | 実装済                                       |
+| P3    | miss 時収集・template mining・mined サジェスチョン           | 実装済                                       |
+| P4    | 再埋め込みスクリプト・PRD 更新・SaaS 表記                    | 実装済                                       |
+| P5    | 監視トピック閉ループ（候補承認・CRUD）＋文書鮮度ハイブリッド | 実装済                                       |
 
 ## 7. 主要ファイル
 
@@ -77,3 +77,35 @@
 2. `supabase migration up`（**db reset 禁止**）
 3. 既存チャンクがある場合は `npm run reembed-hr-law-chunks` で再埋め込み
 4. Edge Function をデプロイ: `hr-law-refresh` / `hr-assistant-template-mining`
+
+## 9. e-Gov 法令API v2 による条文原文取得（2026-07-20 追加）
+
+### 問題定義
+
+既存の法令 RAG（`hr_law_chunks`）・オンデマンドWeb検索（`ondemand-law.ts`）は要約・チャンク化された
+二次情報であり、ユーザーが「労基法第32条」のように条文番号を明示した質問でも、原文そのものより
+セマンティック検索・Web検索の結果に依存していた。OSS [labor-law-mcp](https://github.com/kentaroajisaka/labor-law-mcp)
+（MIT License）の `get_law` 機能を調査した結果、e-Gov法令API v2から条文原文を直接取得できることを確認し、
+MCPプロトコルなしで直接呼び出せるライブラリコードとして移植した（詳細は `THIRD_PARTY_NOTICES.md`）。
+
+### 決定事項
+
+1. 対象は `get_law`（条文取得）のみ。通達検索（MHLW/JAISH）は対象外
+   （HTMLスクレイピングの脆さ・JAISH利用規約未確認のため見送り）
+2. e-Gov API v2 の `elm=MainProvision-Article_{num}` パラメータで条文単位に絞り込んで取得する設計とし、
+   labor-law-mcp本家（法令全文を毎回取得）より軽量化した
+3. 質問文から「法令名（略称含む）+ 条文番号」の明示的な言及を正規表現で検出した場合のみ発火する
+   （条文番号を伴わない一般的な質問では発火せず、既存のRAG/オンデマンド検索に委ねる。誤爆防止）
+4. 取得結果は都度のコンテキスト注入のみで、`hr_law_chunks` への永続化はしない（スコープ外）
+5. 既知の制約: 直近改正（施行日から日が浅い）法令はe-Gov側のデータファイル生成が追いついておらず
+   404になる場合がある（実データで確認済み）。この場合は null を返しグレースフルに他経路へフォールバックする
+
+### 主要ファイル
+
+- `src/features/hr-assistant/egov-types.ts` — e-Gov API v2 レスポンス型
+- `src/features/hr-assistant/egov-law-registry.ts` — 主要45法令のlaw_id・略称マッピング
+- `src/features/hr-assistant/egov-parser.ts` — 条文JSONツリーからのテキスト抽出（枝番号・号の細分対応）
+- `src/features/hr-assistant/egov-law-detect.ts` — 質問文からの条文参照検出
+- `src/features/hr-assistant/egov-client.ts` — e-Gov APIクライアント（レート制限・キャッシュ・タイムアウト）
+- `src/features/hr-assistant/egov-law.ts` — 統合オーケストレーション（`fetchLawArticleContext`）
+- `src/features/hr-assistant/actions.ts` — `sendHrAssistantMessage` に統合（RAG検索と並行実行）

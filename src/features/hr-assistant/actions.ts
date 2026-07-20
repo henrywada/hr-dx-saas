@@ -24,6 +24,14 @@ const MAX_HISTORY_TURNS = 6
 /** 法令 RAG の類似度がこの値未満ならオンデマンド収集を検討 */
 const LAW_MISS_SIMILARITY_THRESHOLD = 0.55
 
+/**
+ * 法令チャンクの取得件数。
+ * 日本語の質問は資料側と語彙が揺れやすく（例: 質問「14連勤」/ 資料「連続勤務」）、
+ * 上位数件では本命チャンクを取りこぼす。実測でも該当チャンクが11位・56位だったため
+ * 広めに取り、取捨選択は LLM 側に委ねる。
+ */
+const LAW_RAG_MATCH_COUNT = 12
+
 export async function sendHrAssistantMessage(input: {
   sessionId?: string | null
   message: string
@@ -100,7 +108,7 @@ export async function sendHrAssistantMessage(input: {
       }),
       supabase.rpc('match_hr_law_chunks', {
         query_embedding: embeddingVector,
-        match_count: 4,
+        match_count: LAW_RAG_MATCH_COUNT,
       }),
     ])
 

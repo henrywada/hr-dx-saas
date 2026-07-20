@@ -20,6 +20,7 @@
     "reembed-rag-chunks": "tsx scripts/reembed_tenant_rag_chunks.ts",
     "reembed-hr-law-chunks": "tsx scripts/reembed_hr_law_chunks.ts",
     "rechunk-hr-law-chunks": "tsx scripts/rechunk_hr_law_chunks.ts",
+    "clean-hr-law-detail": "tsx scripts/clean_hr_law_detail.ts",
     "rechunk-rag-chunks": "tsx scripts/rechunk_tenant_rag_chunks.ts"
   },
   "dependencies": {

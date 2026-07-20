@@ -1,3 +1,5 @@
+import { stripSummaryBoilerplate } from './detail-cleaner.ts'
+
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 const EMBEDDING_DIMENSION = 1536
 const EMBEDDING_MODEL = 'openai/text-embedding-3-small'
@@ -232,13 +234,12 @@ export async function summarizeLawArticle(
           '{"title":string,"summary":string|null,"detail":string|null,"theme":string,' +
           '"publishedAt":"YYYY-MM-DD"|null,"expiresAt":"YYYY-MM-DD"|null,"isExpired":boolean}\n' +
           'summary: 一覧用。2〜3文・200字程度。要点のみ。\n' +
-          'detail: 詳細説明。800〜2000字程度を目安。次を必ず含める（分かる範囲）:\n' +
-          '・何が変わったか／現状の制度内容\n' +
-          '・施行日・適用開始・経過措置\n' +
-          '・対象企業・対象者\n' +
-          '・人事が取るべき実務対応\n' +
-          '・数値（料率・金額・期限等）があれば明記\n' +
-          '・不確かな点は書かない（推測禁止）\n' +
+          'detail: 詳細説明。800〜2000字程度を目安。次の観点を（分かる範囲で）盛り込む:\n' +
+          '何が変わったか／現状の制度内容、施行日・適用開始・経過措置、対象企業・対象者、\n' +
+          '人事が取るべき実務対応、数値（料率・金額・期限等）。推測で補わない。\n' +
+          '重要: 上記の観点は執筆の指示であり、見出しとして出力してはならない。\n' +
+          '見出しを付ける場合は、その文書固有の内容を表す具体的な見出しにすること\n' +
+          '（例: 「連続勤務規制」「賃金のデジタル払い」）。\n' +
           'AI人事アシスタントがこの detail だけで正確に回答できる情報量にすること。\n' +
           'theme は 賃金/社会保険/ストレスチェック/ハラスメント/育児介護/労働時間/安全衛生/障害者雇用/その他。\n' +
           '法令改正・通達・ガイドラインと無関係なら summary:null かつ detail:null。',
@@ -276,7 +277,8 @@ export async function summarizeLawArticle(
     throw new Error('OpenRouter の応答が JSON として解析できませんでした')
   }
   if (!parsed.summary) return null
-  const detail = (parsed.detail && parsed.detail.trim()) || parsed.summary
+  // 定型見出しが混入すると全文書で同一文字列となり、検索の埋め込み精度を落とすため除去する
+  const detail = stripSummaryBoilerplate(parsed.detail ?? '') || parsed.summary
 
   return {
     title: parsed.title || title,

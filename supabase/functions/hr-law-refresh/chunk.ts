@@ -13,7 +13,7 @@ export function chunkPlainText(text: string): string[] {
   const chunks: string[] = []
   let i = 0
   while (i < normalized.length) {
-    let end = Math.min(i + CHUNK_MAX_CHARS, normalized.length)
+    const end = Math.min(i + CHUNK_MAX_CHARS, normalized.length)
     let slice = normalized.slice(i, end)
 
     if (end < normalized.length) {
@@ -32,8 +32,11 @@ export function chunkPlainText(text: string): string[] {
     const trimmed = slice.trim()
     if (trimmed.length > 0) chunks.push(trimmed)
 
-    const step = Math.max(1, slice.length - CHUNK_OVERLAP_CHARS)
-    i += step
+    const chunkEnd = i + slice.length
+    // 末尾まで到達したら終了する。オーバーラップ分だけ戻すと slice.length <= オーバーラップ幅の
+    // ケースで前進幅が 1 文字まで縮み、末尾がほぼ重複するチャンクが延々と生成されてしまうため。
+    if (chunkEnd >= normalized.length) break
+    i = Math.max(i + 1, chunkEnd - CHUNK_OVERLAP_CHARS)
   }
 
   return chunks

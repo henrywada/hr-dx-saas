@@ -1,11 +1,7 @@
 import { chunkPlainText } from './chunk.ts'
-import {
-  fetchPageText,
-  summarizeLawArticle,
-  embedChunksBatch,
-  formatVectorForPg,
-  isAllowedUrl,
-} from './openrouter.ts'
+import { fetchPageText, summarizeLawArticle, isAllowedUrl } from './openrouter.ts'
+// 埋め込みは Gemini に統一（検索側と同じベクトル空間に揃えるため）
+import { embedChunksGemini, formatGeminiVectorForPg } from './gemini-embedding.ts'
 
 const MAX_FRESHNESS_PER_RUN = 30
 
@@ -57,7 +53,8 @@ export type FreshnessResult = {
 export async function runFreshnessChecks(
   // deno-lint-ignore no-explicit-any
   supabase: any,
-  apiKey: string
+  apiKey: string,
+  geminiKey: string
 ): Promise<FreshnessResult> {
   const errors: string[] = []
   let checked = 0
@@ -83,19 +80,13 @@ export async function runFreshnessChecks(
     checked++
     const url = doc.source_url as string
     if (!isAllowedUrl(url)) {
-      await supabase
-        .from('hr_law_documents')
-        .update({ content_checked_at: now })
-        .eq('id', doc.id)
+      await supabase.from('hr_law_documents').update({ content_checked_at: now }).eq('id', doc.id)
       continue
     }
 
     try {
       const validators = await fetchHttpValidators(url)
-      const etagSame =
-        validators.etag &&
-        doc.http_etag &&
-        validators.etag === doc.http_etag
+      const etagSame = validators.etag && doc.http_etag && validators.etag === doc.http_etag
       const lmSame =
         validators.lastModified &&
         doc.http_last_modified &&
@@ -163,20 +154,14 @@ export async function runFreshnessChecks(
         .maybeSingle()
       if (conflict) {
         errors.push(`${doc.title}: content_hash 衝突のため更新スキップ`)
-        await supabase
-          .from('hr_law_documents')
-          .update({ content_checked_at: now })
-          .eq('id', doc.id)
+        await supabase.from('hr_law_documents').update({ content_checked_at: now }).eq('id', doc.id)
         continue
       }
 
       const summary = await summarizeLawArticle(apiKey, doc.title, url, bodyText)
       if (!summary) {
         errors.push(`${doc.title}: 再要約不可（旧文書を維持）`)
-        await supabase
-          .from('hr_law_documents')
-          .update({ content_checked_at: now })
-          .eq('id', doc.id)
+        await supabase.from('hr_law_documents').update({ content_checked_at: now }).eq('id', doc.id)
         continue
       }
 
@@ -212,12 +197,12 @@ export async function runFreshnessChecks(
       const chunks = chunkPlainText(summary.detail)
       await supabase.from('hr_law_chunks').delete().eq('document_id', doc.id)
       if (chunks.length > 0) {
-        const embeddings = await embedChunksBatch(apiKey, chunks)
+        const embeddings = await embedChunksGemini(geminiKey, chunks)
         const chunkRows = chunks.map((content, i) => ({
           document_id: doc.id,
           chunk_index: i,
           content,
-          embedding: formatVectorForPg(embeddings[i]),
+          embedding: formatGeminiVectorForPg(embeddings[i]),
           metadata: {
             document_title: summary.title,
             source_url: url,
@@ -232,9 +217,7 @@ export async function runFreshnessChecks(
       }
       updated++
     } catch (e) {
-      errors.push(
-        `${doc.title}: 鮮度チェック失敗 ${e instanceof Error ? e.message : String(e)}`
-      )
+      errors.push(`${doc.title}: 鮮度チェック失敗 ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 

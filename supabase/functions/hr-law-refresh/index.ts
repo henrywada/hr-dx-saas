@@ -1,14 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { chunkPlainText } from './chunk.ts'
-import {
-  searchTopicUrls,
-  fetchPageText,
-  summarizeLawArticle,
-  embedChunksBatch,
-  formatVectorForPg,
-  isAllowedUrl,
-} from './openrouter.ts'
+import { searchTopicUrls, fetchPageText, summarizeLawArticle, isAllowedUrl } from './openrouter.ts'
+// 埋め込みは Gemini に統一（検索側と同じベクトル空間に揃えるため）
+import { embedChunksGemini, formatGeminiVectorForPg } from './gemini-embedding.ts'
 import { runFreshnessChecks } from './freshness.ts'
 import { discoverMhlwTopicProposals } from './proposals.ts'
 
@@ -47,6 +42,7 @@ async function processQueueItem(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   apiKey: string,
+  geminiKey: string,
   item: { id: string; source_id: string | null; topic: string; url: string; title: string | null },
   errors: string[]
 ): Promise<{ status: 'created' | 'skipped'; detailChars: number }> {
@@ -161,12 +157,12 @@ async function processQueueItem(
     const chunks = chunkPlainText(summary.detail)
     if (chunks.length > 0) {
       try {
-        const embeddings = await embedChunksBatch(apiKey, chunks)
+        const embeddings = await embedChunksGemini(geminiKey, chunks)
         const chunkRows = chunks.map((content, i) => ({
           document_id: doc.id,
           chunk_index: i,
           content,
-          embedding: formatVectorForPg(embeddings[i]),
+          embedding: formatGeminiVectorForPg(embeddings[i]),
           metadata: {
             document_title: summary.title,
             source_url: item.url,
@@ -236,9 +232,14 @@ serve(async req => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceRoleKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''
     const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') ?? ''
+    // 検索・要約は OpenRouter、埋め込みは Gemini（検索側とベクトル空間を揃えるため）
+    const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
 
     if (!openRouterKey) {
       throw new Error('OPENROUTER_API_KEY が未設定です')
+    }
+    if (!geminiKey) {
+      throw new Error('GEMINI_API_KEY が未設定です（supabase secrets set で設定してください）')
     }
 
     supabase = createClient(supabaseUrl, serviceRoleKey)
@@ -302,7 +303,7 @@ serve(async req => {
     // 0) 週次のみ: 既存文書の鮮度チェック
     if (!body.sourceId) {
       try {
-        const fr = await runFreshnessChecks(supabase, openRouterKey)
+        const fr = await runFreshnessChecks(supabase, openRouterKey, geminiKey)
         freshnessChecked = fr.checked
         documentsUpdated = fr.updated
         errors.push(...fr.errors)
@@ -363,7 +364,7 @@ serve(async req => {
 
     let detailChars = 0
     for (const item of queueItems ?? []) {
-      const result = await processQueueItem(supabase, openRouterKey, item, errors)
+      const result = await processQueueItem(supabase, openRouterKey, geminiKey, item, errors)
       if (result.status === 'created') {
         documentsCreated++
         detailChars += result.detailChars

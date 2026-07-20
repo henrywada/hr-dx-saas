@@ -4,8 +4,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   openRouterChat,
   openRouterWebSearchChat,
-  openRouterEmbedTexts,
-  formatOpenRouterVectorForPg,
   OPENROUTER_SUMMARIZE_MODEL,
   HR_LAW_ALLOWED_DOMAINS,
 } from '@/lib/ai/openrouter'
@@ -13,6 +11,8 @@ import type { Citation } from './types'
 // チャンク分割は共通実装を使う。以前ここに独自複製を持っていたが、
 // 末尾でオーバーラップ計算が破綻し重複チャンクを量産するバグを抱えていた。
 import { chunkPlainText } from '../inquiry-chat/chunk'
+// 埋め込みは Gemini に統一（hr_law_chunks は検索時も Gemini で埋め込むため空間を揃える）
+import { embedChunks, formatVectorForPg } from '../inquiry-chat/embedding'
 
 /** オンデマンド収集の上限 URL 数 */
 const MAX_ONDEMAND_URLS = 2
@@ -207,12 +207,12 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
       const chunks = chunkPlainText(doc.detail)
       if (chunks.length > 0) {
         try {
-          const embeddings = await openRouterEmbedTexts(chunks)
+          const embeddings = await embedChunks(chunks)
           const chunkRows = chunks.map((content, i) => ({
             document_id: documentId,
             chunk_index: i,
             content,
-            embedding: formatOpenRouterVectorForPg(embeddings[i]),
+            embedding: formatVectorForPg(embeddings[i]),
             metadata: {
               document_title: doc.title,
               source_url: doc.sourceUrl,

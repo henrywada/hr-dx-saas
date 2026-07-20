@@ -1,8 +1,6 @@
 import { stripSummaryBoilerplate } from './detail-cleaner.ts'
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
-const EMBEDDING_DIMENSION = 1536
-const EMBEDDING_MODEL = 'openai/text-embedding-3-small'
 const SUMMARIZE_MODEL = 'google/gemini-2.5-flash'
 /** 本文取得用（安価・tool対応） */
 const CRAWL_MODEL = 'google/gemini-2.5-flash'
@@ -289,43 +287,4 @@ export async function summarizeLawArticle(
     expiresAt: parsed.expiresAt ?? null,
     isExpired: !!parsed.isExpired,
   }
-}
-
-export async function embedChunksBatch(apiKey: string, chunks: string[]): Promise<number[][]> {
-  if (chunks.length === 0) return []
-  const out: number[][] = []
-  const BATCH = 64
-  for (let i = 0; i < chunks.length; i += BATCH) {
-    const batch = chunks.slice(i, i + BATCH)
-    const res = await fetch(`${OPENROUTER_BASE}/embeddings`, {
-      method: 'POST',
-      headers: headers(apiKey),
-      body: JSON.stringify({
-        model: EMBEDDING_MODEL,
-        input: batch,
-        dimensions: EMBEDDING_DIMENSION,
-      }),
-    })
-    if (!res.ok) {
-      throw new Error(`OpenRouter embeddings error (${res.status}): ${await res.text()}`)
-    }
-    const data = await res.json()
-    const rows = (data.data as { embedding: number[]; index: number }[]).sort(
-      (a, b) => a.index - b.index
-    )
-    if (rows.length !== batch.length) {
-      throw new Error('埋め込みバッチの件数が一致しません')
-    }
-    for (const row of rows) out.push(row.embedding)
-  }
-  return out
-}
-
-export function formatVectorForPg(values: number[]): string {
-  if (values.length !== EMBEDDING_DIMENSION) {
-    throw new Error(
-      `埋め込み次元が一致しません: expected ${EMBEDDING_DIMENSION}, got ${values.length}`
-    )
-  }
-  return `[${values.join(',')}]`
 }

@@ -14,13 +14,15 @@
  *     （挿入失敗時は削除もロールバックされ、チャンクが0件になることはない）。
  *
  * 使い方:
- *   DATABASE_URL=... OPENROUTER_API_KEY=... npx tsx scripts/rechunk_hr_law_chunks.ts             # dry-run
- *   DATABASE_URL=... OPENROUTER_API_KEY=... npx tsx scripts/rechunk_hr_law_chunks.ts --apply      # 実書き込み
+ *   DOTENV_CONFIG_PATH=.env.prod.local npx tsx scripts/rechunk_hr_law_chunks.ts             # dry-run
+ *   DOTENV_CONFIG_PATH=.env.prod.local npx tsx scripts/rechunk_hr_law_chunks.ts --apply      # 実書き込み
+ *   （--apply は GEMINI_API_KEY が必要）
  */
 import 'dotenv/config'
 import postgres from 'postgres'
 import { chunkPlainText } from '../src/features/inquiry-chat/chunk'
-import { openRouterEmbedTexts, formatOpenRouterVectorForPg } from '../src/lib/ai/openrouter'
+// 埋め込みは Gemini に統一（検索側と同じベクトル空間に揃えるため）
+import { embedChunks, formatVectorForPg } from '../src/features/inquiry-chat/embedding'
 
 const apply = process.argv.includes('--apply')
 
@@ -70,8 +72,8 @@ type DocRow = {
 async function main() {
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) throw new Error('DATABASE_URL が未設定です')
-  if (apply && !process.env.OPENROUTER_API_KEY) {
-    throw new Error('OPENROUTER_API_KEY が未設定です（--apply 時は埋め込み生成に必要）')
+  if (apply && !process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY が未設定です（--apply 時は埋め込み生成に必要）')
   }
 
   // 破壊的操作のため、実行対象のDBを必ず明示する
@@ -119,12 +121,12 @@ async function main() {
 
     if (!apply) continue
 
-    const embeddings = await openRouterEmbedTexts(newChunks)
+    const embeddings = await embedChunks(newChunks)
     const rows = newChunks.map((content, i) => ({
       document_id: doc.id,
       chunk_index: i,
       content,
-      embedding: formatOpenRouterVectorForPg(embeddings[i]!),
+      embedding: formatVectorForPg(embeddings[i]!),
       metadata: {
         document_title: doc.title,
         source_url: doc.source_url,

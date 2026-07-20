@@ -7,12 +7,11 @@ import { APP_ROUTES } from '@/config/routes'
 import { RAG_TOP_K } from '../inquiry-chat/constants'
 import { buildSystemPrompt } from './prompts'
 import type { AssistantMode, SendMessageResult, Citation } from './types'
-import {
-  openRouterChat,
-  openRouterEmbedQuery,
-  formatOpenRouterVectorForPg,
-  OPENROUTER_CHAT_MODEL,
-} from '@/lib/ai/openrouter'
+import { openRouterChat, OPENROUTER_CHAT_MODEL } from '@/lib/ai/openrouter'
+// 埋め込みは Gemini に統一（社内資料RAGと同じベクトル空間・同じ 1536 次元）。
+// OpenAI text-embedding-3-small は日本語の法令文書で類似度が 0.24〜0.40 に圧縮され、
+// 関連チャンクより無関係チャンクが上位に来る状態だったため移行した。
+import { embedQueryText, formatVectorForPg } from '../inquiry-chat/embedding'
 import { formatLawContextBlocks, formatLawCitations } from './law-context'
 import type { LawChunkRow } from './law-context'
 import { fetchAndStoreLawOnMiss } from './ondemand-law'
@@ -40,8 +39,10 @@ export async function sendHrAssistantMessage(input: {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
   if (!input.message?.trim()) return { ok: false, error: 'メッセージを入力してください' }
+  // 回答生成は OpenRouter、埋め込み（RAG検索）は Gemini を使う
   if (!process.env.OPENROUTER_API_KEY)
     return { ok: false, error: 'OPENROUTER_API_KEY が未設定です' }
+  if (!process.env.GEMINI_API_KEY) return { ok: false, error: 'GEMINI_API_KEY が未設定です' }
 
   const message = input.message.trim()
   const mode = input.mode
@@ -98,8 +99,8 @@ export async function sendHrAssistantMessage(input: {
   })
 
   try {
-    const queryEmbedding = await openRouterEmbedQuery(message)
-    const embeddingVector = formatOpenRouterVectorForPg(queryEmbedding)
+    const queryEmbedding = await embedQueryText(message)
+    const embeddingVector = formatVectorForPg(queryEmbedding)
 
     const [tenantResult, lawResult] = await Promise.all([
       supabase.rpc('match_tenant_rag_chunks', {

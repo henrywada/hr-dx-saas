@@ -275,6 +275,18 @@ serve(async req => {
       console.error('[hr-law-refresh] expire_hr_law_documents', e)
     }
 
+    // 検索対象外になった文書のチャンクを掃除する（溜まり続けるのを防ぐ）。
+    // 手動実行（sourceId 指定）では走らせない — 週次の定期処理でのみ行う。
+    let chunksCleaned = 0
+    if (!body.sourceId) {
+      try {
+        const { data: cleaned } = await supabase.rpc('cleanup_hr_law_unsearchable_chunks')
+        chunksCleaned = typeof cleaned === 'number' ? cleaned : 0
+      } catch (e) {
+        console.error('[hr-law-refresh] cleanup_hr_law_unsearchable_chunks', e)
+      }
+    }
+
     let freshnessChecked = 0
     let documentsUpdated = 0
     let proposalsCreated = 0
@@ -422,6 +434,7 @@ serve(async req => {
         freshnessChecked,
         documentsUpdated,
         proposalsCreated,
+        chunksCleaned,
         queueRemainingHint: 'pending rows remain for next run if any',
         errors,
       }),

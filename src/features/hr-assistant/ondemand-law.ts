@@ -158,12 +158,24 @@ export async function fetchAndStoreLawOnMiss(question: string): Promise<OnDemand
   const today = new Date().toISOString().slice(0, 10)
 
   for (const doc of docs) {
-    const contentHash = await sha256Hex(`${doc.sourceUrl}\n${doc.summary}`)
-    const { data: existing } = await supabase
+    // 重複判定は source_url で行う。
+    // 以前は content_hash = sha256(sourceUrl + summary) で判定していたが、summary は
+    // LLM 生成のため同じURLでも実行ごとに揺れ、UNIQUE(content_hash) をすり抜けて
+    // 同一URLの文書が際限なく増えていた。URL は安定しており、週次ジョブ側が登録した
+    // 文書（content_hash は本文ハッシュ）とも突き合わせられる。
+    // 旧バグで同一URLの文書が既に複数存在しうるため、maybeSingle() ではなく
+    // 先頭1件を取る（maybeSingle は複数行でエラーになる）。
+    const { data: existingRows } = await supabase
       .from('hr_law_documents')
       .select('id, title, summary, source_url, fetched_at, status')
-      .eq('content_hash', contentHash)
-      .maybeSingle()
+      .eq('source_url', doc.sourceUrl)
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+
+    const existing = existingRows?.[0]
+
+    // 新規登録時の content_hash も URL 由来にして安定させる（列は NOT NULL / UNIQUE）
+    const contentHash = await sha256Hex(doc.sourceUrl)
 
     let documentId = existing?.id as string | undefined
     let fetchedAt = (existing?.fetched_at as string | undefined) ?? new Date().toISOString()

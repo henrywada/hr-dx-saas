@@ -24,6 +24,41 @@ import { openRouterEmbedTexts, formatOpenRouterVectorForPg } from '../src/lib/ai
 
 const apply = process.argv.includes('--apply')
 
+/** 接続文字列から認証情報を除いたホスト名を取り出す（実行対象の目視確認用） */
+function describeDbTarget(databaseUrl: string): string {
+  try {
+    const u = new URL(databaseUrl)
+    return `${u.hostname}:${u.port || '5432'}${u.pathname}`
+  } catch {
+    return '(解析不能な接続文字列)'
+  }
+}
+
+/**
+ * Supabase の Transaction pooler（ポート 6543）は PgBouncer 経由のため
+ * prepared statement が使えない。ポートを見て自動的に無効化する。
+ */
+function postgresOptions(databaseUrl: string): {
+  max: number
+  prepare?: boolean
+  password?: string
+} {
+  const options: { max: number; prepare?: boolean; password?: string } = { max: 1 }
+
+  try {
+    if (new URL(databaseUrl).port === '6543') options.prepare = false
+  } catch {
+    // 解析できない場合は既定値
+  }
+
+  // パスワードに @ や # 等が含まれる場合、URL へ直書きすると percent-encoding が必要になる。
+  // SUPABASE_DB_PASSWORD を指定すればエンコード不要でそのまま渡せる。
+  const rawPassword = process.env.SUPABASE_DB_PASSWORD
+  if (rawPassword) options.password = rawPassword
+
+  return options
+}
+
 type DocRow = {
   id: string
   title: string
@@ -39,7 +74,15 @@ async function main() {
     throw new Error('OPENROUTER_API_KEY が未設定です（--apply 時は埋め込み生成に必要）')
   }
 
-  const sql = postgres(databaseUrl, { max: 1 })
+  // 破壊的操作のため、実行対象のDBを必ず明示する
+  console.log('==================================================')
+  console.log(`接続先DB : ${describeDbTarget(databaseUrl)}`)
+  console.log(
+    `モード   : ${apply ? '★ --apply（実書き込み・削除→再挿入）' : 'dry-run（書き込みなし）'}`
+  )
+  console.log('==================================================')
+
+  const sql = postgres(databaseUrl, postgresOptions(databaseUrl))
 
   const docs = await sql<DocRow[]>`
     SELECT id, title, source_url, detail, fetched_at

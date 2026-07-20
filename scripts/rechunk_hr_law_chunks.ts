@@ -144,7 +144,7 @@ async function main() {
             ${row.chunk_index},
             ${row.content},
             ${row.embedding}::vector,
-            ${JSON.stringify(row.metadata)}::jsonb
+            ${sql.json(row.metadata)}
           )
         `
       }

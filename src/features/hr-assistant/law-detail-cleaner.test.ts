@@ -38,6 +38,31 @@ test('全文書で重複する定型見出しを除去する', () => {
   assert.ok(cleaned.includes('労働者数50人未満の事業場が義務化されます。'))
 })
 
+test('太字（**...**）形式の定型見出しも除去する', () => {
+  const input = [
+    '握する。',
+    '',
+    '**数値（料率・金額・期限等）があれば明記**',
+    '*   **時間外労働の上限**: 月45時間、年360時間（原則）。',
+  ].join('\n')
+
+  const cleaned = stripSummaryBoilerplate(input)
+
+  assert.ok(!cleaned.includes('があれば明記'))
+  // 本文と、本文中の通常の太字は保持する
+  assert.ok(cleaned.includes('**時間外労働の上限**: 月45時間、年360時間（原則）。'))
+  assert.ok(cleaned.includes('握する。'))
+})
+
+test('太字形式の「不確かな点は書かない（推測禁止）」も除去する', () => {
+  const input = '**不確かな点は書かない（推測禁止）**\n現時点では公布を待つ必要があります。'
+
+  const cleaned = stripSummaryBoilerplate(input)
+
+  assert.ok(!cleaned.includes('推測禁止'))
+  assert.ok(cleaned.includes('現時点では公布を待つ必要があります。'))
+})
+
 test('通常の見出しや本文は保持する', () => {
   const input = ['**2. 連続勤務規制**', '最長48連勤が可能となる状況が問題視されています。'].join(
     '\n'

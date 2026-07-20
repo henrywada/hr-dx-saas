@@ -35,6 +35,10 @@ export function ChatPanel({
   const currentSessionId = useRef<string | null>(sessionId)
 
   useEffect(() => {
+    // sessionId が自分自身の送信で作成されたものと同じ場合（onSessionCreated 経由の親再レンダー）は、
+    // 親が持つ古い initialMessages（作成前の空配列）で上書きしない。ローカル state が最新の会話を保持している。
+    if (sessionId === currentSessionId.current) return
+
     setMessages(initialMessages)
     currentSessionId.current = sessionId
     setMode(initialMode)

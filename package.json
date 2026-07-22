@@ -21,7 +21,8 @@
     "reembed-hr-law-chunks": "tsx scripts/reembed_hr_law_chunks.ts",
     "rechunk-hr-law-chunks": "tsx scripts/rechunk_hr_law_chunks.ts",
     "clean-hr-law-detail": "tsx scripts/clean_hr_law_detail.ts",
-    "rechunk-rag-chunks": "tsx scripts/rechunk_tenant_rag_chunks.ts"
+    "rechunk-rag-chunks": "tsx scripts/rechunk_tenant_rag_chunks.ts",
+    "dedup-rag-documents": "tsx scripts/dedup_tenant_rag_documents.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

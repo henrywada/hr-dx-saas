@@ -9552,6 +9552,7 @@ export type Database = {
       tenant_rag_documents: {
         Row: {
           byte_size: number | null
+          content_hash: string | null
           created_at: string
           created_by: string | null
           error_message: string | null
@@ -9570,6 +9571,7 @@ export type Database = {
         }
         Insert: {
           byte_size?: number | null
+          content_hash?: string | null
           created_at?: string
           created_by?: string | null
           error_message?: string | null
@@ -9588,6 +9590,7 @@ export type Database = {
         }
         Update: {
           byte_size?: number | null
+          content_hash?: string | null
           created_at?: string
           created_by?: string | null
           error_message?: string | null
@@ -10467,6 +10470,7 @@ export type Database = {
           recent_avg: number
         }[]
       }
+      cleanup_hr_law_unsearchable_chunks: { Args: never; Returns: number }
       create_auth_user: {
         Args: { p_email: string; p_password: string }
         Returns: string

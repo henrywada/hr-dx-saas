@@ -13,6 +13,12 @@ import { chunkPlainText } from './chunk'
 import { embedChunks, embedQueryText, formatVectorForPg } from './embedding'
 import { CHAT_MODEL, MAX_HISTORY_TURNS, RAG_TOP_K } from './constants'
 import { getGeminiClient } from '@/lib/ai/gemini'
+import {
+  computeContentHash,
+  selectDuplicateDocIds,
+  DEFAULT_PASTE_TITLE,
+  type DedupCandidate,
+} from './dedup'
 
 // extractors（pdfjs 等）は取り込み Server Action 内でのみ dynamic import する。
 // 先頭で静的 import するとチャット送信だけでもバンドルが読み込まれ Next サーバーで落ちる。
@@ -81,6 +87,100 @@ async function writeAudit(
   })
 }
 
+/**
+ * 文書を Storage オブジェクトごと削除する（チャンクは ON DELETE CASCADE で消える）。
+ * 置換フローと明示削除アクションで共用する。
+ */
+async function deleteDocumentsWithStorage(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  docs: { id: string; storage_path?: string | null }[]
+): Promise<void> {
+  if (docs.length === 0) return
+
+  const storagePaths = docs
+    .map(d => d.storage_path)
+    .filter((p): p is string => typeof p === 'string' && p.length > 0)
+  if (storagePaths.length > 0) {
+    const { error: rmErr } = await supabase.storage.from('tenant_rag').remove(storagePaths)
+    if (rmErr) console.error('[inquiry-chat] storage remove', rmErr)
+  }
+
+  const { error: delErr } = await supabase
+    .from('tenant_rag_documents')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .in(
+      'id',
+      docs.map(d => d.id)
+    )
+  if (delErr) console.error('[inquiry-chat] delete duplicate docs', delErr)
+}
+
+/**
+ * 取り込みが ready になった新規文書と「同一文書」の旧版（ソース識別子一致 or content_hash 一致）を
+ * 置換する。新規取り込みが成功したあとに旧版を削除するため、失敗時に旧データを失わない。
+ */
+async function replaceDuplicateDocuments(params: {
+  supabase: SupabaseClient<Database>
+  tenantId: string
+  userId: string
+  documentId: string
+  title: string
+  sourceKind: string
+  sourceUrl?: string | null
+  originalFilename?: string | null
+  contentHash: string
+}): Promise<void> {
+  const {
+    supabase,
+    tenantId,
+    userId,
+    documentId,
+    title,
+    sourceKind,
+    sourceUrl,
+    originalFilename,
+    contentHash,
+  } = params
+
+  // 同一テナントの ready 文書を取得し、置換対象は純関数 selectDuplicateDocIds で判定する。
+  // source_url / original_filename には記号（カンマ・括弧・ドット）が含まれ得るため、
+  // それらを PostgREST の .or() フィルタ文字列に埋め込むとパースが壊れる。
+  // 1 テナントあたりの ready 文書は数百件想定でメモリ判定でも十分軽い。
+  const { data: candidates, error } = await supabase
+    .from('tenant_rag_documents')
+    .select(
+      'id, status, content_hash, source_kind, source_url, original_filename, title, storage_path'
+    )
+    .eq('tenant_id', tenantId)
+    .eq('status', 'ready')
+    .neq('id', documentId)
+  if (error) {
+    console.error('[inquiry-chat] fetch duplicate candidates', error)
+    return
+  }
+
+  const duplicateIds = selectDuplicateDocIds((candidates ?? []) as DedupCandidate[], {
+    selfId: documentId,
+    contentHash,
+    sourceKind,
+    sourceUrl,
+    originalFilename,
+    title,
+  })
+  if (duplicateIds.length === 0) return
+
+  const targets = (candidates ?? [])
+    .filter(c => duplicateIds.includes((c as { id: string }).id))
+    .map(c => c as { id: string; storage_path?: string | null })
+
+  await deleteDocumentsWithStorage(supabase, tenantId, targets)
+  await writeAudit(supabase, tenantId, userId, 'document_replaced', documentId, {
+    replaced_document_ids: duplicateIds,
+  })
+}
+
 async function finalizeDocumentChunks(params: {
   supabase: SupabaseClient<Database>
   tenantId: string
@@ -88,9 +188,21 @@ async function finalizeDocumentChunks(params: {
   documentId: string
   title: string
   sourceKind: string
+  sourceUrl?: string | null
+  originalFilename?: string | null
   plainText: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { supabase, tenantId, userId, documentId, title, sourceKind, plainText } = params
+  const {
+    supabase,
+    tenantId,
+    userId,
+    documentId,
+    title,
+    sourceKind,
+    sourceUrl,
+    originalFilename,
+    plainText,
+  } = params
 
   const chunks = chunkPlainText(plainText)
   if (chunks.length === 0) {
@@ -108,6 +220,9 @@ async function finalizeDocumentChunks(params: {
     })
     return { ok: false, error: '本文が空です' }
   }
+
+  // 保存するチャンクからコンテンツハッシュを算出（重複判定・置換に使う）
+  const contentHash = computeContentHash(chunks)
 
   let embeddings: number[][]
   try {
@@ -179,6 +294,7 @@ async function finalizeDocumentChunks(params: {
     .from('tenant_rag_documents')
     .update({
       status: 'ready',
+      content_hash: contentHash,
       ingest_completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       error_message: null,
@@ -188,6 +304,21 @@ async function finalizeDocumentChunks(params: {
   await writeAudit(supabase, tenantId, userId, 'ingest_completed', documentId, {
     chunk_count: chunks.length,
   })
+
+  // 新規取り込みが ready になったあとで旧版（同一文書）を置換する。
+  // 順序を「新規成功→旧版削除」にすることで、失敗時に旧データを失わない。
+  await replaceDuplicateDocuments({
+    supabase,
+    tenantId,
+    userId,
+    documentId,
+    title,
+    sourceKind,
+    sourceUrl,
+    originalFilename,
+    contentHash,
+  })
+
   return { ok: true }
 }
 
@@ -197,7 +328,7 @@ export async function ingestPasteAction(
   const user = await getServerUser()
   if (!user?.tenant_id || !user.id) return { ok: false, error: 'ログイン情報が無効です' }
 
-  const title = (formData.get('title') as string)?.trim() || '貼り付けテキスト'
+  const title = (formData.get('title') as string)?.trim() || DEFAULT_PASTE_TITLE
   const body = (formData.get('body') as string)?.trim() || ''
   if (!body) return { ok: false, error: '本文を入力してください' }
 
@@ -304,6 +435,7 @@ export async function ingestUrlAction(
     documentId,
     title,
     sourceKind: 'url',
+    sourceUrl: finalUrl,
     plainText,
   })
 
@@ -394,6 +526,7 @@ export async function ingestFileAction(
     documentId,
     title,
     sourceKind: 'file',
+    originalFilename: file.name,
     plainText,
   })
 
@@ -425,16 +558,9 @@ export async function deleteRagDocumentAction(
 
   if (!row) return { ok: false, error: '文書が見つかりません' }
 
-  const storagePath = (row as { storage_path?: string | null }).storage_path
-  if (storagePath) {
-    await supabase.storage.from('tenant_rag').remove([storagePath])
-  }
-
-  const { error } = await supabase.from('tenant_rag_documents').delete().eq('id', documentId)
-  if (error) {
-    console.error('[inquiry-chat] delete', error)
-    return { ok: false, error: '削除に失敗しました' }
-  }
+  await deleteDocumentsWithStorage(supabase, user.tenant_id, [
+    row as { id: string; storage_path?: string | null },
+  ])
 
   await writeAudit(supabase, user.tenant_id, user.id, 'document_deleted', documentId, {})
   revalidatePath(APP_ROUTES.TENANT.ADMIN_INQUIRY_KNOWLEDGE)

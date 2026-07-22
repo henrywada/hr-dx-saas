@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,145 +10,218 @@ import {
   BarChart3,
   Home,
   Loader2,
-} from 'lucide-react';
-import { requestInterview } from '../actions';
-import type { StressCheckResultData, ScaleScore } from '../queries';
+} from 'lucide-react'
+import { requestInterview } from '../actions'
+import type { StressCheckResultData, ScaleScore } from '../queries'
 
 // ============================================================
 // 尺度名のキーワードマッチング（ResultChart と同じ基準）
 // ============================================================
-const CHART2_KEYWORDS = ['活気', 'イライラ', '疲労', '不安', '抑うつ', '身体愁訴'];
+const CHART2_KEYWORDS = ['活気', 'イライラ', '疲労', '不安', '抑うつ', '身体愁訴']
 const CHART1_KEYWORDS = [
-  '仕事の負担', '負担（量）', '負担（質）', '身体的負担',
-  '対人関係', '職場環境', 'コントロール', '技能の活用',
-  '適性度', '適正度', '働きがい',
-];
-const CHART3_KEYWORDS = ['上司', '同僚', '家族', '友人', '満足'];
+  '仕事の負担',
+  '負担（量）',
+  '負担（質）',
+  '身体的負担',
+  '対人関係',
+  '職場環境',
+  'コントロール',
+  '技能の活用',
+  '適性度',
+  '適正度',
+  '働きがい',
+]
+const CHART3_KEYWORDS = ['上司', '同僚', '家族', '友人', '満足']
 
 function matchesGroup(scaleName: string, keywords: string[]): boolean {
-  return keywords.some((kw) => scaleName.includes(kw));
+  return keywords.some(kw => scaleName.includes(kw))
 }
 
 function getReactionScales(scaleScores: ScaleScore[]): ScaleScore[] {
-  return scaleScores.filter((s) => matchesGroup(s.scaleName, CHART2_KEYWORDS));
+  return scaleScores.filter(s => matchesGroup(s.scaleName, CHART2_KEYWORDS))
 }
 
 function getStressorScales(scaleScores: ScaleScore[]): ScaleScore[] {
-  return scaleScores.filter(
-    (s) => matchesGroup(s.scaleName, CHART1_KEYWORDS) || s.category === 'A'
-  );
+  return scaleScores.filter(s => matchesGroup(s.scaleName, CHART1_KEYWORDS) || s.category === 'A')
 }
 
 function getSupportScales(scaleScores: ScaleScore[]): ScaleScore[] {
   return scaleScores.filter(
-    (s) => matchesGroup(s.scaleName, CHART3_KEYWORDS) || s.category === 'C' || s.category === 'D'
-  );
+    s => matchesGroup(s.scaleName, CHART3_KEYWORDS) || s.category === 'C' || s.category === 'D'
+  )
 }
 
 // ============================================================
 // ヘルパー: 指摘メッセージの生成
+// 厚労省評価点: 1=高ストレス（要注意）〜 5=低ストレス（良好）。2点以下を注意対象とする
 // ============================================================
+const CONCERN_EVAL_THRESHOLD = 2.0
+
 function generateReactionMessages(reactions: ScaleScore[]): string[] {
-  const msgs: string[] = [];
+  const msgs: string[] = []
   for (const s of reactions) {
-    if (s.evalPoint >= 4.0) {
-      if (s.scaleName.includes('活気')) msgs.push('活気が低下しており、仕事への意欲が減退している可能性があります。');
-      else if (s.scaleName.includes('イライラ')) msgs.push('イライラ感が強く出ており、精神的な余裕が低下している可能性があります。');
-      else if (s.scaleName.includes('疲労')) msgs.push('疲労感が蓄積しているようです。十分な休息を取ることが重要です。');
-      else if (s.scaleName.includes('不安')) msgs.push('不安感が高い傾向にあります。信頼できる方への相談をおすすめします。');
-      else if (s.scaleName.includes('抑うつ')) msgs.push('抑うつ的な傾向が見られます。早めに専門家にご相談ください。');
-      else if (s.scaleName.includes('身体愁訴')) msgs.push('身体的な不調が出ているようです。体調管理にご注意ください。');
-      else msgs.push(`「${s.scaleName}」の評価点が高く、注意が必要です。`);
+    if (s.evalPoint <= CONCERN_EVAL_THRESHOLD) {
+      if (s.scaleName.includes('活気'))
+        msgs.push('活気が低下しており、仕事への意欲が減退している可能性があります。')
+      else if (s.scaleName.includes('イライラ'))
+        msgs.push('イライラ感が強く出ており、精神的な余裕が低下している可能性があります。')
+      else if (s.scaleName.includes('疲労'))
+        msgs.push('疲労感が蓄積しているようです。十分な休息を取ることが重要です。')
+      else if (s.scaleName.includes('不安'))
+        msgs.push('不安感が高い傾向にあります。信頼できる方への相談をおすすめします。')
+      else if (s.scaleName.includes('抑うつ'))
+        msgs.push('抑うつ的な傾向が見られます。早めに専門家にご相談ください。')
+      else if (s.scaleName.includes('身体愁訴'))
+        msgs.push('身体的な不調が出ているようです。体調管理にご注意ください。')
+      else msgs.push(`「${s.scaleName}」の評価点が低く、注意が必要です。`)
     }
   }
-  return msgs;
+  return msgs
 }
 
 function generateStressorMessages(stressors: ScaleScore[]): string[] {
-  const msgs: string[] = [];
+  const msgs: string[] = []
   for (const s of stressors) {
-    if (s.evalPoint >= 4.0) {
-      if (s.scaleName.includes('量')) msgs.push('仕事の量的な負担が大きいようです。業務量の調整やタスクの優先順位付けを検討しましょう。');
-      else if (s.scaleName.includes('質')) msgs.push('仕事の質的な負担（難易度・集中力の要求）が高いようです。');
-      else if (s.scaleName.includes('対人関係')) msgs.push('職場の対人関係にストレスを感じているようです。上司や相談窓口への相談を検討しましょう。');
-      else if (s.scaleName.includes('職場環境')) msgs.push('職場の物理的環境にストレスを感じているようです。');
-      else if (s.scaleName.includes('コントロール')) msgs.push('仕事の裁量度が低く、コントロール感が不足しているようです。');
-      else msgs.push(`「${s.scaleName}」に負荷を感じているようです。`);
+    if (s.evalPoint <= CONCERN_EVAL_THRESHOLD) {
+      if (s.scaleName.includes('量'))
+        msgs.push(
+          '仕事の量的な負担が大きいようです。業務量の調整やタスクの優先順位付けを検討しましょう。'
+        )
+      else if (s.scaleName.includes('質'))
+        msgs.push('仕事の質的な負担（難易度・集中力の要求）が高いようです。')
+      else if (s.scaleName.includes('対人関係'))
+        msgs.push(
+          '職場の対人関係にストレスを感じているようです。上司や相談窓口への相談を検討しましょう。'
+        )
+      else if (s.scaleName.includes('職場環境'))
+        msgs.push('職場の物理的環境にストレスを感じているようです。')
+      else if (s.scaleName.includes('コントロール'))
+        msgs.push('仕事の裁量度が低く、コントロール感が不足しているようです。')
+      else msgs.push(`「${s.scaleName}」に負荷を感じているようです。`)
     }
   }
-  return msgs;
+  return msgs
 }
 
 function generateSupportMessages(supports: ScaleScore[]): string[] {
-  const msgs: string[] = [];
+  const msgs: string[] = []
   for (const s of supports) {
-    if (s.evalPoint >= 4.0) {
-      if (s.scaleName.includes('上司')) msgs.push('上司からのサポートが不足していると感じているようです。定期的な面談や相談の機会を設けることが大切です。');
-      else if (s.scaleName.includes('同僚')) msgs.push('同僚からのサポートが十分でないと感じているようです。チーム内のコミュニケーションを見直しましょう。');
-      else if (s.scaleName.includes('家族') || s.scaleName.includes('友人')) msgs.push('プライベートにおけるサポートが不足気味です。身近な人との交流時間を増やしてみましょう。');
-      else if (s.scaleName.includes('満足')) msgs.push('仕事や生活への満足度が低い傾向にあります。自分にとって大切なことを見直す機会を持ちましょう。');
-      else msgs.push(`「${s.scaleName}」のサポートが不足している可能性があります。`);
+    if (s.evalPoint <= CONCERN_EVAL_THRESHOLD) {
+      if (s.scaleName.includes('上司'))
+        msgs.push(
+          '上司からのサポートが不足していると感じているようです。定期的な面談や相談の機会を設けることが大切です。'
+        )
+      else if (s.scaleName.includes('同僚'))
+        msgs.push(
+          '同僚からのサポートが十分でないと感じているようです。チーム内のコミュニケーションを見直しましょう。'
+        )
+      else if (s.scaleName.includes('家族') || s.scaleName.includes('友人'))
+        msgs.push(
+          'プライベートにおけるサポートが不足気味です。身近な人との交流時間を増やしてみましょう。'
+        )
+      else if (s.scaleName.includes('満足'))
+        msgs.push(
+          '仕事や生活への満足度が低い傾向にあります。自分にとって大切なことを見直す機会を持ちましょう。'
+        )
+      else msgs.push(`「${s.scaleName}」のサポートが不足している可能性があります。`)
     }
   }
-  return msgs;
+  return msgs
 }
 
 // ============================================================
 // メインコンポーネント
 // ============================================================
 interface ProfileSummaryProps {
-  result: StressCheckResultData;
+  result: StressCheckResultData
 }
 
 export default function ProfileSummary({ result }: ProfileSummaryProps) {
-  const [interviewRequested, setInterviewRequested] = useState(result.interviewRequested ?? false);
-  const [isPending, startTransition] = useTransition();
+  const [interviewRequested, setInterviewRequested] = useState(result.interviewRequested ?? false)
+  const [isPending, startTransition] = useTransition()
 
   const handleRequestInterview = () => {
     startTransition(async () => {
-      const res = await requestInterview(result.periodId);
+      const res = await requestInterview(result.periodId)
       if (res.success) {
-        setInterviewRequested(true);
+        setInterviewRequested(true)
       } else {
-        alert(res.error ?? '申し出に失敗しました。');
+        alert(res.error ?? '申し出に失敗しました。')
       }
-    });
-  };
+    })
+  }
   const answeredDate = result.answeredAt
     ? (() => {
-        const d = new Date(result.answeredAt);
+        const d = new Date(result.answeredAt)
         return d.toLocaleDateString('ja-JP', {
           timeZone: 'Asia/Tokyo',
-          year: 'numeric', month: 'long', day: 'numeric',
-        });
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
       })()
-    : '—';
+    : '—'
 
-  const reactions = getReactionScales(result.scaleScores);
-  const stressors = getStressorScales(result.scaleScores);
-  const supports = getSupportScales(result.scaleScores);
+  const reactions = getReactionScales(result.scaleScores)
+  const stressors = getStressorScales(result.scaleScores)
+  const supports = getSupportScales(result.scaleScores)
 
-  const reactionMsgs = generateReactionMessages(reactions);
-  const stressorMsgs = generateStressorMessages(stressors);
-  const supportMsgs = generateSupportMessages(supports);
+  const reactionMsgs = generateReactionMessages(reactions)
+  const stressorMsgs = generateStressorMessages(stressors)
+  const supportMsgs = generateSupportMessages(supports)
 
   // 全体の平均評価点
-  const overallAvg = result.scaleScores.length > 0
-    ? Math.round(
-        (result.scaleScores.reduce((sum, s) => sum + s.evalPoint, 0) / result.scaleScores.length) * 10
-      ) / 10
-    : 0;
+  const overallAvg =
+    result.scaleScores.length > 0
+      ? Math.round(
+          (result.scaleScores.reduce((sum, s) => sum + s.evalPoint, 0) /
+            result.scaleScores.length) *
+            10
+        ) / 10
+      : 0
 
-  const overallStatus = overallAvg <= 2.0
-    ? { label: '良好', description: 'ストレスが比較的少なく、良好な状態です。', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle2 }
-    : overallAvg <= 3.0
-    ? { label: '概ね良好', description: '全体的に大きな問題は見られません。引き続きセルフケアを心がけましょう。', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200', icon: CheckCircle2 }
-    : overallAvg <= 3.8
-    ? { label: 'やや注意', description: 'いくつかの領域でストレスの兆候が見られます。以下の詳細をご確認ください。', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle }
-    : { label: '要注意', description: '複数の領域でストレスが高い傾向があります。産業医面談などのサポートをご検討ください。', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: AlertTriangle };
+  // 厚労省評価点: 平均が高いほど低ストレス（良好）
+  const overallStatus =
+    overallAvg >= 4.0
+      ? {
+          label: '良好',
+          description: 'ストレスが比較的少なく、良好な状態です。',
+          color: 'text-emerald-700',
+          bg: 'bg-emerald-50',
+          border: 'border-emerald-200',
+          icon: CheckCircle2,
+        }
+      : overallAvg >= 3.0
+        ? {
+            label: '概ね良好',
+            description: '全体的に大きな問題は見られません。引き続きセルフケアを心がけましょう。',
+            color: 'text-teal-700',
+            bg: 'bg-teal-50',
+            border: 'border-teal-200',
+            icon: CheckCircle2,
+          }
+        : overallAvg >= 2.2
+          ? {
+              label: 'やや注意',
+              description:
+                'いくつかの領域でストレスの兆候が見られます。以下の詳細をご確認ください。',
+              color: 'text-amber-700',
+              bg: 'bg-amber-50',
+              border: 'border-amber-200',
+              icon: AlertTriangle,
+            }
+          : {
+              label: '要注意',
+              description:
+                '複数の領域でストレスが高い傾向があります。産業医面談などのサポートをご検討ください。',
+              color: 'text-red-700',
+              bg: 'bg-red-50',
+              border: 'border-red-200',
+              icon: AlertTriangle,
+            }
 
-  const StatusIcon = overallStatus.icon;
-  const hasConcerns = reactionMsgs.length > 0 || stressorMsgs.length > 0 || supportMsgs.length > 0;
+  const StatusIcon = overallStatus.icon
+  const hasConcerns = reactionMsgs.length > 0 || stressorMsgs.length > 0 || supportMsgs.length > 0
 
   return (
     <div className="space-y-6">
@@ -173,7 +246,9 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-red-800">高ストレス者に該当します</h2>
-              <p className="text-sm text-red-600">厚生労働省の基準に基づき、高ストレスと判定されました。</p>
+              <p className="text-sm text-red-600">
+                厚生労働省の基準に基づき、高ストレスと判定されました。
+              </p>
             </div>
           </div>
           <p className="text-sm text-red-700 leading-relaxed">
@@ -215,7 +290,9 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-emerald-800">高ストレスには該当しません</h2>
-              <p className="text-sm text-emerald-600">大きなストレスの傾向は見られません。引き続きセルフケアを心がけましょう。</p>
+              <p className="text-sm text-emerald-600">
+                大きなストレスの傾向は見られません。引き続きセルフケアを心がけましょう。
+              </p>
             </div>
           </div>
         </div>
@@ -227,7 +304,9 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
           <StatusIcon className={`h-5 w-5 ${overallStatus.color}`} />
           <h2 className="text-base font-bold text-gray-900">
             ストレス状況: <span className={overallStatus.color}>{overallStatus.label}</span>
-            <span className="text-xs font-normal text-gray-500 ml-2">（平均評価点: {overallAvg} / 5.0）</span>
+            <span className="text-xs font-normal text-gray-500 ml-2">
+              （平均評価点: {overallAvg} / 5.0）
+            </span>
           </h2>
         </div>
         <p className="text-sm text-gray-700">{overallStatus.description}</p>
@@ -308,5 +387,5 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
         </div>
       )}
     </div>
-  );
+  )
 }

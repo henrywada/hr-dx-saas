@@ -185,15 +185,20 @@ function ChartCard({
               <tr className="border-b border-gray-200">
                 <th className="text-left py-2 px-3 text-gray-500 font-medium">尺度</th>
                 <th className="text-center py-2 px-2 text-gray-500 font-medium w-20">評価点</th>
-                <th className="text-left py-2 px-2 text-gray-500 font-medium w-32">レベル</th>
+                <th className="text-left py-2 px-2 text-gray-500 font-medium w-32">状態</th>
               </tr>
             </thead>
             <tbody>
               {data.map(s => {
                 const level = getEvalLevel(s.evalPoint)
                 return (
-                  <tr key={s.scaleName} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="py-2.5 px-3 text-gray-800 font-medium">{s.scaleName}</td>
+                  <tr
+                    key={s.scaleName}
+                    className="group border-b border-gray-50 transition-all duration-200 ease-out hover:bg-[#f6f8fa] hover:shadow-[inset_3px_0_0_0_#FD7601] cursor-default"
+                  >
+                    <td className="py-2.5 px-3 text-gray-800 font-medium transition-colors duration-200 group-hover:text-gray-950">
+                      {s.scaleName}
+                    </td>
                     <td className="py-2.5 px-2 text-center">
                       <span className="font-bold text-gray-900">{s.evalPoint}</span>
                       <span className="text-gray-400 text-xs"> / 5</span>
@@ -202,7 +207,7 @@ function ChartCard({
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${level.barColor}`}
+                            className={`h-full rounded-full transition-[width] duration-300 ${level.barColor}`}
                             style={{ width: `${(s.evalPoint / 5) * 100}%` }}
                           />
                         </div>
@@ -224,16 +229,22 @@ function ChartCard({
   )
 }
 
+/**
+ * 厚労省の評価点は「ストレスの高い方が1点・低い方が5点」。
+ * 色は悪い（低評価点）→赤、良い（高評価点）→緑。
+ * ラベルは「高い／低い」ではなく状態語にする。
+ * （ポジティブ尺度「働きがい」等と「非常に低い」が結びつき誤解されるのを防ぐ）
+ */
 function getEvalLevel(evalPoint: number): { label: string; textColor: string; barColor: string } {
   if (evalPoint <= 1.5)
-    return { label: '非常に低い', textColor: 'text-emerald-600', barColor: 'bg-emerald-400' }
+    return { label: '要注意', textColor: 'text-red-600', barColor: 'bg-red-500' }
   if (evalPoint <= 2.5)
-    return { label: '低い', textColor: 'text-teal-600', barColor: 'bg-teal-400' }
+    return { label: 'やや注意', textColor: 'text-orange-600', barColor: 'bg-orange-400' }
   if (evalPoint <= 3.5)
     return { label: '普通', textColor: 'text-amber-600', barColor: 'bg-amber-400' }
   if (evalPoint <= 4.2)
-    return { label: 'やや高い', textColor: 'text-orange-600', barColor: 'bg-orange-400' }
-  return { label: '高い', textColor: 'text-red-600', barColor: 'bg-red-500' }
+    return { label: '良好', textColor: 'text-teal-600', barColor: 'bg-teal-400' }
+  return { label: '非常に良好', textColor: 'text-emerald-600', barColor: 'bg-emerald-400' }
 }
 
 // ============================================================
@@ -254,7 +265,7 @@ export default function ResultChart({ result }: ResultChartProps) {
         <div>
           <p className="font-semibold">厚生労働省「職業性ストレス簡易調査票」準拠</p>
           <p className="text-xs text-[#FD7601] mt-0.5">
-            各尺度の評価点（1〜5点）がレーダーチャートで表示されています。中心（1点）が最も良好、外側（5点）が最も負荷が高いことを意味します。
+            各尺度の評価点（1〜5点）がレーダーチャートで表示されています。厚生労働省の換算に沿い、外側（5点）が最も良好、中心（1点）が最も負荷が高いことを意味します。
           </p>
         </div>
       </div>

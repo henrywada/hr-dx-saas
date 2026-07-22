@@ -397,11 +397,15 @@ export async function getQuestions(questionnaireType: QuestionnaireType): Promis
 }
 
 /**
- * program_targets の is_eligible をチェックし、ストレスチェック受検可否を判定
- * @param periodId 実施期間ID（stress_check_periods.id）
- * @param authUserId auth.users の UUID（getServerUser().id）
- * @returns 対象外の場合は { eligible: false, exclusionReason? }、対象の場合は { eligible: true }
- *          program_targets にレコードが無い場合は後方互換のため { eligible: true }
+ * ストレスチェック受検可否を判定（/adm 対象者管理と同じ定義）
+ *
+ * 判定順:
+ * 1. program_targets.is_eligible = false → 明示除外
+ * 2. stress_check_period_divisions がある → 所属部署（祖先含む）が対象部署に含まれること
+ * 3. 対象部署がなく division_establishment_id のみ → 拠点一致
+ * 4. 対象部署・拠点いずれも未設定 → テナント全員が対象
+ *
+ * ※ program_targets は明示除外（is_eligible=false）専用。未登録は対象部署判定に委ねる
  */
 export async function checkStressCheckEligibility(
   periodId: string,
@@ -411,7 +415,7 @@ export async function checkStressCheckEligibility(
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('id')
+    .select('id, division_id, tenant_id')
     .eq('user_id', authUserId)
     .single()
 
@@ -419,7 +423,11 @@ export async function checkStressCheckEligibility(
     return { eligible: false, exclusionReason: '従業員情報が見つかりません' }
   }
 
-  const { data: target } = await (supabase as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  // 1. 管理者による明示除外
+  const { data: target } = await db
     .from('program_targets')
     .select('is_eligible, exclusion_reason')
     .eq('program_type', 'stress_check')
@@ -427,19 +435,85 @@ export async function checkStressCheckEligibility(
     .eq('employee_id', employee.id)
     .maybeSingle()
 
-  // program_targets にレコードが無い場合は後方互換のため受検可
-  if (!target) {
+  if (target && target.is_eligible === false) {
+    return {
+      eligible: false,
+      exclusionReason: target.exclusion_reason ?? '対象外に設定されています',
+    }
+  }
+
+  // 2. 対象部署（period_divisions）による判定
+  const { data: periodDivs } = await db
+    .from('stress_check_period_divisions')
+    .select('division_id')
+    .eq('period_id', periodId)
+
+  const selectedDivisionIds: string[] = (periodDivs ?? []).map(
+    (r: { division_id: string }) => r.division_id
+  )
+
+  if (selectedDivisionIds.length > 0) {
+    if (!employee.division_id) {
+      return {
+        eligible: false,
+        exclusionReason: '所属部署が未設定のため対象外です',
+      }
+    }
+
+    const { data: allDivisions } = await supabase
+      .from('divisions')
+      .select('id, parent_id')
+      .eq('tenant_id', employee.tenant_id)
+
+    const parentMap = new Map<string, string | null>(
+      (allDivisions ?? []).map((d: { id: string; parent_id: string | null }) => [d.id, d.parent_id])
+    )
+    const selectedSet = new Set(selectedDivisionIds)
+
+    // 従業員の所属から祖先を辿り、対象部署に含まれるか（対象者管理モーダルと同ロジック）
+    let cur: string | null = employee.division_id
+    const guard = new Set<string>()
+    let inScope = false
+    while (cur && !guard.has(cur)) {
+      if (selectedSet.has(cur)) {
+        inScope = true
+        break
+      }
+      guard.add(cur)
+      cur = parentMap.get(cur) ?? null
+    }
+
+    if (!inScope) {
+      return {
+        eligible: false,
+        exclusionReason: '実施対象の部署に含まれていません',
+      }
+    }
     return { eligible: true }
   }
 
-  if (target.is_eligible) {
-    return { eligible: true }
+  // 3. 拠点ベース（旧方式）
+  const { data: period } = await db
+    .from('stress_check_periods')
+    .select('division_establishment_id')
+    .eq('id', periodId)
+    .maybeSingle()
+
+  if (period?.division_establishment_id) {
+    const { data: est } = await supabase.rpc('resolve_division_establishment_for_employee', {
+      p_employee_id: employee.id,
+    })
+    if (est === period.division_establishment_id) {
+      return { eligible: true }
+    }
+    return {
+      eligible: false,
+      exclusionReason: '実施対象の拠点に含まれていません',
+    }
   }
 
-  return {
-    eligible: false,
-    exclusionReason: target.exclusion_reason ?? '対象外に設定されています',
-  }
+  // 4. 対象部署・拠点未設定 = テナント全員が対象
+  return { eligible: true }
 }
 
 /**

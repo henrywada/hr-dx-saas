@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     ? APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE
     : APP_ROUTES.TENANT.CONSULTATION_INBOX
 
-  // ストレスチェック受検ボタン表示判定
+  // ストレスチェックカード表示判定（実施期間の日付 + 対象者判定のみ。回答有無は見ない）
   let showStressCheckTask = false
   let stressCheckAlreadyAnswered = false
   if (activePeriod && user?.id && v('top.card.stress_check')) {

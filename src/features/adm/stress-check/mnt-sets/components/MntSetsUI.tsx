@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import TenantBackLink from '@/components/common/TenantBackLink'
+import { APP_ROUTES } from '@/config/routes'
 import { Plus, Edit2, Trash2, Users } from 'lucide-react'
 import { PeriodFormDialog } from './PeriodFormDialog'
 import { PeriodTargetsModal } from './PeriodTargetsModal'
@@ -81,10 +83,10 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[#24292f] border-b-2 border-green-500 pb-2 inline-block">
-            実施グループの管理
+            実施（期間・対象部署・対象者）の管理
           </h1>
           <p className="text-sm text-[#57606a] mt-2">
-            対象部署を指定してストレスチェックの実施グループを設定します。
+            いつ・誰に受検させるか（期間・対象部署・質問数）を設定します。
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -97,6 +99,25 @@ export function MntSetsUI({ tenantId, periods, allDivisions }: MntSetsUIProps) {
             <span className="font-semibold text-sm">新規作成</span>
           </button>
         </div>
+      </div>
+
+      <div className="rounded-lg border border-[#e2e6ec] bg-[#f6f8fa] px-4 py-3 text-sm text-[#57606a] space-y-1">
+        <p>
+          <span className="font-semibold text-[#24292f]">この画面の目的：</span>
+          ストレスチェックの
+          <span className="font-semibold text-[#24292f]">実施グループ</span>
+          （実施期間・対象部署・質問票）を管理します。
+        </p>
+        <p>
+          集団分析や進捗を事業場単位で見るための設定は
+          <Link
+            href={APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS}
+            className="mx-1 font-semibold text-[#FD7601] hover:underline"
+          >
+            拠点（事業場）マスタ（分析用に設定）
+          </Link>
+          で行います（別画面です）。
+        </p>
       </div>
 
       <div className="bg-white border text-sm border-[#e2e6ec] rounded-xl shadow-sm overflow-hidden">

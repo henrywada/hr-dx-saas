@@ -146,8 +146,8 @@ export default function OrgHealthMatrixHeatmap({
                   onClick={() => handleSort(key)}
                   className={`px-3 py-3 text-xs font-semibold text-[#57606a] uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:bg-[#f6f8fa] transition-colors ${
                     key === 'name'
-                      ? 'sticky left-0 bg-[#f6f8fa] z-10 text-left min-w-[140px]'
-                      : 'text-center min-w-[90px]'
+                      ? 'sticky left-0 bg-[#f6f8fa] z-10 text-left min-w-[120px]'
+                      : 'text-center min-w-[72px]'
                   }`}
                 >
                   <span
@@ -193,24 +193,24 @@ export default function OrgHealthMatrixHeatmap({
                   </td>
 
                   {/* 高ストレス率 */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed ? (
                       <CellSuppressed />
                     ) : (
                       <CellValue
-                        value={`${group.high_stress_rate ?? '—'}%`}
+                        value={group.high_stress_rate == null ? '—' : `${Number(group.high_stress_rate).toFixed(1)}%`}
                         colorClass={highStressColor(group.high_stress_rate)}
                       />
                     )}
                   </td>
 
                   {/* 健康リスク */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed ? (
                       <CellSuppressed />
                     ) : (
                       <CellValue
-                        value={group.health_risk ?? '—'}
+                        value={group.health_risk == null ? '—' : Number(group.health_risk).toFixed(1)}
                         colorClass={healthRiskColor(group.health_risk)}
                         bold
                       />
@@ -218,7 +218,7 @@ export default function OrgHealthMatrixHeatmap({
                   </td>
 
                   {/* 仕事の負担 */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed || group.workload == null ? (
                       <CellSuppressed />
                     ) : (
@@ -235,7 +235,7 @@ export default function OrgHealthMatrixHeatmap({
                   </td>
 
                   {/* コントロール */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed || group.control == null ? (
                       <CellSuppressed />
                     ) : (
@@ -252,7 +252,7 @@ export default function OrgHealthMatrixHeatmap({
                   </td>
 
                   {/* 上司サポート */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed || group.supervisor_support == null ? (
                       <CellSuppressed />
                     ) : (
@@ -269,7 +269,7 @@ export default function OrgHealthMatrixHeatmap({
                   </td>
 
                   {/* 同僚サポート */}
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-1.5 py-2 text-center">
                     {suppressed || group.colleague_support == null ? (
                       <CellSuppressed />
                     ) : (

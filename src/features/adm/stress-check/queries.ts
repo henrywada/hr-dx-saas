@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { buildEmployeeEstablishmentMap } from '@/lib/stress/resolve-establishment'
 import type {
   GroupAnalysisDepartment,
@@ -14,6 +15,101 @@ import { buildEstablishmentProgressStats } from './progress-establishments'
 // Supabase の型推論が深すぎるため、クエリ用に any でラップ
 async function getSupabase() {
   return (await createClient()) as any
+}
+
+/**
+ * 進捗・集団分析・未受検集計用（RLS バイパス）。
+ * VIEW/RPC が security_invoker のため、通常クライアントだと従業員 RLS で
+ * 自分の行しか見えずモード切替しても同じ1件に見える。テナント管理者画面では
+ * service role で集計する。呼び出し側で必ず tenant_id を条件に含めること。
+ */
+function getAdminSupabase() {
+  return createAdminClient() as any
+}
+
+/** 拠点マスタ、なければ実施グループ対象部署を仮想拠点として返す */
+type EstablishmentMappingContext = {
+  source: 'master' | 'period_divisions' | 'none'
+  establishments: { id: string; name: string }[]
+  anchorLinks: { division_establishment_id: string; division_id: string }[]
+  divisions: { id: string; parent_id: string | null; name: string | null }[]
+}
+
+async function loadEstablishmentMappingContext(
+  supabase: any,
+  tenantId: string,
+  periodId: string
+): Promise<EstablishmentMappingContext> {
+  const [{ data: estMaster }, { data: divisions }] = await Promise.all([
+    supabase.from('division_establishments').select('id, name').eq('tenant_id', tenantId),
+    supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
+  ])
+
+  const divRows = (divisions ?? []) as {
+    id: string
+    parent_id: string | null
+    name: string | null
+  }[]
+  const divsForPath = divRows.map(d => ({
+    id: d.id,
+    name: d.name ?? '—',
+    parent_id: d.parent_id,
+  }))
+
+  if (estMaster && estMaster.length > 0) {
+    const { data: anchorRows } = await supabase
+      .from('division_establishment_anchors')
+      .select('division_establishment_id, division_id')
+      .eq('tenant_id', tenantId)
+
+    return {
+      source: 'master',
+      establishments: (estMaster as { id: string; name: string | null }[]).map(est => ({
+        id: est.id,
+        name: est.name ?? '名称未設定',
+      })),
+      anchorLinks: (anchorRows ?? []) as {
+        division_establishment_id: string
+        division_id: string
+      }[],
+      divisions: divRows,
+    }
+  }
+
+  // 拠点マスタ未登録時: 実施グループの対象部署を仮想拠点として扱う
+  const { data: periodDivs } = await supabase
+    .from('stress_check_period_divisions')
+    .select('division_id')
+    .eq('period_id', periodId)
+    .eq('tenant_id', tenantId)
+
+  const periodDivisionIds = [
+    ...new Set(
+      ((periodDivs ?? []) as { division_id: string }[]).map(d => d.division_id).filter(Boolean)
+    ),
+  ]
+
+  if (periodDivisionIds.length === 0) {
+    return {
+      source: 'none',
+      establishments: [],
+      anchorLinks: [],
+      divisions: divRows,
+    }
+  }
+
+  return {
+    source: 'period_divisions',
+    establishments: periodDivisionIds.map(id => ({
+      id,
+      name: buildFullPath(id, divsForPath) || '名称未設定',
+    })),
+    anchorLinks: periodDivisionIds.map(divisionId => ({
+      division_establishment_id: divisionId,
+      division_id: divisionId,
+    })),
+    divisions: divRows,
+  }
 }
 
 export type GroupData = {
@@ -44,7 +140,7 @@ export type GroupTrendRow = {
 }
 
 export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
 
   let query = supabase
     .from('stress_group_analysis')
@@ -87,7 +183,7 @@ export async function getGroupAnalysis(tenantId: string, latestOnly = true) {
 
 /** 拠点別・最新期間の集団分析 */
 export async function getGroupAnalysisEstablishment(tenantId: string, latestOnly = true) {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   let query = supabase
     .from('stress_group_analysis_establishment')
     .select(
@@ -145,7 +241,7 @@ export async function getGroupAnalysisEstablishment(tenantId: string, latestOnly
 
 /** 拠点別トレンド */
 export async function getGroupTrendEstablishment(tenantId: string): Promise<GroupTrendRow[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data } = await supabase
     .from('stress_group_analysis_establishment')
     .select('division_establishment_id, name, period_name, health_risk')
@@ -164,7 +260,7 @@ export async function getGroupTrendEstablishment(tenantId: string): Promise<Grou
  *  layer 列は不正確な場合があるため parent_id から実際の木深さを計算して返す
  */
 export async function getDistinctDivisionLayers(tenantId: string): Promise<number[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data } = await supabase
     .from('divisions')
     .select('id, parent_id')
@@ -198,7 +294,7 @@ export async function getGroupAnalysisForLayer(
   layer: number,
   latestOnly = true
 ): Promise<GroupData[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
     p_tenant_id: tenantId,
     p_layer: layer,
@@ -237,7 +333,7 @@ export async function getGroupTrendForLayer(
   tenantId: string,
   layer: number
 ): Promise<GroupTrendRow[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data, error } = await supabase.rpc('stress_group_analysis_for_layer', {
     p_tenant_id: tenantId,
     p_layer: layer,
@@ -255,7 +351,7 @@ export async function getGroupTrendForLayer(
 }
 
 export async function getGroupTrend(tenantId: string): Promise<GroupTrendRow[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data } = await supabase
     .from('stress_group_analysis')
     .select('division_id, name, period_name, health_risk')
@@ -270,19 +366,25 @@ export async function getGroupAnalysisCompanyWide(tenantId: string): Promise<Gro
   const divisions = await getGroupAnalysis(tenantId, true)
   const totalMembers = divisions.reduce((s, d) => s + d.member_count, 0)
 
+  /** SQL VIEW と同様に小数第1位で丸める */
+  const round1 = (n: number) => Math.round(n * 10) / 10
+
   const wavg = (key: keyof GroupData): number | null => {
     const valid = divisions.filter(d => !d.is_suppressed && d[key] != null)
     if (valid.length === 0) return null
     const tm = valid.reduce((s, d) => s + d.member_count, 0)
-    return valid.reduce((s, d) => s + (d[key] as number) * d.member_count, 0) / tm
+    if (tm <= 0) return null
+    return round1(valid.reduce((s, d) => s + (d[key] as number) * d.member_count, 0) / tm)
   }
 
   const prevValid = divisions.filter(d => !d.is_suppressed && d.previous_health_risk != null)
   const prevTm = prevValid.reduce((s, d) => s + d.member_count, 0)
   const previousAvg =
     prevTm > 0
-      ? prevValid.reduce((s, d) => s + (d.previous_health_risk as number) * d.member_count, 0) /
-        prevTm
+      ? round1(
+          prevValid.reduce((s, d) => s + (d.previous_health_risk as number) * d.member_count, 0) /
+            prevTm,
+        )
       : null
 
   const periodName = divisions.find(d => d.period_name)?.period_name ?? ''
@@ -311,7 +413,7 @@ export async function getGroupAnalysisCompanyWide(tenantId: string): Promise<Gro
 
 /** divisions テーブルをフラットに取得（フルパス構築・コードソート用） */
 export async function getDivisionsFlat(tenantId: string) {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
   const { data } = await supabase
     .from('divisions')
     .select('id, name, parent_id, code')
@@ -363,9 +465,35 @@ export async function getGroupTrendCompanyWide(tenantId: string): Promise<GroupT
 // ========== ここから追加（既存の getGroupAnalysis の下に貼り付け）==========
 
 // 進行状況ページ用（元々存在していた関数）
-/** テナント全体（拠点未設定）の実施中を最優先。無ければ拠点別の実施中から最新1件。 */
+/** 本日が期間内の active 実施期間一覧（新しい順） */
+export async function listActiveStressCheckPeriods(tenantId: string) {
+  const supabase = await getSupabase()
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('stress_check_periods')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'active')
+    .lte('start_date', today)
+    .gte('end_date', today)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('listActiveStressCheckPeriods error:', error)
+    return []
+  }
+  return data ?? []
+}
+
+/**
+ * 進捗画面用の実施中期間を取得。
+ * 本日が start_date〜end_date に含まれる status=active を対象とし、
+ * 拠点未設定（テナント全体）を最優先、無ければ拠点別の最新1件。
+ */
 export async function getActiveStressCheckPeriod(tenantId: string) {
   const supabase = await getSupabase()
+  const today = new Date().toISOString().split('T')[0]
 
   const { data: legacy, error: errLegacy } = await supabase
     .from('stress_check_periods')
@@ -373,6 +501,8 @@ export async function getActiveStressCheckPeriod(tenantId: string) {
     .eq('tenant_id', tenantId)
     .eq('status', 'active')
     .is('division_establishment_id', null)
+    .lte('start_date', today)
+    .gte('end_date', today)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -389,6 +519,8 @@ export async function getActiveStressCheckPeriod(tenantId: string) {
     .eq('tenant_id', tenantId)
     .eq('status', 'active')
     .not('division_establishment_id', 'is', null)
+    .lte('start_date', today)
+    .gte('end_date', today)
     .order('created_at', { ascending: false })
     .limit(1)
 
@@ -400,26 +532,99 @@ export async function getActiveStressCheckPeriod(tenantId: string) {
 }
 
 /**
- * program_targets から is_eligible=true の対象者ID一覧を取得
- * レコードが無い場合は null を返し、後方互換として全従業員を対象とする
+ * 実施期間の対象者IDを解決する（進捗・未受検・リマインド共通）
+ *
+ * 定義（対象者管理モーダル / 受検可否判定と一致）:
+ * 1. program_targets.is_eligible = false は除外
+ * 2. stress_check_period_divisions がある → その部署（子孫含む）の従業員
+ * 3. 対象部署がなく division_establishment_id のみ → 当該拠点の従業員
+ * 4. いずれも未設定 → テナント全従業員（全員対象）
+ *
+ * ※ program_targets.is_eligible=true の行だけをホワイトリストにする旧実装は誤り
+ *   （除外解除で1件だけ true が残ると対象者が1名になる）
  */
-async function getEligibleEmployeeIds(
+async function resolvePeriodTargetEmployeeIds(
   supabase: any,
   tenantId: string,
   periodId: string
-): Promise<Set<string> | null> {
-  const { data: targets } = await supabase
-    .from('program_targets')
-    .select('employee_id')
-    .eq('tenant_id', tenantId)
-    .eq('program_type', 'stress_check')
-    .eq('program_instance_id', periodId)
-    .eq('is_eligible', true)
+): Promise<Set<string>> {
+  const [{ data: allEmployees }, { data: targets }, { data: periodDivs }, { data: period }] =
+    await Promise.all([
+      supabase.from('employees').select('id, division_id').eq('tenant_id', tenantId),
+      supabase
+        .from('program_targets')
+        .select('employee_id, is_eligible')
+        .eq('tenant_id', tenantId)
+        .eq('program_type', 'stress_check')
+        .eq('program_instance_id', periodId),
+      supabase
+        .from('stress_check_period_divisions')
+        .select('division_id')
+        .eq('period_id', periodId),
+      supabase
+        .from('stress_check_periods')
+        .select('division_establishment_id')
+        .eq('id', periodId)
+        .maybeSingle(),
+    ])
 
-  if (!targets || targets.length === 0) {
-    return null // 後方互換: 全従業員を対象
+  const excludedIds = new Set<string>(
+    (targets ?? [])
+      .filter((t: { is_eligible: boolean }) => t.is_eligible === false)
+      .map((t: { employee_id: string }) => t.employee_id)
+  )
+
+  const employees = (allEmployees ?? []) as { id: string; division_id: string | null }[]
+  const selectedDivisionIds: string[] = (periodDivs ?? []).map(
+    (r: { division_id: string }) => r.division_id
+  )
+
+  let scoped = employees
+
+  if (selectedDivisionIds.length > 0) {
+    const { data: allDivisions } = await supabase
+      .from('divisions')
+      .select('id, parent_id')
+      .eq('tenant_id', tenantId)
+
+    const parentMap = new Map<string, string | null>(
+      (allDivisions ?? []).map((d: { id: string; parent_id: string | null }) => [d.id, d.parent_id])
+    )
+    const selectedSet = new Set(selectedDivisionIds)
+
+    const isCovered = (divisionId: string | null): boolean => {
+      let cur: string | null = divisionId
+      const guard = new Set<string>()
+      while (cur && !guard.has(cur)) {
+        if (selectedSet.has(cur)) return true
+        guard.add(cur)
+        cur = parentMap.get(cur) ?? null
+      }
+      return false
+    }
+
+    scoped = employees.filter(e => isCovered(e.division_id))
+  } else if (period?.division_establishment_id) {
+    const { data: divRows } = await supabase
+      .from('divisions')
+      .select('id, parent_id')
+      .eq('tenant_id', tenantId)
+    const { data: anchorRows } = await supabase
+      .from('division_establishment_anchors')
+      .select('division_establishment_id, division_id')
+      .eq('tenant_id', tenantId)
+
+    const estMap = buildEmployeeEstablishmentMap(
+      employees,
+      tenantId,
+      (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
+      divRows ?? []
+    )
+    scoped = employees.filter(e => estMap.get(e.id) === period.division_establishment_id)
   }
-  return new Set(targets.map((t: { employee_id: string }) => t.employee_id))
+  // else: 対象部署・拠点未設定 → テナント全員
+
+  return new Set(scoped.filter(e => !excludedIds.has(e.id)).map(e => e.id))
 }
 
 /** 進捗統計（periodId 指定時は部署別含む完全版を返す） */
@@ -427,7 +632,8 @@ export async function getProgressStats(
   tenantId: string,
   periodId?: string
 ): Promise<ProgressStats> {
-  const supabase = await getSupabase()
+  // 受検完了集計は RLS の影響を受けないよう admin クライアントを使用（app_role による除外はしない）
+  const supabase = getAdminSupabase()
 
   // 全従業員数（後方互換用）
   const { count: totalAll } = await supabase
@@ -461,8 +667,8 @@ export async function getProgressStats(
     }
   }
 
-  // program_targets の is_eligible で対象者を絞る（無効は対象外）
-  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+  // 対象部署（未設定なら全員）− 明示除外 で対象者を決定
+  const targetIds = await resolvePeriodTargetEmployeeIds(supabase, tenantId, periodId)
 
   // 同意数・提出データ取得
   const { data: submissions } = await supabase
@@ -471,68 +677,56 @@ export async function getProgressStats(
     .eq('period_id', periodId)
 
   const submittedEmployeeIds = new Set<string>(
-    (submissions ?? []).filter(s => s.status === 'submitted').map(s => String(s.employee_id))
+    (submissions ?? [])
+      .filter(s => s.status === 'submitted' && targetIds.has(String(s.employee_id)))
+      .map(s => String(s.employee_id))
   )
 
-  // 対象者数・受検済み・未受検を is_eligible でフィルタ
   const { data: employees } = await supabase
     .from('employees')
     .select('id, division_id')
     .eq('tenant_id', tenantId)
 
   const allEmployees = employees ?? []
-  const targetEmployees = eligibleIds
-    ? allEmployees.filter(e => eligibleIds.has(e.id))
-    : allEmployees
+  const targetEmployees = allEmployees.filter(e => targetIds.has(e.id))
 
-  // 対象者数: program_targets と提出済み employee_id の和集合（非合意者を含める）
-  const allTargetIds = new Set([
-    ...(eligibleIds ?? []),
-    ...submittedEmployeeIds,
-    ...targetEmployees.map(e => e.id),
-  ])
-  const totalEmployees = allTargetIds.size
+  const totalEmployees = targetIds.size
   const submittedCount = submittedEmployeeIds.size
   const notSubmittedCount = Math.max(0, totalEmployees - submittedCount)
 
-  // 同意数: 受検完了（status='submitted'）かつ同意した者のみ（対象者全体から集計）
+  // 同意数: 対象者かつ受検完了かつ同意した者
   const consentCount =
-    submissions?.filter(s => s.status === 'submitted' && s.consent_to_employer === true).length ?? 0
+    submissions?.filter(
+      s =>
+        s.status === 'submitted' &&
+        s.consent_to_employer === true &&
+        targetIds.has(String(s.employee_id))
+    ).length ?? 0
 
   // この画面は拠点別進捗を主軸にするため、部署別ツリー用の集計は行わない。
   const departments: DepartmentStat[] = []
 
-  // 拠点別（マスタがあれば）
-  const { data: estMaster } = await supabase
-    .from('division_establishments')
-    .select('id, name')
-    .eq('tenant_id', tenantId)
+  // 拠点別: 拠点マスタ優先。未登録時は実施グループの対象部署でフォールバック
+  const mapping = await loadEstablishmentMappingContext(supabase, tenantId, periodId)
 
   let establishments: EstablishmentProgressStat[] | undefined
-  if (estMaster && estMaster.length > 0) {
-    const [{ data: divRowsForEst }, { data: anchorRows }] = await Promise.all([
-      supabase.from('divisions').select('id, parent_id').eq('tenant_id', tenantId),
-      supabase
-        .from('division_establishment_anchors')
-        .select('division_establishment_id, division_id')
-        .eq('tenant_id', tenantId),
-    ])
+  let establishmentSource: ProgressStats['establishmentSource']
+
+  if (mapping.source !== 'none') {
     const estMap = buildEmployeeEstablishmentMap(
       targetEmployees,
       tenantId,
-      (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
-      divRowsForEst ?? []
+      mapping.anchorLinks,
+      mapping.divisions
     )
     establishments = buildEstablishmentProgressStats({
-      establishments: estMaster.map((est: { id: string; name: string | null }) => ({
-        id: est.id,
-        name: est.name ?? '名称未設定',
-      })),
+      establishments: mapping.establishments,
       employees: targetEmployees,
       submittedEmployeeIds,
       submissions: submissions ?? [],
       employeeEstablishmentMap: estMap,
     })
+    establishmentSource = mapping.source
   }
 
   return {
@@ -544,6 +738,7 @@ export async function getProgressStats(
     consentRate: submittedCount ? Math.round((consentCount / submittedCount) * 100) : 0,
     departments,
     establishments,
+    establishmentSource,
   }
 }
 
@@ -553,9 +748,9 @@ export async function getNotSubmittedEmployees(
   periodId: string,
   establishmentId?: string
 ) {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
 
-  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+  const targetIds = await resolvePeriodTargetEmployeeIds(supabase, tenantId, periodId)
 
   const { data: submissions } = await supabase
     .from('stress_check_submissions')
@@ -575,9 +770,7 @@ export async function getNotSubmittedEmployees(
   if (employeesError) throw employeesError
 
   const allEmployees = employees ?? []
-  const targetEmployees = eligibleIds
-    ? allEmployees.filter(e => eligibleIds.has(e.id))
-    : allEmployees
+  const targetEmployees = allEmployees.filter(e => targetIds.has(e.id))
 
   const notSubmittedIds = targetEmployees
     .filter(e => !submittedEmployeeIds.has(e.id))
@@ -587,40 +780,15 @@ export async function getNotSubmittedEmployees(
     return []
   }
 
-  const [divisionsResult, anchorsResult, establishmentsResult] = await Promise.all([
-    supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
-    supabase
-      .from('division_establishment_anchors')
-      .select('division_establishment_id, division_id')
-      .eq('tenant_id', tenantId),
-    supabase.from('division_establishments').select('id, name').eq('tenant_id', tenantId),
-  ])
-
-  if (divisionsResult.error) throw divisionsResult.error
-  if (anchorsResult.error) throw anchorsResult.error
-  if (establishmentsResult.error) throw establishmentsResult.error
-
-  const divRowsForEst = divisionsResult.data
-  const anchorRows = anchorsResult.data
-  const estRows = establishmentsResult.data
-  const divNameById = new Map(
-    ((divRowsForEst ?? []) as { id: string; name: string | null }[]).map(division => [
-      division.id,
-      division.name,
-    ])
-  )
+  const mapping = await loadEstablishmentMappingContext(supabase, tenantId, periodId)
+  const divNameById = new Map(mapping.divisions.map(division => [division.id, division.name]))
+  const estNameById = new Map(mapping.establishments.map(est => [est.id, est.name]))
 
   const estMap = buildEmployeeEstablishmentMap(
     allEmployees,
     tenantId,
-    (anchorRows ?? []) as { division_establishment_id: string; division_id: string }[],
-    divRowsForEst ?? []
-  )
-  const estNameById = new Map(
-    ((estRows ?? []) as { id: string; name: string | null }[]).map(est => [
-      est.id,
-      est.name ?? '名称未設定',
-    ])
+    mapping.anchorLinks,
+    mapping.divisions
   )
 
   return targetEmployees
@@ -654,9 +822,9 @@ export async function getNotSubmittedEmployeesForReminder(
   periodId: string,
   establishmentId?: string | null
 ): Promise<{ id: string; name: string | null; user_id: string | null }[]> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
 
-  const eligibleIds = await getEligibleEmployeeIds(supabase, tenantId, periodId)
+  const targetIds = await resolvePeriodTargetEmployeeIds(supabase, tenantId, periodId)
 
   const { data: submissions } = await supabase
     .from('stress_check_submissions')
@@ -674,29 +842,17 @@ export async function getNotSubmittedEmployeesForReminder(
     .eq('tenant_id', tenantId)
 
   const allEmployees = employees ?? []
-  const targetEmployees = eligibleIds
-    ? allEmployees.filter(e => eligibleIds.has(e.id))
-    : allEmployees
+  const targetEmployees = allEmployees.filter(e => targetIds.has(e.id))
 
   let notSubmitted = targetEmployees.filter(e => !submittedEmployeeIds.has(e.id))
 
   if (establishmentId) {
-    const [divisionsResult, anchorsResult] = await Promise.all([
-      supabase.from('divisions').select('id, parent_id, name').eq('tenant_id', tenantId),
-      supabase
-        .from('division_establishment_anchors')
-        .select('division_establishment_id, division_id')
-        .eq('tenant_id', tenantId),
-    ])
-
-    if (divisionsResult.error) throw divisionsResult.error
-    if (anchorsResult.error) throw anchorsResult.error
-
+    const mapping = await loadEstablishmentMappingContext(supabase, tenantId, periodId)
     const estMap = buildEmployeeEstablishmentMap(
       allEmployees,
       tenantId,
-      (anchorsResult.data ?? []) as { division_establishment_id: string; division_id: string }[],
-      divisionsResult.data ?? []
+      mapping.anchorLinks,
+      mapping.divisions
     )
 
     notSubmitted = notSubmitted.filter(e => {
@@ -718,7 +874,7 @@ export async function getGroupAnalysisData(
   tenantId: string,
   periodId: string
 ): Promise<{ departments: GroupAnalysisDepartment[]; summary: GroupAnalysisSummary }> {
-  const supabase = await getSupabase()
+  const supabase = getAdminSupabase()
 
   // 期間の title を取得
   const { data: period } = await supabase

@@ -9,7 +9,7 @@ import type { StressCheckPeriod } from '@/features/stress-check/types'
 function revalidateStressPeriodPaths() {
   revalidatePath(APP_ROUTES.TENANT.ADMIN_DIVISION_ESTABLISHMENTS)
   revalidatePath('/adm/stress-check/progress')
-  revalidatePath('/adm/stress-check/mnt_sets')
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_MNT_SETS)
 }
 
 /** 拠点に紐づく実施期間一覧（旧方式 / 後方互換） */
@@ -174,11 +174,10 @@ export async function deleteStressCheckPeriod(id: string) {
   return { success: true as const }
 }
 
-/** 対象 division 群（配下の部署を含む）に属する従業員一覧と除外済みIDを取得 */
+/** 対象 division 群（配下の部署を含む）に属する従業員一覧と除外済みIDを取得。部署未指定ならテナント全員 */
 export async function getEmployeesInPeriodDivisions(periodId: string, divisionIds: string[]) {
   const user = await getServerUser()
-  if (!user?.tenant_id || divisionIds.length === 0)
-    return { success: true as const, data: [], excludedIds: [] }
+  if (!user?.tenant_id) return { success: true as const, data: [], excludedIds: [] }
 
   const supabase = await createClient()
 
@@ -197,6 +196,15 @@ export async function getEmployeesInPeriodDivisions(periodId: string, divisionId
       .eq('program_type', 'stress_check')
       .eq('program_instance_id', periodId),
   ])
+
+  const excludedIds = (targets ?? [])
+    .filter((t: { is_eligible: boolean }) => !t.is_eligible)
+    .map((t: { employee_id: string }) => t.employee_id)
+
+  // 対象部署未設定 = テナント全従業員が対象
+  if (divisionIds.length === 0) {
+    return { success: true as const, data: allEmployees ?? [], excludedIds }
+  }
 
   const coveredIds = new Set<string>(divisionIds)
   const parentMap = new Map<string, string | null>(
@@ -217,10 +225,6 @@ export async function getEmployeesInPeriodDivisions(periodId: string, divisionId
   const data = (allEmployees ?? []).filter((e: { division_id: string | null }) =>
     isCovered(e.division_id)
   )
-
-  const excludedIds = (targets ?? [])
-    .filter((t: { is_eligible: boolean }) => !t.is_eligible)
-    .map((t: { employee_id: string }) => t.employee_id)
 
   return { success: true as const, data, excludedIds }
 }
@@ -253,6 +257,6 @@ export async function upsertProgramTarget(
     console.error('upsertProgramTarget error:', error)
     return { success: false as const, error: error.message }
   }
-  revalidatePath('/adm/stress-check/mnt_sets')
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_STRESS_CHECK_MNT_SETS)
   return { success: true as const }
 }

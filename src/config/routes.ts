@@ -20,8 +20,12 @@ export const APP_ROUTES = {
     ADMIN_HIGH_STRESS_FOLLOWUP: '/adm/high-stress-followup',
     /** 拠点（事業場）マスタ — (org_health)/establishments */
     ADMIN_DIVISION_ESTABLISHMENTS: '/adm/establishments',
+    /** ストレスチェック実施グループ（期間・対象部署）— mnt_sets */
+    ADMIN_STRESS_CHECK_MNT_SETS: '/adm/stress-check/mnt_sets',
     /** ストレスチェック集団分析 */
     ADMIN_STRESS_CHECK_GROUP_ANALYSIS: '/adm/stress-check/group-analysis',
+    /** ストレスチェック進捗管理 */
+    ADMIN_STRESS_CHECK_PROGRESS: '/adm/stress-check/progress',
     ADMIN_AI_WORKPLACE_IMPROVEMENT: '/adm/ai-workplace-improvement',
     /** 管理者 QR 表示権限（(qr_atendance) グループ） */
     ADMIN_QR_ATENDANCE: '/adm/qr_atendance',

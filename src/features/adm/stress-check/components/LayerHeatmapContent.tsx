@@ -84,8 +84,8 @@ export default function LayerHeatmapContent({
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
       {/* ─── グラデーションヘッダー ─── */}
-      <div className="bg-gradient-to-r from-indigo-800 to-blue-600 px-6 pt-8 pb-6 shadow-lg">
-        <div className="max-w-7xl mx-auto space-y-5">
+      <div className="bg-gradient-to-r from-indigo-800 to-blue-600 px-4 sm:px-6 lg:px-8 pt-8 pb-6 shadow-lg">
+        <div className="w-full mx-auto space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">組織健康度分析</h1>
@@ -146,9 +146,9 @@ export default function LayerHeatmapContent({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="w-full mx-auto px-0 py-6 space-y-6">
         {/* ─── KPI サマリーカード ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KpiCard
             label={`${groupUnitLabel}数`}
             value={groups.length}
@@ -208,12 +208,12 @@ export default function LayerHeatmapContent({
         </div>
 
         {/* ─── マトリクスヒートマップ + 詳細パネル ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* ヒートマップ（左 2/3） */}
-          <div className="lg:col-span-2">
-            <Card className="p-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          {/* ヒートマップ（広い列） */}
+          <div className="xl:col-span-9 min-w-0">
+            <Card className="p-4 sm:p-5">
               <h2 className="text-lg font-bold text-[#24292f] mb-1">組織健康度ヒートマップ</h2>
-              <p className="text-xs text-[#57606a] mb-4">
+              <p className="text-xs text-[#57606a] mb-3">
                 行をクリックして右パネルに詳細を表示｜列ヘッダーでソート
               </p>
               <OrgHealthMatrixHeatmap
@@ -224,8 +224,8 @@ export default function LayerHeatmapContent({
             </Card>
           </div>
 
-          {/* 詳細パネル（右 1/3） */}
-          <div>
+          {/* 詳細パネル */}
+          <div className="xl:col-span-3 min-w-0">
             {selectedGroup ? (
               <Card className="p-6 h-full">
                 <div className="flex items-start justify-between gap-2 mb-2">

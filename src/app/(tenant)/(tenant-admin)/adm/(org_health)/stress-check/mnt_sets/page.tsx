@@ -7,7 +7,7 @@ import { getStressCheckPeriodsWithDivisions } from '@/features/adm/stress-check/
 import { getDivisions } from '@/features/organization/queries'
 
 export const metadata: Metadata = {
-  title: '実施グループ管理 - ストレスチェック',
+  title: '実施（期間・対象部署・対象者）の管理 - ストレスチェック',
 }
 
 export default async function StressCheckMntSetsPage() {

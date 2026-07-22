@@ -17,6 +17,8 @@ import {
 import LayerHeatmapContent from '@/features/adm/stress-check/components/LayerHeatmapContent'
 import type { GroupAnalysisMode } from '@/features/adm/stress-check/components/GroupAnalysisToolbar'
 
+export const dynamic = 'force-dynamic'
+
 type SearchParams = { mode?: string; layer?: string }
 
 export default async function GroupAnalysisPage({
@@ -79,9 +81,12 @@ export default async function GroupAnalysisPage({
     ])
   }
 
-  // 部署名をフルパス（上位層 / 中間層 / 末端層）に変換し、code でソート順を付与
+  // 部署・レイヤー集計のみフルパス化（拠点別・全社は既存名称を維持）
   const allDivisions = await getDivisionsFlat(user.tenant_id)
   const groupsWithPaths = groups.map(g => {
+    if (mode === 'establishment' || mode === 'all') {
+      return { ...g, code: null }
+    }
     const fullPath = buildFullPath(g.division_id, allDivisions)
     const divInfo = allDivisions.find(d => d.id === g.division_id)
     return { ...g, name: fullPath || g.name, code: divInfo?.code ?? null }

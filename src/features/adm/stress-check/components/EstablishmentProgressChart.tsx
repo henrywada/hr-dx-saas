@@ -55,8 +55,11 @@ const CustomTooltip = ({ active, payload }: any) => {
         受検者：<span className="font-bold">{d.submitted}名</span>
       </p>
       <p className="text-gray-500">
-        未受検者：<span className="font-bold">{d.notSubmitted + d.inProgress}名</span>
+        未受検者：<span className="font-bold">{d.notSubmitted}名</span>
       </p>
+      {d.inProgress > 0 && (
+        <p className="text-amber-600 text-xs mt-1">うち結果提供不同意：{d.inProgress}名</p>
+      )}
       <p className="text-gray-400 text-xs mt-1">受検率：{d.rate}%</p>
     </div>
   )
@@ -66,23 +69,24 @@ const PIE_COLORS = ['#3b82f6', '#e5e7eb']
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
 export default function EstablishmentProgressChart({ data }: Props) {
-  // 横バー用データ（全体人数 = submitted + notSubmitted + inProgress）
+  // 横バー用データ
+  // inProgress は受検済みのうち結果提供不同意の人数（submitted の内数）なので母数に加算しない
   const barData = data.map(d => ({
     name: d.name.length > 12 ? d.name.slice(0, 12) + '…' : d.name,
     submitted: d.submitted,
     notSubmitted: d.notSubmitted,
     inProgress: d.inProgress,
-    total: d.submitted + d.notSubmitted + d.inProgress,
+    total: d.submitted + d.notSubmitted,
     rate: d.rate,
   }))
 
   const maxTotal = Math.max(...barData.map(d => d.total), 1)
   const chartHeight = Math.max(200, data.length * 56)
 
-  // パイチャート用集計
+  // パイチャート用集計（未受検 = notSubmitted のみ。inProgress は受検済みの内数）
   const totalSubmitted = data.reduce((sum, d) => sum + d.submitted, 0)
-  const totalAll = data.reduce((sum, d) => sum + d.submitted + d.notSubmitted + d.inProgress, 0)
-  const totalNotSubmitted = totalAll - totalSubmitted
+  const totalNotSubmitted = data.reduce((sum, d) => sum + d.notSubmitted, 0)
+  const totalAll = totalSubmitted + totalNotSubmitted
   const overallRate = totalAll > 0 ? Math.round((totalSubmitted / totalAll) * 100) : 0
 
   const pieData = [

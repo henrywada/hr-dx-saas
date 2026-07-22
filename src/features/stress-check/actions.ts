@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTISOString } from '@/lib/datetime'
 import { revalidatePath } from 'next/cache'
-import { getMergedResponses } from './queries'
+import { getMergedResponses, checkStressCheckEligibility } from './queries'
 import { calculateScoresFromResponses } from './score-calculator'
 import type { MergedResponse } from './score-calculator'
 
@@ -49,6 +49,15 @@ export async function submitStressCheckAnswers(
     if (empError || !employee) {
       console.error('Employee not found:', empError?.message)
       return { success: false, error: '従業員情報が見つかりません。管理者にお問い合わせください。' }
+    }
+
+    // 対象者でない場合は提出不可（画面ガードのバイパス防止）
+    const eligibility = await checkStressCheckEligibility(periodId, user.id)
+    if (!eligibility.eligible) {
+      return {
+        success: false,
+        error: eligibility.exclusionReason ?? 'ストレスチェックの対象外です。',
+      }
     }
 
     const employeeId = employee.id

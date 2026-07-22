@@ -148,6 +148,16 @@ async function finalizeDocumentChunks(params: {
     const { error: insErr } = await supabase.from('tenant_rag_chunks').insert(rows)
     if (insErr) {
       console.error('[inquiry-chat] chunk insert', insErr)
+      // 途中バッチまで挿入済みのチャンクを削除して孤児を残さない。
+      // 孤児チャンクは status=failed の文書に属したまま検索にヒットし、
+      // 「失敗文書」の内容が回答へ混入する / 無駄なチャンクが増える原因になる。
+      const { error: cleanupErr } = await supabase
+        .from('tenant_rag_chunks')
+        .delete()
+        .eq('document_id', documentId)
+      if (cleanupErr) {
+        console.error('[inquiry-chat] chunk cleanup after insert failure', cleanupErr)
+      }
       await supabase
         .from('tenant_rag_documents')
         .update({
@@ -159,6 +169,7 @@ async function finalizeDocumentChunks(params: {
         .eq('id', documentId)
       await writeAudit(supabase, tenantId, userId, 'ingest_failed', documentId, {
         reason: 'chunk_insert',
+        rolled_back_chunks: cleanupErr ? 'failed' : 'ok',
       })
       return { ok: false, error: 'チャンクの保存に失敗しました' }
     }

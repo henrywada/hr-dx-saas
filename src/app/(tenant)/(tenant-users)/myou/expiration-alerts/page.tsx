@@ -3,6 +3,7 @@ import { getExpiringTraceLabels, getAlertLogs } from '@/features/myou/queries'
 import ExpiringTraceLabelsTable from '../components/ExpiringTraceLabelsTable'
 import AlertLogTable from '../components/AlertLogTable'
 import MyouBackLink from '../components/MyouBackLink'
+import { ExpirationAlertsHelpModalTrigger } from '../components/ExpirationAlertsHelpModalTrigger'
 import { formatDateInJST } from '@/lib/datetime'
 import { Metadata } from 'next'
 import { AlertTriangle, History, Calendar } from 'lucide-react'
@@ -20,8 +21,9 @@ export default async function ExpirationAlertsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* ヒーローセクション風のヘッダー */}
       <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg mb-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-end mb-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
+          <div className="flex justify-end items-center gap-2 mb-4">
+            <ExpirationAlertsHelpModalTrigger />
             <MyouBackLink variant="light" />
           </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">

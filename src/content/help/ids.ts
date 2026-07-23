@@ -37,6 +37,20 @@ export const HELP_CONTENT_IDS = {
   LABOR_COMPLIANCE: 'lc-dashboard-guide',
   /** 36協定 遵守状況ダッシュボードの見方 */
   ANALYSIS_36: 'att-36analysis-guide',
+  /** 入荷登録（QRスキャン）の使い方 */
+  MYOU_RECEIVING_SCAN: 'myou-receiving-scan-guide',
+  /** 出荷登録（QRスキャン）の使い方 */
+  MYOU_DELIVERY_SCAN: 'myou-delivery-scan-guide',
+  /** 出荷リストの使い方 */
+  MYOU_DELIVERY_HISTORY: 'myou-delivery-history-guide',
+  /** 在庫一覧の使い方 */
+  MYOU_INVENTORY: 'myou-inventory-guide',
+  /** トレーサビリティ検索（流通経路上での照会）の使い方 */
+  MYOU_TRACEABILITY: 'myou-traceability-guide',
+  /** 有効期限監視・アラート管理の使い方 */
+  MYOU_EXPIRATION_ALERTS: 'myou-expiration-alerts-guide',
+  /** 施工会社（納入先）管理の使い方 */
+  MYOU_COMPANIES: 'myou-companies-guide',
 } as const
 
 export type HelpContentId = (typeof HELP_CONTENT_IDS)[keyof typeof HELP_CONTENT_IDS]

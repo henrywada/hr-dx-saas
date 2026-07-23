@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import ReceivingForm from '../components/ReceivingForm'
 import MyouBackLink from '../components/MyouBackLink'
 import ReceivingTestQrButton from '../components/ReceivingTestQrButton'
+import { ReceivingScanHelpModalTrigger } from '../components/ReceivingScanHelpModalTrigger'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -13,13 +14,11 @@ export const metadata: Metadata = {
 export default function ReceivingScanPage() {
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-start justify-between gap-3">
         <h1 className="text-2xl font-bold text-blue-700">入荷登録（QRスキャン）</h1>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2 shrink-0">
+          <ReceivingScanHelpModalTrigger />
           <MyouBackLink />
-          <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-            製品トレーサビリティ
-          </div>
         </div>
       </div>
 

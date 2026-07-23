@@ -33,3 +33,17 @@ export const CAREER_DISCUSSIONS_DISPLAY_TITLE = 'キャリア面談の使い方'
 export const LABOR_COMPLIANCE_DISPLAY_TITLE = '労務コンプライアンスダッシュボードの見方'
 /** att-36analysis-guide: 36協定 遵守状況ダッシュボードの見方 */
 export const ANALYSIS_36_DISPLAY_TITLE = '36協定 遵守状況ダッシュボードの見方'
+/** myou-receiving-scan-guide: 入荷登録（QRスキャン）の使い方 */
+export const MYOU_RECEIVING_SCAN_DISPLAY_TITLE = '入荷登録（QRスキャン）の使い方'
+/** myou-delivery-scan-guide: 出荷登録（QRスキャン）の使い方 */
+export const MYOU_DELIVERY_SCAN_DISPLAY_TITLE = '出荷登録（QRスキャン）の使い方'
+/** myou-delivery-history-guide: 出荷リストの使い方 */
+export const MYOU_DELIVERY_HISTORY_DISPLAY_TITLE = '出荷リストの使い方'
+/** myou-inventory-guide: 在庫一覧の使い方 */
+export const MYOU_INVENTORY_DISPLAY_TITLE = '在庫一覧の使い方'
+/** myou-traceability-guide: トレーサビリティ検索の使い方 */
+export const MYOU_TRACEABILITY_DISPLAY_TITLE = 'トレーサビリティ検索の使い方'
+/** myou-expiration-alerts-guide: 有効期限監視の使い方 */
+export const MYOU_EXPIRATION_ALERTS_DISPLAY_TITLE = '有効期限監視の使い方'
+/** myou-companies-guide: 施工会社管理の使い方 */
+export const MYOU_COMPANIES_DISPLAY_TITLE = '施工会社管理の使い方'

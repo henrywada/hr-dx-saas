@@ -15,6 +15,13 @@ import conConsultationGuide from './markdown/consultation/con-consultation-guide
 import conConsultationInboxGuide from './markdown/consultation/con-consultation-inbox-guide.md'
 import engKudosGuide from './markdown/engagement/eng-kudos-guide.md'
 import lcDashboardGuide from './markdown/labor-compliance/lc-dashboard-guide.md'
+import myouCompaniesGuide from './markdown/myou/myou-companies-guide.md'
+import myouDeliveryHistoryGuide from './markdown/myou/myou-delivery-history-guide.md'
+import myouDeliveryScanGuide from './markdown/myou/myou-delivery-scan-guide.md'
+import myouExpirationAlertsGuide from './markdown/myou/myou-expiration-alerts-guide.md'
+import myouInventoryGuide from './markdown/myou/myou-inventory-guide.md'
+import myouReceivingScanGuide from './markdown/myou/myou-receiving-scan-guide.md'
+import myouTraceabilityGuide from './markdown/myou/myou-traceability-guide.md'
 import ooAdminDashboardGuide from './markdown/one-on-one/oo-admin-dashboard-guide.md'
 import ooMyHistory from './markdown/one-on-one/oo-my-history.md'
 import orgTeamConnectGuide from './markdown/organization/org-team-connect-guide.md'
@@ -56,6 +63,13 @@ export const HELP_MARKDOWN_BY_ID: Record<string, string> = {
   'con-consultation-inbox-guide': conConsultationInboxGuide,
   'eng-kudos-guide': engKudosGuide,
   'lc-dashboard-guide': lcDashboardGuide,
+  'myou-companies-guide': myouCompaniesGuide,
+  'myou-delivery-history-guide': myouDeliveryHistoryGuide,
+  'myou-delivery-scan-guide': myouDeliveryScanGuide,
+  'myou-expiration-alerts-guide': myouExpirationAlertsGuide,
+  'myou-inventory-guide': myouInventoryGuide,
+  'myou-receiving-scan-guide': myouReceivingScanGuide,
+  'myou-traceability-guide': myouTraceabilityGuide,
   'oo-admin-dashboard-guide': ooAdminDashboardGuide,
   'oo-my-history': ooMyHistory,
   'org-team-connect-guide': orgTeamConnectGuide,

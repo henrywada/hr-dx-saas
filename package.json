@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 --webpack",
+    "dev": "NODE_OPTIONS='--disable-warning=TimeoutNegativeWarning' next dev -p 3000 --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",

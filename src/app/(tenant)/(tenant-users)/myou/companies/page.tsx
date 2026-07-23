@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getCompanies } from '@/features/myou/queries'
 import CompanyMaintenance from '../components/CompanyMaintenance'
 import MyouBackLink from '../components/MyouBackLink'
+import { CompaniesHelpModalTrigger } from '../components/CompaniesHelpModalTrigger'
 import { Metadata } from 'next'
 import { Building2, Info } from 'lucide-react'
 
@@ -17,8 +18,9 @@ export default async function CompaniesPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* ページヘッダー */}
       <div className="bg-white border-b border-gray-200 mb-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-end mb-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6">
+          <div className="flex justify-end items-center gap-2 mb-4">
+            <CompaniesHelpModalTrigger />
             <MyouBackLink />
           </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">

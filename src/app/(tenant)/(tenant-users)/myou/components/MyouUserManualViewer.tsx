@@ -46,10 +46,17 @@ function Heading({
 
 /** 段落が画像のみか（react-markdown は単独画像を p で包むため figure を p 内に置けない） */
 function isImageOnlyParagraph(children: ReactNode): boolean {
-  const nodes = Children.toArray(children)
+  // 空白テキストノードは無視する
+  const nodes = Children.toArray(children).filter(node => {
+    if (typeof node === 'string') return node.trim().length > 0
+    return true
+  })
   if (nodes.length !== 1 || !isValidElement(nodes[0])) return false
   const child = nodes[0]
-  return child.type === 'img' || child.type === 'figure'
+  // 標準タグ、またはカスタム img（type が関数で src を持つ）
+  if (child.type === 'img' || child.type === 'figure') return true
+  const props = child.props as { src?: unknown } | null
+  return typeof props?.src === 'string'
 }
 
 /** 同一ページ内リンクのスムーススクロール */
@@ -134,8 +141,9 @@ export default function MyouUserManualViewer({ markdown, toc }: Props) {
         </Heading>
       ),
       p: ({ children }) =>
+        // 画像のみの段落は p を出さず、カスタム img（figure）をそのまま描画する
         isImageOnlyParagraph(children) ? (
-          <div className="mb-6">{children}</div>
+          <>{children}</>
         ) : (
           <p className="mb-4 text-sm leading-7 text-gray-700 last:mb-0 sm:text-[0.9375rem]">
             {children}

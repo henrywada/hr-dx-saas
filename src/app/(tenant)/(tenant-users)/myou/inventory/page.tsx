@@ -1,6 +1,7 @@
 import { getLots } from '@/features/myou/queries'
 import InventoryTable from '../components/InventoryTable'
 import MyouBackLink from '../components/MyouBackLink'
+import { InventoryHelpModalTrigger } from '../components/InventoryHelpModalTrigger'
 import { Metadata } from 'next'
 import { Package } from 'lucide-react'
 
@@ -15,7 +16,7 @@ export default async function InventoryPage() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto w-full max-w-[1920px]">
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-blue-700 flex items-center">
             <Package className="h-6 w-6 mr-2" />
@@ -26,11 +27,9 @@ export default async function InventoryPage() {
             本）。有効期限が近い順に表示しています。
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2 shrink-0">
+          <InventoryHelpModalTrigger />
           <MyouBackLink />
-          <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-            製品トレーサビリティ
-          </div>
         </div>
       </div>
 

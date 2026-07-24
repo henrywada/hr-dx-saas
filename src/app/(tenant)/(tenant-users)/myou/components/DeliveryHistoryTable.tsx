@@ -5,6 +5,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { DeliveryHistoryRow, MyouCompany } from '@/features/myou/types'
 import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
 import { History } from 'lucide-react'
+import UsedQuantityEditModal from './UsedQuantityEditModal'
 
 interface DeliveryHistoryTableProps {
   logs: DeliveryHistoryRow[]
@@ -18,6 +19,7 @@ interface DeliveryHistoryTableProps {
  */
 export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistoryTableProps) {
   const [companyFilter, setCompanyFilter] = useState<string>('')
+  const [editingLog, setEditingLog] = useState<DeliveryHistoryRow | null>(null)
 
   const filteredLogs = useMemo(
     () => (companyFilter ? logs.filter(log => log.company_id === companyFilter) : logs),
@@ -64,9 +66,18 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
       render: value => `${value}個`,
     },
     {
+      key: 'used_quantity',
+      label: '使用数',
+      render: value => `${value}個`,
+    },
+    {
       key: 'expiration_date',
       label: '期限状況',
       render: (_value, item) => {
+        // 出荷数量＝使用数なら期限管理対象外として「-」
+        if (item.quantity === item.used_quantity) {
+          return '-'
+        }
         const daysLeft = getDaysUntilExpiration(item.expiration_date)
         if (daysLeft === null) {
           return (
@@ -97,9 +108,17 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
       },
     },
     {
-      key: 'delivered_by',
-      label: '登録担当者',
-      render: value => value || 'システム登録',
+      key: 'id',
+      label: '編集',
+      render: (_value, item) => (
+        <button
+          type="button"
+          onClick={() => setEditingLog(item)}
+          className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+        >
+          編集
+        </button>
+      ),
     },
   ]
 
@@ -152,12 +171,25 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
               <td className="px-4 py-1 text-sm text-[#24292f]">
                 {filteredLogs.reduce((sum, log) => sum + log.quantity, 0)}個
               </td>
+              <td className="px-4 py-1 text-sm text-[#24292f]">
+                {filteredLogs.reduce((sum, log) => sum + log.used_quantity, 0)}個
+              </td>
               <td className="px-4 py-1" />
               <td className="px-4 py-1" />
             </tr>
           }
         />
       )}
+
+      {editingLog ? (
+        <UsedQuantityEditModal
+          open
+          onOpenChange={open => {
+            if (!open) setEditingLog(null)
+          }}
+          log={editingLog}
+        />
+      ) : null}
     </div>
   )
 }

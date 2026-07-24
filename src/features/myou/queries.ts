@@ -8,6 +8,7 @@ import type {
   ExpiringTraceLabel,
   LotInventoryItem,
   MyouCompany,
+  ProcessStatus,
   PublicTraceInfo,
 } from './types'
 
@@ -74,7 +75,8 @@ export async function getCompanies(): Promise<MyouCompany[]> {
 
 /**
  * 有効期限が近いトレーサビリティQR発行分（30日以内、＝客先出荷済みで有効期限間近のもの）の
- * 一覧を取得する。施工会社情報もJOINする
+ * 一覧を取得する。施工会社情報もJOINする。
+ * 未使用数量（出荷数量 − 使用数）が 0 の行はワーニングリストから除外する。
  */
 export async function getExpiringTraceLabels(): Promise<ExpiringTraceLabel[]> {
   const user = await getServerUser()
@@ -87,10 +89,12 @@ export async function getExpiringTraceLabels(): Promise<ExpiringTraceLabel[]> {
     .from('myou_trace_labels')
     .select(
       `
+      id,
       trace_no,
       quantity,
       expiration_date,
       company_id,
+      process_status,
       lot_id,
       myou_companies (
         id,
@@ -117,23 +121,55 @@ export async function getExpiringTraceLabels(): Promise<ExpiringTraceLabel[]> {
     return []
   }
 
-  return (labels || []).map(
-    (row: {
-      trace_no: string
-      quantity: number
-      expiration_date: string
-      company_id: string
-      myou_companies: { id: string; name: string; email_address: string | null } | null
-      myou_lots: { lot_no: string } | null
-    }) => ({
-      trace_no: row.trace_no,
-      lot_no: row.myou_lots?.lot_no ?? '',
-      quantity: row.quantity,
-      expiration_date: row.expiration_date,
-      company_id: row.company_id,
-      myou_companies: row.myou_companies,
+  const rows = (labels || []) as {
+    id: string
+    trace_no: string
+    quantity: number
+    expiration_date: string
+    company_id: string
+    process_status: string | null
+    myou_companies: { id: string; name: string; email_address: string | null } | null
+    myou_lots: { lot_no: string } | null
+  }[]
+
+  if (rows.length === 0) return []
+
+  // 出荷履歴の使用数を TraceNo で突合する
+  const traceNos = rows.map(row => row.trace_no)
+  const { data: deliveryLogs, error: deliveryError } = await supabase
+    .from('myou_delivery_logs')
+    .select('trace_no, used_quantity')
+    .eq('tenant_id', user.tenant_id)
+    .in('trace_no', traceNos)
+
+  if (deliveryError) {
+    console.error('Error fetching delivery used_quantity for alerts:', deliveryError)
+  }
+
+  const usedByTraceNo = new Map<string, number>()
+  for (const log of deliveryLogs || []) {
+    if (!log.trace_no) continue
+    usedByTraceNo.set(log.trace_no, log.used_quantity ?? 0)
+  }
+
+  return rows
+    .map(row => {
+      const usedQuantity = usedByTraceNo.get(row.trace_no) ?? 0
+      const unusedQuantity = Math.max(0, row.quantity - usedQuantity)
+      return {
+        id: row.id,
+        trace_no: row.trace_no,
+        lot_no: row.myou_lots?.lot_no ?? '',
+        quantity: row.quantity,
+        used_quantity: usedQuantity,
+        unused_quantity: unusedQuantity,
+        expiration_date: row.expiration_date,
+        company_id: row.company_id,
+        process_status: (row.process_status as ProcessStatus) ?? 'unused',
+        myou_companies: row.myou_companies,
+      }
     })
-  )
+    .filter(row => row.unused_quantity > 0)
 }
 
 /**
@@ -217,6 +253,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       id,
       company_id,
       quantity,
+      used_quantity,
       delivery_date,
       delivered_by,
       registered_at,
@@ -252,6 +289,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       id: string
       company_id: string
       quantity: number
+      used_quantity: number | null
       delivery_date: string
       delivered_by: string | null
       registered_at: string
@@ -266,6 +304,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       company_name: row.myou_companies?.name ?? '不明',
       company_no: row.myou_companies?.company_no ?? null,
       quantity: row.quantity,
+      used_quantity: row.used_quantity ?? 0,
       delivery_date: row.delivery_date,
       delivered_by: row.delivered_by,
       registered_at: row.registered_at,

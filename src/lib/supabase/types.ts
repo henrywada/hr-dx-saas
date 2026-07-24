@@ -4774,6 +4774,7 @@ export type Database = {
           company_id: string
           error_message: string | null
           id: string
+          process_status: string | null
           sent_at: string
           status: string
           target_trace_nos: string[]
@@ -4783,6 +4784,7 @@ export type Database = {
           company_id: string
           error_message?: string | null
           id?: string
+          process_status?: string | null
           sent_at?: string
           status?: string
           target_trace_nos: string[]
@@ -4792,6 +4794,7 @@ export type Database = {
           company_id?: string
           error_message?: string | null
           id?: string
+          process_status?: string | null
           sent_at?: string
           status?: string
           target_trace_nos?: string[]
@@ -4846,6 +4849,7 @@ export type Database = {
           registered_at: string
           tenant_id: string
           trace_no: string | null
+          used_quantity: number
         }
         Insert: {
           company_id: string
@@ -4858,6 +4862,7 @@ export type Database = {
           registered_at?: string
           tenant_id?: string
           trace_no?: string | null
+          used_quantity?: number
         }
         Update: {
           company_id?: string
@@ -4870,6 +4875,7 @@ export type Database = {
           registered_at?: string
           tenant_id?: string
           trace_no?: string | null
+          used_quantity?: number
         }
         Relationships: [
           {
@@ -4937,6 +4943,7 @@ export type Database = {
           expiration_date: string
           id: string
           lot_id: string
+          process_status: string
           quantity: number
           tenant_id: string
           trace_no: string
@@ -4947,6 +4954,7 @@ export type Database = {
           expiration_date: string
           id?: string
           lot_id: string
+          process_status?: string
           quantity?: number
           tenant_id?: string
           trace_no: string
@@ -4957,6 +4965,7 @@ export type Database = {
           expiration_date?: string
           id?: string
           lot_id?: string
+          process_status?: string
           quantity?: number
           tenant_id?: string
           trace_no?: string

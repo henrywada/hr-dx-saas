@@ -1,5 +1,11 @@
 import { z } from 'zod'
 
+import type { ProcessStatus } from './lib/process-status'
+export type { ProcessStatus } from './lib/process-status'
+export { PROCESS_STATUS_VALUES } from './lib/process-status'
+
+export const processStatusSchema = z.enum(['unused', 'used', 'alert_ignored'])
+
 /**
  * 製造ロットのライフサイクル
  * issued（ロットQR発行済・数量未確定） → in_stock（入荷済・残数あり） → depleted（残数0）
@@ -67,6 +73,7 @@ export interface DeliveryHistoryRow {
   company_name: string
   company_no: number | null
   quantity: number
+  used_quantity: number
   delivery_date: string
   delivered_by: string | null
   registered_at: string
@@ -89,16 +96,25 @@ export interface AlertLogRow {
   target_trace_nos: string[]
   status: string
   error_message: string | null
+  /** 送信時点の処理ステータス（過去ログは null） */
+  process_status: ProcessStatus | null
   myou_companies: { name: string } | null
 }
 
 /** 有効期限間近のトレーサビリティQR発行分（客先出荷済み、施工会社JOIN済み） */
 export interface ExpiringTraceLabel {
+  id: string
   trace_no: string
   lot_no: string
+  /** 出荷数量 */
   quantity: number
+  /** 使用数（出荷履歴） */
+  used_quantity: number
+  /** 未使用数量 = 出荷数量 − 使用数 */
+  unused_quantity: number
   expiration_date: string
   company_id: string
+  process_status: ProcessStatus
   myou_companies: {
     id: string
     name: string

@@ -4,7 +4,22 @@ import { useTransition, useState } from 'react'
 import { sendManualAlert } from '@/features/myou/actions'
 import type { ExpiringTraceLabel } from '@/features/myou/types'
 import { getDaysUntilExpiration } from '@/features/myou/lib/expiration'
-import { Bell, Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { processStatusLabel, type ProcessStatus } from '@/features/myou/lib/process-status'
+import ProcessStatusEditModal from './ProcessStatusEditModal'
+import { Bell, Mail, CheckCircle, AlertCircle, Loader2, Pencil } from 'lucide-react'
+
+type EditingLabel = Pick<ExpiringTraceLabel, 'id' | 'trace_no' | 'process_status'>
+
+function processStatusBadgeClass(status: ProcessStatus): string {
+  switch (status) {
+    case 'unused':
+      return 'bg-blue-100 text-blue-700'
+    case 'used':
+      return 'bg-gray-100 text-gray-700'
+    case 'alert_ignored':
+      return 'bg-slate-100 text-slate-700'
+  }
+}
 
 interface Props {
   labels: ExpiringTraceLabel[]
@@ -14,6 +29,7 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
   const [isPending, startTransition] = useTransition()
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [editingLabel, setEditingLabel] = useState<EditingLabel | null>(null)
 
   // 会社ごとにグループ化（出荷先情報が欠落しているレコードは表示対象外）
   const groupedByCompany = labels.reduce(
@@ -125,7 +141,7 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                     ロット番号
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    数量
+                    未使用数量
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     有効期限
@@ -136,13 +152,19 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     残り日数
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    処理ステータス
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    編集
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {company.labels.map(label => {
                   const daysLeft = getDaysUntilExpiration(label.expiration_date) ?? 0
                   return (
-                    <tr key={label.trace_no} className="hover:bg-gray-50 transition-colors">
+                    <tr key={label.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                         {label.trace_no}
                       </td>
@@ -150,7 +172,7 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                         {label.lot_no}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {label.quantity}個
+                        {label.unused_quantity}個
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {label.expiration_date}
@@ -169,6 +191,29 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {daysLeft > 0 ? `${daysLeft}日` : '0日'}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${processStatusBadgeClass(label.process_status)}`}
+                        >
+                          {processStatusLabel(label.process_status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingLabel({
+                              id: label.id,
+                              trace_no: label.trace_no,
+                              process_status: label.process_status,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          編集
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -177,6 +222,16 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
           </div>
         </div>
       ))}
+
+      {editingLabel && (
+        <ProcessStatusEditModal
+          open={!!editingLabel}
+          onOpenChange={open => {
+            if (!open) setEditingLabel(null)
+          }}
+          label={editingLabel}
+        />
+      )}
     </div>
   )
 }

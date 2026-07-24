@@ -2,10 +2,17 @@
 
 import { History, CheckCircle, XCircle } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
-import type { AlertLogRow } from '@/features/myou/types'
+import type { AlertLogRow, ProcessStatus } from '@/features/myou/types'
+import { processStatusLabel } from '@/features/myou/lib/process-status'
 
 interface Props {
   logs: AlertLogRow[]
+}
+
+function processStatusBadgeClass(status: ProcessStatus): string {
+  if (status === 'unused') return 'bg-blue-100 text-blue-700'
+  if (status === 'used') return 'bg-gray-100 text-gray-700'
+  return 'bg-slate-100 text-slate-700'
 }
 
 export default function AlertLogTable({ logs }: Props) {
@@ -41,7 +48,10 @@ export default function AlertLogTable({ logs }: Props) {
                 対象トレース件数
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ステータス
+                処理ステータス
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                送信ステータス
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 詳細
@@ -52,7 +62,6 @@ export default function AlertLogTable({ logs }: Props) {
             {logs.map(log => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {/* date-fns を使わず標準の Date にしても良いが、フォーマットの一貫性のため一応 */}
                   {formatDateTimeInJST(log.sent_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
@@ -63,6 +72,17 @@ export default function AlertLogTable({ logs }: Props) {
                     {log.target_trace_nos?.length || 0}
                   </span>
                   件
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {log.process_status ? (
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${processStatusBadgeClass(log.process_status)}`}
+                    >
+                      {processStatusLabel(log.process_status)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span

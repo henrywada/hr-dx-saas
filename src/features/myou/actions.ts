@@ -17,18 +17,22 @@ import {
   getMaxLotSequence,
   getMaxTraceSequence,
 } from './lib/qr-parser'
+import { filterUnusedForAlert } from './lib/process-status'
 import {
   companyIdSchema,
   deliverFromLotSchema,
+  processStatusSchema,
   receiveLotSchema,
   upsertCompanySchema,
   type DeliverFromLotInput,
   type DeliveryLogWithCompany,
   type LotTraceResult,
   type MyouLot,
+  type ProcessStatus,
   type ReceiveLotInput,
   type TraceLabel,
 } from './types'
+import { z } from 'zod'
 
 async function getSupabase() {
   return await createClient()
@@ -325,6 +329,7 @@ export async function sendManualAlert(companyId: string) {
       trace_no,
       quantity,
       expiration_date,
+      process_status,
       myou_lots (
         lot_no
       )
@@ -339,6 +344,51 @@ export async function sendManualAlert(companyId: string) {
     return { success: false, error: '対象の期限間近製品が見つかりませんでした。' }
   }
 
+  const typedLabels = labels as {
+    trace_no: string
+    quantity: number
+    expiration_date: string
+    process_status: ProcessStatus | null
+    myou_lots: { lot_no: string } | null
+  }[]
+
+  // 出荷履歴の使用数を突合し、未使用数量が残るものだけを対象にする
+  const { data: deliveryLogs } = await supabase
+    .from('myou_delivery_logs')
+    .select('trace_no, used_quantity')
+    .eq('tenant_id', user.tenant_id)
+    .in(
+      'trace_no',
+      typedLabels.map(label => label.trace_no)
+    )
+
+  const usedByTraceNo = new Map<string, number>()
+  for (const log of deliveryLogs || []) {
+    if (!log.trace_no) continue
+    usedByTraceNo.set(log.trace_no, log.used_quantity ?? 0)
+  }
+
+  const withUnused = typedLabels
+    .map(label => {
+      const usedQuantity = usedByTraceNo.get(label.trace_no) ?? 0
+      const unusedQuantity = Math.max(0, label.quantity - usedQuantity)
+      return {
+        ...label,
+        process_status: label.process_status ?? ('unused' as ProcessStatus),
+        unused_quantity: unusedQuantity,
+      }
+    })
+    .filter(label => label.unused_quantity > 0)
+
+  if (withUnused.length === 0) {
+    return { success: false, error: '対象の期限間近製品が見つかりませんでした。' }
+  }
+
+  const unusedLabels = filterUnusedForAlert(withUnused)
+  if (unusedLabels.length === 0) {
+    return { success: false, error: '送信対象の未使用製品がありません。' }
+  }
+
   const { data: company, error: companyError } = await supabase
     .from('myou_companies')
     .select('name, email_address')
@@ -350,17 +400,10 @@ export async function sendManualAlert(companyId: string) {
     return { success: false, error: '送信先のメールアドレスが登録されていません。' }
   }
 
-  const items = (
-    labels as {
-      trace_no: string
-      quantity: number
-      expiration_date: string
-      myou_lots: { lot_no: string } | null
-    }[]
-  ).map(label => ({
+  const items = unusedLabels.map(label => ({
     trace_no: label.trace_no,
     lot_no: label.myou_lots?.lot_no ?? '',
-    quantity: label.quantity,
+    quantity: label.unused_quantity,
     expiration_date: label.expiration_date,
   }))
 
@@ -373,6 +416,8 @@ export async function sendManualAlert(companyId: string) {
     target_trace_nos: items.map(item => item.trace_no),
     status: mailResult.success ? 'success' : 'error',
     error_message: mailResult.success ? null : mailResult.error,
+    // 送信対象は未使用のみのため、履歴にもそのスナップショットを残す
+    process_status: 'unused',
   })
 
   if (logError) {
@@ -388,8 +433,92 @@ export async function sendManualAlert(companyId: string) {
 }
 
 /**
+ * トレーサビリティQR発行分の処理ステータスを更新する
+ */
+export async function updateTraceProcessStatus(
+  labelId: string,
+  processStatus: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+
+  const idParsed = z.string().uuid('ラベルIDが不正です').safeParse(labelId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message ?? 'ラベルIDが不正です' }
+  }
+  const statusParsed = processStatusSchema.safeParse(processStatus)
+  if (!statusParsed.success) {
+    return { success: false, error: '処理ステータスが不正です' }
+  }
+
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('myou_trace_labels')
+    .update({ process_status: statusParsed.data })
+    .eq('id', idParsed.data)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) {
+    console.error('Error updating process_status:', error)
+    return { success: false, error: '処理ステータスの更新に失敗しました。' }
+  }
+
+  revalidatePath(APP_ROUTES.MYOU.EXPIRATION_ALERTS)
+  return { success: true }
+}
+
+/**
  * 施工会社の情報を登録・更新する (保守用)
  */
+/**
+ * 出荷履歴の使用数を更新する（0〜出荷数量）
+ */
+export async function updateDeliveryUsedQuantity(
+  logId: string,
+  usedQuantity: number
+): Promise<{ success: true } | { success: false; error: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return { success: false, error: '認証エラー' }
+
+  const idParsed = z.string().uuid('出荷履歴IDが不正です').safeParse(logId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message ?? '出荷履歴IDが不正です' }
+  }
+  if (!Number.isInteger(usedQuantity) || usedQuantity < 0) {
+    return { success: false, error: '使用数は0以上の整数で指定してください。' }
+  }
+
+  const supabase = await getSupabase()
+  const { data: log, error: fetchError } = await supabase
+    .from('myou_delivery_logs')
+    .select('id, quantity')
+    .eq('id', idParsed.data)
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle()
+
+  if (fetchError || !log) {
+    return { success: false, error: '出荷履歴が見つかりません。' }
+  }
+  if (usedQuantity > log.quantity) {
+    return { success: false, error: `使用数は出荷数量（${log.quantity}）以下にしてください。` }
+  }
+
+  const { error } = await supabase
+    .from('myou_delivery_logs')
+    .update({ used_quantity: usedQuantity })
+    .eq('id', idParsed.data)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) {
+    console.error('Error updating used_quantity:', error)
+    return { success: false, error: '使用数の更新に失敗しました。' }
+  }
+
+  revalidatePath(APP_ROUTES.MYOU.DELIVERY_HISTORY)
+  revalidatePath(APP_ROUTES.MYOU.EXPIRATION_ALERTS)
+  return { success: true }
+}
+
 export async function upsertCompany(formData: {
   id?: string
   name: string

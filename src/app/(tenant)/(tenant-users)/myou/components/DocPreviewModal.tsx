@@ -31,7 +31,8 @@ export default function DocPreviewModal({
           </DialogPrimitive.Description>
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-gray-50 px-4 py-4 sm:px-6 sm:py-5">
-          {kind === 'image' ? (
+          {/* src が空のときは描画しない（空文字 src によるページ再取得エラーを防ぐ） */}
+          {!src ? null : kind === 'image' ? (
             <img src={src} alt={title} className="mx-auto max-h-[70vh] w-full object-contain" />
           ) : (
             <iframe

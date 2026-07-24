@@ -2,6 +2,8 @@ export const APP_ROUTES = {
   PUBLIC: {
     /** 匿名相談のステータス確認（認証不要） */
     CONSULTATION_STATUS: '/p/consultation/status',
+    /** 製品ラベル QR 向け取扱説明書メニュー（購入客・認証不要） */
+    MYOU_PRODUCT_MANUALS: '/p/myou/product-manuals',
   },
   AUTH: {
     LOGIN: '/login',

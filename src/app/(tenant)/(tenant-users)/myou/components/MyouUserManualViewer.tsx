@@ -278,9 +278,7 @@ export default function MyouUserManualViewer({ markdown, toc }: Props) {
               <BookOpen className="h-4 w-4 shrink-0" />
               <span className="truncate">製品トレーサビリティ</span>
             </div>
-            <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">
-              ユーザマニュアル
-            </h1>
+            <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">システム仕様書</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <MyouBackLink />

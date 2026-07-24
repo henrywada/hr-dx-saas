@@ -226,5 +226,7 @@ export const APP_ROUTES = {
     COMPANIES: '/myou/companies',
     /** ユーザマニュアル（操作手順書） */
     MANUAL: '/myou/manual',
+    /** 資料一覧（目次：全体像・簡単操作マニュアル・システム仕様書） */
+    DOC_INDEX: '/myou/doc-index',
   },
 } as const

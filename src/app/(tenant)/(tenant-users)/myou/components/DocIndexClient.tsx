@@ -9,6 +9,7 @@ import DocPreviewModal, { type DocPreviewKind } from './DocPreviewModal'
 
 const OVERVIEW_IMG = '/myou/manual/img/製品トレーサビリティ管理の全体像.png'
 const QUICK_PDF = '/myou/manual/pdf/簡単操作マニュアル.pdf'
+const QUICK_START_PLAYBOOK_PDF = '/myou/manual/pdf/クイックスタート・プレイブック.pdf'
 
 type PreviewState = {
   title: string
@@ -51,6 +52,19 @@ const TOC_ITEMS: TocItem[] = [
       type: 'preview',
       title: '簡単操作マニュアル',
       src: QUICK_PDF,
+      kind: 'pdf',
+      label: '開く',
+    },
+  },
+  {
+    id: 'quick-start-playbook',
+    title: 'クイックスタート・プレイブック',
+    description: '導入時の手順を PDF で確認できます',
+    icon: 'pdf',
+    action: {
+      type: 'preview',
+      title: 'クイックスタート・プレイブック',
+      src: QUICK_START_PLAYBOOK_PDF,
       kind: 'pdf',
       label: '開く',
     },

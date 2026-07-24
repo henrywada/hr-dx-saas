@@ -5,8 +5,14 @@ import PerformancePatch from '@/components/PerformancePatch'
 
 export const metadata: Metadata = {
   icons: {
-    icon: [{ url: '/icon.png', type: 'image/png', sizes: '192x192' }],
-    apple: [{ url: '/icon.png', sizes: '180x180', type: 'image/png' }],
+    // PC / Android ブラウザ用（src/app/favicon.ico と同じ白い H ロゴ）
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    // iPhone / iPad のホーム画面・Safari 用（同じロゴの 180x180）
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 }
 

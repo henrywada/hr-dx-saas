@@ -15,9 +15,9 @@ export default async function SubMenuPage({
 
   if (!categoryId) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-slate-500">
+      <div className="flex h-[50vh] flex-col items-center justify-center text-gray-500">
         <p>カテゴリーが選択されていません。</p>
-        <p className="text-sm mt-2">サイドメニューから項目を選択してください。</p>
+        <p className="mt-2 text-sm">サイドメニューから項目を選択してください。</p>
       </div>
     )
   }
@@ -105,23 +105,18 @@ async function AdminSubMenuCategoryContent({ categoryId }: { categoryId: string 
   ]
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 slide-in-from-bottom-4 px-4 sm:px-6 py-6 mx-auto max-w-300">
-      <div className="relative pl-5">
-        <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-linear-to-b from-blue-500 to-blue-600 rounded-full" />
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          {category?.name || '未設定のカテゴリ'}
-        </h1>
-        <p className="text-sm text-slate-500 mt-1 font-medium pl-0.5">
-          関連する業務アプリケーション一覧
-        </p>
+    <div className="mx-auto w-full max-w-[1200px]">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-blue-700">{category?.name || '未設定のカテゴリ'}</h1>
+        <p className="mt-1 text-sm text-gray-500">関連する業務アプリケーション一覧</p>
       </div>
 
       {!services || services.length === 0 ? (
-        <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-          <p className="text-slate-500">利用可能なサービスがありません。</p>
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+          <p className="text-gray-500">利用可能なサービスがありません。</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {services.map((service, index) => {
             const variant = CARD_VARIANTS[index % CARD_VARIANTS.length]
             let targetPath = service.route_path || '#'

@@ -59,7 +59,7 @@ export default function ReceivingForm() {
         <p className="mt-1">※カメラの使用許可が必要です</p>
       </div>
 
-      <div className="text-left">
+      <div className="flex flex-wrap items-center gap-2 text-left">
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -67,6 +67,9 @@ export default function ReceivingForm() {
         >
           入荷処理へ進む
         </button>
+        <span className="text-xs text-gray-500">
+          ← QRコードをスキャン出来ない場合は直接進んで下さい。
+        </span>
       </div>
 
       {isModalOpen && (

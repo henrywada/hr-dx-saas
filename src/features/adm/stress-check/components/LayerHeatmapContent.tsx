@@ -33,6 +33,14 @@ function isAggregatable(g: GroupData) {
   return !g.is_suppressed && g.health_risk != null
 }
 
+function healthRiskTextColor(g: GroupData): string {
+  if (g.is_suppressed || g.health_risk == null) return 'text-[#57606a]'
+  if (g.health_risk >= 120) return 'text-rose-600'
+  if (g.health_risk >= 110) return 'text-orange-500'
+  if (g.health_risk >= 100) return 'text-amber-600'
+  return 'text-emerald-600'
+}
+
 export default function LayerHeatmapContent({
   groups,
   trendData,
@@ -207,102 +215,92 @@ export default function LayerHeatmapContent({
           />
         </div>
 
-        {/* ─── マトリクスヒートマップ + 詳細パネル ─── */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          {/* ヒートマップ（広い列） */}
-          <div className="xl:col-span-9 min-w-0">
-            <Card className="p-4 sm:p-5">
-              <h2 className="text-lg font-bold text-[#24292f] mb-1">組織健康度ヒートマップ</h2>
-              <p className="text-xs text-[#57606a] mb-3">
-                行をクリックして右パネルに詳細を表示｜列ヘッダーでソート
-              </p>
-              <OrgHealthMatrixHeatmap
-                groups={groups}
-                onSelect={setSelectedGroup}
-                selectedDivisionId={selectedGroup?.division_id}
-              />
-            </Card>
-          </div>
+        {/* ─── マトリクスヒートマップ ─── */}
+        <Card className="p-4 sm:p-5">
+          <h2 className="text-lg font-bold text-[#24292f] mb-1">組織健康度ヒートマップ</h2>
+          <p className="text-xs text-[#57606a] mb-3">
+            行をクリックすると下の比較チャートで該当{groupUnitLabel}
+            をハイライトします｜列ヘッダーでソート
+          </p>
+          <OrgHealthMatrixHeatmap
+            groups={groups}
+            onSelect={setSelectedGroup}
+            selectedDivisionId={selectedGroup?.division_id}
+          />
+        </Card>
 
-          {/* 詳細パネル */}
-          <div className="xl:col-span-3 min-w-0">
-            {selectedGroup ? (
-              <Card className="p-6 h-full">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-bold text-[#24292f] leading-tight text-base">
-                    {selectedGroup.name}
-                  </h3>
-                  {!selectedGroup.is_suppressed &&
-                    selectedGroup.health_risk != null &&
-                    selectedGroup.health_risk >= 120 && (
+        {/* ─── 全チャート比較 ─── */}
+        <Card className="p-4 sm:p-5">
+          <h2 className="text-lg font-bold text-[#24292f] mb-1">全{groupUnitLabel}チャート比較</h2>
+          <p className="text-xs text-[#57606a] mb-3">
+            {groupUnitLabel}ごとの職場環境尺度を並べて比較できます
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+            {groups.map(g => {
+              const isSelected = g.division_id === selectedGroup?.division_id
+              const riskDiffValue =
+                !g.is_suppressed && g.previous_health_risk != null && g.health_risk != null
+                  ? g.health_risk - g.previous_health_risk
+                  : null
+
+              return (
+                <div
+                  key={g.division_id}
+                  onClick={() => setSelectedGroup(g)}
+                  className={`rounded-lg border bg-white shadow-xs p-5 cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-indigo-400 ring-2 ring-indigo-400'
+                      : 'border-[#e2e6ec] hover:border-indigo-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-[#24292f] leading-tight text-sm">{g.name}</h3>
+                    {!g.is_suppressed && g.health_risk != null && g.health_risk >= 120 && (
                       <Badge variant="orange" className="shrink-0">
                         高リスク
                       </Badge>
                     )}
-                </div>
-                <p className="text-xs text-[#57606a] mb-4">対象 {selectedGroup.member_count} 名</p>
-
-                <GroupRadarChart data={selectedGroup} />
-
-                {/* 健康リスク大表示 */}
-                <div className="mt-4 text-center py-4 rounded-xl bg-[#f6f8fa]">
-                  <div
-                    className={`text-5xl font-bold tabular-nums ${
-                      selectedGroup.is_suppressed || selectedGroup.health_risk == null
-                        ? 'text-[#57606a]'
-                        : selectedGroup.health_risk >= 120
-                          ? 'text-rose-600'
-                          : selectedGroup.health_risk >= 110
-                            ? 'text-orange-500'
-                            : selectedGroup.health_risk >= 100
-                              ? 'text-amber-600'
-                              : 'text-emerald-600'
-                    }`}
-                  >
-                    {selectedGroup.is_suppressed || selectedGroup.health_risk == null
-                      ? '—'
-                      : selectedGroup.health_risk}
                   </div>
-                  <p className="text-xs text-[#57606a] mt-1">健康リスク（全国平均＝100）</p>
-                  {!selectedGroup.is_suppressed && selectedGroup.high_stress_rate != null && (
-                    <p className="text-xs text-[#57606a] mt-0.5">
-                      高ストレス率 {selectedGroup.high_stress_rate}%
-                    </p>
-                  )}
-                </div>
+                  <p className="text-xs text-[#57606a] mb-3">対象 {g.member_count} 名</p>
 
-                {/* 前回比 */}
-                {!selectedGroup.is_suppressed &&
-                  selectedGroup.previous_health_risk != null &&
-                  selectedGroup.health_risk != null && (
-                    <div className="mt-3 text-center text-xs text-[#57606a]">
-                      前回: <span className="font-bold">{selectedGroup.previous_health_risk}</span>
+                  <GroupRadarChart data={g} />
+
+                  <div className="mt-3 text-center py-3 rounded-xl bg-[#f6f8fa]">
+                    <div className={`text-3xl font-bold tabular-nums ${healthRiskTextColor(g)}`}>
+                      {g.is_suppressed || g.health_risk == null ? '—' : g.health_risk}
+                    </div>
+                    <p className="text-xs text-[#57606a] mt-1">健康リスク（全国平均＝100）</p>
+                    {!g.is_suppressed && g.high_stress_rate != null && (
+                      <p className="text-xs text-[#57606a] mt-0.5">
+                        高ストレス率 {g.high_stress_rate}%
+                      </p>
+                    )}
+                  </div>
+
+                  {riskDiffValue != null && (
+                    <div className="mt-2 text-center text-xs text-[#57606a]">
+                      前回: <span className="font-bold">{g.previous_health_risk}</span>
                       <span
                         className={`ml-2 font-bold ${
-                          selectedGroup.health_risk - selectedGroup.previous_health_risk > 0
-                            ? 'text-rose-600'
-                            : 'text-emerald-600'
+                          riskDiffValue > 0 ? 'text-rose-600' : 'text-emerald-600'
                         }`}
                       >
-                        {selectedGroup.health_risk - selectedGroup.previous_health_risk > 0
-                          ? '↑'
-                          : '↓'}
-                        {Math.abs(
-                          selectedGroup.health_risk - selectedGroup.previous_health_risk
-                        ).toFixed(1)}
+                        {riskDiffValue > 0 ? '↑' : '↓'}
+                        {Math.abs(riskDiffValue).toFixed(1)}
                       </span>
                     </div>
                   )}
-              </Card>
-            ) : (
-              <Card className="p-6 h-full flex items-center justify-center text-[#57606a] text-sm text-center">
-                左の表の行をクリックして
-                <br />
-                詳細を確認できます
-              </Card>
-            )}
+                </div>
+              )
+            })}
           </div>
-        </div>
+
+          {groups.length === 0 && (
+            <div className="py-12 text-center text-[#57606a] text-sm">
+              表示できるデータがありません
+            </div>
+          )}
+        </Card>
 
         {/* ─── 健康リスク推移グラフ ─── */}
         <Card className="p-6">

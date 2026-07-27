@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { STATIC_SECURITY_HEADERS } from './src/lib/security/static-headers'
 
 const vercelOrigin =
   process.env.VERCEL_URL != null && process.env.VERCEL_URL.length > 0
@@ -28,6 +29,18 @@ const nextConfig: NextConfig = {
   // ソースを実行時に読むため、サーバーレス関数バンドルに全 page.tsx を明示的に含める
   outputFileTracingIncludes: {
     '/saas_adm/system-master/**': ['./src/app/**/page.tsx'],
+  },
+  // 静的セキュリティヘッダーを全ルート（_next/static 等の静的アセットを含む）へ適用する。
+  // CSP は Supabase の URL 等をリクエスト時に解決するため src/middleware.ts 側で付与する
+  // （middleware が短絡するリダイレクト・401 応答にはこの headers() が効かないため、
+  //   middleware 側でも同じ静的ヘッダーを set している）。
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [...STATIC_SECURITY_HEADERS],
+      },
+    ]
   },
   async redirects() {
     return [

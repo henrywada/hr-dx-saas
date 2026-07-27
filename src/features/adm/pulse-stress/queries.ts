@@ -1,93 +1,153 @@
-import { createClient } from '@/lib/supabase/server';
-import { getActivePeriod } from '@/features/stress-check/queries';
+import { createClient } from '@/lib/supabase/server'
+import { getActivePeriod } from '@/features/stress-check/queries'
 
 export interface PulseStressEmployeeData {
-  employeeId: string;
-  userId: string;
-  name: string;
-  divisionName: string;
-  stressCheckScores: any;
-  bossSupportEvalList: number; 
-  healthRisk: number; 
-  isHighStress: boolean;
-  pulseScores: Record<string, number>; // period -> avg score
-  pulseTrendDown: boolean; 
-  warningLevel: 'high' | 'medium' | 'low';
+  employeeId: string
+  userId: string
+  name: string
+  divisionName: string
+  stressCheckScores: any
+  bossSupportEvalList: number
+  healthRisk: number
+  isHighStress: boolean
+  pulseScores: Record<string, number> // period -> avg score
+  pulseTrendDown: boolean
+  warningLevel: 'high' | 'medium' | 'low'
 }
 
 export interface PulseStressDepartmentData {
-  divisionName: string;
-  healthRisk: number; // 総合健康リスク
-  avgPulseScore: number; // 最新または数ヶ月平均のパルススコア
+  divisionName: string
+  healthRisk: number // 総合健康リスク
+  avgPulseScore: number // 最新または数ヶ月平均のパルススコア
 }
 
 export interface PulseStressChartData {
-  period: string;
-  pulseAvg: number;
-  stressRiskArea: number; // 面で表示する総合健康リスク（基本はフラットか段階）
+  period: string
+  pulseAvg: number
+  stressRiskArea: number // 面で表示する総合健康リスク（基本はフラットか段階）
 }
 
 /** C-S1: コンディション記録の日次推移（テナント全体匿名集計） */
 export interface ConditionDailyTrendPoint {
-  checkin_date: string;
-  avg_score: number | null;
-  respondent_count: number;
+  checkin_date: string
+  avg_score: number | null
+  respondent_count: number
 }
 
 /** C-S1: 部署別コンディション平均 */
 export interface DivisionConditionSummary {
-  division_id: string;
-  division_name: string;
-  avg_score: number | null;
-  respondent_count: number;
+  division_id: string
+  division_name: string
+  avg_score: number | null
+  respondent_count: number
 }
 
 /** C-S1: コンディション × ストレス クロス分析用の部署データ */
 export interface ConditionStressDepartmentData {
-  divisionName: string;
-  healthRisk: number;
-  avgConditionScore: number | null;
-  avgPulseScore: number;
+  divisionName: string
+  healthRisk: number
+  avgConditionScore: number | null
+  avgPulseScore: number
 }
 
 /** C-S1: 低コンディション × 高ストレス の要注意従業員 */
 export interface ConditionStressAlertEmployee {
-  employeeId: string;
-  name: string;
-  divisionName: string;
-  avgConditionScore: number;
-  conditionTrendDown: boolean;
-  isHighStress: boolean;
-  healthRisk: number;
-  warningLevel: 'high' | 'medium';
+  employeeId: string
+  name: string
+  divisionName: string
+  avgConditionScore: number
+  conditionTrendDown: boolean
+  isHighStress: boolean
+  healthRisk: number
+  warningLevel: 'high' | 'medium'
 }
 
-const CONDITION_CROSS_DAYS = 30;
+/** 産業医向け：従業員個人のパルスサーベイ期間別スコア推移（0-5スケール） */
+export interface EmployeePulseHistoryPoint {
+  period: string // 'YYYY-MM'
+  score: number // 0-5スケール
+}
+
+const CONDITION_CROSS_DAYS = 30
+
+/**
+ * 指定従業員個人のパルスサーベイ回答を期間（survey_period）別に平均集計して返す
+ * pulse_survey_responses は employee_id ではなく user_id で紐づくため employees.user_id を経由する
+ */
+export async function getPulseSurveyHistoryByEmployeeId(
+  employeeId: string,
+  periodsLimit = 12
+): Promise<EmployeePulseHistoryPoint[]> {
+  const supabase = await createClient()
+
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('user_id')
+    .eq('id', employeeId)
+    .maybeSingle()
+
+  if (employeeError || !employee?.user_id) {
+    if (employeeError)
+      console.error('getPulseSurveyHistoryByEmployeeId error:', employeeError.message)
+    return []
+  }
+
+  const { data: responses, error: responsesError } = await supabase
+    .from('pulse_survey_responses')
+    .select('survey_period, score')
+    .eq('user_id', employee.user_id)
+    .not('score', 'is', null)
+    .order('survey_period', { ascending: false })
+
+  if (responsesError) {
+    console.error('getPulseSurveyHistoryByEmployeeId error:', responsesError.message)
+    return []
+  }
+
+  const sumByPeriod = new Map<string, { sum: number; count: number }>()
+  for (const row of responses ?? []) {
+    if (row.score == null) continue
+    const entry = sumByPeriod.get(row.survey_period) ?? { sum: 0, count: 0 }
+    entry.sum += row.score
+    entry.count += 1
+    sumByPeriod.set(row.survey_period, entry)
+  }
+
+  return [...sumByPeriod.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-periodsLimit)
+    .map(([period, { sum, count }]) => ({
+      period,
+      score: Math.round((sum / count / 2) * 10) / 10,
+    }))
+}
 
 export async function getCrossAnalysisData(tenantId: string) {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   // 1. ストレスチェック（最新期間）のデータ取得
-  const period = await getActivePeriod();
-  let scResults: any[] = [];
-  let divResults: any[] = [];
+  const period = await getActivePeriod()
+  let scResults: any[] = []
+  let divResults: any[] = []
 
   if (period) {
     const { data: results } = await supabase
       .from('stress_check_results')
-      .select(`
+      .select(
+        `
         id, is_high_stress, score_a, score_b, score_c, score_d, scale_scores,
         employee_id,
         employees ( id, user_id, name, divisions ( name ) )
-      `)
-      .eq('period_id', period.id);
-    scResults = results || [];
+      `
+      )
+      .eq('period_id', period.id)
+    scResults = results || []
 
     const { data: groups } = await supabase
       .from('stress_check_group_analysis')
       .select('*')
-      .eq('period_id', period.id);
-    divResults = groups || [];
+      .eq('period_id', period.id)
+    divResults = groups || []
   }
 
   // 2. パルスサーベイ（Echo）のデータ取得（直近1年分など）
@@ -96,74 +156,74 @@ export async function getCrossAnalysisData(tenantId: string) {
     .from('pulse_survey_responses')
     .select('user_id, survey_period, score, created_at')
     .eq('tenant_id', tenantId)
-    .order('survey_period', { ascending: true });
+    .order('survey_period', { ascending: true })
 
-  const pulseData = pulses || [];
+  const pulseData = pulses || []
 
   // user毎、period毎の平均スコアを計算
-  const userPulseMap: Record<string, Record<string, { sum: number, count: number }>> = {};
-  const allPeriodsSet = new Set<string>();
+  const userPulseMap: Record<string, Record<string, { sum: number; count: number }>> = {}
+  const allPeriodsSet = new Set<string>()
 
   for (const p of pulseData) {
-    if (!p.user_id) continue;
-    if (!userPulseMap[p.user_id]) userPulseMap[p.user_id] = {};
+    if (!p.user_id) continue
+    if (!userPulseMap[p.user_id]) userPulseMap[p.user_id] = {}
     if (!userPulseMap[p.user_id][p.survey_period]) {
-      userPulseMap[p.user_id][p.survey_period] = { sum: 0, count: 0 };
+      userPulseMap[p.user_id][p.survey_period] = { sum: 0, count: 0 }
     }
-    userPulseMap[p.user_id][p.survey_period].sum += p.score || 0;
-    userPulseMap[p.user_id][p.survey_period].count += 1;
-    allPeriodsSet.add(p.survey_period);
+    userPulseMap[p.user_id][p.survey_period].sum += p.score || 0
+    userPulseMap[p.user_id][p.survey_period].count += 1
+    allPeriodsSet.add(p.survey_period)
   }
 
-  const sortedPeriods = Array.from(allPeriodsSet).sort();
+  const sortedPeriods = Array.from(allPeriodsSet).sort()
 
   // 3. 従業員データのマージとリスク判定
-  const employees: PulseStressEmployeeData[] = [];
-  
-  for (const r of scResults) {
-    const emp = Array.isArray(r.employees) ? r.employees[0] : r.employees;
-    if (!emp || !emp.user_id) continue;
+  const employees: PulseStressEmployeeData[] = []
 
-    const div = Array.isArray(emp.divisions) ? emp.divisions[0] : emp.divisions;
-    
+  for (const r of scResults) {
+    const emp = Array.isArray(r.employees) ? r.employees[0] : r.employees
+    if (!emp || !emp.user_id) continue
+
+    const div = Array.isArray(emp.divisions) ? emp.divisions[0] : emp.divisions
+
     // パルスサーベイスコア
-    const userPulses = userPulseMap[emp.user_id] || {};
-    const pulseScoreMap: Record<string, number> = {};
+    const userPulses = userPulseMap[emp.user_id] || {}
+    const pulseScoreMap: Record<string, number> = {}
     for (const p of sortedPeriods) {
       if (userPulses[p]) {
-        pulseScoreMap[p] = Number((userPulses[p].sum / userPulses[p].count).toFixed(1));
+        pulseScoreMap[p] = Number((userPulses[p].sum / userPulses[p].count).toFixed(1))
       }
     }
 
     // 離職リスク条件B: 直近3つの期間で連続下降しているか
-    let pulseTrendDown = false;
-    const availablePeriods = sortedPeriods.filter(p => pulseScoreMap[p] !== undefined);
+    let pulseTrendDown = false
+    const availablePeriods = sortedPeriods.filter(p => pulseScoreMap[p] !== undefined)
     if (availablePeriods.length >= 3) {
-      const last3 = availablePeriods.slice(-3);
-      const s1 = pulseScoreMap[last3[0]];
-      const s2 = pulseScoreMap[last3[1]];
-      const s3 = pulseScoreMap[last3[2]];
+      const last3 = availablePeriods.slice(-3)
+      const s1 = pulseScoreMap[last3[0]]
+      const s2 = pulseScoreMap[last3[1]]
+      const s3 = pulseScoreMap[last3[2]]
       if (s3 < s2 && s2 < s1) {
-        pulseTrendDown = true;
+        pulseTrendDown = true
       }
     }
 
     // ストレスチェック条件A: 「上司からのサポート」または C領域が低い
     // C領域の合計(score_c)が高い（ストレス判定では低い点数=高ストレス）か、scale_scoresを分解
-    let bossSupport = 3; 
-    let calcRisk = 100;
+    let bossSupport = 3
+    let calcRisk = 100
     if (Array.isArray(r.scale_scores)) {
-      const boss = r.scale_scores.find((s: any) => s.scaleName === '上司からのサポート');
-      if (boss) bossSupport = boss.evalPoint;
+      const boss = r.scale_scores.find((s: any) => s.scaleName === '上司からのサポート')
+      if (boss) bossSupport = boss.evalPoint
     }
     // 擬似的な健康リスク値（個別）
-    calcRisk = 100 + ((r.score_b || 0) - 60) * 0.5;
+    calcRisk = 100 + ((r.score_b || 0) - 60) * 0.5
 
-    let warningLevel: 'high' | 'medium' | 'low' = 'low';
+    let warningLevel: 'high' | 'medium' | 'low' = 'low'
     if (bossSupport <= 2 && pulseTrendDown) {
-      warningLevel = 'high';
+      warningLevel = 'high'
     } else if (pulseTrendDown || r.is_high_stress) {
-      warningLevel = 'medium';
+      warningLevel = 'medium'
     }
 
     employees.push({
@@ -177,43 +237,44 @@ export async function getCrossAnalysisData(tenantId: string) {
       isHighStress: r.is_high_stress,
       pulseScores: pulseScoreMap,
       pulseTrendDown,
-      warningLevel
-    });
+      warningLevel,
+    })
   }
 
   // 4. 部署ごとの散布図用データ
-  const departments: PulseStressDepartmentData[] = [];
+  const departments: PulseStressDepartmentData[] = []
   // divResults と pulse の全体平均をマージ
-  const deptPulseMap: Record<string, { sum: number, count: number }> = {};
-  
+  const deptPulseMap: Record<string, { sum: number; count: number }> = {}
+
   for (const emp of employees) {
-    const recentPeriods = sortedPeriods.slice(-3);
-    let avg = 0; let c = 0;
+    const recentPeriods = sortedPeriods.slice(-3)
+    let avg = 0
+    let c = 0
     for (const p of recentPeriods) {
       if (emp.pulseScores[p]) {
-        avg += emp.pulseScores[p];
-        c++;
+        avg += emp.pulseScores[p]
+        c++
       }
     }
     if (c > 0) {
-      if (!deptPulseMap[emp.divisionName]) deptPulseMap[emp.divisionName] = { sum: 0, count: 0 };
-      deptPulseMap[emp.divisionName].sum += (avg / c);
-      deptPulseMap[emp.divisionName].count += 1;
+      if (!deptPulseMap[emp.divisionName]) deptPulseMap[emp.divisionName] = { sum: 0, count: 0 }
+      deptPulseMap[emp.divisionName].sum += avg / c
+      deptPulseMap[emp.divisionName].count += 1
     }
   }
 
   for (const dr of divResults) {
-    const dName = dr.group_name || '不明';
-    const hr = dr.total_health_risk || 100;
-    let avgPulse = 3.0;
+    const dName = dr.group_name || '不明'
+    const hr = dr.total_health_risk || 100
+    let avgPulse = 3.0
     if (deptPulseMap[dName]) {
-      avgPulse = Number((deptPulseMap[dName].sum / deptPulseMap[dName].count).toFixed(2));
+      avgPulse = Number((deptPulseMap[dName].sum / deptPulseMap[dName].count).toFixed(2))
     }
     departments.push({
       divisionName: dName,
       healthRisk: hr,
-      avgPulseScore: avgPulse
-    });
+      avgPulseScore: avgPulse,
+    })
   }
 
   // もしdivResultsが取れなかった場合のフォールバック
@@ -222,28 +283,35 @@ export async function getCrossAnalysisData(tenantId: string) {
       departments.push({
         divisionName: dName,
         healthRisk: 100, // 不明な場合は100
-        avgPulseScore: Number((pdata.sum / pdata.count).toFixed(2))
-      });
+        avgPulseScore: Number((pdata.sum / pdata.count).toFixed(2)),
+      })
     }
   }
 
   // 5. トレンドチャート用（全体平均）
-  const chartData: PulseStressChartData[] = [];
+  const chartData: PulseStressChartData[] = []
   for (const p of sortedPeriods) {
-    let sum = 0; let c = 0;
+    let sum = 0
+    let c = 0
     for (const emp of employees) {
       if (emp.pulseScores[p]) {
-        sum += emp.pulseScores[p];
-        c++;
+        sum += emp.pulseScores[p]
+        c++
       }
     }
-    const val = c > 0 ? Number((sum / c).toFixed(2)) : 0;
+    const val = c > 0 ? Number((sum / c).toFixed(2)) : 0
     // 総合健康リスクは年1回だが、便宜上全体平均をフラットに繋ぐ
     chartData.push({
       period: p,
       pulseAvg: val,
-      stressRiskArea: divResults.length > 0 ? Number(divResults.reduce((acc, curr) => acc + (curr.total_health_risk || 100), 0) / divResults.length) : 100
-    });
+      stressRiskArea:
+        divResults.length > 0
+          ? Number(
+              divResults.reduce((acc, curr) => acc + (curr.total_health_risk || 100), 0) /
+                divResults.length
+            )
+          : 100,
+    })
   }
 
   // 6. C-S1: コンディション記録とのクロス分析データ
@@ -255,7 +323,7 @@ export async function getCrossAnalysisData(tenantId: string) {
     supabase.rpc('get_tenant_condition_daily_trend', { p_days: CONDITION_CROSS_DAYS }),
     supabase.rpc('get_division_condition_summary', { p_days: CONDITION_CROSS_DAYS }),
     supabase.rpc('get_employee_condition_averages', { p_days: CONDITION_CROSS_DAYS }),
-  ]);
+  ])
 
   const conditionDailyTrend: ConditionDailyTrendPoint[] = (conditionDailyRows ?? []).map(
     (row: { checkin_date: string; avg_score: number | null; respondent_count: number }) => ({
@@ -263,67 +331,67 @@ export async function getCrossAnalysisData(tenantId: string) {
       avg_score: row.avg_score,
       respondent_count: Number(row.respondent_count),
     })
-  );
+  )
 
-  const divisionConditionMap = new Map<string, DivisionConditionSummary>();
+  const divisionConditionMap = new Map<string, DivisionConditionSummary>()
   for (const row of divisionConditionRows ?? []) {
     divisionConditionMap.set(row.division_name, {
       division_id: row.division_id,
       division_name: row.division_name,
       avg_score: row.avg_score,
       respondent_count: Number(row.respondent_count),
-    });
+    })
   }
 
   const employeeConditionMap = new Map<
     string,
     { avg_score: number; record_count: number; recent_trend_down: boolean }
-  >();
+  >()
   for (const row of employeeConditionRows ?? []) {
     employeeConditionMap.set(row.employee_id, {
       avg_score: Number(row.avg_score),
       record_count: Number(row.record_count),
       recent_trend_down: Boolean(row.recent_trend_down),
-    });
+    })
   }
 
-  const conditionStressDepartments: ConditionStressDepartmentData[] = [];
-  const mergedDivisionNames = new Set<string>();
+  const conditionStressDepartments: ConditionStressDepartmentData[] = []
+  const mergedDivisionNames = new Set<string>()
   for (const dr of divResults) {
-    const dName = dr.group_name || '不明';
-    mergedDivisionNames.add(dName);
-    const cond = divisionConditionMap.get(dName);
-    let avgPulse = 3.0;
+    const dName = dr.group_name || '不明'
+    mergedDivisionNames.add(dName)
+    const cond = divisionConditionMap.get(dName)
+    let avgPulse = 3.0
     if (deptPulseMap[dName]) {
-      avgPulse = Number((deptPulseMap[dName].sum / deptPulseMap[dName].count).toFixed(2));
+      avgPulse = Number((deptPulseMap[dName].sum / deptPulseMap[dName].count).toFixed(2))
     }
     conditionStressDepartments.push({
       divisionName: dName,
       healthRisk: dr.total_health_risk || 100,
       avgConditionScore: cond?.avg_score ?? null,
       avgPulseScore: avgPulse,
-    });
+    })
   }
   for (const [dName, cond] of divisionConditionMap) {
-    if (mergedDivisionNames.has(dName)) continue;
+    if (mergedDivisionNames.has(dName)) continue
     conditionStressDepartments.push({
       divisionName: dName,
       healthRisk: 100,
       avgConditionScore: cond.avg_score,
       avgPulseScore: 0,
-    });
+    })
   }
 
-  const conditionStressAlerts: ConditionStressAlertEmployee[] = [];
+  const conditionStressAlerts: ConditionStressAlertEmployee[] = []
   for (const emp of employees) {
-    const cond = employeeConditionMap.get(emp.employeeId);
-    if (!cond) continue;
+    const cond = employeeConditionMap.get(emp.employeeId)
+    if (!cond) continue
 
-    const isLowCondition = cond.avg_score <= 2.5;
-    const isHighRiskCombo = isLowCondition && (emp.isHighStress || cond.recent_trend_down);
-    const isMediumRisk = isLowCondition || (cond.recent_trend_down && emp.isHighStress);
+    const isLowCondition = cond.avg_score <= 2.5
+    const isHighRiskCombo = isLowCondition && (emp.isHighStress || cond.recent_trend_down)
+    const isMediumRisk = isLowCondition || (cond.recent_trend_down && emp.isHighStress)
 
-    if (!isHighRiskCombo && !isMediumRisk) continue;
+    if (!isHighRiskCombo && !isMediumRisk) continue
 
     conditionStressAlerts.push({
       employeeId: emp.employeeId,
@@ -334,7 +402,7 @@ export async function getCrossAnalysisData(tenantId: string) {
       isHighStress: emp.isHighStress,
       healthRisk: emp.healthRisk,
       warningLevel: isHighRiskCombo ? 'high' : 'medium',
-    });
+    })
   }
 
   return {
@@ -347,5 +415,5 @@ export async function getCrossAnalysisData(tenantId: string) {
     conditionStressAlerts: conditionStressAlerts.sort((a, b) =>
       a.warningLevel === 'high' ? -1 : b.warningLevel === 'high' ? 1 : 0
     ),
-  };
+  }
 }

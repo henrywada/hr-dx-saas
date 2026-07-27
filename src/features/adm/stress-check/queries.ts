@@ -383,7 +383,7 @@ export async function getGroupAnalysisCompanyWide(tenantId: string): Promise<Gro
     prevTm > 0
       ? round1(
           prevValid.reduce((s, d) => s + (d.previous_health_risk as number) * d.member_count, 0) /
-            prevTm,
+            prevTm
         )
       : null
 
@@ -535,6 +535,7 @@ export async function getActiveStressCheckPeriod(tenantId: string) {
  * 実施期間の対象者IDを解決する（進捗・未受検・リマインド共通）
  *
  * 定義（対象者管理モーダル / 受検可否判定と一致）:
+ * 0. 産業医（app_role = 'company_doctor'）は対象者外
  * 1. program_targets.is_eligible = false は除外
  * 2. stress_check_period_divisions がある → その部署（子孫含む）の従業員
  * 3. 対象部署がなく division_establishment_id のみ → 当該拠点の従業員
@@ -548,9 +549,12 @@ async function resolvePeriodTargetEmployeeIds(
   tenantId: string,
   periodId: string
 ): Promise<Set<string>> {
-  const [{ data: allEmployees }, { data: targets }, { data: periodDivs }, { data: period }] =
+  const [{ data: rawEmployees }, { data: targets }, { data: periodDivs }, { data: period }] =
     await Promise.all([
-      supabase.from('employees').select('id, division_id').eq('tenant_id', tenantId),
+      supabase
+        .from('employees')
+        .select('id, division_id, app_role:app_role_id (app_role)')
+        .eq('tenant_id', tenantId),
       supabase
         .from('program_targets')
         .select('employee_id, is_eligible')
@@ -574,7 +578,19 @@ async function resolvePeriodTargetEmployeeIds(
       .map((t: { employee_id: string }) => t.employee_id)
   )
 
-  const employees = (allEmployees ?? []) as { id: string; division_id: string | null }[]
+  // 産業医（app_role = 'company_doctor'）はストレスチェックの対象者外として除外する
+  const employees = (
+    (rawEmployees ?? []) as {
+      id: string
+      division_id: string | null
+      app_role: { app_role: string } | { app_role: string }[] | null
+    }[]
+  )
+    .filter(e => {
+      const role = Array.isArray(e.app_role) ? e.app_role[0]?.app_role : e.app_role?.app_role
+      return role !== 'company_doctor'
+    })
+    .map(e => ({ id: e.id, division_id: e.division_id }))
   const selectedDivisionIds: string[] = (periodDivs ?? []).map(
     (r: { division_id: string }) => r.division_id
   )

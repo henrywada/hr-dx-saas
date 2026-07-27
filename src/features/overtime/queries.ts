@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import {
-  formatTimeInJSTFromIso,
-  getJSTYearMonth,
-  lastDayOfMonthYmd,
-} from '@/lib/datetime'
+import { formatTimeInJSTFromIso, getJSTYearMonth, lastDayOfMonthYmd } from '@/lib/datetime'
 import type { OvertimeMonthRow } from './types'
 import { formatWorkTimeRecordSourceLabel } from './work-time-source-label'
 
@@ -63,7 +59,7 @@ type OtRow = Pick<
 export async function getOvertimeApplicationMonthRows(
   supabase: SupabaseClient<Database>,
   employeeId: string,
-  yearMonth: string,
+  yearMonth: string
 ): Promise<OvertimeMonthRow[]> {
   const firstDay = `${yearMonth}-01`
   const lastDay = lastDayOfMonthYmd(yearMonth)
@@ -79,7 +75,7 @@ export async function getOvertimeApplicationMonthRows(
     supabase
       .from('overtime_applications')
       .select(
-        'work_date, overtime_start, overtime_end, requested_hours, reason, status, created_at, supervisor_comment',
+        'work_date, overtime_start, overtime_end, requested_hours, reason, status, created_at, supervisor_comment'
       )
       .eq('employee_id', employeeId)
       .gte('work_date', firstDay)
@@ -107,12 +103,8 @@ export async function getOvertimeApplicationMonthRows(
     const wtr = wtrByDate.get(workDate)
     const ot = otByDate.get(workDate)
 
-    const clockInDisplay = wtr?.start_time
-      ? formatTimeInJSTFromIso(wtr.start_time) ?? null
-      : null
-    const clockOutDisplay = wtr?.end_time
-      ? formatTimeInJSTFromIso(wtr.end_time) ?? null
-      : null
+    const clockInDisplay = wtr?.start_time ? (formatTimeInJSTFromIso(wtr.start_time) ?? null) : null
+    const clockOutDisplay = wtr?.end_time ? (formatTimeInJSTFromIso(wtr.end_time) ?? null) : null
 
     let overtimeStartDisplay: string | null = null
     let overtimeEndDisplay: string | null = null
@@ -122,10 +114,10 @@ export async function getOvertimeApplicationMonthRows(
 
     if (ot) {
       overtimeStartDisplay = ot.overtime_start
-        ? formatTimeInJSTFromIso(ot.overtime_start) ?? null
+        ? (formatTimeInJSTFromIso(ot.overtime_start) ?? null)
         : null
       overtimeEndDisplay = ot.overtime_end
-        ? formatTimeInJSTFromIso(ot.overtime_end) ?? null
+        ? (formatTimeInJSTFromIso(ot.overtime_end) ?? null)
         : null
       overtimeHoursDisplay =
         ot.requested_hours != null ? `${Number(ot.requested_hours).toFixed(2)} 時間` : null
@@ -150,12 +142,45 @@ export async function getOvertimeApplicationMonthRows(
       overtimeStartIso: ot?.overtime_start ?? null,
       overtimeEndIso: ot?.overtime_end ?? null,
       reasonRaw: ot?.reason ?? null,
-      supervisorCommentRaw: ot?.supervisor_comment?.trim()
-        ? ot.supervisor_comment
-        : null,
+      supervisorCommentRaw: ot?.supervisor_comment?.trim() ? ot.supervisor_comment : null,
       hasOvertimeApplication: Boolean(ot),
     }
   })
+}
+
+/**
+ * 指定従業員の月別残業時間履歴を取得する（直近 months ヶ月、昇順）
+ * 産業医の面談準備等、個人の残業推移を参照する用途を想定
+ */
+export async function getEmployeeOvertimeHistory(
+  supabase: SupabaseClient<Database>,
+  employeeId: string,
+  months = 12
+): Promise<{ yearMonth: string; totalHours: number }[]> {
+  const { data, error } = await supabase
+    .from('monthly_employee_overtime')
+    .select('year_month, total_overtime_hours, updated_at')
+    .eq('employee_id', employeeId)
+    .order('year_month', { ascending: false })
+    .order('updated_at', { ascending: false })
+
+  if (error) throw error
+  if (!data) return []
+
+  // year_month に一意制約がなく再締め等で同月複数行が存在しうるため、
+  // 更新日時が最も新しい行のみを月ごとに残す（Map は挿入順=最初に見た行を保持）
+  const latestByMonth = new Map<string, { yearMonth: string; totalHours: number }>()
+  for (const row of data) {
+    // year_month は date 型（YYYY-MM-01）で返るため YYYY-MM に切り詰める
+    const yearMonth = row.year_month.slice(0, 7)
+    if (latestByMonth.has(yearMonth)) continue
+    latestByMonth.set(yearMonth, {
+      yearMonth,
+      totalHours: Number(row.total_overtime_hours ?? 0),
+    })
+  }
+
+  return [...latestByMonth.values()].slice(0, months).reverse()
 }
 
 /**
@@ -165,7 +190,7 @@ export async function getOvertimeApplicationMonthRows(
 export async function getOvertimeApprovalTargetPeers(
   supabase: SupabaseClient<Database>,
   tenantId: string,
-  divisionId: string,
+  divisionId: string
 ) {
   const { data, error } = await supabase
     .from('employees')

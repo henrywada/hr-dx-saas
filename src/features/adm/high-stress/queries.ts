@@ -54,6 +54,7 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
       employee_id,
       employees (
         id, name, employee_no, division_id,
+        app_role:app_role_id (app_role),
         divisions (name, layer)
       ),
       stress_check_interviews (
@@ -86,7 +87,11 @@ export async function getHighStressEmployees(periodId: string): Promise<HighStre
 
   const consentedEmpIds = new Set(submissions.map(s => s.employee_id))
 
-  const filtered = results.filter(r => consentedEmpIds.has(r.employee_id))
+  // 産業医（app_role = 'company_doctor'）は対象者外のため除外する
+  const filtered = results.filter(r => {
+    const emp = r.employees as { app_role?: { app_role: string } | { app_role: string }[] } | null
+    return consentedEmpIds.has(r.employee_id) && !isCompanyDoctor(emp?.app_role ?? null)
+  })
 
   let estNameByEmp = new Map<string, string | null>()
   if (tenantId) {
@@ -173,17 +178,30 @@ export interface DivisionNode {
   directEmployeeCount: number
 }
 
-/** テナントの全部署を従業員直接所属数付きで返す */
+/** app_role が 'company_doctor'（産業医）の従業員IDを判定するヘルパー */
+function isCompanyDoctor(role: { app_role: string } | { app_role: string }[] | null): boolean {
+  const roleStr = Array.isArray(role) ? role[0]?.app_role : role?.app_role
+  return roleStr === 'company_doctor'
+}
+
+/** テナントの全部署を従業員直接所属数付きで返す（産業医は対象者外のためカウントしない） */
 export async function getDivisionsWithCounts(tenantId: string): Promise<DivisionNode[]> {
   const supabase = await createClient()
   const [{ data: divs }, { data: emps }] = await Promise.all([
     supabase.from('divisions').select('id, name, parent_id, layer, code').eq('tenant_id', tenantId),
-    supabase.from('employees').select('division_id').eq('tenant_id', tenantId),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('employees')
+      .select('division_id, app_role:app_role_id (app_role)')
+      .eq('tenant_id', tenantId),
   ])
   if (!divs) return []
   const countMap = new Map<string, number>()
-  emps?.forEach(e => {
-    if (e.division_id) countMap.set(e.division_id, (countMap.get(e.division_id) ?? 0) + 1)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  emps?.forEach((e: any) => {
+    if (e.division_id && !isCompanyDoctor(e.app_role)) {
+      countMap.set(e.division_id, (countMap.get(e.division_id) ?? 0) + 1)
+    }
   })
   return divs.map(d => ({
     id: d.id,
@@ -195,7 +213,7 @@ export async function getDivisionsWithCounts(tenantId: string): Promise<Division
   }))
 }
 
-/** ストレスチェック期間の部署別提出者数（直接所属のみ）を返す */
+/** ストレスチェック期間の部署別提出者数（直接所属のみ、産業医は対象者外のためカウントしない）を返す */
 export async function getSubmissionCountsByDivision(
   tenantId: string,
   periodId: string
@@ -207,15 +225,19 @@ export async function getSubmissionCountsByDivision(
     .eq('period_id', periodId)
   if (!submissions || submissions.length === 0) return {}
   const empIds = submissions.map(s => s.employee_id)
-  const { data: emps } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: emps } = await (supabase as any)
     .from('employees')
-    .select('id, division_id')
+    .select('id, division_id, app_role:app_role_id (app_role)')
     .eq('tenant_id', tenantId)
     .in('id', empIds)
   if (!emps) return {}
   const result: Record<string, number> = {}
-  emps.forEach(e => {
-    if (e.division_id) result[e.division_id] = (result[e.division_id] ?? 0) + 1
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  emps.forEach((e: any) => {
+    if (e.division_id && !isCompanyDoctor(e.app_role)) {
+      result[e.division_id] = (result[e.division_id] ?? 0) + 1
+    }
   })
   return result
 }

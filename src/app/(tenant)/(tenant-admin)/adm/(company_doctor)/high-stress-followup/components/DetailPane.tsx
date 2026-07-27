@@ -1,45 +1,78 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import type { HighStressListItem, StressInterviewRecord } from '@/features/adm/high-stress-followup/types';
-import { fetchInterviewRecordsByResultId } from '@/features/adm/high-stress-followup/actions';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
-import { Calendar, FileText, ClipboardList, ExternalLink } from 'lucide-react';
-import { InterviewRecordForm } from './InterviewRecordForm';
-import { APP_ROUTES } from '@/config/routes';
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import type {
+  HighStressListItem,
+  StressInterviewRecord,
+  EmployeeRelatedInfo,
+} from '@/features/adm/high-stress-followup/types'
+import {
+  fetchInterviewRecordsByResultId,
+  fetchEmployeeRelatedInfo,
+} from '@/features/adm/high-stress-followup/actions'
+import { format } from 'date-fns'
+import { ja } from 'date-fns/locale'
+import { Calendar, FileText, ClipboardList, ExternalLink, Info } from 'lucide-react'
+import { InterviewRecordForm } from './InterviewRecordForm'
+import { EmployeeConditionHistory } from './EmployeeConditionHistory'
+import { EmployeePulseHistory } from './EmployeePulseHistory'
+import { EmployeeOvertimeHistory } from './EmployeeOvertimeHistory'
+import { APP_ROUTES } from '@/config/routes'
 
 interface Props {
-  item: HighStressListItem | null;
-  periodId: string;
-  onRecordSaved?: () => void;
+  item: HighStressListItem | null
+  periodId: string
+  onRecordSaved?: () => void
 }
 
+type DetailTabId = 'interview' | 'related'
+
 export function DetailPane({ item, periodId, onRecordSaved }: Props) {
-  const [records, setRecords] = useState<StressInterviewRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<'appointment' | 'record' | 'measure'>('record');
+  const [records, setRecords] = useState<StressInterviewRecord[]>([])
+  const [loading, setLoading] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'appointment' | 'record' | 'measure'>('record')
+  const [detailTab, setDetailTab] = useState<DetailTabId>('interview')
+  const [relatedInfo, setRelatedInfo] = useState<EmployeeRelatedInfo | null>(null)
+  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [relatedError, setRelatedError] = useState<string | null>(null)
 
   const refetchRecords = useCallback(async () => {
-    if (!item) return;
-    setLoading(true);
+    if (!item) return
+    setLoading(true)
     try {
-      const data = await fetchInterviewRecordsByResultId(item.stressResultId);
-      setRecords(data);
+      const data = await fetchInterviewRecordsByResultId(item.stressResultId)
+      setRecords(data)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [item?.stressResultId]);
+  }, [item?.stressResultId])
 
   useEffect(() => {
     if (!item) {
-      setRecords([]);
-      return;
+      setRecords([])
+      return
     }
-    refetchRecords();
-  }, [item?.stressResultId, refetchRecords]);
+    refetchRecords()
+  }, [item?.stressResultId, refetchRecords])
+
+  // 対象者が切り替わったら関連情報タブの状態をリセットする
+  useEffect(() => {
+    setDetailTab('interview')
+    setRelatedInfo(null)
+    setRelatedError(null)
+  }, [item?.employeeId])
+
+  useEffect(() => {
+    if (detailTab !== 'related' || !item || relatedInfo || relatedLoading) return
+    setRelatedLoading(true)
+    setRelatedError(null)
+    fetchEmployeeRelatedInfo(item.employeeId)
+      .then(setRelatedInfo)
+      .catch(() => setRelatedError('関連情報の取得に失敗しました'))
+      .finally(() => setRelatedLoading(false))
+  }, [detailTab, item, relatedInfo, relatedLoading])
 
   if (!item) {
     return (
@@ -47,19 +80,18 @@ export function DetailPane({ item, periodId, onRecordSaved }: Props) {
         <FileText className="w-12 h-12 mb-3 opacity-50" />
         <p className="text-sm">左のリストから対象者を選択してください</p>
       </div>
-    );
+    )
   }
 
-  const statusLabel =
-    item.hasMeasureDecided
-      ? '措置決定済'
-      : item.latestStatus === 'pending'
-        ? '未実施'
-        : item.latestStatus === 'scheduled'
-          ? '予約済'
-          : item.latestStatus === 'completed'
-            ? '完了'
-            : 'キャンセル';
+  const statusLabel = item.hasMeasureDecided
+    ? '措置決定済'
+    : item.latestStatus === 'pending'
+      ? '未実施'
+      : item.latestStatus === 'scheduled'
+        ? '予約済'
+        : item.latestStatus === 'completed'
+          ? '完了'
+          : 'キャンセル'
 
   return (
     <div className="flex flex-col h-full">
@@ -100,70 +132,116 @@ export function DetailPane({ item, periodId, onRecordSaved }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              setFormMode('appointment');
-              setFormOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            面接予約する
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFormMode('record');
-              setFormOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            面接記録を入力
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFormMode('measure');
-              setFormOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            就業措置を決定
-          </button>
+        <div className="flex gap-2 border-b border-slate-100">
+          {[
+            { id: 'interview' as const, label: '面接管理', icon: ClipboardList },
+            { id: 'related' as const, label: '関連情報', icon: Info },
+          ].map(tab => {
+            const TabIcon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setDetailTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
+                  detailTab === tab.id
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <TabIcon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
 
-        <div className="pt-4 border-t border-slate-100">
-          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
-            <ClipboardList className="w-4 h-4" />
-            過去の面接・措置履歴
-          </h4>
-          {loading ? (
-            <p className="text-xs text-slate-500">読み込み中...</p>
-          ) : records.length === 0 ? (
-            <p className="text-xs text-slate-500">履歴はありません</p>
-          ) : (
-            <ul className="space-y-2">
-              {records.slice(0, 5).map((r) => (
-                <li
-                  key={r.id}
-                  className="text-xs text-slate-600 flex justify-between gap-2 py-1.5 border-b border-slate-50 last:border-0"
-                >
-                  <span>
-                    {format(new Date(r.interviewDate), 'yyyy/MM/dd', { locale: ja })}{' '}
-                    {r.status === 'completed' ? '面接実施' : r.status === 'scheduled' ? '予約' : r.status}
-                  </span>
-                  <span className="text-slate-500">
-                    医師: {r.doctorName ?? '-'} {r.measureType ? ` / ${r.measureType}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {detailTab === 'interview' ? (
+          <>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMode('appointment')
+                  setFormOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                面接予約する
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMode('record')
+                  setFormOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                面接記録を入力
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMode('measure')
+                  setFormOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                就業措置を決定
+              </button>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <ClipboardList className="w-4 h-4" />
+                過去の面接・措置履歴
+              </h4>
+              {loading ? (
+                <p className="text-xs text-slate-500">読み込み中...</p>
+              ) : records.length === 0 ? (
+                <p className="text-xs text-slate-500">履歴はありません</p>
+              ) : (
+                <ul className="space-y-2">
+                  {records.slice(0, 5).map(r => (
+                    <li
+                      key={r.id}
+                      className="text-xs text-slate-600 flex justify-between gap-2 py-1.5 border-b border-slate-50 last:border-0"
+                    >
+                      <span>
+                        {format(new Date(r.interviewDate), 'yyyy/MM/dd', { locale: ja })}{' '}
+                        {r.status === 'completed'
+                          ? '面接実施'
+                          : r.status === 'scheduled'
+                            ? '予約'
+                            : r.status}
+                      </span>
+                      <span className="text-slate-500">
+                        医師: {r.doctorName ?? '-'} {r.measureType ? ` / ${r.measureType}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="pt-2 space-y-4">
+            {relatedLoading ? (
+              <p className="text-xs text-slate-500">読み込み中...</p>
+            ) : relatedError ? (
+              <p className="text-xs text-red-600">{relatedError}</p>
+            ) : relatedInfo ? (
+              <>
+                <EmployeeConditionHistory data={relatedInfo.conditionTrend} />
+                <EmployeePulseHistory data={relatedInfo.pulseHistory} />
+                <EmployeeOvertimeHistory data={relatedInfo.overtimeHistory} />
+              </>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {formOpen && (
@@ -173,12 +251,12 @@ export function DetailPane({ item, periodId, onRecordSaved }: Props) {
           mode={formMode}
           onClose={() => setFormOpen(false)}
           onSaved={() => {
-            refetchRecords();
-            setFormOpen(false);
-            onRecordSaved?.();
+            refetchRecords()
+            setFormOpen(false)
+            onRecordSaved?.()
           }}
         />
       )}
     </div>
-  );
+  )
 }

@@ -181,13 +181,14 @@ export async function getEmployeesInPeriodDivisions(periodId: string, divisionId
 
   const supabase = await createClient()
 
-  const [{ data: allDivisions }, { data: allEmployees }, { data: targets }] = await Promise.all([
-    supabase.from('divisions').select('id, parent_id').eq('tenant_id', user.tenant_id),
-    supabase
+  const [{ data: rawEmployees }, { data: allDivisions }, { data: targets }] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
       .from('employees')
-      .select('id, employee_no, name, division_id')
+      .select('id, employee_no, name, division_id, app_role:app_role_id (app_role)')
       .eq('tenant_id', user.tenant_id)
       .order('employee_no', { ascending: true }),
+    supabase.from('divisions').select('id, parent_id').eq('tenant_id', user.tenant_id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('program_targets')
@@ -197,13 +198,27 @@ export async function getEmployeesInPeriodDivisions(periodId: string, divisionId
       .eq('program_instance_id', periodId),
   ])
 
+  // 産業医（app_role = 'company_doctor'）はストレスチェックの対象者外として除外する
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allEmployees = (rawEmployees ?? [])
+    .filter((e: any) => {
+      const role = Array.isArray(e.app_role) ? e.app_role[0]?.app_role : e.app_role?.app_role
+      return role !== 'company_doctor'
+    })
+    .map((e: any) => ({
+      id: e.id,
+      employee_no: e.employee_no,
+      name: e.name,
+      division_id: e.division_id,
+    }))
+
   const excludedIds = (targets ?? [])
     .filter((t: { is_eligible: boolean }) => !t.is_eligible)
     .map((t: { employee_id: string }) => t.employee_id)
 
   // 対象部署未設定 = テナント全従業員が対象
   if (divisionIds.length === 0) {
-    return { success: true as const, data: allEmployees ?? [], excludedIds }
+    return { success: true as const, data: allEmployees, excludedIds }
   }
 
   const coveredIds = new Set<string>(divisionIds)

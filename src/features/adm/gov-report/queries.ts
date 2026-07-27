@@ -38,30 +38,52 @@ export async function getGovReportSummary(periodId: string): Promise<GovReportSu
 
   const tenantId = period.tenant_id
 
-  // 2. 対象労働者数 (その事業所の在籍労働者数を概算。厳密にはactive_status等で絞る運用になりますが、全件カウント)
-  const { count: targetWorkers } = await supabase
+  // 産業医（app_role = 'company_doctor'）は対象者外のため、集計から除外する
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: allEmployees } = await (supabase as any)
     .from('employees')
-    .select('id', { count: 'exact', head: true })
+    .select('id, app_role:app_role_id (app_role)')
     .eq('tenant_id', tenantId)
 
+  type EmployeeWithRole = {
+    id: string
+    app_role: { app_role: string } | { app_role: string }[] | null
+  }
+
+  const companyDoctorIds = new Set<string>(
+    ((allEmployees ?? []) as EmployeeWithRole[])
+      .filter(e => {
+        const role = Array.isArray(e.app_role) ? e.app_role[0]?.app_role : e.app_role?.app_role
+        return role === 'company_doctor'
+      })
+      .map(e => e.id)
+  )
+
+  // 2. 対象労働者数 (その事業所の在籍労働者数を概算。厳密にはactive_status等で絞る運用になりますが、全件カウント)
+  const targetWorkers = (allEmployees ?? []).length - companyDoctorIds.size
+
   // 3. 検査を実施した労働者数 (提出済みの件数)
-  const { count: testedWorkers } = await supabase
+  const { data: submissions } = await supabase
     .from('stress_check_submissions')
-    .select('id', { count: 'exact', head: true })
+    .select('employee_id')
     .eq('period_id', periodId)
     .eq('status', 'submitted')
+  const testedWorkers = (submissions ?? []).filter(s => !companyDoctorIds.has(s.employee_id)).length
 
   // 4. 高ストレス者数
-  const { count: highStressWorkers } = await supabase
+  const { data: highStressResults } = await supabase
     .from('stress_check_results')
-    .select('id', { count: 'exact', head: true })
+    .select('employee_id')
     .eq('period_id', periodId)
     .eq('is_high_stress', true)
+  const highStressWorkers = (highStressResults ?? []).filter(
+    r => !companyDoctorIds.has(r.employee_id)
+  ).length
 
   // 5. 面接指導数および、産業医の意見に基づく就業情報の内訳
   const { data: interviews } = await supabase
     .from('stress_check_interviews')
-    .select('interview_status, doctor_opinion')
+    .select('employee_id, interview_status, doctor_opinion')
     .eq('period_id', periodId)
 
   let interviewedWorkers = 0
@@ -71,6 +93,7 @@ export async function getGovReportSummary(periodId: string): Promise<GovReportSu
 
   if (interviews) {
     for (const iv of interviews) {
+      if (companyDoctorIds.has(iv.employee_id)) continue
       if (iv.interview_status === 'completed') {
         interviewedWorkers++
         // 産業医の意見（就業上の措置）をカウント

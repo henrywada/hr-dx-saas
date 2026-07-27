@@ -10,6 +10,7 @@ export type AiFeatureName =
   | 'job-posting-memo'
   | 'job-posting-branding-diff'
   | 'job-posting-branding-variants'
+  | 'one-on-one-summary'
 
 export type AiUsageContext = {
   supabase: Awaited<ReturnType<typeof createClient>>

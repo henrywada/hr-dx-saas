@@ -9,6 +9,8 @@ import { canConductOneOnOne } from './types'
 import { resolveEmployeeEmail } from '@/lib/mail/resolve-employee-email'
 import { sendMail } from '@/lib/mail/send'
 import { generateGeminiContent, GEMINI_FLASH_MODEL } from '@/lib/ai/gemini'
+import { getAiUsageContext, tryConsumeAiUsage } from '@/lib/ai/usage-limit'
+import { ONE_ON_ONE_SUMMARY_SYSTEM_PROMPT, buildOneOnOneSummaryPrompt } from './summary-prompt'
 
 const sessionSchema = z.object({
   employeeId: z.string().uuid(),
@@ -267,7 +269,6 @@ export async function seedDefaultThemeTemplates(): Promise<{ success: boolean; e
   return { success: true }
 }
 
-
 const upcomingSchema = z.object({
   employeeId: z.string().uuid(),
   theme: z.string().min(1).max(200),
@@ -309,7 +310,9 @@ export async function createUpcomingOneOnOne(input: {
 }
 
 /** 1on1 予定をキャンセルする */
-export async function cancelUpcomingOneOnOne(id: string): Promise<{ success: boolean; error?: string }> {
+export async function cancelUpcomingOneOnOne(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.employee_id) return { success: false, error: 'Unauthorized' }
   if (!canConductOneOnOne(user.appRole, user.is_manager)) {
@@ -333,7 +336,7 @@ export async function cancelUpcomingOneOnOne(id: string): Promise<{ success: boo
 
 /** 1on1 予定のリマインドメールを部下へ送信する */
 export async function sendUpcomingOneOnOneReminder(
-  id: string,
+  id: string
 ): Promise<{ success: boolean; emailSent?: boolean; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.employee_id) return { success: false, error: 'Unauthorized' }
@@ -397,10 +400,9 @@ export async function sendUpcomingOneOnOneReminder(
   return { success: true, emailSent: true }
 }
 
-
 /** 1on1 記録を AI 要約する（O-C2） */
 export async function summarizeOneOnOneSession(
-  sessionId: string,
+  sessionId: string
 ): Promise<{ success: boolean; summary?: string; error?: string }> {
   const user = await getServerUser()
   if (!user?.tenant_id || !user.employee_id) return { success: false, error: 'Unauthorized' }
@@ -427,21 +429,32 @@ export async function summarizeOneOnOneSession(
     return { success: false, error: 'GEMINI_API_KEY が設定されていません' }
   }
 
-  const { data: employee } = await supabase
-    .from('employees')
-    .select('name')
-    .eq('id', session.employee_id)
-    .eq('tenant_id', user.tenant_id)
-    .maybeSingle()
+  // 他の AI 機能と同様に月次利用上限を消費する（1on1 要約だけ無制限に外部 API を
+  // 呼べる状態だったため整合させる）
+  const usageCtx = await getAiUsageContext()
+  if (usageCtx.ok === false) {
+    return { success: false, error: usageCtx.error }
+  }
+  const consumed = await tryConsumeAiUsage(usageCtx.data, 'one-on-one-summary')
+  if (consumed.ok === false) {
+    return { success: false, error: consumed.error }
+  }
 
-  const conductedLabel = new Date(session.conducted_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
+  const conductedLabel = new Date(session.conducted_at).toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+  })
 
   let summary: string
   try {
     summary = await generateGeminiContent({
       model: GEMINI_FLASH_MODEL,
-      system: 'あなたは日本の人事向け1on1記録アシスタントです。事実のみを簡潔な日本語で要約し、箇条書き3〜5点と次アクション1行を含めてください。',
-      prompt: `以下の1on1記録を要約してください。\n\n部下: ${employee?.name ?? '不明'}\nテーマ: ${session.theme}\n実施日: ${conductedLabel}\n\n記録:\n${session.notes}`,
+      system: ONE_ON_ONE_SUMMARY_SYSTEM_PROMPT,
+      // 氏名など個人を識別する情報は渡さない。方針と根拠は summary-prompt.ts を参照
+      prompt: buildOneOnOneSummaryPrompt({
+        theme: session.theme,
+        conductedLabel,
+        notes: session.notes,
+      }),
       temperature: 0.3,
       maxOutputTokens: 800,
     })

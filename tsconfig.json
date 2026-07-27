@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -36,11 +32,5 @@
     "**/*.tsx",
     "src/**/*.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "scripts",
-    "backups",
-    "src_failed_logging_attempt",
-    "supabase/functions"
-  ]
+  "exclude": ["node_modules", "scripts", "backups", "supabase/functions"]
 }

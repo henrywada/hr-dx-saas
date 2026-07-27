@@ -1,12 +1,35 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { APP_ROUTES } from '@/config/routes'
+import {
+  STATIC_SECURITY_HEADERS,
+  buildAppCsp,
+  buildScormContentCsp,
+  getCspHeaderName,
+  getCspMode,
+  isScormContentPath,
+} from '@/lib/security/headers'
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const isDev = process.env.NODE_ENV === 'development'
+  const cspMode = getCspMode()
+
+  // SCORM 教材（テナントがアップロードした第三者製 HTML/JS を同一オリジン配信）は
+  // 教材側のインライン script / eval が必須なため、専用の緩和 CSP を使う。
+  const csp = isScormContentPath(pathname) ? buildScormContentCsp() : buildAppCsp(isDev)
+
+  const applySecurityHeaders = (target: NextResponse): NextResponse => {
+    for (const { key, value } of STATIC_SECURITY_HEADERS) {
+      target.headers.set(key, value)
+    }
+    target.headers.set(getCspHeaderName(cspMode), csp)
+    return target
+  }
+
   // Supabase セッション更新とUser情報の取得 (Edge Runtime)
   const { response, user, supabase } = await updateSession(request)
-
-  const pathname = request.nextUrl.pathname
+  applySecurityHeaders(response)
   const isApiRoute = pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')
 
   // アクセスログは GET（実際のページ表示）のみ。POST は Server Action / Form 送信がほとんどで、
@@ -74,15 +97,17 @@ export async function middleware(request: NextRequest) {
 
   // API は JSON で 401 を返す（fetch が HTML ログインページを受け取り「不正な応答」になるのを防ぐ）
   if (!user && isApiRoute) {
-    return NextResponse.json(
-      { ok: false, error: 'ログインが必要です' },
-      { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+    return applySecurityHeaders(
+      NextResponse.json(
+        { ok: false, error: 'ログインが必要です' },
+        { status: 401, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      )
     )
   }
 
   // 未認証ユーザーが保護されたページにアクセス
   if (!user && !isAuthPage && !isPublicPage) {
-    return NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url)))
   }
 
   // 認証済みユーザーのルーティング
@@ -92,7 +117,9 @@ export async function middleware(request: NextRequest) {
     // ログイン済みユーザーがログインページ・マーケティングトップにアクセスした場合はTOPへ誘導する
     // （パスワード設定・/p/ 配下の公開ページを除く。/p/ はログイン状態に関わらずそのまま表示する）
     if ((isAuthPage || isMarketingRoot) && !isResetPassword) {
-      return NextResponse.redirect(new URL(APP_ROUTES.TENANT.PORTAL, request.url))
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(APP_ROUTES.TENANT.PORTAL, request.url))
+      )
     }
   }
 

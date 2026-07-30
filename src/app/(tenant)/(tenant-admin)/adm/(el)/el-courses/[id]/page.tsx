@@ -6,7 +6,10 @@ import {
   getCourseRequirementMappings,
   getAllSkillRequirements,
 } from '@/features/e-learning/queries'
-import { getScormPackageForCourse, getXapiStatementsForCourse } from '@/features/e-learning/scorm-queries'
+import {
+  getScormPackageForCourse,
+  getXapiStatementsForCourse,
+} from '@/features/e-learning/scorm-queries'
 import { ScormPackagePanel } from '@/features/e-learning/components/ScormPackagePanel'
 import { XapiStatementsPanel } from '@/features/e-learning/components/XapiStatementsPanel'
 import { SlideEditorClient } from '@/features/e-learning/components/SlideEditorClient'
@@ -35,7 +38,7 @@ export default async function ElCourseDetailPage({ params }: Props) {
   if (!course) notFound()
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       <div className="mb-6">
         <div className="flex justify-end">
           <a href="/adm/el-courses" className="text-sm font-bold text-blue-600 hover:underline">
@@ -56,9 +59,7 @@ export default async function ElCourseDetailPage({ params }: Props) {
           mappings={mappings}
           allRequirements={allRequirements}
         />
-        {(course.content_format ?? 'native') === 'native' && (
-          <SlideEditorClient course={course} />
-        )}
+        {(course.content_format ?? 'native') === 'native' && <SlideEditorClient course={course} />}
       </div>
     </div>
   )

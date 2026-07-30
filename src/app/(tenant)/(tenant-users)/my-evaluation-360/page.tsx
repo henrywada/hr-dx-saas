@@ -22,7 +22,7 @@ export default async function My360EvaluationPage() {
   const items = emp ? await getMyPending360Reviews(supabase as any, emp.id) : []
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full max-w-300 mx-auto space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">360度評価 依頼一覧</h1>

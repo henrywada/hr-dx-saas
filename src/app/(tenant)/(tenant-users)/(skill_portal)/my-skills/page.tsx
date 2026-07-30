@@ -77,7 +77,7 @@ export default async function MySkillsPage() {
 
   return (
     <div className="min-h-full">
-      <div className="mx-auto max-w-3xl px-6 pb-12 pt-8">
+      <div className="w-full mx-auto max-w-300 px-3 pb-12 pt-8">
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">マイスキル</h1>

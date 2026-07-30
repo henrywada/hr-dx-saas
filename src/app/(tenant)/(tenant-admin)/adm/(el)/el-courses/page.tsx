@@ -15,7 +15,7 @@ export default async function ElCoursesPage() {
   const [tenantCourses, templateCourses] = await Promise.all([getCourses(), getTemplateCourses()])
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800">eラーニング コース管理</h1>
         <p className="text-sm text-gray-500 mt-1">

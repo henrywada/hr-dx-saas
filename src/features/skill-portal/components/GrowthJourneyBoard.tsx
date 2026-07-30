@@ -91,7 +91,7 @@ export function GrowthJourneyBoard({ data, isManager }: GrowthJourneyBoardProps)
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto p-4 flex gap-4">
+      <div className="w-full max-w-300 mx-auto px-2 py-4 flex gap-4">
         <aside className="w-56 shrink-0 space-y-3">
           <div className="bg-white rounded-xl border p-4">
             <p className="text-xs text-gray-400 mb-1">目標職種</p>

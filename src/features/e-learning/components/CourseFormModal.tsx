@@ -252,7 +252,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              rows={2}
+              rows={5}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
               placeholder="コースの概要を入力"
             />

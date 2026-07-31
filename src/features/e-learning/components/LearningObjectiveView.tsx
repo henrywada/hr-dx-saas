@@ -14,9 +14,7 @@ export function LearningObjectiveView({ slide, course }: Props) {
 
   return (
     <div className="space-y-6">
-      {slide.title && (
-        <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>
-      )}
+      {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
       {course.bloom_level && (
         <div className="flex items-center gap-2">
@@ -26,7 +24,7 @@ export function LearningObjectiveView({ slide, course }: Props) {
       )}
 
       {slide.content && (
-        <p className="text-sm text-gray-600 leading-relaxed">{slide.content}</p>
+        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{slide.content}</p>
       )}
 
       {objectives.length > 0 && (
@@ -45,7 +43,9 @@ export function LearningObjectiveView({ slide, course }: Props) {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 text-center pt-2">準備ができたら「次へ」を押してください</p>
+      <p className="text-xs text-gray-400 text-center pt-2">
+        準備ができたら「次へ」を押してください
+      </p>
     </div>
   )
 }

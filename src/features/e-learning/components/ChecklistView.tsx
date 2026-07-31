@@ -48,7 +48,9 @@ export function ChecklistView({ slide, assignmentId, completions, onAllChecked }
     <div className="space-y-5">
       {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
-      {slide.content && <p className="text-sm text-gray-600 leading-relaxed">{slide.content}</p>}
+      {slide.content && (
+        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{slide.content}</p>
+      )}
 
       <div className="rounded-2xl border border-gray-200 overflow-hidden">
         <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center gap-2">

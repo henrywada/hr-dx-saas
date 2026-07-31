@@ -48,7 +48,7 @@ export function QuizSlideView({ slide, assignmentId, isCompleted, onCompleted }:
     <div className="space-y-5">
       {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
-      <p className="text-base text-gray-700 font-medium leading-relaxed">
+      <p className="text-base text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
         {question.question_text}
       </p>
 
@@ -110,7 +110,9 @@ export function QuizSlideView({ slide, assignmentId, isCompleted, onCompleted }:
             )}
           </div>
           {question.explanation && (
-            <p className="text-sm text-gray-600 leading-relaxed">{question.explanation}</p>
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+              {question.explanation}
+            </p>
           )}
         </div>
       )}

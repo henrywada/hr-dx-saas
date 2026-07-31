@@ -1,5 +1,6 @@
 import { BookOpen } from 'lucide-react'
 import type { ElSlide } from '../types'
+import { SlideMarkdownContent } from './SlideMarkdownContent'
 
 interface Props {
   slide: ElSlide
@@ -10,9 +11,7 @@ interface Props {
 export function ReflectionView({ slide }: Props) {
   return (
     <div className="space-y-5">
-      {slide.title && (
-        <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>
-      )}
+      {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
       {slide.content && (
         <div className="rounded-2xl bg-[#f6f8fa] border border-[#e2e6ec] p-5 space-y-2">
@@ -20,9 +19,7 @@ export function ReflectionView({ slide }: Props) {
             <BookOpen className="w-4 h-4 shrink-0" />
             振り返り・解説
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {slide.content}
-          </p>
+          <SlideMarkdownContent content={slide.content} className="text-sm text-gray-700" />
         </div>
       )}
 

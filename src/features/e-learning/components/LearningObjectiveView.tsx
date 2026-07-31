@@ -1,6 +1,7 @@
 import { CheckCircle } from 'lucide-react'
 import type { ElCourse, ElSlide } from '../types'
 import { BloomLevelBadge } from './BloomLevelBadge'
+import { SlideMarkdownContent } from './SlideMarkdownContent'
 
 interface Props {
   slide: ElSlide
@@ -24,7 +25,7 @@ export function LearningObjectiveView({ slide, course }: Props) {
       )}
 
       {slide.content && (
-        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{slide.content}</p>
+        <SlideMarkdownContent content={slide.content} className="text-sm text-gray-600" />
       )}
 
       {objectives.length > 0 && (

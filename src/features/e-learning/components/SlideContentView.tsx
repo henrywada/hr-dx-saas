@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Play } from 'lucide-react'
+import { SlideMarkdownContent } from './SlideMarkdownContent'
 import type { ElSlide } from '../types'
 
 interface Props {
@@ -132,9 +133,10 @@ export function SlideContentView({ slide, audioEnabled }: Props) {
           <h2 className="text-xl font-bold text-gray-800 leading-snug">{slide.title}</h2>
         )}
         {slide.content && (
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-            {slide.content}
-          </div>
+          <SlideMarkdownContent
+            content={slide.content}
+            className="text-gray-700 leading-relaxed break-words"
+          />
         )}
         {slide.image_url && (
           <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 max-w-3xl w-full">
@@ -175,15 +177,17 @@ export function SlideContentView({ slide, audioEnabled }: Props) {
               </div>
             )}
           </div>
-          <div className="flex-1 w-full prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-            {slide.content ?? ''}
-          </div>
+          <SlideMarkdownContent
+            content={slide.content ?? ''}
+            className="flex-1 w-full text-gray-700 leading-relaxed break-words"
+          />
         </div>
       ) : (
         slide.content && (
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-            {slide.content}
-          </div>
+          <SlideMarkdownContent
+            content={slide.content}
+            className="text-gray-700 leading-relaxed break-words"
+          />
         )
       )}
 

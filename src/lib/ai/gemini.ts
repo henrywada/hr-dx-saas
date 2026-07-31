@@ -30,6 +30,12 @@ export function getGeminiClient(): GoogleGenAI {
   return client
 }
 
+/** 動画コンテンツ（Files API アップロード後の URI、または YouTube URL）を prompt に添付する */
+export interface GeminiVideoPart {
+  fileUri: string
+  mimeType?: string
+}
+
 export interface GeminiGenerateOptions {
   /** 使用モデル（GEMINI_PRO_MODEL / GEMINI_FLASH_MODEL 等） */
   model: string
@@ -37,6 +43,8 @@ export interface GeminiGenerateOptions {
   system?: string
   /** ユーザープロンプト本文 */
   prompt: string
+  /** 参考動画（YouTube URL や Files API アップロード済みファイル）を併せて渡す */
+  videoPart?: GeminiVideoPart
   temperature?: number
   /** 最大出力トークン数（OpenAI の max_tokens 相当） */
   maxOutputTokens?: number
@@ -49,6 +57,8 @@ export interface GeminiGenerateOptions {
 }
 
 const DEFAULT_GEMINI_TIMEOUT_MS = 120_000
+const GEMINI_FILE_POLL_INTERVAL_MS = 3_000
+const GEMINI_FILE_PROCESSING_TIMEOUT_MS = 5 * 60_000
 
 /**
  * 単一ターンのテキスト/JSON 生成。応答テキストを返す。
@@ -58,9 +68,16 @@ export async function generateGeminiContent(opts: GeminiGenerateOptions): Promis
   const ai = getGeminiClient()
   const timeoutMs = opts.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS
 
+  const contents = opts.videoPart
+    ? [
+        { fileData: { fileUri: opts.videoPart.fileUri, mimeType: opts.videoPart.mimeType } },
+        { text: opts.prompt },
+      ]
+    : opts.prompt
+
   const generatePromise = ai.models.generateContent({
     model: opts.model,
-    contents: opts.prompt,
+    contents,
     config: {
       ...(opts.system ? { systemInstruction: opts.system } : {}),
       ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
@@ -74,7 +91,7 @@ export async function generateGeminiContent(opts: GeminiGenerateOptions): Promis
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(
       () => reject(new Error(`Gemini API が ${timeoutMs}ms 以内に応答しませんでした`)),
-      timeoutMs,
+      timeoutMs
     )
   })
 
@@ -90,4 +107,40 @@ export async function generateGeminiContent(opts: GeminiGenerateOptions): Promis
     throw new Error('AI からの応答が空でした')
   }
   return text
+}
+
+/**
+ * 動画バイナリを Gemini Files API にアップロードし、解析可能（ACTIVE）になるまで待つ。
+ * 返された fileUri は generateGeminiContent の videoPart にそのまま渡せる。
+ */
+export async function uploadVideoToGeminiFiles(
+  buffer: Buffer,
+  mimeType: string
+): Promise<GeminiVideoPart> {
+  const ai = getGeminiClient()
+  const blob = new Blob([new Uint8Array(buffer)], { type: mimeType })
+
+  const uploaded = await ai.files.upload({ file: blob, config: { mimeType } })
+  if (!uploaded.name) {
+    throw new Error('Gemini への動画アップロードに失敗しました')
+  }
+
+  const startedAt = Date.now()
+  let file = uploaded
+  while (file.state === 'PROCESSING') {
+    if (Date.now() - startedAt > GEMINI_FILE_PROCESSING_TIMEOUT_MS) {
+      throw new Error('動画の解析準備がタイムアウトしました')
+    }
+    await new Promise(resolve => setTimeout(resolve, GEMINI_FILE_POLL_INTERVAL_MS))
+    file = await ai.files.get({ name: uploaded.name })
+  }
+
+  if (file.state === 'FAILED') {
+    throw new Error('動画の解析準備に失敗しました')
+  }
+  if (!file.uri) {
+    throw new Error('アップロードした動画の URI を取得できませんでした')
+  }
+
+  return { fileUri: file.uri, mimeType: file.mimeType ?? mimeType }
 }

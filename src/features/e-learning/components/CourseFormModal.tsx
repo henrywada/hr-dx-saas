@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useRef, useId } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Sparkles, CheckCircle } from 'lucide-react'
+import { X, Sparkles, CheckCircle, Upload } from 'lucide-react'
 import { createCourse, updateCourse, createCourseWithAiScenario } from '../actions'
-import { BLOOM_LEVELS, BLOOM_LEVEL_LABELS } from '../constants'
+import { BLOOM_LEVELS, BLOOM_LEVEL_LABELS, EL_SLIDE_VIDEO_MAX_MB } from '../constants'
 import type { BloomLevel, ElCourse, CourseType } from '../types'
 
 interface Props {
@@ -23,7 +23,14 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
   const [objectivesText, setObjectivesText] = useState(
     (course?.learning_objectives ?? []).join('\n')
   )
-  const [useAiScenario, setUseAiScenario] = useState(true)
+  const [useAiScenario, setUseAiScenario] = useState(false)
+  const [videoUrl, setVideoUrl] = useState('')
+  const [videoFileName, setVideoFileName] = useState<string | null>(null)
+  const videoFileRef = useRef<HTMLInputElement>(null)
+  const videoFileInputId = useId()
+  const [resourceFileName, setResourceFileName] = useState<string | null>(null)
+  const resourceFileRef = useRef<HTMLInputElement>(null)
+  const resourceFileInputId = useId()
   const [error, setError] = useState<string | null>(null)
   const [aiDone, setAiDone] = useState(false)
   const [pubStart, setPubStart] = useState(course?.published_start_date ?? '')
@@ -71,6 +78,8 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
         }
 
         if (useAiScenario) {
+          const videoFile = videoFileRef.current?.files?.[0]
+          const resourceFile = resourceFileRef.current?.files?.[0]
           const aiResult = await createCourseWithAiScenario({
             title,
             description,
@@ -78,6 +87,9 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             course_type: courseType,
             bloom_level: bloomLevel || undefined,
             learning_objectives: objectives,
+            videoUrl: videoUrl.trim() || undefined,
+            videoFile: videoFile ?? undefined,
+            resourceFile: resourceFile ?? undefined,
           })
           if (aiResult.ok === false) {
             setError(aiResult.error)
@@ -203,7 +215,9 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               onChange={e => setObjectivesText(e.target.value)}
               rows={4}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601] resize-none"
-              placeholder={'ハラスメントの定義と種類を説明できる\n適切な対処法を選択できる\n相談窓口への案内ができる'}
+              placeholder={
+                'ハラスメントの定義と種類を説明できる\n適切な対処法を選択できる\n相談窓口への案内ができる'
+              }
             />
           </div>
 
@@ -263,9 +277,110 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
                 </div>
                 <p className="text-xs text-[#FD7601] mt-0.5">
                   学習目標 → 学習スライド → シナリオ問題 → 振り返り → チェックリストを自動生成します
+                  （参考資料・動画を指定すると内容を反映します）
                 </p>
               </div>
             </label>
+          )}
+
+          {isNew && useAiScenario && (
+            <div className="space-y-3 rounded-xl border border-gray-200 p-3">
+              <p className="text-sm font-medium text-gray-700">参考資料・動画（任意）</p>
+              <p className="text-xs text-gray-500 -mt-1">
+                指定すると、資料や動画の内容も踏まえてAIがシナリオを生成します。
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  資料ファイル（PDF・DOCX・TXT・PNG等）
+                </label>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor={resourceFileInputId}
+                    className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    ファイルを選択
+                  </label>
+                  <span className="flex-1 truncate text-xs text-gray-500">
+                    {resourceFileName ?? '未選択'}
+                  </span>
+                  {resourceFileName && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (resourceFileRef.current) resourceFileRef.current.value = ''
+                        setResourceFileName(null)
+                      }}
+                      aria-label="資料ファイルの選択を解除"
+                      className="shrink-0 text-gray-400 hover:text-red-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <input
+                  id={resourceFileInputId}
+                  ref={resourceFileRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+                  onChange={e => setResourceFileName(e.target.files?.[0]?.name ?? null)}
+                  className="sr-only"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  動画ファイル（MP4・WebM・MOV / {EL_SLIDE_VIDEO_MAX_MB}MBまで）
+                </label>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor={videoFileInputId}
+                    className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    ファイルを選択
+                  </label>
+                  <span className="flex-1 truncate text-xs text-gray-500">
+                    {videoFileName ?? '未選択'}
+                  </span>
+                  {videoFileName && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (videoFileRef.current) videoFileRef.current.value = ''
+                        setVideoFileName(null)
+                      }}
+                      aria-label="動画ファイルの選択を解除"
+                      className="shrink-0 text-gray-400 hover:text-red-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <input
+                  id={videoFileInputId}
+                  ref={videoFileRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={e => setVideoFileName(e.target.files?.[0]?.name ?? null)}
+                  className="sr-only"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  動画URL（YouTube）
+                </label>
+                <input
+                  type="text"
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FD7601]"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  動画ファイルを指定した場合はそちらを優先します
+                </p>
+              </div>
+            </div>
           )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -286,11 +401,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               {isPending && isNew && useAiScenario && (
                 <Sparkles className="w-4 h-4 animate-pulse" />
               )}
-              {isPending
-                ? isNew && useAiScenario
-                  ? 'AIシナリオ生成中...'
-                  : '保存中...'
-                : '保存'}
+              {isPending ? (isNew && useAiScenario ? 'AIシナリオ生成中...' : '保存中...') : '保存'}
             </button>
           </div>
         </form>

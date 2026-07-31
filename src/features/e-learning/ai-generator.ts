@@ -1,5 +1,6 @@
 import { generateGeminiContent, GEMINI_PRO_MODEL } from '@/lib/ai/gemini'
-import type { AiGeneratedCourse, AiGeneratedMicroCourse } from './types'
+import type { GeminiVideoPart } from '@/lib/ai/gemini'
+import type { AiGeneratedMicroCourse } from './types'
 
 // ============================================================
 // マイクロラーニング＋シナリオベース学習 専用プロンプト
@@ -111,60 +112,22 @@ remember / understand / apply / analyze / evaluate / create
 
 categoryは必ず「初級」「中級」「上級」のいずれかにしてください。`
 
-// 後方互換: 従来の text/quiz 形式（既存コースのメンテナンス用）
-const LEGACY_SYSTEM_PROMPT = `あなたはeラーニングコース設計の専門家です。
-インストラクショナルデザイン（ADDIEモデル）、認知負荷理論、マイクロラーニング設計、
-成人学習理論（アンドラゴジー）に精通しています。
-
-## コース設計の原則
-1. 1スライド1コンセプト（マイクロラーニング）
-2. 学習目標（到達目標）を最初のスライドで明示
-3. 理論 → 具体例 → 実践の構成
-4. 5〜7スライドごとに理解度確認クイズを挿入
-5. 専門用語には簡潔な説明を付記
-6. 日本語・丁寧語で統一
-
-## 出力形式（JSONのみ出力。説明文や前置きは一切不要）
-{
-  "title": "コースタイトル",
-  "description": "100字以内のコース概要",
-  "category": "初級",
-  "estimated_minutes": 30,
-  "slides": [
-    {
-      "slide_type": "text",
-      "title": "スライドタイトル",
-      "content": "Markdown形式のコンテンツ"
-    },
-    {
-      "slide_type": "quiz",
-      "title": "理解度チェック",
-      "quiz": {
-        "question": "問題文",
-        "options": [
-          { "text": "選択肢A", "is_correct": false },
-          { "text": "選択肢B", "is_correct": true },
-          { "text": "選択肢C", "is_correct": false },
-          { "text": "選択肢D", "is_correct": false }
-        ],
-        "explanation": "解説テキスト"
-      }
-    }
-  ]
-}
-
-categoryは必ず「初級」「中級」「上級」のいずれかにしてください。`
-
 // マイクロラーニング＋シナリオ形式でコースを生成する（新標準）
 export async function generateMicroCourseFromText(
-  rawText: string
+  rawText: string,
+  videoPart?: GeminiVideoPart
 ): Promise<AiGeneratedMicroCourse> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY が設定されていません')
+
+  const prompt = videoPart
+    ? `以下の資料と、添付した参考動画の内容（音声・映像）の両方を踏まえて、マイクロラーニング＋シナリオベースのeラーニングコースを設計してください。動画で説明されている具体的な事例・要点をスライド内容に反映してください。\n\n---\n${rawText.slice(0, 12000)}\n---`
+    : `以下の資料を元に、マイクロラーニング＋シナリオベースのeラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`
 
   const content = await generateGeminiContent({
     model: GEMINI_PRO_MODEL,
     system: MICRO_SCENARIO_SYSTEM_PROMPT,
-    prompt: `以下の資料を元に、マイクロラーニング＋シナリオベースのeラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
+    prompt,
+    videoPart,
     temperature: 0.7,
     json: true,
   })
@@ -179,19 +142,4 @@ export async function generateMicroCourseFromText(
     throw new Error('AIが有効なスライド一覧を返しませんでした')
   }
   return parsed
-}
-
-// 後方互換: 従来の text/quiz 形式でコースを生成する
-export async function generateCourseFromText(rawText: string): Promise<AiGeneratedCourse> {
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY が設定されていません')
-
-  const content = await generateGeminiContent({
-    model: GEMINI_PRO_MODEL,
-    system: LEGACY_SYSTEM_PROMPT,
-    prompt: `以下の資料を元に、eラーニングコースを設計してください。\n\n---\n${rawText.slice(0, 12000)}\n---`,
-    temperature: 0.7,
-    json: true,
-  })
-
-  return JSON.parse(content) as AiGeneratedCourse
 }

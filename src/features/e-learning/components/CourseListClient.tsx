@@ -2,13 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Copy, Pencil, Trash2, BookOpen, Calendar, Sparkles } from 'lucide-react'
+import { Plus, Copy, Pencil, Trash2, BookOpen, Calendar } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
 import { deleteCourse, copyTemplateToTenant, updateCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { formatPublicationRangeJa } from '../publication-window'
 import { CourseFormModal } from './CourseFormModal'
-import { AiGeneratePanel } from './AiGeneratePanel'
 import type { CourseStatus, ElCourse } from '../types'
 
 interface Props {
@@ -46,7 +45,6 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'tenant' | 'template'>('tenant')
   const [showForm, setShowForm] = useState(false)
-  const [showAiPanel, setShowAiPanel] = useState(false)
   const [editCourse, setEditCourse] = useState<ElCourse | null>(null)
   const [filterCategory, setFilterCategory] = useState('')
 
@@ -121,13 +119,6 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
 
           {tab === 'tenant' && (
             <>
-              <button
-                onClick={() => setShowAiPanel(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#FD7601] border border-[#FD7601] hover:bg-[#FD7601]/5 rounded-lg"
-              >
-                <Sparkles className="w-4 h-4" />
-                AIで生成
-              </button>
               <button
                 onClick={() => {
                   setEditCourse(null)
@@ -262,16 +253,6 @@ export function CourseListClient({ tenantCourses, templateCourses }: Props) {
           onClose={() => {
             setShowForm(false)
             setEditCourse(null)
-          }}
-        />
-      )}
-
-      {showAiPanel && (
-        <AiGeneratePanel
-          courseType="tenant"
-          onClose={() => {
-            setShowAiPanel(false)
-            router.refresh()
           }}
         />
       )}

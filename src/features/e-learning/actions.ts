@@ -5,11 +5,20 @@ import { createAdminServiceClient } from '@/lib/supabase/adminClient'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { extractTextFromUploadedFile } from '@/features/inquiry-chat/extractors/files'
-import { generateCourseFromText, generateMicroCourseFromText } from './ai-generator'
+import { generateMicroCourseFromText } from './ai-generator'
+import { uploadVideoToGeminiFiles } from '@/lib/ai/gemini'
+import type { GeminiVideoPart } from '@/lib/ai/gemini'
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types'
-import { EL_SLIDE_IMAGES_BUCKET, EL_SLIDE_VIDEOS_BUCKET } from './constants'
+import {
+  EL_SLIDE_IMAGES_BUCKET,
+  EL_SLIDE_VIDEOS_BUCKET,
+  EL_SLIDE_VIDEO_MAX_BYTES,
+  EL_SLIDE_VIDEO_MAX_MB,
+} from './constants'
 import { runSlideImageUpload, runSlideVideoUpload } from './slide-media-upload'
-import type { AiGeneratedCourse, AiGeneratedMicroCourse, BloomLevel, SlideType } from './types'
+import type { AiGeneratedMicroCourse, BloomLevel, SlideType } from './types'
+
+const YOUTUBE_URL_PATTERN = /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//i
 
 /** Server Action からクライアントへ返すため、常にシリアライズ可能な Error にする */
 function toActionError(err: unknown, fallback: string): Error {
@@ -731,6 +740,12 @@ export async function createCourseWithAiScenario(input: {
   course_type: 'template' | 'tenant'
   bloom_level?: BloomLevel
   learning_objectives: string[]
+  /** 参考動画の YouTube URL（任意）。videoFile がある場合はそちらを優先する */
+  videoUrl?: string
+  /** 参考動画ファイル（任意）。指定時は Gemini Files API にアップロードして内容を解析する */
+  videoFile?: File
+  /** 参考資料ファイル（任意・PDF/DOCX/TXT/PNG等）。テキストを抽出してプロンプトに含める */
+  resourceFile?: File
 }): Promise<CreateCourseWithAiScenarioResult> {
   const user = await getServerUser()
   if (!user) return { ok: false, error: 'ログインが必要です' }
@@ -747,6 +762,31 @@ export async function createCourseWithAiScenario(input: {
   let courseId: string | null = null
 
   try {
+    let videoPart: GeminiVideoPart | undefined
+
+    if (input.videoFile && input.videoFile.size > 0) {
+      if (input.videoFile.size > EL_SLIDE_VIDEO_MAX_BYTES) {
+        throw new Error(`参考動画は ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
+      }
+      const buf = Buffer.from(await input.videoFile.arrayBuffer())
+      videoPart = await uploadVideoToGeminiFiles(buf, input.videoFile.type || 'video/mp4')
+    } else if (input.videoUrl?.trim()) {
+      const url = input.videoUrl.trim()
+      if (!YOUTUBE_URL_PATTERN.test(url)) {
+        throw new Error(
+          '動画 URL は YouTube の URL（https://www.youtube.com/... または https://youtu.be/...）を指定してください'
+        )
+      }
+      videoPart = { fileUri: url }
+    }
+
+    let resourceText = ''
+    if (input.resourceFile && input.resourceFile.size > 0) {
+      const buf = Buffer.from(await input.resourceFile.arrayBuffer())
+      const mime = input.resourceFile.type || 'application/octet-stream'
+      resourceText = await extractTextFromUploadedFile(buf, mime, input.resourceFile.name)
+    }
+
     const { data: course, error: courseError } = await supabase
       .from('el_courses')
       .insert({
@@ -772,11 +812,12 @@ export async function createCourseWithAiScenario(input: {
       input.learning_objectives.length > 0
         ? `学習目標：\n${input.learning_objectives.map(o => `・${o}`).join('\n')}`
         : '',
+      resourceText.trim() ? `参考資料の内容：\n${resourceText.slice(0, 12000)}` : '',
     ]
       .filter(Boolean)
       .join('\n\n')
 
-    const generated = await generateMicroCourseFromText(rawText)
+    const generated = await generateMicroCourseFromText(rawText, videoPart)
 
     for (let i = 0; i < generated.slides.length; i++) {
       const slide = generated.slides[i]
@@ -859,133 +900,6 @@ export async function generateMicroCourseFromFile(
   }
 
   return generateMicroCourseFromText(rawText)
-}
-
-// 後方互換: 従来の text/quiz 形式でコースを生成する
-export async function generateCourseFromFile(formData: FormData): Promise<AiGeneratedCourse> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const file = formData.get('file') as File | null
-  if (!file) throw new Error('ファイルが選択されていません')
-
-  const buf = Buffer.from(await file.arrayBuffer())
-  const mime = file.type || 'application/octet-stream'
-  const rawText = await extractTextFromUploadedFile(buf, mime, file.name)
-
-  if (!rawText || rawText.trim().length < 50) {
-    throw new Error('ファイルからテキストを抽出できませんでした')
-  }
-
-  return generateCourseFromText(rawText)
-}
-
-export async function saveAiGeneratedCourse(
-  courseData: AiGeneratedCourse | AiGeneratedMicroCourse,
-  courseType: 'template' | 'tenant'
-) {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const supabase = await createClient()
-
-  const isMicro = 'bloom_level' in courseData
-
-  const { data: course, error: courseError } = await supabase
-    .from('el_courses')
-    .insert({
-      tenant_id: courseType === 'tenant' ? user.tenant_id : null,
-      title: courseData.title,
-      description: courseData.description,
-      category: courseData.category,
-      status: 'draft',
-      course_type: courseType,
-      estimated_minutes: courseData.estimated_minutes,
-      bloom_level: isMicro ? (courseData as AiGeneratedMicroCourse).bloom_level : null,
-      learning_objectives: isMicro
-        ? (courseData as AiGeneratedMicroCourse).learning_objectives
-        : [],
-      created_by_employee_id: user.employee_id ?? null,
-    })
-    .select()
-    .single()
-
-  if (courseError) throw courseError
-
-  for (let i = 0; i < courseData.slides.length; i++) {
-    const slide = courseData.slides[i]
-
-    const { data: newSlide, error: slideError } = await supabase
-      .from('el_slides')
-      .insert({
-        course_id: course.id,
-        slide_order: i,
-        slide_type: slide.slide_type,
-        title: slide.title,
-        content: slide.content ?? null,
-      })
-      .select()
-      .single()
-
-    if (slideError) throw slideError
-
-    // クイズスライド
-    if (slide.slide_type === 'quiz' && slide.quiz) {
-      const { data: q, error: qError } = await supabase
-        .from('el_quiz_questions')
-        .insert({
-          slide_id: newSlide.id,
-          question_text: slide.quiz.question,
-          question_order: 0,
-          explanation: slide.quiz.explanation,
-        })
-        .select()
-        .single()
-
-      if (qError) throw qError
-
-      const opts = slide.quiz.options.map((o, idx) => ({
-        question_id: q.id,
-        option_text: o.text,
-        is_correct: o.is_correct,
-        option_order: idx,
-      }))
-      const { error: optError } = await supabase.from('el_quiz_options').insert(opts)
-      if (optError) throw optError
-    }
-
-    // シナリオスライド
-    if (slide.slide_type === 'scenario' && slide.scenario) {
-      const branches = slide.scenario.branches.map((b, idx) => ({
-        slide_id: newSlide.id,
-        branch_order: idx,
-        choice_text: b.choice_text,
-        feedback_text: b.feedback_text,
-        is_recommended: b.is_recommended,
-      }))
-      if (branches.length > 0) {
-        const { error: branchError } = await supabase.from('el_scenario_branches').insert(branches)
-        if (branchError) throw branchError
-      }
-    }
-
-    // チェックリストスライド
-    if (slide.slide_type === 'checklist' && slide.checklist) {
-      const items = slide.checklist.items.map((it, idx) => ({
-        slide_id: newSlide.id,
-        item_order: idx,
-        item_text: it.item_text,
-      }))
-      if (items.length > 0) {
-        const { error: itemError } = await supabase.from('el_checklist_items').insert(items)
-        if (itemError) throw itemError
-      }
-    }
-  }
-
-  revalidatePath('/adm/el-courses')
-  revalidatePath('/saas_adm/el-templates')
-  return course
 }
 
 // ============================================================

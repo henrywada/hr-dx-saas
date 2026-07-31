@@ -12,7 +12,10 @@ export default async function ElCoursesPage() {
     redirect(APP_ROUTES.AUTH.LOGIN)
   }
 
-  const [tenantCourses, templateCourses] = await Promise.all([getCourses(), getTemplateCourses()])
+  const [tenantCourses, templateCourses] = await Promise.all([
+    getCourses(),
+    getTemplateCourses({ status: 'published' }),
+  ])
 
   return (
     <div className="w-full">

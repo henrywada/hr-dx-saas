@@ -7,7 +7,8 @@ import type { ElScenarioBranch, ElSlide } from '../types'
 
 interface Props {
   slide: ElSlide
-  assignmentId: string
+  /** 未指定時（プレビュー再生）は進捗をDBに記録しない */
+  assignmentId?: string
   isCompleted: boolean
   selectedBranchId?: string | null
   onCompleted: () => void
@@ -32,6 +33,10 @@ export function ScenarioView({
   const handleSelect = (branch: ElScenarioBranch) => {
     if (answered || isPending) return
     setChosenId(branch.id)
+    if (!assignmentId) {
+      onCompleted()
+      return
+    }
     startTransition(async () => {
       await recordScenarioAnswer(assignmentId, slide.id, branch.id, branch.choice_text)
       onCompleted()
@@ -40,9 +45,7 @@ export function ScenarioView({
 
   return (
     <div className="space-y-5">
-      {slide.title && (
-        <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>
-      )}
+      {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
       {/* シナリオ本文 */}
       {slide.content && (
@@ -59,7 +62,8 @@ export function ScenarioView({
       <div className="space-y-3">
         {branches.map((branch, idx) => {
           const isChosen = chosenId === branch.id
-          let cls = 'border-gray-200 bg-white text-gray-700 hover:border-[#FD7601] hover:bg-[#f6f8fa]'
+          let cls =
+            'border-gray-200 bg-white text-gray-700 hover:border-[#FD7601] hover:bg-[#f6f8fa]'
 
           if (answered) {
             if (branch.is_recommended) {
@@ -78,9 +82,7 @@ export function ScenarioView({
               onClick={() => handleSelect(branch)}
               className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-colors text-sm leading-snug disabled:cursor-default ${cls}`}
             >
-              <span className="mr-2 font-bold text-gray-400">
-                {String.fromCharCode(65 + idx)}.
-              </span>
+              <span className="mr-2 font-bold text-gray-400">{String.fromCharCode(65 + idx)}.</span>
               {branch.choice_text}
               {answered && branch.is_recommended && (
                 <span className="ml-2 text-xs font-semibold text-green-600">✓ 推奨</span>

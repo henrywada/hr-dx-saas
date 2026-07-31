@@ -10,10 +10,7 @@ import {
   getScormPackageForCourse,
   getXapiStatementsForCourse,
 } from '@/features/e-learning/scorm-queries'
-import { ScormPackagePanel } from '@/features/e-learning/components/ScormPackagePanel'
-import { XapiStatementsPanel } from '@/features/e-learning/components/XapiStatementsPanel'
-import { SlideEditorClient } from '@/features/e-learning/components/SlideEditorClient'
-import { CourseRequirementMappingPanel } from '@/features/e-learning/components/CourseRequirementMappingPanel'
+import { ElCourseDetailTabs } from '@/features/e-learning/components/ElCourseDetailTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,20 +44,13 @@ export default async function ElCourseDetailPage({ params }: Props) {
         </div>
         <h1 className="text-xl font-bold text-gray-800 mt-2">{course.title}</h1>
       </div>
-      <div className="space-y-6">
-        <ScormPackagePanel
-          courseId={id}
-          contentFormat={course.content_format ?? 'native'}
-          packageInfo={scormPackage}
-        />
-        <XapiStatementsPanel statements={xapiStatements} />
-        <CourseRequirementMappingPanel
-          courseId={id}
-          mappings={mappings}
-          allRequirements={allRequirements}
-        />
-        {(course.content_format ?? 'native') === 'native' && <SlideEditorClient course={course} />}
-      </div>
+      <ElCourseDetailTabs
+        course={course}
+        mappings={mappings}
+        allRequirements={allRequirements}
+        scormPackage={scormPackage}
+        xapiStatements={xapiStatements}
+      />
     </div>
   )
 }

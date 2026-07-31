@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { APP_ROUTES } from '@/config/routes'
 import { getCourseWithSlides } from '@/features/e-learning/queries'
 import { SlideEditorClient } from '@/features/e-learning/components/SlideEditorClient'
+import { CoursePreviewButton } from '@/features/e-learning/components/CoursePreviewButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +34,9 @@ export default async function ElTemplateDetailPage({ params }: Props) {
             </a>
           </div>
           <h1 className="text-xl font-bold text-gray-800 mt-2">{course.title}</h1>
+        </div>
+        <div className="mb-3 flex justify-end">
+          <CoursePreviewButton course={course} />
         </div>
         <SlideEditorClient course={course} />
       </div>

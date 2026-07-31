@@ -30,6 +30,15 @@ function isProbablyYoutubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url)
 }
 
+function isValidVideoUrl(url: string): boolean {
+  try {
+    const u = new URL(url)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 /**
  * 署名 URL で Supabase Storage に直 PUT し、DB 更新は小さい JSON の commit API のみ。
  * Next/Vercel 経由でファイル本体を送ると HTTP 413 になるため。
@@ -78,15 +87,12 @@ async function postSlideMedia(
     throw new Error(upErr.message)
   }
 
-  const commitRes = await fetch(
-    `/api/el-slides/${encodeURIComponent(slideId)}/${kind}/commit`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ courseId, storagePath: sign.path }),
-    }
-  )
+  const commitRes = await fetch(`/api/el-slides/${encodeURIComponent(slideId)}/${kind}/commit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ courseId, storagePath: sign.path }),
+  })
   const commitRaw = await commitRes.text()
   let commit: { ok?: boolean; url?: string; error?: string }
   try {
@@ -125,7 +131,13 @@ interface Props {
   onUpdate: (updated: ElSlide) => void
 }
 
-const TEXT_CONTENT_TYPES: SlideType[] = ['text', 'image', 'objective', 'micro_content', 'reflection']
+const TEXT_CONTENT_TYPES: SlideType[] = [
+  'text',
+  'image',
+  'objective',
+  'micro_content',
+  'reflection',
+]
 
 export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
   const microImageInputId = useId()
@@ -302,9 +314,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         content: [...TEXT_CONTENT_TYPES, 'scenario', 'checklist'].includes(slideType)
           ? content
           : undefined,
-        ...(slideType === 'micro_content' || slideType === 'image'
-          ? { image_url: imageUrl }
-          : {}),
+        ...(slideType === 'micro_content' || slideType === 'image' ? { image_url: imageUrl } : {}),
         video_url: slideType === 'micro_content' ? videoUrl || null : null,
       })
 
@@ -325,9 +335,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         slide_type: slideType,
         title,
         content,
-        ...(slideType === 'micro_content' || slideType === 'image'
-          ? { image_url: imageUrl }
-          : {}),
+        ...(slideType === 'micro_content' || slideType === 'image' ? { image_url: imageUrl } : {}),
         video_url: slideType === 'micro_content' ? videoUrl || null : null,
         scenario_branches: branches,
         checklist_items: checklistItems,
@@ -477,7 +485,8 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
           <div className="space-y-3">
             <label className="block text-xs font-medium text-gray-500">画像（任意）</label>
             <p className="text-xs text-gray-400 -mt-1">
-              JPEG・PNG・GIF・WebP ・ 1 ファイル最大 {EL_SLIDE_IMAGE_MAX_MB}MB まで（選択後すぐサーバーに保存されます）
+              JPEG・PNG・GIF・WebP ・ 1 ファイル最大 {EL_SLIDE_IMAGE_MAX_MB}MB
+              まで（選択後すぐサーバーに保存されます）
             </p>
             <input
               id={microImageInputId}
@@ -542,7 +551,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
             <p className="text-xs text-gray-400 -mt-1">
               MP4・WebM・MOV（QuickTime）・ 1 ファイル最大 {EL_SLIDE_VIDEO_MAX_MB}MB まで
             </p>
-            {videoUrl ? (
+            {videoUrl && isValidVideoUrl(videoUrl) ? (
               <div className="space-y-2">
                 <div className="rounded-xl overflow-hidden border border-gray-200 bg-black max-h-56">
                   {isProbablyYoutubeUrl(videoUrl) && getYoutubeEmbedUrl(videoUrl) ? (
@@ -567,24 +576,46 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa]/50 transition-colors">
-                <Video className="w-5 h-5 text-gray-400 mb-1" />
-                <span className="text-sm text-gray-500">動画をアップロード</span>
-                <span className="text-xs text-gray-400 mt-0.5">
-                  上記の形式・{EL_SLIDE_VIDEO_MAX_MB}MB 以下のファイルを選択
-                </span>
-                <input
-                  ref={videoFileRef}
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime,.mov"
-                  onChange={() => {
-                    setVideoError(null)
-                    const f = videoFileRef.current?.files?.[0]
-                    if (f) handleVideoUpload()
-                  }}
-                  className="hidden"
-                />
-              </label>
+              <div className="space-y-3">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#FD7601] hover:bg-[#f6f8fa]/50 transition-colors">
+                  <Video className="w-5 h-5 text-gray-400 mb-1" />
+                  <span className="text-sm text-gray-500">動画をアップロード</span>
+                  <span className="text-xs text-gray-400 mt-0.5">
+                    上記の形式・{EL_SLIDE_VIDEO_MAX_MB}MB 以下のファイルを選択
+                  </span>
+                  <input
+                    ref={videoFileRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,.mov"
+                    onChange={() => {
+                      setVideoError(null)
+                      const f = videoFileRef.current?.files?.[0]
+                      if (f) handleVideoUpload()
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  または
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-500">
+                    動画URLを貼り付け（YouTube等）
+                  </label>
+                  <input
+                    type="text"
+                    value={videoUrl}
+                    onChange={e => setVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs"
+                  />
+                  {videoUrl && !isValidVideoUrl(videoUrl) && (
+                    <p className="text-xs text-red-600">有効なURLを入力してください</p>
+                  )}
+                </div>
+              </div>
             )}
             {videoError && <p className="text-xs text-red-600">{videoError}</p>}
             {isVideoUploading && <p className="text-xs text-gray-500">アップロード中...</p>}
@@ -597,7 +628,8 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
         <div className="space-y-3">
           <label className="block text-xs font-medium text-gray-500">スライド画像</label>
           <p className="text-xs text-gray-400 -mt-1">
-            JPEG・PNG・GIF・WebP ・ 最大 {EL_SLIDE_IMAGE_MAX_MB}MB まで（選択後すぐサーバーに保存されます）
+            JPEG・PNG・GIF・WebP ・ 最大 {EL_SLIDE_IMAGE_MAX_MB}MB
+            まで（選択後すぐサーバーに保存されます）
           </p>
           <input
             id={legacyImageInputId}
@@ -818,9 +850,7 @@ export function SlideFormPanel({ slide, courseId, onUpdate }: Props) {
                 value={item.item_text}
                 onChange={e =>
                   setChecklistItems(prev =>
-                    prev.map(it =>
-                      it.id === item.id ? { ...it, item_text: e.target.value } : it
-                    )
+                    prev.map(it => (it.id === item.id ? { ...it, item_text: e.target.value } : it))
                   )
                 }
                 onBlur={() => handleSaveItem(item)}

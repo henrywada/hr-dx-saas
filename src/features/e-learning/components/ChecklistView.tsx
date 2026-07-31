@@ -7,7 +7,8 @@ import type { ElChecklistItem, ElChecklistCompletion, ElSlide } from '../types'
 
 interface Props {
   slide: ElSlide
-  assignmentId: string
+  /** 未指定時（プレビュー再生）は進捗をDBに記録しない */
+  assignmentId?: string
   completions: ElChecklistCompletion[]
   onAllChecked: () => void
 }
@@ -31,23 +32,23 @@ export function ChecklistView({ slide, assignmentId, completions, onAllChecked }
     willCheck ? next.add(item.id) : next.delete(item.id)
     setCheckedIds(next)
 
+    const allNowChecked = willCheck && items.every(it => next.has(it.id))
+
+    if (!assignmentId) {
+      if (allNowChecked) onAllChecked()
+      return
+    }
     startTransition(async () => {
       await toggleChecklistItem(assignmentId, item.id, willCheck)
-      if (willCheck && items.every(it => next.has(it.id))) {
-        onAllChecked()
-      }
+      if (allNowChecked) onAllChecked()
     })
   }
 
   return (
     <div className="space-y-5">
-      {slide.title && (
-        <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>
-      )}
+      {slide.title && <h2 className="text-xl font-bold text-gray-800">{slide.title}</h2>}
 
-      {slide.content && (
-        <p className="text-sm text-gray-600 leading-relaxed">{slide.content}</p>
-      )}
+      {slide.content && <p className="text-sm text-gray-600 leading-relaxed">{slide.content}</p>}
 
       <div className="rounded-2xl border border-gray-200 overflow-hidden">
         <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center gap-2">
@@ -94,7 +95,9 @@ export function ChecklistView({ slide, assignmentId, completions, onAllChecked }
           <p className="text-sm font-semibold text-green-700">すべての項目を完了しました！ 🎉</p>
         </div>
       ) : (
-        <p className="text-xs text-gray-400 text-center">未チェックの項目は後からでも確認できます</p>
+        <p className="text-xs text-gray-400 text-center">
+          未チェックの項目は後からでも確認できます
+        </p>
       )}
     </div>
   )

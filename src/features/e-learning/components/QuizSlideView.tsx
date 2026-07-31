@@ -7,7 +7,8 @@ import type { ElSlide } from '../types'
 
 interface Props {
   slide: ElSlide
-  assignmentId: string
+  /** 未指定時（プレビュー再生）は進捗をDBに記録しない */
+  assignmentId?: string
   isCompleted: boolean
   onCompleted: () => void
 }
@@ -33,6 +34,10 @@ export function QuizSlideView({ slide, assignmentId, isCompleted, onCompleted }:
     const correct = selected?.is_correct ?? false
     setAnswerState(correct ? 'correct' : 'incorrect')
 
+    if (!assignmentId) {
+      onCompleted()
+      return
+    }
     startTransition(async () => {
       await recordSlideProgress(assignmentId, slide.id, correct ? 100 : 0)
       onCompleted()

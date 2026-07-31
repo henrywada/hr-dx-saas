@@ -28,6 +28,8 @@ const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com'
 const GOOGLE_FONTS_FILES = 'https://fonts.gstatic.com'
 /** eラーニングのスライド動画（YouTube 埋め込み） */
 const YOUTUBE_ORIGINS = ['https://www.youtube.com', 'https://www.youtube-nocookie.com']
+/** YouTube 埋め込み動画のサムネイル（再生前のプレビュー画像） */
+const YOUTUBE_IMG_ORIGIN = 'https://img.youtube.com'
 
 // --- CSP モード -------------------------------------------------------------
 
@@ -109,7 +111,7 @@ export function buildAppCsp(isDev: boolean): string {
     'style-src': ["'self'", "'unsafe-inline'", GOOGLE_FONTS_CSS],
     'font-src': ["'self'", 'data:', GOOGLE_FONTS_FILES],
     // data: はチャート・QR、blob: は CSV/PDF 生成、Supabase は Storage の画像
-    'img-src': ["'self'", 'data:', 'blob:', ...supabaseHttp, STRIPE_IMG],
+    'img-src': ["'self'", 'data:', 'blob:', ...supabaseHttp, STRIPE_IMG, YOUTUBE_IMG_ORIGIN],
     'media-src': ["'self'", 'blob:', ...supabaseHttp],
     'connect-src': [
       "'self'",

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, BookOpen, Calendar } from 'lucide-react'
-import { deleteCourse } from '../actions'
+import { deleteCourse, updateCourse } from '../actions'
 import { COURSE_STATUS_LABELS } from '../constants'
 import { formatPublicationRangeJa } from '../publication-window'
 import { CourseFormModal } from './CourseFormModal'
-import type { ElCourse } from '../types'
+import type { CourseStatus, ElCourse } from '../types'
 
 interface Props {
   courses: ElCourse[]
@@ -35,7 +36,10 @@ function getCategoryColor(category: string): string {
   return categoryColorCache[category]
 }
 
+const COURSE_STATUS_OPTIONS: CourseStatus[] = ['draft', 'published', 'archived']
+
 export function TemplateCourseListClient({ courses }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
   const [editCourse, setEditCourse] = useState<ElCourse | null>(null)
@@ -47,6 +51,13 @@ export function TemplateCourseListClient({ courses }: Props) {
   const handleDelete = (id: string) => {
     if (!confirm('このテンプレートを削除しますか？スライドも含めて削除されます。')) return
     startTransition(() => deleteCourse(id))
+  }
+
+  const handleCourseStatusChange = (courseId: string, status: CourseStatus) => {
+    startTransition(async () => {
+      await updateCourse(courseId, { status })
+      router.refresh()
+    })
   }
 
   return (
@@ -87,65 +98,75 @@ export function TemplateCourseListClient({ courses }: Props) {
           {filtered.map(course => {
             const pubRange = formatPublicationRangeJa(course)
             return (
-            <div
-              key={course.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCategoryColor(course.category)}`}
-                >
-                  {course.category}
-                </span>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[course.status]}`}
-                >
-                  {COURSE_STATUS_LABELS[course.status as keyof typeof COURSE_STATUS_LABELS]}
-                </span>
-                {pubRange && (
-                  <span className="text-xs text-gray-600 self-center">{pubRange}</span>
+              <div
+                key={course.id}
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCategoryColor(course.category)}`}
+                  >
+                    {course.category}
+                  </span>
+                  <select
+                    aria-label="コースの公開ステータス"
+                    value={course.status}
+                    onChange={e =>
+                      handleCourseStatusChange(course.id, e.target.value as CourseStatus)
+                    }
+                    disabled={isPending}
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium border border-transparent cursor-pointer max-w-36 ${STATUS_COLORS[course.status]}`}
+                  >
+                    {COURSE_STATUS_OPTIONS.map(s => (
+                      <option key={s} value={s}>
+                        {COURSE_STATUS_LABELS[s]}
+                      </option>
+                    ))}
+                  </select>
+                  {pubRange && (
+                    <span className="text-xs text-gray-600 self-center">{pubRange}</span>
+                  )}
+                </div>
+
+                <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
+                  {course.title}
+                </h3>
+                {course.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.description}</p>
                 )}
-              </div>
+                {course.estimated_minutes && (
+                  <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
+                )}
 
-              <h3 className="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2">
-                {course.title}
-              </h3>
-              {course.description && (
-                <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.description}</p>
-              )}
-              {course.estimated_minutes && (
-                <p className="text-xs text-gray-400">約{course.estimated_minutes}分</p>
-              )}
-
-              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditCourse(course)
-                    setShowForm(true)
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  タイトル・公開期間
-                </button>
-                <a
-                  href={`/saas_adm/el-templates/${course.id}`}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] rounded-lg"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  学習内容の編集
-                </a>
-                <button
-                  onClick={() => handleDelete(course.id)}
-                  disabled={isPending}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  削除
-                </button>
+                <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditCourse(course)
+                      setShowForm(true)
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-lg"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    タイトル・公開期間
+                  </button>
+                  <a
+                    href={`/saas_adm/el-templates/${course.id}`}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-[#FD7601] hover:bg-[#f6f8fa] rounded-lg"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    学習内容の編集
+                  </a>
+                  <button
+                    onClick={() => handleDelete(course.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    削除
+                  </button>
+                </div>
               </div>
-            </div>
             )
           })}
         </div>

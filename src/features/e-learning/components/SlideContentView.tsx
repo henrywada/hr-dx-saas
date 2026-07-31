@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { Play } from 'lucide-react'
 import type { ElSlide } from '../types'
 
 interface Props {
@@ -13,18 +15,17 @@ function isProbablyYoutubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url)
 }
 
-function getYoutubeEmbedUrl(url: string): string | null {
+function getYoutubeVideoId(url: string): string | null {
   try {
     const u = new URL(url)
     if (u.hostname === 'youtu.be') {
-      const id = u.pathname.replace(/^\//, '').split('/')[0]
-      return id ? `https://www.youtube.com/embed/${id}` : null
+      return u.pathname.replace(/^\//, '').split('/')[0] || null
     }
     if (u.hostname.includes('youtube.com')) {
       const v = u.searchParams.get('v')
-      if (v) return `https://www.youtube.com/embed/${v}`
+      if (v) return v
       const m = u.pathname.match(/\/embed\/([^/?]+)/)
-      if (m) return `https://www.youtube.com/embed/${m[1]}`
+      if (m) return m[1]
     }
   } catch {
     return null
@@ -33,17 +34,40 @@ function getYoutubeEmbedUrl(url: string): string | null {
 }
 
 function SlideVideoPlayer({ url }: { url: string }) {
-  const embed = isProbablyYoutubeUrl(url) ? getYoutubeEmbedUrl(url) : null
-  if (embed) {
+  const [playing, setPlaying] = useState(false)
+  const videoId = isProbablyYoutubeUrl(url) ? getYoutubeVideoId(url) : null
+
+  if (videoId) {
     return (
       <div className="aspect-video w-full max-w-3xl rounded-xl overflow-hidden border border-gray-200 bg-black">
-        <iframe
-          src={embed}
-          title="スライド動画"
-          className="w-full h-full min-h-[200px]"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
+        {playing ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+            title="スライド動画"
+            className="w-full h-full min-h-50"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            className="group relative block w-full h-full min-h-50"
+            aria-label="動画を再生"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <span className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+              <span className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg group-hover:scale-105 transition-transform">
+                <Play className="w-7 h-7 text-gray-900 ml-1" fill="currentColor" />
+              </span>
+            </span>
+          </button>
+        )}
       </div>
     )
   }

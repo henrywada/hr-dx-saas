@@ -23,15 +23,15 @@ export const COURSE_STATUS_LABELS = {
 
 export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   // 既存
-  text:          'テキスト',
-  image:         '画像',
-  quiz:          'クイズ',
+  text: 'テキスト',
+  image: '画像',
+  quiz: 'クイズ',
   // マイクロラーニング用フェーズ
-  objective:     '学習目標',
+  objective: '学習目標',
   micro_content: 'ミニ講座',
-  scenario:      'シナリオ問題',
-  reflection:    '振り返り',
-  checklist:     '現場適用チェック',
+  scenario: 'シナリオ問題',
+  reflection: '振り返り',
+  checklist: '現場適用チェック',
 } as const
 
 // マイクロラーニングの標準フェーズ順序
@@ -57,27 +57,30 @@ export const BLOOM_LEVELS: BloomLevel[] = [
 ]
 
 export const BLOOM_LEVEL_LABELS: Record<BloomLevel, string> = {
-  remember:    '記憶する',
-  understand:  '理解する',
-  apply:       '応用する',
-  analyze:     '分析する',
-  evaluate:    '評価する',
-  create:      '創造する',
+  remember: '記憶する',
+  understand: '理解する',
+  apply: '応用する',
+  analyze: '分析する',
+  evaluate: '評価する',
+  create: '創造する',
 }
 
 // Tailwind クラス（bg + text + border のセット）
-export const BLOOM_LEVEL_COLORS: Record<
-  BloomLevel,
-  { bg: string; text: string; border: string }
-> = {
-  remember:    { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-300'   },
-  understand:  { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-300'   },
-  apply:       { bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-300'  },
-  analyze:     { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
-  evaluate:    { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
-  create:      { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
-}
+export const BLOOM_LEVEL_COLORS: Record<BloomLevel, { bg: string; text: string; border: string }> =
+  {
+    remember: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
+    understand: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
+    apply: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
+    analyze: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+    evaluate: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
+    create: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
+  }
 
 export const EL_SCORM_PACKAGES_BUCKET = 'el-scorm-packages' as const
 export const EL_SCORM_ZIP_MAX_BYTES = 100 * 1024 * 1024
 export const EL_SCORM_ZIP_MAX_MB = 100
+
+/** AIシナリオ生成の参考資料・参考動画を一時的に置くバケット（生成完了後に削除） */
+export const EL_AI_SCENARIO_UPLOADS_BUCKET = 'el-ai-scenario-uploads' as const
+export const EL_AI_RESOURCE_MAX_BYTES = 20 * 1024 * 1024
+export const EL_AI_RESOURCE_MAX_MB = 20

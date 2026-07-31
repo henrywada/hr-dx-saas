@@ -3,9 +3,57 @@
 import { useState, useTransition, useEffect, useRef, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Sparkles, CheckCircle, Upload } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { createCourse, updateCourse, createCourseWithAiScenario } from '../actions'
-import { BLOOM_LEVELS, BLOOM_LEVEL_LABELS, EL_SLIDE_VIDEO_MAX_MB } from '../constants'
+import {
+  BLOOM_LEVELS,
+  BLOOM_LEVEL_LABELS,
+  EL_SLIDE_VIDEO_MAX_MB,
+  EL_AI_RESOURCE_MAX_MB,
+} from '../constants'
 import type { BloomLevel, ElCourse, CourseType } from '../types'
+
+/**
+ * AIシナリオ生成の参考資料・動画を Supabase Storage に直接アップロードする。
+ * Vercel Functions のリクエストボディ上限（4.5MB）を避けるため、
+ * ファイル本体は Server Action に渡さず、署名付き URL 経由で直接アップロードする。
+ */
+async function uploadAiScenarioFile(
+  kind: 'video' | 'resource',
+  file: File
+): Promise<{ storagePath: string; mimeType: string; fileName: string }> {
+  const signRes = await fetch('/api/el-ai-scenario/signed-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      kind,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size,
+    }),
+  })
+  const signRaw = await signRes.text()
+  let sign: { ok?: boolean; bucket?: string; path?: string; token?: string; error?: string }
+  try {
+    sign = JSON.parse(signRaw) as typeof sign
+  } catch {
+    throw new Error(`署名 URL の取得に失敗しました（HTTP ${signRes.status}）`)
+  }
+  if (!signRes.ok || !sign.ok || !sign.bucket || !sign.path || !sign.token) {
+    throw new Error(sign.error || `署名 URL の取得に失敗しました（HTTP ${signRes.status}）`)
+  }
+
+  const supabase = createClient()
+  const { error: upErr } = await supabase.storage
+    .from(sign.bucket)
+    .uploadToSignedUrl(sign.path, sign.token, file, { contentType: file.type })
+  if (upErr) {
+    throw new Error(upErr.message)
+  }
+
+  return { storagePath: sign.path, mimeType: file.type, fileName: file.name }
+}
 
 interface Props {
   course?: ElCourse
@@ -33,6 +81,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
   const resourceFileInputId = useId()
   const [error, setError] = useState<string | null>(null)
   const [aiDone, setAiDone] = useState(false)
+  const [uploadingLabel, setUploadingLabel] = useState<string | null>(null)
   const [pubStart, setPubStart] = useState(course?.published_start_date ?? '')
   const [pubEnd, setPubEnd] = useState(course?.published_end_date ?? '')
 
@@ -80,6 +129,25 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
         if (useAiScenario) {
           const videoFile = videoFileRef.current?.files?.[0]
           const resourceFile = resourceFileRef.current?.files?.[0]
+
+          let videoUpload: { storagePath: string; mimeType: string } | undefined
+          let resourceUpload:
+            | { storagePath: string; mimeType: string; fileName: string }
+            | undefined
+
+          try {
+            if (videoFile) {
+              setUploadingLabel('動画をアップロード中...')
+              videoUpload = await uploadAiScenarioFile('video', videoFile)
+            }
+            if (resourceFile) {
+              setUploadingLabel('資料をアップロード中...')
+              resourceUpload = await uploadAiScenarioFile('resource', resourceFile)
+            }
+          } finally {
+            setUploadingLabel(null)
+          }
+
           const aiResult = await createCourseWithAiScenario({
             title,
             description,
@@ -88,8 +156,11 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
             bloom_level: bloomLevel || undefined,
             learning_objectives: objectives,
             videoUrl: videoUrl.trim() || undefined,
-            videoFile: videoFile ?? undefined,
-            resourceFile: resourceFile ?? undefined,
+            videoStoragePath: videoUpload?.storagePath,
+            videoMimeType: videoUpload?.mimeType,
+            resourceStoragePath: resourceUpload?.storagePath,
+            resourceFileName: resourceUpload?.fileName,
+            resourceMimeType: resourceUpload?.mimeType,
           })
           if (aiResult.ok === false) {
             setError(aiResult.error)
@@ -291,7 +362,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  資料ファイル（PDF・DOCX・TXT・PNG等）
+                  資料ファイル（PDF・DOCX・TXT / {EL_AI_RESOURCE_MAX_MB}MBまで）
                 </label>
                 <div className="flex items-center gap-2">
                   <label
@@ -322,7 +393,7 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
                   id={resourceFileInputId}
                   ref={resourceFileRef}
                   type="file"
-                  accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+                  accept=".pdf,.docx,.txt"
                   onChange={e => setResourceFileName(e.target.files?.[0]?.name ?? null)}
                   className="sr-only"
                 />
@@ -401,7 +472,9 @@ export function CourseFormModal({ course, courseType, onClose }: Props) {
               {isPending && isNew && useAiScenario && (
                 <Sparkles className="w-4 h-4 animate-pulse" />
               )}
-              {isPending ? (isNew && useAiScenario ? 'AIシナリオ生成中...' : '保存中...') : '保存'}
+              {isPending
+                ? (uploadingLabel ?? (isNew && useAiScenario ? 'AIシナリオ生成中...' : '保存中...'))
+                : '保存'}
             </button>
           </div>
         </form>

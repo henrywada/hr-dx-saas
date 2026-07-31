@@ -8,13 +8,9 @@ import { extractTextFromUploadedFile } from '@/features/inquiry-chat/extractors/
 import { generateMicroCourseFromText } from './ai-generator'
 import { uploadVideoToGeminiFiles } from '@/lib/ai/gemini'
 import type { GeminiVideoPart } from '@/lib/ai/gemini'
+import { downloadAiScenarioUpload, deleteAiScenarioUpload } from './ai-scenario-upload'
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types'
-import {
-  EL_SLIDE_IMAGES_BUCKET,
-  EL_SLIDE_VIDEOS_BUCKET,
-  EL_SLIDE_VIDEO_MAX_BYTES,
-  EL_SLIDE_VIDEO_MAX_MB,
-} from './constants'
+import { EL_SLIDE_IMAGES_BUCKET, EL_SLIDE_VIDEOS_BUCKET } from './constants'
 import { runSlideImageUpload, runSlideVideoUpload } from './slide-media-upload'
 import type { AiGeneratedMicroCourse, BloomLevel, SlideType } from './types'
 
@@ -740,12 +736,18 @@ export async function createCourseWithAiScenario(input: {
   course_type: 'template' | 'tenant'
   bloom_level?: BloomLevel
   learning_objectives: string[]
-  /** 参考動画の YouTube URL（任意）。videoFile がある場合はそちらを優先する */
+  /** 参考動画の YouTube URL（任意）。videoStoragePath がある場合はそちらを優先する */
   videoUrl?: string
-  /** 参考動画ファイル（任意）。指定時は Gemini Files API にアップロードして内容を解析する */
-  videoFile?: File
-  /** 参考資料ファイル（任意・PDF/DOCX/TXT/PNG等）。テキストを抽出してプロンプトに含める */
-  resourceFile?: File
+  /**
+   * 参考動画ファイルの一時アップロード先パス（任意・prepareAiScenarioSignedUpload で取得）。
+   * Vercel の 4.5MB ボディ上限を避けるため、ファイル本体ではなく Storage パスのみ受け取る。
+   */
+  videoStoragePath?: string
+  videoMimeType?: string
+  /** 参考資料ファイル（PDF/DOCX/TXT）の一時アップロード先パス（任意） */
+  resourceStoragePath?: string
+  resourceFileName?: string
+  resourceMimeType?: string
 }): Promise<CreateCourseWithAiScenarioResult> {
   const user = await getServerUser()
   if (!user) return { ok: false, error: 'ログインが必要です' }
@@ -764,12 +766,13 @@ export async function createCourseWithAiScenario(input: {
   try {
     let videoPart: GeminiVideoPart | undefined
 
-    if (input.videoFile && input.videoFile.size > 0) {
-      if (input.videoFile.size > EL_SLIDE_VIDEO_MAX_BYTES) {
-        throw new Error(`参考動画は ${EL_SLIDE_VIDEO_MAX_MB}MB 以下にしてください`)
-      }
-      const buf = Buffer.from(await input.videoFile.arrayBuffer())
-      videoPart = await uploadVideoToGeminiFiles(buf, input.videoFile.type || 'video/mp4')
+    if (input.videoStoragePath) {
+      const buf = await downloadAiScenarioUpload({
+        kind: 'video',
+        tenantId: user.tenant_id,
+        storagePath: input.videoStoragePath,
+      })
+      videoPart = await uploadVideoToGeminiFiles(buf, input.videoMimeType || 'video/mp4')
     } else if (input.videoUrl?.trim()) {
       const url = input.videoUrl.trim()
       if (!YOUTUBE_URL_PATTERN.test(url)) {
@@ -781,10 +784,17 @@ export async function createCourseWithAiScenario(input: {
     }
 
     let resourceText = ''
-    if (input.resourceFile && input.resourceFile.size > 0) {
-      const buf = Buffer.from(await input.resourceFile.arrayBuffer())
-      const mime = input.resourceFile.type || 'application/octet-stream'
-      resourceText = await extractTextFromUploadedFile(buf, mime, input.resourceFile.name)
+    if (input.resourceStoragePath) {
+      const buf = await downloadAiScenarioUpload({
+        kind: 'resource',
+        tenantId: user.tenant_id,
+        storagePath: input.resourceStoragePath,
+      })
+      resourceText = await extractTextFromUploadedFile(
+        buf,
+        input.resourceMimeType || 'application/octet-stream',
+        input.resourceFileName || 'resource'
+      )
     }
 
     const { data: course, error: courseError } = await supabase
@@ -874,6 +884,13 @@ export async function createCourseWithAiScenario(input: {
     }
     const e = toActionError(err, 'AIシナリオの作成に失敗しました')
     return { ok: false, error: e.message }
+  } finally {
+    if (input.videoStoragePath) {
+      await deleteAiScenarioUpload(input.videoStoragePath).catch(() => {})
+    }
+    if (input.resourceStoragePath) {
+      await deleteAiScenarioUpload(input.resourceStoragePath).catch(() => {})
+    }
   }
 }
 

@@ -361,71 +361,136 @@ CREATE POLICY "grant_llm_usage_select" ON public.grant_llm_usage
   FOR SELECT TO authenticated
   USING (public.current_employee_app_role() = 'developer');
 
-
 -- =============================================================================
 -- サービスマスタ登録（サイドメニューへの表示）
---   テナント管理者側: 便利ツール／ツールボックス（target_audience='adm'）
---                     — tenant_service の割当が無いと表示されない
---   SaaS管理者側:     SaaS管理メニュー／SaaS：その他（target_audience='saas_adm'）
---                     — AppSidebar は target_audience と release_status のみで絞るため割当不要
+--   テナント管理者側: 既存の「自動検索・配信ルール設定」（/adm/auto-distribution）と
+--                     同じカテゴリ（便利ツール／ツールボックス）に並べる。
+--                     tenant_service の割当が無いとメニューに出ないため、同サービスと
+--                     同じテナントへ割り当てる。
+--   SaaS管理者側:     既存の「人事法令アップデート管理」（/saas_adm/hr-law-knowledge）と
+--                     同じカテゴリ（SaaS管理メニュー／SaaS：その他）に並べる。
+--                     AppSidebar は target_audience と release_status のみで絞るため
+--                     tenant_service / app_role_service への割当は不要。
 --
--- ⚠ service / tenant_service はクラウドDBと同期しているマスタのため、
---   本番適用は必ず内容確認のうえで行うこと。
--- =============================================================================
-
--- テナント管理者向け
-INSERT INTO public.service (
-  id, service_category_id, name, category, title, description,
-  sort_order, route_path, app_role_group_id, app_role_group_uuid,
-  target_audience, release_status
-) VALUES (
-  '5f1e2c60-8a44-4d1e-9c3b-7e0a6d21b4f1'::uuid,
-  '78c72c52-ccff-4989-9e65-a043cd66ecfd'::uuid,  -- 便利ツール／ツールボックス
-  '助成金情報配信',
-  NULL,
-  '自社に合う助成金を AI が毎週チェックしてメール配信',
-  '業種・所在地・従業員数などの条件を登録すると、J-グランツ等から収集した新着・更新の助成金を AI が適合判定し、週次または月次でメール配信します。過去の配信内容と判定理由は配信アーカイブから確認できます。',
-  40,
-  '/adm/grant-notifier',
-  NULL,
-  NULL,
-  'adm',
-  '公開'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- SaaS管理者向け（バッチ運用監視）
-INSERT INTO public.service (
-  id, service_category_id, name, category, title, description,
-  sort_order, route_path, app_role_group_id, app_role_group_uuid,
-  target_audience, release_status
-) VALUES (
-  'b7d3a95e-1c62-4f80-a5d7-2e94f6c08a33'::uuid,
-  '41ded022-8a6f-4b0b-84ed-8b2a7afdc5f7'::uuid,  -- SaaS管理メニュー／SaaS：その他
-  '助成金情報配信 バッチ管理',
-  NULL,
-  '収集・マッチング・配信バッチの稼働状況と手動再実行',
-  '助成金情報配信の collect / match / deliver バッチの実行履歴、AI 利用コスト、収集ソースの稼働状況を横断で確認し、必要に応じて手動再実行します。',
-  20,
-  '/saas_adm/grant-notifier',
-  NULL,
-  NULL,
-  'saas_adm',
-  '公開'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- テナント割当: 既存の「自動検索・配信ルール設定」（同じツールボックス配下）と
--- 同じテナントで利用可能にする。
-INSERT INTO public.tenant_service (tenant_id, service_id, start_date, status)
-SELECT ts.tenant_id, '5f1e2c60-8a44-4d1e-9c3b-7e0a6d21b4f1'::uuid, ts.start_date, ts.status
-FROM public.tenant_service ts
-WHERE ts.service_id = '83c690de-f5ed-4b4a-a24a-a1c1c2b89d50'::uuid
-  AND NOT EXISTS (
-    SELECT 1 FROM public.tenant_service dup
-    WHERE dup.tenant_id = ts.tenant_id
-      AND dup.service_id = '5f1e2c60-8a44-4d1e-9c3b-7e0a6d21b4f1'::uuid
-  );
-
+-- ⚠ service / service_category / tenant_service はクラウドDBと同期しているマスタで、
+--   同じカテゴリでも環境ごとに id が異なる。そのため UUID をハードコードせず、
+--   既存サービスの route_path を手がかりにカテゴリを解決する。
+--   解決できない環境では登録をスキップし、WARNING で運用者に知らせる
+--   （テーブル本体の作成は成功させ、メニュー登録だけ手動対応に委ねる）。
+--
 -- app_role_service には登録しない（登録が無い＝役割による制限なし＝
 -- テナント管理者の全役割で表示される。AppSidebar の実装に準拠）。
+-- =============================================================================
+
+DO $$
+DECLARE
+  -- 本機能で新設するサービスの id（環境間で揃える）
+  v_adm_service_id  CONSTANT uuid := '5f1e2c60-8a44-4d1e-9c3b-7e0a6d21b4f1';
+  v_saas_service_id CONSTANT uuid := 'b7d3a95e-1c62-4f80-a5d7-2e94f6c08a33';
+
+  v_adm_category_id  uuid;
+  v_saas_category_id uuid;
+  v_sibling_service_id uuid;
+  v_assigned_count integer;
+BEGIN
+  -- ---- テナント管理者向けのカテゴリと、割当元になる兄弟サービスを解決する ----
+  SELECT s.service_category_id, s.id
+    INTO v_adm_category_id, v_sibling_service_id
+  FROM public.service s
+  WHERE s.route_path = '/adm/auto-distribution'
+    AND s.service_category_id IS NOT NULL
+  LIMIT 1;
+
+  -- 兄弟サービスが見つからない環境では、カテゴリ名で解決を試みる
+  IF v_adm_category_id IS NULL THEN
+    SELECT c.id INTO v_adm_category_id
+    FROM public.service_category c
+    WHERE c.name = 'ツールボックス'
+    ORDER BY c.sort_order DESC
+    LIMIT 1;
+  END IF;
+
+  -- ---- SaaS管理者向けのカテゴリを解決する ----
+  SELECT s.service_category_id INTO v_saas_category_id
+  FROM public.service s
+  WHERE s.route_path = '/saas_adm/hr-law-knowledge'
+    AND s.service_category_id IS NOT NULL
+  LIMIT 1;
+
+  IF v_saas_category_id IS NULL THEN
+    SELECT c.id INTO v_saas_category_id
+    FROM public.service_category c
+    WHERE c.name = 'SaaS：その他'
+    LIMIT 1;
+  END IF;
+
+  -- ---- テナント管理者向けサービスを登録 ----
+  IF v_adm_category_id IS NULL THEN
+    RAISE WARNING '[grant_notifier] テナント管理者向けカテゴリを解決できませんでした。'
+      '/adm/grant-notifier のメニュー登録をスキップします（/saas_adm から手動登録してください）。';
+  ELSE
+    INSERT INTO public.service (
+      id, service_category_id, name, category, title, description,
+      sort_order, route_path, app_role_group_id, app_role_group_uuid,
+      target_audience, release_status
+    ) VALUES (
+      v_adm_service_id,
+      v_adm_category_id,
+      '助成金情報配信',
+      NULL,
+      '自社に合う助成金を AI が毎週チェックしてメール配信',
+      '業種・所在地・従業員数などの条件を登録すると、J-グランツ等から収集した新着・更新の助成金を AI が適合判定し、週次または月次でメール配信します。過去の配信内容と判定理由は配信アーカイブから確認できます。',
+      40,
+      '/adm/grant-notifier',
+      NULL,
+      NULL,
+      'adm',
+      '公開'
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    -- テナント割当: 兄弟サービスと同じテナントで利用可能にする
+    IF v_sibling_service_id IS NULL THEN
+      RAISE WARNING '[grant_notifier] 割当元サービス(/adm/auto-distribution)が無いため '
+        'tenant_service への割当をスキップしました。契約テナントへ手動で割り当ててください。';
+    ELSE
+      INSERT INTO public.tenant_service (tenant_id, service_id, start_date, status)
+      SELECT ts.tenant_id, v_adm_service_id, ts.start_date, ts.status
+      FROM public.tenant_service ts
+      WHERE ts.service_id = v_sibling_service_id
+        AND NOT EXISTS (
+          SELECT 1 FROM public.tenant_service dup
+          WHERE dup.tenant_id = ts.tenant_id
+            AND dup.service_id = v_adm_service_id
+        );
+      GET DIAGNOSTICS v_assigned_count = ROW_COUNT;
+      RAISE NOTICE '[grant_notifier] tenant_service へ % 件のテナントを割り当てました。', v_assigned_count;
+    END IF;
+  END IF;
+
+  -- ---- SaaS管理者向けサービス（バッチ運用監視）を登録 ----
+  IF v_saas_category_id IS NULL THEN
+    RAISE WARNING '[grant_notifier] SaaS管理者向けカテゴリを解決できませんでした。'
+      '/saas_adm/grant-notifier のメニュー登録をスキップします（手動登録してください）。';
+  ELSE
+    INSERT INTO public.service (
+      id, service_category_id, name, category, title, description,
+      sort_order, route_path, app_role_group_id, app_role_group_uuid,
+      target_audience, release_status
+    ) VALUES (
+      v_saas_service_id,
+      v_saas_category_id,
+      '助成金情報配信 バッチ管理',
+      NULL,
+      '収集・マッチング・配信バッチの稼働状況と手動再実行',
+      '助成金情報配信の collect / match / deliver バッチの実行履歴、AI 利用コスト、収集ソースの稼働状況を横断で確認し、必要に応じて手動再実行します。',
+      20,
+      '/saas_adm/grant-notifier',
+      NULL,
+      NULL,
+      'saas_adm',
+      '公開'
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;

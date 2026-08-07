@@ -130,6 +130,22 @@ Gemini 2.5 系は既定で thinking が有効で、**思考トークンが `maxO
 - `app_role_service` には登録しない = 役割による制限なし（`AppSidebar` は登録が無いサービスを全役割に表示する）
 - SaaS側は `target_audience='saas_adm'` + `release_status='公開'` のみで表示されるため割当不要
 
+### ⚠ カテゴリ UUID をハードコードしないこと
+
+`service_category` / `service` は**同じカテゴリでも環境ごとに `id` が異なる**。ローカルで読み取った UUID をマイグレーションへ直書きすると、本番適用時に外部キー制約違反で失敗する（2026-08-07 の `supabase db push` で実際に発生: `service_service_category_id_fkey` / SQLSTATE 23503）。
+
+そのため本マイグレーションは、既存サービスの **`route_path` を手がかりにカテゴリを解決する** DO ブロックを使う。
+
+| 対象                       | 解決順序                                                                |
+| -------------------------- | ----------------------------------------------------------------------- |
+| テナント管理者向けカテゴリ | ① `/adm/auto-distribution` のカテゴリ → ② カテゴリ名 `ツールボックス`   |
+| SaaS管理者向けカテゴリ     | ① `/saas_adm/hr-law-knowledge` のカテゴリ → ② カテゴリ名 `SaaS：その他` |
+| `tenant_service` の割当元  | `/adm/auto-distribution` のサービス                                     |
+
+いずれも解決できない環境では `RAISE WARNING` を出して**メニュー登録だけをスキップ**し、テーブル本体の作成は成功させる（運用者が手動登録できるようにする）。新設する2つの `service.id` のみ環境間で揃えるため定数として保持し、`ON CONFLICT (id) DO NOTHING` で冪等にしている。
+
+**今後この種の同期マスタへ追記する際は、必ず名前や `route_path` から解決すること。**
+
 ## 7. 環境変数
 
 | 変数                                              | 用途                                                                     |

@@ -4,6 +4,8 @@ export const APP_ROUTES = {
     CONSULTATION_STATUS: '/p/consultation/status',
     /** 製品ラベル QR 向け取扱説明書メニュー（購入客・認証不要） */
     MYOU_PRODUCT_MANUALS: '/p/myou/product-manuals',
+    /** 助成金情報配信メールからの配信停止（署名付きトークン・認証不要） */
+    GRANT_NOTIFIER_UNSUBSCRIBE: '/p/grant-notifier/unsubscribe',
   },
   AUTH: {
     LOGIN: '/login',
@@ -166,6 +168,15 @@ export const APP_ROUTES = {
     REFERRAL_FORM: '/referral',
     /** 従業員：マイ推薦一覧（NEW-4） */
     REFERRAL_MY: '/referral/my',
+    /** 助成金情報配信 ホーム（テナント管理者） */
+    ADMIN_GRANT_NOTIFIER: '/adm/grant-notifier',
+    /** 助成金情報配信 配信条件の設定 */
+    ADMIN_GRANT_NOTIFIER_CONDITIONS: '/adm/grant-notifier/conditions',
+    /** 助成金情報配信 配信アーカイブ一覧 */
+    ADMIN_GRANT_NOTIFIER_ARCHIVE: '/adm/grant-notifier/archive',
+    /** 助成金情報配信 助成金詳細（判定理由・確信度） */
+    ADMIN_GRANT_NOTIFIER_ARCHIVE_DETAIL: (grantId: string) =>
+      `/adm/grant-notifier/archive/${grantId}`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',
@@ -185,6 +196,8 @@ export const APP_ROUTES = {
     EVAL_GLOBAL_TEMPLATE_DETAIL: (id: string) => `/saas_adm/evaluation-global-templates/${id}`,
     /** 法令ナレッジ自動更新の管理（収集文書一覧・無効化・手動再実行） */
     HR_LAW_KNOWLEDGE: '/saas_adm/hr-law-knowledge',
+    /** 助成金情報配信 バッチ運用監視（収集・マッチング・配信の稼働状況と手動再実行） */
+    GRANT_NOTIFIER: '/saas_adm/grant-notifier',
   },
   EVALUATION: {
     /** 評価シート一覧（テナント管理者） */

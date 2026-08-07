@@ -1,0 +1,18 @@
+name: Grant Notifier Weekly Batch
+
+on:
+  schedule:
+    # 毎週月曜 7:00 JST（UTC 日曜 22:00。日本にDSTなし）
+    - cron: '0 22 * * 0'
+  workflow_dispatch:
+
+jobs:
+  run-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger grant notifier batch
+        # collect → match → deliver を順に実行する。
+        # 一部ステップが失敗するとエンドポイントが 500 を返し、-f によりジョブも失敗する。
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/grant-notifier/run-batch" \
+            -H "x-cron-secret: ${{ secrets.GRANT_NOTIFIER_CRON_SECRET }}"

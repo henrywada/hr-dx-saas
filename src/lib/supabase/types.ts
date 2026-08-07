@@ -3624,6 +3624,438 @@ export type Database = {
           },
         ]
       }
+      grant_application_status: {
+        Row: {
+          created_at: string
+          grant_id: string
+          id: string
+          note: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grant_id: string
+          id?: string
+          note?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grant_id?: string
+          id?: string
+          note?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_application_status_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_application_status_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_batch_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          metadata: Json
+          processed_count: number
+          started_at: string
+          status: string
+          step: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          processed_count?: number
+          started_at?: string
+          status?: string
+          step: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          processed_count?: number
+          started_at?: string
+          status?: string
+          step?: string
+        }
+        Relationships: []
+      }
+      grant_deliveries: {
+        Row: {
+          created_at: string
+          grant_id: string
+          grant_version_id: string | null
+          id: string
+          recipient_count: number
+          sent_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          grant_id: string
+          grant_version_id?: string | null
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          grant_id?: string
+          grant_version_id?: string | null
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_deliveries_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_deliveries_grant_version_id_fkey"
+            columns: ["grant_version_id"]
+            isOneToOne: false
+            referencedRelation: "grant_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_deliveries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_llm_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          step: string
+          tenant_id: string | null
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          model: string
+          output_tokens?: number
+          step: string
+          tenant_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          step?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_llm_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_match_results: {
+        Row: {
+          confidence: number
+          created_at: string
+          evaluated_at: string
+          grant_id: string
+          id: string
+          matched_conditions: Json
+          model: string
+          reasons: Json
+          tenant_id: string
+          unclear_points: Json
+          verdict: string
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          evaluated_at?: string
+          grant_id: string
+          id?: string
+          matched_conditions?: Json
+          model: string
+          reasons?: Json
+          tenant_id: string
+          unclear_points?: Json
+          verdict: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evaluated_at?: string
+          grant_id?: string
+          id?: string
+          matched_conditions?: Json
+          model?: string
+          reasons?: Json
+          tenant_id?: string
+          unclear_points?: Json
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_match_results_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_match_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_sources: {
+        Row: {
+          created_at: string
+          id: string
+          last_fetched_at: string | null
+          name: string
+          source_type: string
+          structure_hash: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_fetched_at?: string | null
+          name: string
+          source_type: string
+          structure_hash?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_fetched_at?: string | null
+          name?: string
+          source_type?: string
+          structure_hash?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      grant_tenant_conditions: {
+        Row: {
+          capital: number | null
+          categories: Json
+          created_at: string
+          delivery_frequency: string
+          employee_count: number | null
+          id: string
+          industries: Json
+          keywords: string | null
+          notify_emails: Json
+          prefectures: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capital?: number | null
+          categories?: Json
+          created_at?: string
+          delivery_frequency?: string
+          employee_count?: number | null
+          id?: string
+          industries?: Json
+          keywords?: string | null
+          notify_emails?: Json
+          prefectures?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capital?: number | null
+          categories?: Json
+          created_at?: string
+          delivery_frequency?: string
+          employee_count?: number | null
+          id?: string
+          industries?: Json
+          keywords?: string | null
+          notify_emails?: Json
+          prefectures?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_tenant_conditions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_versions: {
+        Row: {
+          body_hash: string
+          change_summary: string | null
+          changed_fields: Json
+          created_at: string
+          grant_id: string
+          id: string
+        }
+        Insert: {
+          body_hash: string
+          change_summary?: string | null
+          changed_fields?: Json
+          created_at?: string
+          grant_id: string
+          id?: string
+        }
+        Update: {
+          body_hash?: string
+          change_summary?: string | null
+          changed_fields?: Json
+          created_at?: string
+          grant_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_versions_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grants: {
+        Row: {
+          acceptance_end_at: string | null
+          acceptance_start_at: string | null
+          body_hash: string
+          created_at: string
+          detail_text: string | null
+          external_id: string | null
+          external_url: string | null
+          fetched_at: string
+          id: string
+          industry: string | null
+          issuer: string | null
+          max_amount: number | null
+          normalized_key: string
+          region_code: string | null
+          source_id: string
+          subsidy_rate: string | null
+          summary: string | null
+          target_area: string | null
+          target_employees: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acceptance_end_at?: string | null
+          acceptance_start_at?: string | null
+          body_hash: string
+          created_at?: string
+          detail_text?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          fetched_at?: string
+          id?: string
+          industry?: string | null
+          issuer?: string | null
+          max_amount?: number | null
+          normalized_key: string
+          region_code?: string | null
+          source_id: string
+          subsidy_rate?: string | null
+          summary?: string | null
+          target_area?: string | null
+          target_employees?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acceptance_end_at?: string | null
+          acceptance_start_at?: string | null
+          body_hash?: string
+          created_at?: string
+          detail_text?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          fetched_at?: string
+          id?: string
+          industry?: string | null
+          issuer?: string | null
+          max_amount?: number | null
+          normalized_key?: string
+          region_code?: string | null
+          source_id?: string
+          subsidy_rate?: string | null
+          summary?: string | null
+          target_area?: string | null
+          target_employees?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grants_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "grant_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_assessments_link: {
         Row: {
           assessment_id: string

@@ -10,6 +10,13 @@ import {
   isScormContentPath,
 } from '@/lib/security/headers'
 
+/**
+ * GitHub Actions cron から呼ばれるバッチ実行エンドポイント。
+ * ログインセッションを持たないため通常の 401 ガードから除外する。
+ * 各ルートが x-cron-secret ヘッダーを自前で検証しており、素通りにはならない。
+ */
+const CRON_API_PATHS = ['/api/auto-distribution/run-due', '/api/grant-notifier/run-batch']
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isDev = process.env.NODE_ENV === 'development'
@@ -30,7 +37,9 @@ export async function middleware(request: NextRequest) {
   // Supabase セッション更新とUser情報の取得 (Edge Runtime)
   const { response, user, supabase } = await updateSession(request)
   applySecurityHeaders(response)
-  const isApiRoute = pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')
+  const isCronApiRoute = CRON_API_PATHS.includes(pathname)
+  const isApiRoute =
+    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && !isCronApiRoute
 
   // アクセスログは GET（実際のページ表示）のみ。POST は Server Action / Form 送信がほとんどで、
   // Edge で毎回 await insert すると大きい multipart 時にタイムアウトし、RSC 以外の応答になり
@@ -106,7 +115,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // 未認証ユーザーが保護されたページにアクセス
-  if (!user && !isAuthPage && !isPublicPage) {
+  // （cron エンドポイントはルート側で x-cron-secret を検証するため /login へ飛ばさない）
+  if (!user && !isAuthPage && !isPublicPage && !isCronApiRoute) {
     return applySecurityHeaders(NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url)))
   }
 

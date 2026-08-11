@@ -7,13 +7,14 @@ import ReceivingProcessModal from './ReceivingProcessModal'
 
 /**
  * 入荷登録フォーム（製造元 →（株）ミュー）
- * QRスキャンで読み取った製造ロット番号・有効期限を保持し、スキャン成功時に自動で
- * 入荷処理モーダルを開いて数量を確認したうえで在庫登録する
+ * QRスキャンで読み取った製造ロット番号・シリアルNoを保持し、スキャン成功時に自動で
+ * 入荷処理モーダルを開いて有効期限・数量を確認したうえで在庫登録する
+ * （有効期限はQRペイロードに含まれないため、モーダル側で毎回手入力する）
  */
 export default function ReceivingForm() {
   const [lastScanned, setLastScanned] = useState<{
     lotNo: string
-    expiration: string
+    serialNo: string
   } | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [message, setMessage] = useState<{
@@ -22,8 +23,8 @@ export default function ReceivingForm() {
   } | null>(null)
 
   const handleScanSuccess = (decodedText: string) => {
-    const { lotNo, expiration } = parseLotQrContent(decodedText)
-    setLastScanned({ lotNo, expiration })
+    const { lotNo, serialNo } = parseLotQrContent(decodedText)
+    setLastScanned({ lotNo, serialNo })
     setMessage(null)
     setIsModalOpen(true)
   }
@@ -50,7 +51,9 @@ export default function ReceivingForm() {
         <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
           <h3 className="text-sm font-semibold text-blue-900 mb-1">直前のスキャン内容:</h3>
           <p className="text-xs text-blue-800">ロット番号: {lastScanned.lotNo}</p>
-          <p className="text-xs text-blue-800">有効期限: {lastScanned.expiration}</p>
+          {lastScanned.serialNo && (
+            <p className="text-xs text-blue-800">シリアルNo: {lastScanned.serialNo}</p>
+          )}
         </div>
       )}
 
@@ -76,7 +79,7 @@ export default function ReceivingForm() {
         <ReceivingProcessModal
           hasScanned={!!lastScanned}
           scannedLotNo={lastScanned?.lotNo ?? ''}
-          scannedExpiration={lastScanned?.expiration ?? ''}
+          scannedSerialNo={lastScanned?.serialNo ?? ''}
           onClose={() => setIsModalOpen(false)}
           onSuccess={setMessage}
         />

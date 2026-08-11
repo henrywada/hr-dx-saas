@@ -8,7 +8,8 @@ import { buildLotQrPayload } from '@/features/myou/lib/qr-parser'
 // 外部サービスに依存せず、同梱の qrcode.react でローカル生成する
 function generateTestPayload(): string {
   const lotNo = 'LOT-TEST-' + Math.floor(1000 + Math.random() * 9000)
-  return buildLotQrPayload(lotNo, '2026-01-01', '2026-12-31')
+  const serialNo = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0')
+  return buildLotQrPayload(lotNo, '2026-01-01', serialNo)
 }
 
 interface TestQrModalProps {

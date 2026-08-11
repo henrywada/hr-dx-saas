@@ -33,7 +33,10 @@ export interface MyouLot {
   lot_no: string
   qr_payload: string
   manufactured_date: string | null
-  expiration_date: string
+  /** 有効期限は出荷時（トレーサビリティラベル発行時）に入力するため、ロットは常にnull */
+  expiration_date: string | null
+  /** 入荷QRのNo（シリアルNo、任意項目）。新規ロット作成時のみ記録される */
+  serial_no: string | null
   quantity_total: number
   quantity_remaining: number
   status: MyouLotStatus
@@ -45,7 +48,10 @@ export interface MyouLot {
 export interface LotInventoryItem {
   id: string
   lot_no: string
-  expiration_date: string
+  /** 有効期限は出荷時に入力するため、ロットは常にnull */
+  expiration_date: string | null
+  /** 入荷QRのNo（シリアルNo、任意項目） */
+  serial_no: string | null
   quantity_total: number
   quantity_remaining: number
   received_at: string | null
@@ -62,6 +68,8 @@ export interface DeliveryLogWithCompany {
   registered_at: string
   customer_order_no: string | null
   trace_no: string | null
+  /** 出荷登録時に入力された有効期限 */
+  expiration_date: string | null
   myou_companies: { name: string } | null
 }
 
@@ -133,7 +141,7 @@ export const dateStringSchema = z
 /** 入荷登録の入力（スキャン済みの場合は scanned_lot_no を指定する） */
 export const receiveLotSchema = z.object({
   scanned_lot_no: z.string().trim().optional(),
-  expiration_date: dateStringSchema,
+  scanned_serial_no: z.string().trim().optional(),
   quantity: z
     .number()
     .int()
@@ -142,11 +150,12 @@ export const receiveLotSchema = z.object({
 })
 export type ReceiveLotInput = z.infer<typeof receiveLotSchema>
 
-/** 出荷登録（ロット引当）の入力 */
+/** 出荷登録（ロット引当）の入力（有効期限は出荷時にここで入力する） */
 export const deliverFromLotSchema = z.object({
   lot_no: z.string().trim().min(1, 'ロット番号が読み取れませんでした'),
   company_id: z.string().uuid('出荷先（施工会社）を選択してください'),
   quantity: z.number().int().min(1, '1以上を指定してください'),
+  expiration_date: dateStringSchema,
   customer_order_no: z
     .string()
     .trim()

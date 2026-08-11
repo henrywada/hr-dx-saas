@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { AlertTriangle, CheckCircle2, PlayCircle, XCircle } from 'lucide-react'
-import { triggerGrantBatch } from '@/features/grant-notifier/actions'
-import type { SaasGrantNotifierDashboard as DashboardData } from '@/features/grant-notifier/queries'
+import { AlertTriangle, CheckCircle2, PlayCircle, Trash2, XCircle } from 'lucide-react'
+import { deleteGrantBatchRun, triggerGrantBatch } from '@/features/grant-notifier/actions'
+import type {
+  BatchRunView,
+  SaasGrantNotifierDashboard as DashboardData,
+} from '@/features/grant-notifier/queries'
 import type { BatchStep } from '@/features/grant-notifier/types'
 import { formatDuration, formatJstDateTime } from '@/features/grant-notifier/components/format'
 
@@ -78,7 +81,9 @@ function Card({
 export function SaasGrantNotifierDashboard({ data }: SaasGrantNotifierDashboardProps) {
   const [result, setResult] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [runningLabel, setRunningLabel] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<BatchRunView | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isDeleting, startDeleteTransition] = useTransition()
 
   function handleRerun(steps: BatchStep[], label: string) {
     setResult(null)
@@ -100,6 +105,20 @@ export function SaasGrantNotifierDashboard({ data }: SaasGrantNotifierDashboardP
           : `${res.error ?? '実行に失敗しました'}${detail ? `: ${detail}` : ''}`,
       })
       setRunningLabel(null)
+    })
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return
+
+    startDeleteTransition(async () => {
+      const res = await deleteGrantBatchRun(deleteTarget.id)
+      setResult(
+        res.ok
+          ? { tone: 'success', text: '実行履歴を1件削除しました。' }
+          : { tone: 'error', text: res.error ?? '削除に失敗しました' }
+      )
+      setDeleteTarget(null)
     })
   }
 
@@ -273,6 +292,9 @@ export function SaasGrantNotifierDashboard({ data }: SaasGrantNotifierDashboardP
                 <th className="px-4 py-1 font-medium">所要時間</th>
                 <th className="px-4 py-1 font-medium">処理件数</th>
                 <th className="px-4 py-1 font-medium">エラー</th>
+                <th className="w-12 px-4 py-1 font-medium">
+                  <span className="sr-only">操作</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -292,11 +314,24 @@ export function SaasGrantNotifierDashboard({ data }: SaasGrantNotifierDashboardP
                   </td>
                   <td className="px-4 py-1 font-mono text-xs text-slate-600">{r.processedCount}</td>
                   <td className="px-4 py-1 text-xs text-slate-600">{r.errorMessage ?? '—'}</td>
+                  <td className="px-4 py-1 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(r)}
+                      // 実行中のログは進行中バッチの記録なので消させない
+                      disabled={r.status === 'running' || isDeleting}
+                      className="rounded-lg p-1.5 text-[#57606a] transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#57606a]"
+                      title={r.status === 'running' ? '実行中は削除できません' : '削除'}
+                      aria-label={`${formatJstDateTime(r.startedAt)} の${STEP_LABEL[r.step] ?? r.step}の実行履歴を削除`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {data.batchRuns.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-xs text-slate-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-xs text-slate-500">
                     実行履歴がありません。
                   </td>
                 </tr>
@@ -305,6 +340,50 @@ export function SaasGrantNotifierDashboard({ data }: SaasGrantNotifierDashboardP
           </table>
         </div>
       </Card>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl border border-[#e2e6ec] bg-white shadow-2xl">
+            <div className="space-y-4 p-6">
+              <h3 className="text-lg font-bold text-[#24292f]">実行履歴を削除</h3>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <p className="text-sm text-red-800">
+                  <span className="font-bold">
+                    {formatJstDateTime(deleteTarget.startedAt)} の
+                    {STEP_LABEL[deleteTarget.step] ?? deleteTarget.step}
+                  </span>
+                  の実行履歴を削除しますか？
+                </p>
+                <p className="mt-1 text-xs text-red-600">この操作は取り消せません。</p>
+              </div>
+              <p className="text-xs text-slate-500">
+                削除するのは実行ログのみです。収集した助成金・判定結果・配信履歴には影響しません。
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="rounded-lg border border-[#e2e6ec] bg-white px-4 py-2 text-sm font-medium text-[#57606a] transition-colors hover:bg-[#f6f8fa]"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isDeleting ? '削除中...' : '削除する'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,8 +11,9 @@ interface InventoryDeliveryTableProps {
 }
 
 /**
- * 出荷登録「在庫表より」タブ。有効期限・ロット番号・在庫残数の昇順（queries.getLots() 側で
- * 確定済み）に並んだ在庫一覧に「出荷」ボタンを添えて表示する。
+ * 出荷登録「在庫表より」タブ。入庫日付・ロット番号・在庫残数の昇順（queries.getLots() 側で
+ * 確定済み、入庫日が古い順のFIFO）に並んだ在庫一覧に「出荷」ボタンを添えて表示する。
+ * 有効期限は出荷時に入力するためロットには付与されず、この一覧には表示しない。
  */
 export default function InventoryDeliveryTable({
   items,
@@ -30,9 +31,9 @@ export default function InventoryDeliveryTable({
 
   const columns: Column<LotInventoryItem>[] = [
     {
-      key: 'expiration_date',
-      label: '有効期限',
-      render: value => value ?? '未設定',
+      key: 'received_at',
+      label: '入庫日付',
+      render: value => value ?? '-',
     },
     {
       key: 'lot_no',
@@ -47,11 +48,6 @@ export default function InventoryDeliveryTable({
           {value} <span className="text-gray-400">/ {item.quantity_total}</span>
         </span>
       ),
-    },
-    {
-      key: 'received_at',
-      label: '入庫日付',
-      render: value => value ?? '-',
     },
     {
       key: 'id',

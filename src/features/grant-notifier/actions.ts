@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getServerUser } from '@/lib/auth/server-user'
 import { writeAuditLog } from '@/lib/log/actions'
 import { APP_ROUTES } from '@/config/routes'
@@ -115,4 +116,46 @@ export async function triggerGrantBatch(
       errorMessage: s.errorMessage,
     })),
   }
+}
+
+/**
+ * バッチ実行履歴を1件削除する（/saas_adm/grant-notifier）。
+ * 設定ミス等で失敗した古いログを片付けるための運用操作。
+ *
+ * grant_batch_runs は SELECT ポリシーしか持たない（書込はバッチの service_role のみ）ため、
+ * SaaS管理者の削除には createAdminClient を使う。エンドユーザー向けではない
+ * SaaS運営専用の操作であり、saas-law-knowledge/actions.ts と同じ扱い。
+ * 権限確認と監査ログを必ず先に行う。
+ */
+export async function deleteGrantBatchRun(runId: string): Promise<ActionResult> {
+  const user = await getServerUser()
+  if (!user || (user.role !== 'supaUser' && user.appRole !== 'developer')) {
+    return { ok: false, error: '権限がありません' }
+  }
+
+  if (!z.uuid().safeParse(runId).success) {
+    return { ok: false, error: '対象の指定が正しくありません' }
+  }
+
+  await writeAuditLog({
+    action: 'grant_notifier.batch_run.delete',
+    path: APP_ROUTES.SAAS.GRANT_NOTIFIER,
+    details: { runId },
+  })
+
+  const supabase = createAdminClient()
+  // 実行中のログは消さない（進行中のバッチの記録を失わないため）
+  const { error } = await supabase
+    .from('grant_batch_runs')
+    .delete()
+    .eq('id', runId)
+    .neq('status', 'running')
+
+  if (error) {
+    console.error('[grant-notifier] バッチ実行履歴の削除に失敗しました:', error.message)
+    return { ok: false, error: '削除に失敗しました' }
+  }
+
+  revalidatePath(APP_ROUTES.SAAS.GRANT_NOTIFIER)
+  return { ok: true }
 }

@@ -7,31 +7,30 @@ import { receiveLot } from '@/features/myou/actions'
 interface ReceivingProcessModalProps {
   hasScanned: boolean
   scannedLotNo: string
-  scannedExpiration: string
+  scannedSerialNo: string
   onClose: () => void
   onSuccess: (message: { type: 'success' | 'warning'; text: string }) => void
 }
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * 入荷処理モーダル。
  * スキャン済みならそのロット番号を起点に数量を加算登録し、未スキャンなら本日日付で
  * 新規ロット番号を採番して数量分を新規ロットとして在庫登録する。
+ * QRにシリアルNo（NO:）が含まれる場合は、新規ロット作成時のみあわせて記録する。
+ * 有効期限は入荷時には扱わず、出荷登録時に入力する運用とする。
  */
 export default function ReceivingProcessModal({
   hasScanned,
   scannedLotNo,
-  scannedExpiration,
+  scannedSerialNo,
   onClose,
   onSuccess,
 }: ReceivingProcessModalProps) {
-  const [expiration, setExpiration] = useState(hasScanned ? scannedExpiration : '')
   const [quantity, setQuantity] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const canSubmit = !Number.isNaN(quantity) && quantity >= 1 && DATE_PATTERN.test(expiration)
+  const canSubmit = !Number.isNaN(quantity) && quantity >= 1
 
   const handleSubmit = () => {
     if (!canSubmit || isPending) return
@@ -40,7 +39,7 @@ export default function ReceivingProcessModal({
     startTransition(async () => {
       const result = await receiveLot({
         scanned_lot_no: hasScanned ? scannedLotNo : undefined,
-        expiration_date: expiration,
+        scanned_serial_no: hasScanned ? scannedSerialNo : undefined,
         quantity,
       })
 
@@ -80,22 +79,6 @@ export default function ReceivingProcessModal({
               value={hasScanned ? scannedLotNo : '自動採番されます'}
               readOnly
               className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="receiving-expiration"
-              className="block text-xs font-medium text-gray-700 mb-1"
-            >
-              有効期限
-            </label>
-            <input
-              id="receiving-expiration"
-              type="date"
-              value={expiration}
-              onChange={e => setExpiration(e.target.value)}
-              readOnly={hasScanned}
-              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-50"
             />
           </div>
           <div>

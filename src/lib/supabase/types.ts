@@ -5275,6 +5275,7 @@ export type Database = {
           customer_order_no: string | null
           delivered_by: string | null
           delivery_date: string
+          expiration_date: string | null
           id: string
           lot_id: string
           quantity: number
@@ -5288,6 +5289,7 @@ export type Database = {
           customer_order_no?: string | null
           delivered_by?: string | null
           delivery_date?: string
+          expiration_date?: string | null
           id?: string
           lot_id: string
           quantity?: number
@@ -5301,6 +5303,7 @@ export type Database = {
           customer_order_no?: string | null
           delivered_by?: string | null
           delivery_date?: string
+          expiration_date?: string | null
           id?: string
           lot_id?: string
           quantity?: number
@@ -5329,7 +5332,7 @@ export type Database = {
       myou_lots: {
         Row: {
           created_at: string
-          expiration_date: string
+          expiration_date: string | null
           id: string
           lot_no: string
           manufactured_date: string | null
@@ -5337,12 +5340,13 @@ export type Database = {
           quantity_remaining: number
           quantity_total: number
           received_at: string | null
+          serial_no: string | null
           status: string
           tenant_id: string
         }
         Insert: {
           created_at?: string
-          expiration_date: string
+          expiration_date?: string | null
           id?: string
           lot_no: string
           manufactured_date?: string | null
@@ -5350,12 +5354,13 @@ export type Database = {
           quantity_remaining?: number
           quantity_total?: number
           received_at?: string | null
+          serial_no?: string | null
           status?: string
           tenant_id?: string
         }
         Update: {
           created_at?: string
-          expiration_date?: string
+          expiration_date?: string | null
           id?: string
           lot_no?: string
           manufactured_date?: string | null
@@ -5363,6 +5368,7 @@ export type Database = {
           quantity_remaining?: number
           quantity_total?: number
           received_at?: string | null
+          serial_no?: string | null
           status?: string
           tenant_id?: string
         }
@@ -11125,6 +11131,7 @@ export type Database = {
           p_customer_order_no?: string
           p_delivered_by: string
           p_delivery_date: string
+          p_expiration_date: string
           p_lot_no: string
           p_quantity: number
           p_trace_label_id?: string
@@ -11137,11 +11144,11 @@ export type Database = {
       }
       myou_receive_lot: {
         Args: {
-          p_expiration_date: string
           p_lot_no: string
           p_qr_payload: string
           p_quantity: number
           p_received_at: string
+          p_serial_no?: string
         }
         Returns: {
           is_new: boolean

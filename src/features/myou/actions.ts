@@ -160,10 +160,10 @@ export async function receiveLot(formData: ReceiveLotInput): Promise<{
   const { data: result, error: rpcError } = await supabase
     .rpc('myou_receive_lot', {
       p_lot_no: lotNo,
-      p_qr_payload: buildLotQrPayload(lotNo, '', input.expiration_date),
-      p_expiration_date: input.expiration_date,
+      p_qr_payload: buildLotQrPayload(lotNo),
       p_quantity: input.quantity,
       p_received_at: todayYmd,
+      p_serial_no: input.scanned_serial_no || null,
     })
     .single()
 
@@ -262,6 +262,7 @@ export async function deliverFromLot(formData: DeliverFromLotInput): Promise<{
       p_delivered_by: user.name ?? null,
       p_delivery_date: todayYmd,
       p_trace_no: traceNo,
+      p_expiration_date: input.expiration_date,
       p_customer_order_no: input.customer_order_no || null,
       p_trace_label_id: traceLabelId,
     })

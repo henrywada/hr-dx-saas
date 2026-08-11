@@ -208,7 +208,8 @@ export async function getAlertLogs(): Promise<AlertLogRow[]> {
 
 /**
  * 在庫（残数がある）ロットの一覧を取得する
- * 有効期限・ロット番号・在庫残数の昇順に並べる
+ * 有効期限は出荷時に入力するためロットには付与されない。入庫日が古い順（FIFO）・
+ * ロット番号・在庫残数の昇順に並べる
  */
 export async function getLots(): Promise<LotInventoryItem[]> {
   const user = await getServerUser()
@@ -217,10 +218,12 @@ export async function getLots(): Promise<LotInventoryItem[]> {
   const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('myou_lots')
-    .select('id, lot_no, expiration_date, quantity_total, quantity_remaining, received_at')
+    .select(
+      'id, lot_no, expiration_date, serial_no, quantity_total, quantity_remaining, received_at'
+    )
     .eq('tenant_id', user.tenant_id)
     .gt('quantity_remaining', 0)
-    .order('expiration_date', { ascending: true, nullsFirst: false })
+    .order('received_at', { ascending: true, nullsFirst: false })
     .order('lot_no', { ascending: true })
     .order('quantity_remaining', { ascending: true })
     .limit(LOTS_FETCH_LIMIT)
@@ -259,9 +262,9 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       registered_at,
       customer_order_no,
       trace_no,
+      expiration_date,
       myou_lots (
-        lot_no,
-        expiration_date
+        lot_no
       ),
       myou_companies (
         name,
@@ -295,7 +298,8 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       registered_at: string
       customer_order_no: string | null
       trace_no: string | null
-      myou_lots: { lot_no: string; expiration_date: string | null } | null
+      expiration_date: string | null
+      myou_lots: { lot_no: string } | null
       myou_companies: { name: string; company_no: number } | null
     }) => ({
       id: row.id,
@@ -310,7 +314,7 @@ export async function getDeliveryLogs(): Promise<DeliveryHistoryRow[]> {
       registered_at: row.registered_at,
       customer_order_no: row.customer_order_no,
       trace_no: row.trace_no,
-      expiration_date: row.myou_lots?.expiration_date ?? null,
+      expiration_date: row.expiration_date,
     })
   )
 }

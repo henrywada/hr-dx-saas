@@ -8,28 +8,38 @@ interface DeliverQuantityModalProps {
   item: LotInventoryItem
   companyName: string
   defaultQuantity: number
+  defaultExpirationDate: string
   isPending: boolean
   error: string | null
   onClose: () => void
-  onConfirm: (quantity: number) => void
+  onConfirm: (quantity: number, expirationDate: string) => void
 }
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * 出荷登録「在庫表より」タブの「出荷」ボタンから開く数量指定モーダル。
  * 在庫残数を超える数量は指定できない。
+ * 有効期限は出荷時にここで入力する（共通欄の値を初期値とし、ここで上書き可能）。
  */
 export default function DeliverQuantityModal({
   item,
   companyName,
   defaultQuantity,
+  defaultExpirationDate,
   isPending,
   error,
   onClose,
   onConfirm,
 }: DeliverQuantityModalProps) {
   const [quantity, setQuantity] = useState(defaultQuantity)
+  const [expirationDate, setExpirationDate] = useState(defaultExpirationDate)
 
-  const canSubmit = !Number.isNaN(quantity) && quantity >= 1 && quantity <= item.quantity_remaining
+  const canSubmit =
+    !Number.isNaN(quantity) &&
+    quantity >= 1 &&
+    quantity <= item.quantity_remaining &&
+    DATE_PATTERN.test(expirationDate)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
@@ -83,6 +93,21 @@ export default function DeliverQuantityModal({
               className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          <div>
+            <label
+              htmlFor="deliver-expiration"
+              className="block text-xs font-medium text-gray-700 mb-1"
+            >
+              有効期限
+            </label>
+            <input
+              id="deliver-expiration"
+              type="date"
+              value={expirationDate}
+              onChange={e => setExpirationDate(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
           {error && (
             <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800">
@@ -93,7 +118,7 @@ export default function DeliverQuantityModal({
 
           <button
             type="button"
-            onClick={() => onConfirm(quantity)}
+            onClick={() => onConfirm(quantity, expirationDate)}
             disabled={!canSubmit || isPending}
             className="w-full flex items-center justify-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >

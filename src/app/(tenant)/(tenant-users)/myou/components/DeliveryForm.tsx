@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { deliverFromLot } from '@/features/myou/actions'
 import { parseLotQrContent } from '@/features/myou/lib/qr-parser'
+import { toJSTDateString } from '@/lib/datetime'
 import type { LotInventoryItem, MyouCompany, TraceLabel } from '@/features/myou/types'
 import QrScanner from './QrScanner'
 import TraceQrModal from './TraceQrModal'
@@ -18,12 +19,23 @@ type DeliveryTab = 'qr' | 'inventory'
 
 type Message = { type: 'success' | 'error' | 'warning'; text: string }
 
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+/** 有効期限の初期値（本日 + 2年）をJST基準のYYYY-MM-DDで返す */
+function getDefaultExpirationDate(): string {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() + 2)
+  return toJSTDateString(date)
+}
+
 /**
  * 出荷登録フォーム（（株）ミュー → 施工会社、ロット引当）
- * 「QRスキャン」タブ：出荷先・受注数量を指定したうえでロットQRをスキャンし、数量分をロット残数から
- * 引き当てて出荷登録する。
- * 「在庫表より」タブ：在庫一覧（有効期限・ロット番号・在庫残数の昇順）から出荷したいロットの
- * 「出荷」ボタンを押し、数量を指定して同様に出荷登録する。
+ * 「QRスキャン」タブ：出荷先・受注数量・有効期限を指定したうえでロットQRをスキャンし、数量分を
+ * ロット残数から引き当てて出荷登録する。
+ * 「在庫表より」タブ：在庫一覧（入庫日・ロット番号・在庫残数の昇順）から出荷したいロットの
+ * 「出荷」ボタンを押し、数量・有効期限（共通欄の値を初期値に、モーダル内で上書き可）を指定して
+ * 同様に出荷登録する。
+ * 有効期限はロット（入荷）側では扱わず、出荷（トレーサビリティラベル発行）のたびに入力する。
  * いずれの出荷経路も、ロット残数の減算・出荷履歴登録・トレーサビリティQR発行は Server Action
  * （deliverFromLot → RPC myou_deliver_from_lot）で単一トランザクションとして実行され、
  * 成功時はトレーサビリティQRの印刷モーダルを自動で開く。
@@ -34,6 +46,7 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [customerOrderNo, setCustomerOrderNo] = useState('')
   const [quantity, setQuantity] = useState(1)
+  const [expirationDate, setExpirationDate] = useState(getDefaultExpirationDate)
   const [activeTab, setActiveTab] = useState<DeliveryTab>('inventory')
   const [issuedLabel, setIssuedLabel] = useState<TraceLabel | null>(null)
   const [deliveringItem, setDeliveringItem] = useState<LotInventoryItem | null>(null)
@@ -41,12 +54,18 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<Message | null>(null)
 
-  const submitDelivery = (lotNo: string, qty: number, forItem: LotInventoryItem | null) => {
+  const submitDelivery = (
+    lotNo: string,
+    qty: number,
+    forItem: LotInventoryItem | null,
+    expDate: string
+  ) => {
     startTransition(async () => {
       const result = await deliverFromLot({
         lot_no: lotNo,
         company_id: selectedCompanyId,
         quantity: qty,
+        expiration_date: expDate,
         customer_order_no: customerOrderNo.trim() || undefined,
       })
 
@@ -74,10 +93,14 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
       setMessage({ type: 'error', text: '受注数量を入力してください。' })
       return
     }
+    if (!DATE_PATTERN.test(expirationDate)) {
+      setMessage({ type: 'error', text: '有効期限を入力してください。' })
+      return
+    }
 
     const { lotNo } = parseLotQrContent(decodedText)
     setMessage(null)
-    submitDelivery(lotNo, quantity, null)
+    submitDelivery(lotNo, quantity, null, expirationDate)
   }
 
   const handleDeliverClick = (item: LotInventoryItem) => {
@@ -90,9 +113,9 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
     setDeliveringItem(item)
   }
 
-  const handleModalConfirm = (qty: number) => {
+  const handleModalConfirm = (qty: number, expDate: string) => {
     if (!deliveringItem || isPending) return
-    submitDelivery(deliveringItem.lot_no, qty, deliveringItem)
+    submitDelivery(deliveringItem.lot_no, qty, deliveringItem, expDate)
   }
 
   const selectedCompanyName =
@@ -159,6 +182,18 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
             min={1}
             value={quantity}
             onChange={e => setQuantity(Number(e.target.value))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="expiration-date" className="block text-sm font-medium text-gray-700 mb-2">
+            有効期限
+          </label>
+          <input
+            id="expiration-date"
+            type="date"
+            value={expirationDate}
+            onChange={e => setExpirationDate(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -229,6 +264,7 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
             Number.isNaN(quantity) || quantity < 1 ? 1 : quantity,
             deliveringItem.quantity_remaining
           )}
+          defaultExpirationDate={expirationDate}
           isPending={isPending}
           error={modalError}
           onClose={() => {

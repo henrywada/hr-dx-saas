@@ -1,8 +1,9 @@
 /**
  * mYou 製造ロットQR／トレーサビリティQRコードのペイロード処理
  *
- * 製造ロットQR: 「LOT:<ロット番号>,MFG:<製造日 YYYY-MM-DD>,EXP:<有効期限 YYYY-MM-DD>」
- * 例: LOT:LOT-20260707-0001,MFG:2026-07-01,EXP:2026-12-31
+ * 製造ロットQR: 「LOT:<ロット番号>,MFG:<製造日 YYYY-MM-DD>,NO:<シリアルNo>」
+ * LOT は必須項目、MFG・NO は任意項目（省略可）。
+ * 例: LOT:LOT-20260707-0001,MFG:2026-07-01,NO:0001
  *
  * トレーサビリティQR（客先出荷単位）: 一般客がスマホでスキャンした際に案内ページが
  * 開くよう、公開ページ（/p/myou/trace/[id]）へのURLを埋め込む。
@@ -15,7 +16,7 @@
 export interface ParsedLotQrContent {
   lotNo: string
   manufacturedDate: string
-  expiration: string
+  serialNo: string
 }
 
 export interface ParsedTraceQrContent {
@@ -40,20 +41,21 @@ function parseKeyValuePairs(text: string): Map<string, string> {
 }
 
 /**
- * QRコードの読み取りテキストを解析して製造ロット番号・製造日・有効期限を取り出す。
+ * QRコードの読み取りテキストを解析して製造ロット番号・製造日・シリアルNoを取り出す。
  * 形式が合わない場合は全文をロット番号として扱う（手入力・旧ラベル互換）。
+ * MFG・NO は任意項目のため、含まれていなければ空文字を返す。
  */
 export function parseLotQrContent(text: string): ParsedLotQrContent {
   const pairs = parseKeyValuePairs(text)
   const lotNo = pairs.get('LOT') ?? ''
 
   if (!lotNo) {
-    return { lotNo: text.trim(), manufacturedDate: '', expiration: '' }
+    return { lotNo: text.trim(), manufacturedDate: '', serialNo: '' }
   }
   return {
     lotNo,
     manufacturedDate: pairs.get('MFG') ?? '',
-    expiration: pairs.get('EXP') ?? '',
+    serialNo: pairs.get('NO') ?? '',
   }
 }
 
@@ -103,13 +105,19 @@ export function extractSearchIdentifier(text: string): string {
   return lot.lotNo
 }
 
-/** ロット番号・製造日・有効期限から製造ロットQRペイロード文字列を組み立てる */
+/**
+ * ロット番号・製造日・シリアルNoから製造ロットQRペイロード文字列を組み立てる。
+ * LOT は必須、manufacturedDate・serialNo は空文字／未指定なら省略する。
+ */
 export function buildLotQrPayload(
   lotNo: string,
-  manufacturedDate: string,
-  expiration: string
+  manufacturedDate?: string,
+  serialNo?: string
 ): string {
-  return `LOT:${lotNo},MFG:${manufacturedDate},EXP:${expiration}`
+  const parts = [`LOT:${lotNo}`]
+  if (manufacturedDate) parts.push(`MFG:${manufacturedDate}`)
+  if (serialNo) parts.push(`NO:${serialNo}`)
+  return parts.join(',')
 }
 
 /** ロット番号の接頭辞 */

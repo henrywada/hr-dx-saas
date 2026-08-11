@@ -15,33 +15,45 @@ import {
   parseTraceQrContent,
 } from './qr-parser'
 
-test('標準形式の製造ロットQRペイロードからロット番号・製造日・有効期限を取り出せる', () => {
-  const result = parseLotQrContent('LOT:LOT-20260707-0001,MFG:2026-07-01,EXP:2026-12-31')
+test('標準形式の製造ロットQRペイロードからロット番号・製造日・シリアルNoを取り出せる', () => {
+  const result = parseLotQrContent('LOT:LOT-20260707-0001,MFG:2026-07-01,NO:0001')
   assert.equal(result.lotNo, 'LOT-20260707-0001')
   assert.equal(result.manufacturedDate, '2026-07-01')
-  assert.equal(result.expiration, '2026-12-31')
+  assert.equal(result.serialNo, '0001')
 })
 
 test('parseLotQrContent はキーの大文字小文字と空白を許容する', () => {
-  const result = parseLotQrContent(' lot : ABC-123 , mfg : 2027-01-01 , exp : 2027-01-15 ')
+  const result = parseLotQrContent(' lot : ABC-123 , mfg : 2027-01-01 , no : 0099 ')
   assert.equal(result.lotNo, 'ABC-123')
   assert.equal(result.manufacturedDate, '2027-01-01')
-  assert.equal(result.expiration, '2027-01-15')
+  assert.equal(result.serialNo, '0099')
 })
 
 test('parseLotQrContent は形式に合わないテキストを全文ロット番号として扱う', () => {
   const result = parseLotQrContent('PLAIN-LOT-999')
   assert.equal(result.lotNo, 'PLAIN-LOT-999')
   assert.equal(result.manufacturedDate, '')
-  assert.equal(result.expiration, '')
+  assert.equal(result.serialNo, '')
+})
+
+test('parseLotQrContent は MFG・NO が無くても LOT のみで解析できる（任意項目）', () => {
+  const result = parseLotQrContent('LOT:LOT-20260707-0005')
+  assert.equal(result.lotNo, 'LOT-20260707-0005')
+  assert.equal(result.manufacturedDate, '')
+  assert.equal(result.serialNo, '')
 })
 
 test('buildLotQrPayload は parseLotQrContent と往復できる', () => {
-  const payload = buildLotQrPayload('LOT-20260707-0003', '2026-07-01', '2026-12-31')
+  const payload = buildLotQrPayload('LOT-20260707-0003', '2026-07-01', '0003')
   const result = parseLotQrContent(payload)
   assert.equal(result.lotNo, 'LOT-20260707-0003')
   assert.equal(result.manufacturedDate, '2026-07-01')
-  assert.equal(result.expiration, '2026-12-31')
+  assert.equal(result.serialNo, '0003')
+})
+
+test('buildLotQrPayload は manufacturedDate・serialNo を省略すると LOT のみのペイロードを生成する', () => {
+  const payload = buildLotQrPayload('LOT-20260707-0004')
+  assert.equal(payload, 'LOT:LOT-20260707-0004')
 })
 
 test('buildLotNo は LOT-YYYYMMDD-NNNN 形式で採番する', () => {
@@ -158,7 +170,7 @@ test('extractSearchIdentifier は新形式（公開ページURL）からもTrace
 })
 
 test('extractSearchIdentifier はTraceNoが無ければロット番号を返す', () => {
-  const id = extractSearchIdentifier('LOT:LOT-20260707-0001,MFG:2026-07-01,EXP:2026-12-31')
+  const id = extractSearchIdentifier('LOT:LOT-20260707-0001,MFG:2026-07-01,NO:0001')
   assert.equal(id, 'LOT-20260707-0001')
 })
 

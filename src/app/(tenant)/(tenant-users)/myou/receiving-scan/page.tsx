@@ -48,7 +48,7 @@ export default function ReceivingScanPage() {
             製造元から段ボール（ロット）が納品されたら、この画面でロットQRコードをスキャンしてください。
           </li>
           <li>
-            スキャン後に「入荷処理へ進む」を押すと、ロット番号を確認のうえ有効期限・数量（缶の本数）を入力して在庫登録できます。
+            スキャン後に「入荷処理へ進む」を押すと、ロット番号を確認のうえ数量（缶の本数）を入力して在庫登録できます（有効期限は出荷登録時に入力します）。
           </li>
           <li>
             QRコードをスキャンせずに「入荷処理へ進む」を押した場合は、ロット番号を自動採番して新規登録できます。
@@ -61,6 +61,10 @@ export default function ReceivingScanPage() {
             QRコード形式：LOT:&lt;ロット番号&gt;,MFG:&lt;製造日YYYY-MM-DD&gt;,NO:&lt;シリアルNo&gt;（LOTは必須、MFG・NOは任意）
           </li>
           <li>ロット番号：LOT-YYYYMMDD-NNNN（発行日、当日通番4桁ゼロ埋め）</li>
+          <li>
+            シリアルNo（任意）:
+            セルフィールMS缶の単体にユニークな番号でトレーサビリティで使用される。
+          </li>
         </ul>
         <ReceivingTestQrButton />
       </div>

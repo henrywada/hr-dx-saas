@@ -109,8 +109,9 @@ export default function TraceQrModal({ label, onClose }: TraceQrModalProps) {
           .print-target により、サイドバー等の共通レイアウトを含め印刷時はこの要素のみが表示される */}
       <div className="print-target hidden print:grid print:grid-cols-3 print:content-start print:items-start print:justify-items-start print:gap-2 print:p-4">
         {copies.map((_, index) => (
-          <div key={index} className="flex items-start justify-start">
+          <div key={index} className="flex flex-col items-center">
             <QRCodeSVG value={label.qr_payload} size={110} marginSize={2} />
+            <p className="text-[9px] text-gray-700 mt-0.5">有効期限：{label.expiration_date}</p>
           </div>
         ))}
       </div>

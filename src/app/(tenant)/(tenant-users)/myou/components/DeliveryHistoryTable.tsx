@@ -68,7 +68,7 @@ export default function DeliveryHistoryTable({ logs, companies }: DeliveryHistor
     {
       key: 'used_quantity',
       label: '使用数',
-      render: value => `${value}個`,
+      render: value => (value ? `${value}個` : ''),
     },
     {
       key: 'expiration_date',

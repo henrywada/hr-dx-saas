@@ -27,6 +27,10 @@ export const KEYWORDS: readonly string[] = [
   '両立支援',
   '省エネ',
   '創業',
+  'AI',
+  'DX',
+  '業務改善',
+  '自動化',
 ]
 
 const searchItemSchema = z.looseObject({

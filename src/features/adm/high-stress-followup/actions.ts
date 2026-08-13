@@ -20,6 +20,7 @@ import { writeAuditLog } from '@/lib/log/actions'
 import { APP_ROUTES } from '@/config/routes'
 import { getMyCheckinTrend } from '@/features/condition-checkin/queries'
 import { getPulseSurveyHistoryByEmployeeId } from '@/features/adm/pulse-stress/queries'
+import { getLatestHealthCheckSummaryForEmployee } from '@/features/health-check/queries'
 import { getEmployeeOvertimeHistory } from '@/features/overtime/queries'
 import { calcMonthlyStatuses, getOvertimeThresholds } from '@/utils/overtimeThresholds'
 import type { EmployeeRelatedInfo } from './types'
@@ -231,6 +232,13 @@ export async function fetchTenantDoctors() {
   return getTenantDoctors(user.tenant_id)
 }
 
+/** 保健師一覧（健診面談予約用） */
+export async function fetchTenantNurses() {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+  return getTenantDoctors(user.tenant_id, ['company_nurse'])
+}
+
 export async function fetchTenantAllEmployees() {
   const user = await getServerUser()
   if (!user?.tenant_id) return []
@@ -358,16 +366,19 @@ export async function fetchEmployeeRelatedInfo(employeeId: string): Promise<Empl
 
   const supabase = await createClient()
 
-  const [conditionTrend, pulseHistory, overtimeMonths, overtimeThresholds] = await Promise.all([
-    getMyCheckinTrend(employeeId, 30),
-    getPulseSurveyHistoryByEmployeeId(employeeId, 12),
-    getEmployeeOvertimeHistory(supabase, employeeId, 12),
-    getOvertimeThresholds(supabase),
-  ])
+  const [conditionTrend, pulseHistory, overtimeMonths, overtimeThresholds, healthCheckSummary] =
+    await Promise.all([
+      getMyCheckinTrend(employeeId, 30),
+      getPulseSurveyHistoryByEmployeeId(employeeId, 12),
+      getEmployeeOvertimeHistory(supabase, employeeId, 12),
+      getOvertimeThresholds(supabase),
+      getLatestHealthCheckSummaryForEmployee(employeeId),
+    ])
 
   return {
     conditionTrend,
     pulseHistory,
     overtimeHistory: calcMonthlyStatuses(overtimeMonths, overtimeThresholds),
+    healthCheckSummary,
   }
 }

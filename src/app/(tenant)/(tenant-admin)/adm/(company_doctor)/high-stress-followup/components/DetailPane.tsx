@@ -238,6 +238,26 @@ export function DetailPane({ item, periodId, onRecordSaved }: Props) {
                 <EmployeeConditionHistory data={relatedInfo.conditionTrend} />
                 <EmployeePulseHistory data={relatedInfo.pulseHistory} />
                 <EmployeeOvertimeHistory data={relatedInfo.overtimeHistory} />
+                {relatedInfo.healthCheckSummary?.examDate && (
+                  <div className="bg-white rounded-lg border border-slate-200 p-3 space-y-1">
+                    <h4 className="text-xs font-semibold text-slate-800">直近の定期健診</h4>
+                    <p className="text-xs text-slate-600">
+                      受診日 {relatedInfo.healthCheckSummary.examDate}
+                      {relatedInfo.healthCheckSummary.overallStandardCode
+                        ? ` / 標準総合判定 ${relatedInfo.healthCheckSummary.overallStandardCode}`
+                        : ''}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      就業判定 {relatedInfo.healthCheckSummary.employmentJudgment ?? '未判定'}
+                      {relatedInfo.healthCheckSummary.nurseInterviewRecommended
+                        ? ' / 保健師面談推奨'
+                        : ''}
+                      {relatedInfo.healthCheckSummary.doctorInterviewRecommended
+                        ? ' / 産業医面談推奨'
+                        : ''}
+                    </p>
+                  </div>
+                )}
               </>
             ) : null}
           </div>

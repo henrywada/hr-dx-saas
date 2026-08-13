@@ -177,6 +177,20 @@ export const APP_ROUTES = {
     /** 助成金情報配信 助成金詳細（判定理由・確信度） */
     ADMIN_GRANT_NOTIFIER_ARCHIVE_DETAIL: (grantId: string) =>
       `/adm/grant-notifier/archive/${grantId}`,
+    /** 定期健康診断（本人結果） */
+    HEALTH_CHECK: '/health-check',
+    HEALTH_CHECK_DETAIL: (recordId: string) => `/health-check/${recordId}`,
+    /** 定期健康診断管理（人事）データ取込（CSV） */
+    ADMIN_HEALTH_CHECK: '/adm/health-check',
+    /** 定期健康診断管理 データ取込（手入力） */
+    ADMIN_HEALTH_CHECK_MANUAL: '/adm/health-check/manual',
+    /** 定期健康診断管理 受診率・組織分析 */
+    ADMIN_HEALTH_CHECK_ANALYSIS: '/adm/health-check/analysis',
+    /** 定期健康診断管理 実施回・機関・CSV・手入力項目 */
+    ADMIN_HEALTH_CHECK_SETTINGS: '/adm/health-check/settings',
+    /** 定期健康診断結果参照（産業医・保健師） */
+    ADMIN_HEALTH_CHECK_REVIEW: '/adm/health-check-review',
+    ADMIN_HEALTH_CHECK_REVIEW_DETAIL: (recordId: string) => `/adm/health-check-review/${recordId}`,
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

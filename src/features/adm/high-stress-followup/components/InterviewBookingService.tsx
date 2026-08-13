@@ -5,12 +5,17 @@ import { Calendar, ExternalLink, X } from 'lucide-react'
 import { InterviewCalendar } from '@/app/(tenant)/(tenant-admin)/adm/(company_doctor)/high-stress-followup/components/InterviewCalendar'
 import {
   fetchTenantDoctors,
+  fetchTenantNurses,
   fetchMyLatestStressResultId,
   fetchLatestActivePeriod,
 } from '@/features/adm/high-stress-followup/actions'
 import { useAuth } from '@/lib/auth/context'
 
-export function InterviewBookingService() {
+export function InterviewBookingService({
+  staffRole = 'company_doctor',
+}: {
+  staffRole?: 'company_doctor' | 'company_nurse'
+}) {
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([])
@@ -18,15 +23,16 @@ export function InterviewBookingService() {
   const [stressResultId, setStressResultId] = useState<string | null>(null)
   const [periodId, setPeriodId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const isNurse = staffRole === 'company_nurse'
 
   useEffect(() => {
     if (isOpen) {
       setLoading(true)
-      Promise.all([fetchTenantDoctors(), fetchMyLatestStressResultId(), fetchLatestActivePeriod()])
+      const staffPromise = isNurse ? fetchTenantNurses() : fetchTenantDoctors()
+      Promise.all([staffPromise, fetchMyLatestStressResultId(), fetchLatestActivePeriod()])
         .then(([docs, resId, pId]) => {
           setDoctors(docs)
           if (docs.length > 0) {
-            // すでに選択済みでなければ1人目をセット
             if (!doctorId) setDoctorId(docs[0].id)
           }
           setStressResultId(resId)
@@ -34,7 +40,7 @@ export function InterviewBookingService() {
         })
         .finally(() => setLoading(false))
     }
-  }, [isOpen, doctorId])
+  }, [isOpen, doctorId, isNurse])
 
   return (
     <>
@@ -50,12 +56,14 @@ export function InterviewBookingService() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <h4 className="text-xs font-semibold text-blue-600! group-hover:text-blue-700! transition-colors m-0">
-                産業医面談予約
+                {isNurse ? '保健師面談予約' : '産業医面談予約'}
               </h4>
               <ExternalLink className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             </div>
             <p className="text-slate-500 text-xs mt-0.5 leading-tight">
-              ご希望の日時で産業医面談を予約できます
+              {isNurse
+                ? 'ご希望の日時で保健師面談を予約できます'
+                : 'ご希望の日時で産業医面談を予約できます'}
             </p>
           </div>
         </div>
@@ -70,7 +78,9 @@ export function InterviewBookingService() {
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#24292f] text-lg">産業医面談の予約</h3>
+                  <h3 className="font-bold text-[#24292f] text-lg">
+                    {isNurse ? '保健師面談の予約' : '産業医面談の予約'}
+                  </h3>
                   <p className="text-[10px] text-[#57606a] font-medium tracking-wider">
                     ご希望の日時を選択して予約を確定させてください
                   </p>
@@ -90,7 +100,7 @@ export function InterviewBookingService() {
                 <div className="bg-white p-4 rounded-xl border border-[#e2e6ec] shadow-sm flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-500">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-[#24292f] whitespace-nowrap">
-                      担当産業医の選択:
+                      担当{isNurse ? '保健師' : '産業医'}の選択:
                     </span>
                   </div>
                   <select
@@ -118,7 +128,10 @@ export function InterviewBookingService() {
                 </div>
               ) : !doctorId ? (
                 <div className="flex flex-col items-center justify-center h-full text-[#57606a] bg-white rounded-xl border border-dashed border-[#e2e6ec] m-8">
-                  <p>予約可能な産業医が見つかりませんでした。管理者にお問い合わせください。</p>
+                  <p>
+                    予約可能な{isNurse ? '保健師' : '産業医'}
+                    が見つかりませんでした。管理者にお問い合わせください。
+                  </p>
                 </div>
               ) : (
                 <div className="flex-1 bg-white rounded-xl shadow-sm border border-[#e2e6ec] overflow-hidden min-h-[500px]">

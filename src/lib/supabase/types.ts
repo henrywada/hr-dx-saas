@@ -4101,6 +4101,702 @@ export type Database = {
           },
         ]
       }
+      health_check_campaigns: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          fiscal_year: number
+          id: string
+          round: number
+          start_date: string | null
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          fiscal_year: number
+          id?: string
+          round: number
+          start_date?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          fiscal_year?: number
+          id?: string
+          round?: number
+          start_date?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_csv_column_maps: {
+        Row: {
+          column_role: string
+          created_at: string
+          file_kind: string
+          header_name: string
+          id: string
+          institution_id: string
+          item_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          column_role?: string
+          created_at?: string
+          file_kind: string
+          header_name: string
+          id?: string
+          institution_id: string
+          item_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          column_role?: string
+          created_at?: string
+          file_kind?: string
+          header_name?: string
+          id?: string
+          institution_id?: string
+          item_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_csv_column_maps_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_csv_column_maps_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_csv_column_maps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_csv_format_presets: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          spec: Json
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          spec?: Json
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          spec?: Json
+        }
+        Relationships: []
+      }
+      health_check_institutions: {
+        Row: {
+          created_at: string
+          id: string
+          is_standard: boolean
+          name: string
+          preset_code: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_standard?: boolean
+          name: string
+          preset_code?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_standard?: boolean
+          name?: string
+          preset_code?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_institutions_preset_code_fkey"
+            columns: ["preset_code"]
+            isOneToOne: false
+            referencedRelation: "health_check_csv_format_presets"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "health_check_institutions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_item_results: {
+        Row: {
+          created_at: string
+          id: string
+          institution_judgment_raw: string | null
+          item_id: string
+          raw_unit: string | null
+          raw_value: string | null
+          record_id: string
+          standard_judgment_id: string | null
+          standard_unit: string | null
+          standard_value: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          institution_judgment_raw?: string | null
+          item_id: string
+          raw_unit?: string | null
+          raw_value?: string | null
+          record_id: string
+          standard_judgment_id?: string | null
+          standard_unit?: string | null
+          standard_value?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          institution_judgment_raw?: string | null
+          item_id?: string
+          raw_unit?: string | null
+          raw_value?: string | null
+          record_id?: string
+          standard_judgment_id?: string | null
+          standard_unit?: string | null
+          standard_value?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_item_results_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_item_results_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_item_results_standard_judgment_id_fkey"
+            columns: ["standard_judgment_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_judgment_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_item_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_item_thresholds: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          judgment_id: string | null
+          max_value: number | null
+          min_value: number | null
+          sex: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          judgment_id?: string | null
+          max_value?: number | null
+          min_value?: number | null
+          sex?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          judgment_id?: string | null
+          max_value?: number | null
+          min_value?: number | null
+          sex?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_item_thresholds_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_item_thresholds_judgment_id_fkey"
+            columns: ["judgment_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_judgment_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_item_thresholds_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_items: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_statutory: boolean
+          item_kind: string
+          name: string
+          sort_order: number
+          standard_unit: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_statutory?: boolean
+          item_kind?: string
+          name: string
+          sort_order?: number
+          standard_unit?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_statutory?: boolean
+          item_kind?: string
+          name?: string
+          sort_order?: number
+          standard_unit?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_judgment_code_maps: {
+        Row: {
+          created_at: string
+          id: string
+          institution_id: string
+          raw_code: string
+          standard_judgment_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          institution_id: string
+          raw_code: string
+          standard_judgment_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          institution_id?: string
+          raw_code?: string
+          standard_judgment_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_judgment_code_maps_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_judgment_code_maps_standard_judgment_id_fkey"
+            columns: ["standard_judgment_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_judgment_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_judgment_code_maps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_judgment_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          label: string | null
+          severity_rank: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          severity_rank?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          severity_rank?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_judgment_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_manual_form_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_manual_form_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_manual_form_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_medical_notes: {
+        Row: {
+          created_at: string
+          doctor_comment: string | null
+          doctor_judgment_code: string | null
+          id: string
+          nurse_comment: string | null
+          record_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_comment?: string | null
+          doctor_judgment_code?: string | null
+          id?: string
+          nurse_comment?: string | null
+          record_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_comment?: string | null
+          doctor_judgment_code?: string | null
+          id?: string
+          nurse_comment?: string | null
+          record_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_medical_notes_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: true
+            referencedRelation: "health_check_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_medical_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_records: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          doctor_interview_recommended: boolean
+          doctor_interview_recommended_at: string | null
+          employee_id: string
+          employment_judged_at: string | null
+          employment_judged_by: string | null
+          employment_judgment: string
+          exam_date: string
+          id: string
+          input_source: string
+          institution_id: string | null
+          institution_overall_judgment_raw: string | null
+          nurse_interview_recommended: boolean
+          nurse_interview_recommended_at: string | null
+          primary_secondary: string | null
+          standard_overall_judgment_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          doctor_interview_recommended?: boolean
+          doctor_interview_recommended_at?: string | null
+          employee_id: string
+          employment_judged_at?: string | null
+          employment_judged_by?: string | null
+          employment_judgment?: string
+          exam_date: string
+          id?: string
+          input_source?: string
+          institution_id?: string | null
+          institution_overall_judgment_raw?: string | null
+          nurse_interview_recommended?: boolean
+          nurse_interview_recommended_at?: string | null
+          primary_secondary?: string | null
+          standard_overall_judgment_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          doctor_interview_recommended?: boolean
+          doctor_interview_recommended_at?: string | null
+          employee_id?: string
+          employment_judged_at?: string | null
+          employment_judged_by?: string | null
+          employment_judgment?: string
+          exam_date?: string
+          id?: string
+          input_source?: string
+          institution_id?: string | null
+          institution_overall_judgment_raw?: string | null
+          nurse_interview_recommended?: boolean
+          nurse_interview_recommended_at?: string | null
+          primary_secondary?: string | null
+          standard_overall_judgment_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_records_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_records_employment_judged_by_fkey"
+            columns: ["employment_judged_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_records_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_records_standard_overall_judgment_id_fkey"
+            columns: ["standard_overall_judgment_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_judgment_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_check_unit_conversions: {
+        Row: {
+          created_at: string
+          from_unit: string
+          id: string
+          item_id: string
+          multiplier: number
+          tenant_id: string
+          to_unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_unit: string
+          id?: string
+          item_id: string
+          multiplier?: number
+          tenant_id: string
+          to_unit: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_unit?: string
+          id?: string
+          item_id?: string
+          multiplier?: number
+          tenant_id?: string
+          to_unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_check_unit_conversions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_check_unit_conversions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_law_chunks: {
         Row: {
           chunk_index: number
@@ -11093,10 +11789,25 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: string
       }
+      health_check_org_analysis: {
+        Args: { p_campaign_id: string; p_layer?: string }
+        Returns: {
+          division_id: string
+          division_name: string
+          judgment_code: string
+          judgment_count: number
+          judgment_label: string
+          received_count: number
+          severity_rank: number
+          suppressed: boolean
+        }[]
+      }
       increment_hr_template_usage: {
         Args: { p_template_id: string }
         Returns: undefined
       }
+      is_health_check_hr: { Args: never; Returns: boolean }
+      is_health_check_medical: { Args: never; Returns: boolean }
       list_work_time_record_monthly_counts: {
         Args: { p_tenant_id: string }
         Returns: {

@@ -51,11 +51,18 @@ export interface ScheduledInterviewItem {
   status: string
 }
 
-/** 産業医向け：面談準備用の関連情報（コンディション・パルス・残業） */
+/** 産業医向け：面談準備用の関連情報（コンディション・パルス・残業・直近健診） */
 export interface EmployeeRelatedInfo {
   conditionTrend: ConditionTrendPoint[]
   pulseHistory: EmployeePulseHistoryPoint[]
   overtimeHistory: MonthlyStatusResult[]
+  healthCheckSummary: {
+    examDate: string | null
+    overallStandardCode: string | null
+    employmentJudgment: string | null
+    nurseInterviewRecommended: boolean
+    doctorInterviewRecommended: boolean
+  } | null
 }
 
 /** 産業医の予約可能日時スロット */

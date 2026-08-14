@@ -6,7 +6,7 @@ import {
   getHighStressEmployees,
   getDivisionsWithCounts,
   getSubmissionCountsByDivision,
-  DivisionNode,
+  getHighStressYearlyTrend,
 } from '@/features/adm/high-stress/queries'
 import HighStressClient from './HighStressClient'
 import TenantBackLink from '@/components/common/TenantBackLink'
@@ -22,30 +22,11 @@ export default async function HighStressPage() {
   }
 
   const period = await getActivePeriod()
-
-  if (!period) {
-    return (
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <PageHeader />
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="bg-gray-100 p-4 rounded-full mb-4">
-            <HeartHandshake className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-lg font-semibold text-gray-600">
-            実施中のストレスチェックがありません
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            ストレスチェック期間を登録し、実施する必要があります。
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const [employees, divisionStats, submissionCounts] = await Promise.all([
-    getHighStressEmployees(period.id),
+  const [employees, divisionStats, submissionCounts, yearlyTrend] = await Promise.all([
+    period ? getHighStressEmployees(period.id) : Promise.resolve([]),
     getDivisionsWithCounts(user.tenant_id),
-    getSubmissionCountsByDivision(user.tenant_id, period.id),
+    period ? getSubmissionCountsByDivision(user.tenant_id, period.id) : Promise.resolve({}),
+    getHighStressYearlyTrend(user.tenant_id),
   ])
 
   return (
@@ -62,12 +43,23 @@ export default async function HighStressPage() {
           </p>
         </div>
       </div>
+      {!period && (
+        <div className="flex flex-col items-center justify-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-sm font-semibold text-gray-600">
+            実施中のストレスチェックがありません
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            対象者リストは実施中の期間があるときに表示されます。年度別推移は過去データがあれば確認できます。
+          </p>
+        </div>
+      )}
       <HighStressClient
         data={employees}
-        periodId={period.id}
+        periodId={period?.id ?? ''}
         isDoctor={false}
         divisionStats={divisionStats}
         submissionCounts={submissionCounts}
+        yearlyTrend={yearlyTrend}
       />
     </div>
   )

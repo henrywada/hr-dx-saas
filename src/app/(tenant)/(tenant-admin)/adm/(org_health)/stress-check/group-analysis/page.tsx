@@ -13,6 +13,7 @@ import {
   getGroupTrendForLayer,
   getDivisionsFlat,
   buildFullPath,
+  getGroupYearlyDashboard,
 } from '@/features/adm/stress-check/queries'
 import LayerHeatmapContent from '@/features/adm/stress-check/components/LayerHeatmapContent'
 import type { GroupAnalysisMode } from '@/features/adm/stress-check/components/GroupAnalysisToolbar'
@@ -59,6 +60,7 @@ export default async function GroupAnalysisPage({
 
   let groups
   let trendData
+  const yearlyPromise = getGroupYearlyDashboard(user.tenant_id)
   if (mode === 'all') {
     ;[groups, trendData] = await Promise.all([
       getGroupAnalysisCompanyWide(user.tenant_id),
@@ -80,6 +82,7 @@ export default async function GroupAnalysisPage({
       getGroupTrend(user.tenant_id),
     ])
   }
+  const yearlyData = await yearlyPromise
 
   // 部署・レイヤー集計のみフルパス化（拠点別・全社は既存名称を維持）
   const allDivisions = await getDivisionsFlat(user.tenant_id)
@@ -99,6 +102,7 @@ export default async function GroupAnalysisPage({
       mode={mode}
       layer={layer}
       layers={layers}
+      yearlyData={yearlyData}
     />
   )
 }

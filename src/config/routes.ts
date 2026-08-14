@@ -212,6 +212,8 @@ export const APP_ROUTES = {
     HR_LAW_KNOWLEDGE: '/saas_adm/hr-law-knowledge',
     /** 助成金情報配信 バッチ運用監視（収集・マッチング・配信の稼働状況と手動再実行） */
     GRANT_NOTIFIER: '/saas_adm/grant-notifier',
+    /** 他システムからのデータ移行（組織・健診・ストレスチェック） */
+    DATA_MIGRATION: '/saas_adm/data-migration',
   },
   EVALUATION: {
     /** 評価シート一覧（テナント管理者） */

@@ -11,6 +11,13 @@ import type {
   NotSubmittedEmployee,
 } from './types'
 import { buildEstablishmentProgressStats } from './progress-establishments'
+import {
+  aggregateYearlyDashboard,
+  YEARLY_MIN_N,
+  type ScaleScoreLike,
+  type YearlyDashboardYear,
+  type YearlyPersonRow,
+} from './yearly-dashboard'
 
 // Supabase の型推論が深すぎるため、クエリ用に any でラップ
 async function getSupabase() {
@@ -1013,4 +1020,97 @@ function computeOverallScaleAverages(depts: GroupAnalysisDepartment[]): ScaleAve
     coworkerSupport: sum('coworkerSupport') / n,
     vitality: sum('vitality') / n || null,
   }
+}
+
+function isFemaleSex(sex: string | null | undefined): boolean {
+  const s = (sex ?? '').trim()
+  return s === 'female' || s === '女' || s === '女性' || s === 'F' || s === 'f'
+}
+
+function isCompanyDoctorRole(role: { app_role: string } | { app_role: string }[] | null): boolean {
+  const roleStr = Array.isArray(role) ? role[0]?.app_role : role?.app_role
+  return roleStr === 'company_doctor'
+}
+
+/**
+ * 全社の年度別ダッシュボード（対応度・項目推移・判定図健康リスク）。
+ * 同一年度に複数実施回がある場合は最終回を使う。n<5 は集計側で抑制。
+ */
+export async function getGroupYearlyDashboard(tenantId: string): Promise<YearlyDashboardYear[]> {
+  const supabase = getAdminSupabase()
+  const { data: periods, error: periodErr } = await supabase
+    .from('stress_check_periods')
+    .select('id, fiscal_year, end_date, created_at')
+    .eq('tenant_id', tenantId)
+  if (periodErr) {
+    console.error('getGroupYearlyDashboard periods:', periodErr.message)
+    return []
+  }
+
+  const latestByFy = new Map<
+    number,
+    { id: string; fiscal_year: number; end_date: string | null; created_at: string | null }
+  >()
+  for (const p of periods ?? []) {
+    if (p.fiscal_year == null) continue
+    const prev = latestByFy.get(p.fiscal_year)
+    const end = p.end_date ?? ''
+    const created = p.created_at ?? ''
+    if (
+      !prev ||
+      end > (prev.end_date ?? '') ||
+      (end === (prev.end_date ?? '') && created > (prev.created_at ?? ''))
+    ) {
+      latestByFy.set(p.fiscal_year, p)
+    }
+  }
+  const selected = [...latestByFy.values()]
+  if (selected.length === 0) return []
+  const periodIds = selected.map(p => p.id)
+  const fyByPeriod = new Map(selected.map(p => [p.id, p.fiscal_year]))
+
+  const { data: results, error: resErr } = await supabase
+    .from('stress_check_results')
+    .select('period_id, employee_id, score_a, score_b, score_c, is_high_stress, scale_scores')
+    .eq('tenant_id', tenantId)
+    .in('period_id', periodIds)
+  if (resErr) {
+    console.error('getGroupYearlyDashboard results:', resErr.message)
+    return []
+  }
+
+  const empIds = [...new Set((results ?? []).map((r: { employee_id: string }) => r.employee_id))]
+  const empMeta = new Map<string, { female: boolean; doctor: boolean }>()
+  if (empIds.length > 0) {
+    const { data: emps } = await supabase
+      .from('employees')
+      .select('id, sex, app_role:app_role_id (app_role)')
+      .eq('tenant_id', tenantId)
+      .in('id', empIds)
+    for (const e of emps ?? []) {
+      empMeta.set(e.id, {
+        female: isFemaleSex(e.sex),
+        doctor: isCompanyDoctorRole(e.app_role ?? null),
+      })
+    }
+  }
+
+  const people: YearlyPersonRow[] = []
+  for (const r of results ?? []) {
+    const fy = fyByPeriod.get(r.period_id)
+    const meta = empMeta.get(r.employee_id)
+    if (fy == null || meta?.doctor) continue
+    const scores = Array.isArray(r.scale_scores) ? (r.scale_scores as ScaleScoreLike[]) : []
+    people.push({
+      fiscalYear: fy,
+      scoreA: Number(r.score_a ?? 0),
+      scoreB: Number(r.score_b ?? 0),
+      scoreC: Number(r.score_c ?? 0),
+      isHighStress: Boolean(r.is_high_stress),
+      female: meta?.female ?? false,
+      scaleScores: scores,
+    })
+  }
+
+  return aggregateYearlyDashboard(people, YEARLY_MIN_N)
 }

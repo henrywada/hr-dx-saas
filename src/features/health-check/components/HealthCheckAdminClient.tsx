@@ -542,7 +542,7 @@ export function HealthCheckAdminClient(props: {
                 </select>
               </label>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <div className="space-y-4">
               <OrgHealthChart rows={props.orgRows} />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-slate-700 mb-2">リスト</p>
@@ -1431,6 +1431,26 @@ const JUDGMENT_COLORS = [
   '#64748b',
 ]
 
+/** 組織別チャートで判定コードの色を揃える */
+const JUDGMENT_COLOR_BY_CODE: Record<string, string> = {
+  A1: '#22c55e',
+  A2: '#84cc16',
+  A3: '#eab308',
+  B1: '#f97316',
+  B2: '#a855f7',
+  C1: '#64748b',
+  C2: '#ec4899',
+  D: '#ef4444',
+  E: '#0ea5e9',
+  F: '#14b8a6',
+  G1: '#16a34a',
+  G2: '#4ade80',
+}
+
+function colorForJudgmentCode(code: string, index: number): string {
+  return JUDGMENT_COLOR_BY_CODE[code] ?? JUDGMENT_COLORS[index % JUDGMENT_COLORS.length]
+}
+
 type OrgGroup = {
   division_id: string | null
   division_name: string
@@ -1466,20 +1486,53 @@ function groupOrgRows(rows: OrgAnalysisRow[]): OrgGroup[] {
   return [...map.values()]
 }
 
+function OrgPieChart({ group }: { group: OrgGroup }) {
+  const pieData = group.parts
+    .slice()
+    .sort((a, b) => a.rank - b.rank || a.code.localeCompare(b.code))
+    .map(p => ({
+      code: p.code,
+      name: p.label,
+      value: p.count,
+    }))
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-3">
+      <p className="text-xs font-medium text-slate-900 truncate" title={group.division_name}>
+        {group.division_name}
+      </p>
+      <p className="text-[10px] text-slate-500">受診数 {group.received_count}</p>
+      <div className="mt-1 h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
+            >
+              {pieData.map((entry, i) => (
+                <Cell key={entry.code} fill={colorForJudgmentCode(entry.code, i)} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(v: number) => [`${v}件`, '件数']} />
+            <Legend wrapperStyle={{ fontSize: 10 }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
 function OrgHealthChart({ rows }: { rows: OrgAnalysisRow[] }) {
   const groups = useMemo(() => groupOrgRows(rows), [rows])
-  const pieData = useMemo(() => {
-    const totals = new Map<string, { name: string; value: number; rank: number }>()
-    for (const g of groups) {
-      if (g.suppressed) continue
-      for (const p of g.parts) {
-        const cur = totals.get(p.code)
-        if (cur) cur.value += p.count
-        else totals.set(p.code, { name: p.label, value: p.count, rank: p.rank })
-      }
-    }
-    return [...totals.values()].sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
-  }, [groups])
+  const visibleGroups = useMemo(
+    () => groups.filter(g => !g.suppressed && g.parts.length > 0),
+    [groups]
+  )
 
   if (groups.length === 0) {
     return (
@@ -1490,38 +1543,22 @@ function OrgHealthChart({ rows }: { rows: OrgAnalysisRow[] }) {
     )
   }
 
-  if (pieData.length === 0) {
+  if (visibleGroups.length === 0) {
     return (
       <div>
         <p className="text-xs font-medium text-slate-700 mb-2">チャート</p>
-        <p className="text-xs text-slate-500">n&lt;5のため判定分布を表示できません。</p>
+        <p className="text-xs text-slate-500">n&lt;5のためチャート表示をスキップしました。</p>
       </div>
     )
   }
 
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium text-slate-700 mb-2">チャート</p>
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={pieData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={90}
-              label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
-            >
-              {pieData.map((entry, i) => (
-                <Cell key={entry.name} fill={JUDGMENT_COLORS[i % JUDGMENT_COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(v: number) => [`${v}件`, '件数']} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-          </PieChart>
-        </ResponsiveContainer>
+      <p className="text-xs font-medium text-slate-700 mb-2">チャート（組織別・n&lt;5は非表示）</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {visibleGroups.map(g => (
+          <OrgPieChart key={`${g.division_id ?? 'all'}-${g.division_name}`} group={g} />
+        ))}
       </div>
     </div>
   )

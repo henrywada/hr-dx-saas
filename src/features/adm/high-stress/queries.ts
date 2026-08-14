@@ -241,3 +241,124 @@ export async function getSubmissionCountsByDivision(
   })
   return result
 }
+
+export type HighStressYearlyTrendRow = {
+  fiscalYear: number
+  maleCount: number
+  femaleCount: number
+  highStressCount: number
+  submittedCount: number
+  /** 受検者に対する高ストレス発生率（%）。受検 0 のときは null */
+  rate: number | null
+}
+
+function isFemaleSex(sex: string | null | undefined): boolean {
+  const s = (sex ?? '').trim()
+  return s === 'female' || s === '女' || s === '女性' || s === 'F' || s === 'f'
+}
+
+/**
+ * 年度別の高ストレス者推移。同一年度に複数実施回がある場合は最終回（end_date → created_at）を使う。
+ * 産業医は対象者外。個人結果は RLS（同意済み）に従う。
+ */
+export async function getHighStressYearlyTrend(
+  tenantId: string
+): Promise<HighStressYearlyTrendRow[]> {
+  const supabase = await createClient()
+  const { data: periods, error: periodErr } = await supabase
+    .from('stress_check_periods')
+    .select('id, fiscal_year, end_date, created_at')
+    .eq('tenant_id', tenantId)
+  if (periodErr) {
+    console.error('getHighStressYearlyTrend periods:', periodErr.message)
+    return []
+  }
+
+  const latestByFy = new Map<
+    number,
+    { id: string; fiscal_year: number; end_date: string | null; created_at: string | null }
+  >()
+  for (const p of periods ?? []) {
+    if (p.fiscal_year == null) continue
+    const prev = latestByFy.get(p.fiscal_year)
+    const end = p.end_date ?? ''
+    const created = p.created_at ?? ''
+    if (
+      !prev ||
+      end > (prev.end_date ?? '') ||
+      (end === (prev.end_date ?? '') && created > (prev.created_at ?? ''))
+    ) {
+      latestByFy.set(p.fiscal_year, p)
+    }
+  }
+
+  const selected = [...latestByFy.values()].sort((a, b) => a.fiscal_year - b.fiscal_year)
+  if (selected.length === 0) return []
+  const periodIds = selected.map(p => p.id)
+
+  const [{ data: results }, { data: submissions }] = await Promise.all([
+    supabase
+      .from('stress_check_results')
+      .select('period_id, employee_id, is_high_stress')
+      .in('period_id', periodIds)
+      .eq('is_high_stress', true),
+    supabase
+      .from('stress_check_submissions')
+      .select('period_id, employee_id, status')
+      .in('period_id', periodIds)
+      .eq('status', 'submitted'),
+  ])
+
+  const empIds = [
+    ...new Set([
+      ...(results ?? []).map(r => r.employee_id),
+      ...(submissions ?? []).map(s => s.employee_id),
+    ]),
+  ]
+  const empMeta = new Map<string, { female: boolean; doctor: boolean }>()
+  if (empIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: emps } = await (supabase as any)
+      .from('employees')
+      .select('id, sex, app_role:app_role_id (app_role)')
+      .eq('tenant_id', tenantId)
+      .in('id', empIds)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const e of emps ?? []) {
+      empMeta.set(e.id, {
+        female: isFemaleSex(e.sex),
+        doctor: isCompanyDoctor(e.app_role ?? null),
+      })
+    }
+  }
+
+  return selected.map(p => {
+    let maleCount = 0
+    let femaleCount = 0
+    for (const r of results ?? []) {
+      if (r.period_id !== p.id) continue
+      const meta = empMeta.get(r.employee_id)
+      if (meta?.doctor) continue
+      if (meta?.female) femaleCount += 1
+      else maleCount += 1
+    }
+    let submittedCount = 0
+    for (const s of submissions ?? []) {
+      if (s.period_id !== p.id) continue
+      const meta = empMeta.get(s.employee_id)
+      if (meta?.doctor) continue
+      submittedCount += 1
+    }
+    const highStressCount = maleCount + femaleCount
+    const rate =
+      submittedCount > 0 ? Math.round((highStressCount / submittedCount) * 1000) / 10 : null
+    return {
+      fiscalYear: p.fiscal_year,
+      maleCount,
+      femaleCount,
+      highStressCount,
+      submittedCount,
+      rate,
+    }
+  })
+}

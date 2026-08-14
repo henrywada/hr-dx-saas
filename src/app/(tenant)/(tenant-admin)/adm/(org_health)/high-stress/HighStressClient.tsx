@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { HighStressEmployee, DivisionNode } from '@/features/adm/high-stress/queries'
+import {
+  HighStressEmployee,
+  DivisionNode,
+  HighStressYearlyTrendRow,
+} from '@/features/adm/high-stress/queries'
 import { updateInterviewRecord } from '@/features/adm/high-stress/actions'
 import { formatDateInJST } from '@/lib/datetime'
 import {
@@ -13,7 +17,9 @@ import {
   X,
   BarChart2,
 } from 'lucide-react'
+import { TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import HighStressLayerChart from '@/features/adm/high-stress/components/HighStressLayerChart'
+import HighStressYearlyTrendChart from '@/features/adm/high-stress/components/HighStressYearlyTrendChart'
 
 interface Props {
   data: HighStressEmployee[]
@@ -21,6 +27,7 @@ interface Props {
   isDoctor: false // 人事用は常に false
   divisionStats: DivisionNode[]
   submissionCounts: Record<string, number>
+  yearlyTrend: HighStressYearlyTrendRow[]
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -43,7 +50,9 @@ export default function HighStressClient({
   isDoctor,
   divisionStats,
   submissionCounts,
+  yearlyTrend,
 }: Props) {
+  const [tab, setTab] = useState<'list' | 'trend'>('trend')
   const [selectedUser, setSelectedUser] = useState<HighStressEmployee | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -88,7 +97,7 @@ export default function HighStressClient({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedUser) return
+    if (!selectedUser || !periodId) return
 
     startTransition(async () => {
       try {
@@ -109,134 +118,151 @@ export default function HighStressClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-gradient-to-b from-rose-500 to-red-600 rounded-full" />
-            対象者リスト
-          </h2>
-          <p className="text-sm text-gray-500 mt-1 pl-4">
-            「高ストレス」判定で、事業者への結果提供に同意した従業員のみ表示されています。
-            （あなたは人事担当としてステータスのみ閲覧可能です）
-          </p>
-        </div>
-        <div className="flex gap-4 text-center text-sm font-medium text-gray-500">
-          <div>
-            <div className="text-2xl font-black text-gray-800">{data.length}</div>
-            <div>抽出数</div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-rose-600">
-              {data.filter(d => d.interview_requested).length}
+      <TabsList>
+        <TabsTrigger selected={tab === 'trend'} onClick={() => setTab('trend')}>
+          年度別推移
+        </TabsTrigger>
+        <TabsTrigger selected={tab === 'list'} onClick={() => setTab('list')}>
+          対象者リスト
+        </TabsTrigger>
+      </TabsList>
+
+      {tab === 'trend' && <HighStressYearlyTrendChart rows={yearlyTrend} />}
+
+      {tab === 'list' && (
+        <>
+          <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-gradient-to-b from-rose-500 to-red-600 rounded-full" />
+                対象者リスト
+              </h2>
+              <p className="text-sm text-gray-500 mt-1 pl-4">
+                「高ストレス」判定で、事業者への結果提供に同意した従業員のみ表示されています。
+                （あなたは人事担当としてステータスのみ閲覧可能です）
+              </p>
             </div>
-            <div>面談希望</div>
+            <div className="flex gap-4 text-center text-sm font-medium text-gray-500">
+              <div>
+                <div className="text-2xl font-black text-gray-800">{data.length}</div>
+                <div>抽出数</div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-rose-600">
+                  {data.filter(d => d.interview_requested).length}
+                </div>
+                <div>面談希望</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
-              <tr>
-                <th className="px-6 py-4 font-semibold">社員名 / No.</th>
-                <th className="px-6 py-4 font-semibold">部署</th>
-                <th className="px-6 py-4 font-semibold">拠点</th>
-                <th className="px-6 py-4 font-semibold">面談希望 (本人)</th>
-                <th className="px-6 py-4 font-semibold">ステータス表示</th>
-                <th className="px-6 py-4 font-semibold text-right">アクション</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    対象となる高ストレス者はいません。
-                  </td>
-                </tr>
-              ) : (
-                data.map(emp => (
-                  <tr key={emp.employee_id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-bold text-gray-900">{emp.name}</div>
-                      <div className="text-xs text-gray-400">{emp.employee_no || 'No未設定'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {emp.division_name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {emp.establishment_name || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {emp.interview_requested ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-full">
-                          <FileWarning className="w-3.5 h-3.5" />
-                          希望あり
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">希望なし</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[emp.interview_record?.interview_status || 'pending']}`}
-                      >
-                        {STATUS_LABELS[emp.interview_record?.interview_status || 'pending']}
-                      </span>
-                      {emp.interview_record?.interview_date && (
-                        <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {emp.interview_record.interview_date}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => handleOpenDetail(emp)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
-                      >
-                        <UserCog className="w-3.5 h-3.5" />
-                        状況確認
-                      </button>
-                    </td>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">社員名 / No.</th>
+                    <th className="px-6 py-4 font-semibold">部署</th>
+                    <th className="px-6 py-4 font-semibold">拠点</th>
+                    <th className="px-6 py-4 font-semibold">面談希望 (本人)</th>
+                    <th className="px-6 py-4 font-semibold">ステータス表示</th>
+                    <th className="px-6 py-4 font-semibold text-right">アクション</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 組織層別チャート */}
-      {divisionStats.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-sm font-bold text-gray-700 whitespace-nowrap">
-              <BarChart2 className="w-4 h-4 text-indigo-500" />
-              組織層を選択
-            </span>
-            <select
-              value={selectValue}
-              onChange={e => setSelectValue(e.target.value)}
-              className="text-sm rounded-lg border border-gray-200 py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-gray-700"
-            >
-              <option value="all">全て</option>
-              <option value="">層1</option>
-              {allLayers.map(layer => (
-                <option key={layer} value={layer}>
-                  層{layer}
-                </option>
-              ))}
-            </select>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {data.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        対象となる高ストレス者はいません。
+                      </td>
+                    </tr>
+                  ) : (
+                    data.map(emp => (
+                      <tr key={emp.employee_id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-bold text-gray-900">{emp.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {emp.employee_no || 'No未設定'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                          {emp.division_name || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                          {emp.establishment_name || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {emp.interview_requested ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-full">
+                              <FileWarning className="w-3.5 h-3.5" />
+                              希望あり
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">希望なし</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[emp.interview_record?.interview_status || 'pending']}`}
+                          >
+                            {STATUS_LABELS[emp.interview_record?.interview_status || 'pending']}
+                          </span>
+                          {emp.interview_record?.interview_date && (
+                            <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {emp.interview_record.interview_date}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleOpenDetail(emp)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                          >
+                            <UserCog className="w-3.5 h-3.5" />
+                            状況確認
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <HighStressLayerChart
-            data={data}
-            divisionStats={divisionStats}
-            submissionCounts={submissionCounts}
-            targetLayer={selectedLayer}
-            layerLabel={layerLabel}
-          />
-        </div>
+
+          {/* 組織層別チャート */}
+          {divisionStats.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-700 whitespace-nowrap">
+                  <BarChart2 className="w-4 h-4 text-indigo-500" />
+                  組織層を選択
+                </span>
+                <select
+                  value={selectValue}
+                  onChange={e => setSelectValue(e.target.value)}
+                  className="text-sm rounded-lg border border-gray-200 py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-gray-700"
+                >
+                  <option value="all">全て</option>
+                  <option value="">層1</option>
+                  {allLayers.map(layer => (
+                    <option key={layer} value={layer}>
+                      層{layer}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <HighStressLayerChart
+                data={data}
+                divisionStats={divisionStats}
+                submissionCounts={submissionCounts}
+                targetLayer={selectedLayer}
+                layerLabel={layerLabel}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {isModalOpen && selectedUser && (

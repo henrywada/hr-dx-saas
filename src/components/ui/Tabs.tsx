@@ -10,10 +10,7 @@ type TabsListProps = {
 
 export function TabsList({ className, children }: TabsListProps) {
   return (
-    <div
-      role="tablist"
-      className={cn('inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50/80 p-1', className)}
-    >
+    <div role="tablist" className={cn('flex flex-wrap items-center gap-2', className)}>
       {children}
     </div>
   )
@@ -27,7 +24,13 @@ type TabsTriggerProps = {
   disabled?: boolean
 }
 
-export function TabsTrigger({ selected, onClick, children, className, disabled }: TabsTriggerProps) {
+export function TabsTrigger({
+  selected,
+  onClick,
+  children,
+  className,
+  disabled,
+}: TabsTriggerProps) {
   return (
     <button
       type="button"
@@ -36,12 +39,12 @@ export function TabsTrigger({ selected, onClick, children, className, disabled }
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+        'rounded-full px-5 py-2 text-sm font-semibold transition-colors',
         selected
-          ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
-          : 'text-slate-600 hover:text-slate-900',
+          ? 'bg-primary text-white shadow-sm'
+          : 'border border-slate-300 bg-white text-slate-700 shadow-sm hover:border-primary hover:text-primary hover:bg-slate-50',
         disabled && 'opacity-50 cursor-not-allowed',
-        className,
+        className
       )}
     >
       {children}

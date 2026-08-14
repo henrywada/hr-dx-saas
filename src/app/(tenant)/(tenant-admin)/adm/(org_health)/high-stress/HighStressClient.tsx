@@ -118,14 +118,22 @@ export default function HighStressClient({
 
   return (
     <div className="space-y-6">
-      <TabsList>
-        <TabsTrigger selected={tab === 'trend'} onClick={() => setTab('trend')}>
-          年度別推移
-        </TabsTrigger>
-        <TabsTrigger selected={tab === 'list'} onClick={() => setTab('list')}>
-          対象者リスト
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex flex-wrap items-center gap-3 border border-slate-200 bg-white rounded-2xl px-5 py-3.5 shadow-sm">
+        <TabsList>
+          <TabsTrigger selected={tab === 'trend'} onClick={() => setTab('trend')}>
+            <span className="inline-flex items-center gap-1.5">
+              <BarChart2 className="h-4 w-4" />
+              年度別推移
+            </span>
+          </TabsTrigger>
+          <TabsTrigger selected={tab === 'list'} onClick={() => setTab('list')}>
+            <span className="inline-flex items-center gap-1.5">
+              <UserCog className="h-4 w-4" />
+              対象者リスト
+            </span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       {tab === 'trend' && <HighStressYearlyTrendChart rows={yearlyTrend} />}
 

@@ -8,14 +8,14 @@ import {
 } from '@/features/health-check/queries'
 import { getEmployees } from '@/features/organization/queries'
 
-export const metadata = { title: '健康診断管理（データ取込・CSV）' }
+export const metadata = { title: '健康診断管理（健診結果取込）' }
 
 export default async function AdminHealthCheckImportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ campaignId?: string }>
+  searchParams: Promise<{ campaignId?: string; tab?: string }>
 }) {
-  const { campaignId } = await searchParams
+  const { campaignId, tab } = await searchParams
   const [campaigns, institutions, presets, items, employees, manualItemIds] = await Promise.all([
     getCampaigns(),
     getInstitutions(),
@@ -29,6 +29,7 @@ export default async function AdminHealthCheckImportPage({
   return (
     <HealthCheckAdminClient
       view="import"
+      tab={tab === 'manual' ? 'manual' : 'csv'}
       campaigns={campaigns}
       selectedCampaign={selected}
       institutions={institutions}

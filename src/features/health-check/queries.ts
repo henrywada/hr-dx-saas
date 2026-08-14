@@ -7,9 +7,12 @@ import type {
   HealthCheckCampaign,
   HealthCheckInstitution,
   HealthCheckItem,
+  HealthCheckItemThreshold,
   HealthCheckJudgmentCode,
+  HealthCheckJudgmentCodeMap,
   HealthCheckMedicalNote,
   HealthCheckRecord,
+  HealthCheckUnitConversion,
   HrRecordRow,
   OrgAnalysisRow,
   OrgLayer,
@@ -95,6 +98,66 @@ export async function getInstitutionColumnMaps(): Promise<InstitutionCsvColumnMa
     return []
   }
   return (data ?? []) as InstitutionCsvColumnMap[]
+}
+
+export async function getJudgmentCodeMaps(): Promise<HealthCheckJudgmentCodeMap[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('health_check_judgment_code_maps')
+    .select('id, institution_id, raw_code, standard_judgment_id')
+    .order('raw_code')
+  if (error) {
+    console.error('getJudgmentCodeMaps', error)
+    return []
+  }
+  return (data ?? []) as HealthCheckJudgmentCodeMap[]
+}
+
+export async function getUnitConversions(): Promise<HealthCheckUnitConversion[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('health_check_unit_conversions')
+    .select('id, institution_id, item_id, from_unit, to_unit, multiplier')
+    .order('from_unit')
+  if (error) {
+    console.error('getUnitConversions', error)
+    return []
+  }
+  return (data ?? []).map((r: HealthCheckUnitConversion) => ({
+    ...r,
+    multiplier: Number(r.multiplier),
+  }))
+}
+
+export async function getItemThresholds(): Promise<HealthCheckItemThreshold[]> {
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('health_check_item_thresholds')
+    .select('id, institution_id, item_id, sex, min_value, max_value, judgment_id')
+    .order('min_value', { ascending: true })
+  if (error) {
+    console.error('getItemThresholds', error)
+    return []
+  }
+  return (data ?? []).map(
+    (r: {
+      id: string
+      institution_id: string
+      item_id: string
+      sex: string | null
+      min_value: number | null
+      max_value: number | null
+      judgment_id: string | null
+    }) => ({
+      id: r.id,
+      institution_id: r.institution_id,
+      item_id: r.item_id,
+      sex: r.sex === 'male' || r.sex === 'female' ? r.sex : null,
+      min_value: r.min_value == null ? null : Number(r.min_value),
+      max_value: r.max_value == null ? null : Number(r.max_value),
+      judgment_id: r.judgment_id,
+    })
+  )
 }
 
 export async function getCsvPresets(): Promise<CsvFormatPreset[]> {

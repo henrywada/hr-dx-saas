@@ -99,3 +99,46 @@ export function indexJudgmentCodes(
   for (const c of codes) map.set(c.code, c)
   return map
 }
+
+/** 取込時に渡す変換コンテキストを、登録済みマスタから組み立てる */
+export function buildConvertContext(input: {
+  isStandardInstitution: boolean
+  judgmentCodes: HealthCheckJudgmentCode[]
+  codeMaps: { raw_code: string; standard_judgment_id: string }[]
+  conversions: { item_id: string; from_unit: string; to_unit: string; multiplier: number }[]
+  thresholds: {
+    item_id: string
+    sex: string | null
+    min_value: number | null
+    max_value: number | null
+    judgment_id: string | null
+  }[]
+  employeeSex: 'male' | 'female' | null
+}): ConvertContext {
+  const byRaw = new Map<string, HealthCheckJudgmentCode>()
+  for (const m of input.codeMaps) {
+    const std = input.judgmentCodes.find(c => c.id === m.standard_judgment_id)
+    if (std) byRaw.set(m.raw_code, std)
+  }
+  const unitMap = new Map<string, { toUnit: string; multiplier: number }>()
+  for (const c of input.conversions) {
+    unitMap.set(`${c.item_id}::${c.from_unit}`, {
+      toUnit: c.to_unit,
+      multiplier: Number(c.multiplier),
+    })
+  }
+  return {
+    isStandardInstitution: input.isStandardInstitution,
+    judgmentCodeByRaw: byRaw,
+    judgmentCodeByStandardCode: indexJudgmentCodes(input.judgmentCodes),
+    unitMultiplierByItemAndFrom: unitMap,
+    thresholdsByItemId: input.thresholds.map(t => ({
+      item_id: t.item_id,
+      sex: t.sex === 'male' || t.sex === 'female' ? t.sex : null,
+      min_value: t.min_value == null ? null : Number(t.min_value),
+      max_value: t.max_value == null ? null : Number(t.max_value),
+      judgment_id: t.judgment_id,
+    })),
+    employeeSex: input.employeeSex,
+  }
+}

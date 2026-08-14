@@ -3,7 +3,15 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Trash2, Upload } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Loader2,
+  PenLine,
+  Settings,
+  Trash2,
+  Upload,
+  type LucideIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DataTable, type Column } from '@/components/ui/DataTable'
@@ -30,6 +38,7 @@ import {
 import { displayItemName, resolveManualFormItems } from '@/features/health-check/kyokai-preset'
 import { ManualItemSettingsModal } from '@/features/health-check/components/ManualItemSettingsModal'
 import { InstitutionCsvItemsModal } from '@/features/health-check/components/InstitutionCsvItemsModal'
+import { ConversionSettingsPanel } from '@/features/health-check/components/ConversionSettingsPanel'
 import {
   EMPLOYMENT_JUDGMENT_LABEL,
   type CsvFormatPreset,
@@ -37,6 +46,10 @@ import {
   type HealthCheckCampaign,
   type HealthCheckInstitution,
   type HealthCheckItem,
+  type HealthCheckItemThreshold,
+  type HealthCheckJudgmentCode,
+  type HealthCheckJudgmentCodeMap,
+  type HealthCheckUnitConversion,
   type HrRecordRow,
   type InstitutionCsvColumnMap,
   type KyokaiPresetSpec,
@@ -52,10 +65,12 @@ type NotReceived = {
   division_name: string | null
 }
 
-type AdminView = 'import' | 'manual' | 'analysis' | 'settings'
+type AdminView = 'import' | 'analysis' | 'settings'
+type AdminTab = 'csv' | 'manual' | 'general' | 'conversion'
 
 export function HealthCheckAdminClient(props: {
   view: AdminView
+  tab?: AdminTab
   campaigns: HealthCheckCampaign[]
   selectedCampaign: HealthCheckCampaign | null
   institutions: HealthCheckInstitution[]
@@ -71,6 +86,10 @@ export function HealthCheckAdminClient(props: {
   employees: { id: string; name: string; employee_no: string | null }[]
   manualItemIds: string[]
   columnMaps?: InstitutionCsvColumnMap[]
+  judgmentCodes?: HealthCheckJudgmentCode[]
+  judgmentCodeMaps?: HealthCheckJudgmentCodeMap[]
+  unitConversions?: HealthCheckUnitConversion[]
+  itemThresholds?: HealthCheckItemThreshold[]
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -93,9 +112,18 @@ export function HealthCheckAdminClient(props: {
       ? APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_ANALYSIS
       : props.view === 'settings'
         ? APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_SETTINGS
-        : props.view === 'manual'
-          ? APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_MANUAL
-          : APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK
+        : APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK
+
+  const importTab: AdminTab = props.tab === 'manual' ? 'manual' : 'csv'
+  const settingsTab: AdminTab = props.tab === 'conversion' ? 'conversion' : 'general'
+
+  function pageHref(tab?: AdminTab) {
+    const q = new URLSearchParams()
+    if (props.selectedCampaign?.id) q.set('campaignId', props.selectedCampaign.id)
+    if (tab === 'manual' || tab === 'conversion') q.set('tab', tab)
+    const qs = q.toString()
+    return qs ? `${basePath}?${qs}` : basePath
+  }
 
   function selectCampaign(id: string) {
     const q = new URLSearchParams()
@@ -103,6 +131,8 @@ export function HealthCheckAdminClient(props: {
     if (props.view === 'analysis') {
       if (props.orgCampaignId) q.set('orgCampaignId', props.orgCampaignId)
       if (props.orgLayer !== 'all') q.set('layer', props.orgLayer)
+    } else if (props.tab === 'manual' || props.tab === 'conversion') {
+      q.set('tab', props.tab)
     }
     router.push(`${basePath}?${q.toString()}`)
   }
@@ -130,6 +160,26 @@ export function HealthCheckAdminClient(props: {
       )}
 
       {props.view === 'settings' && (
+        <SubNav
+          current={settingsTab}
+          items={[
+            {
+              key: 'general',
+              href: pageHref('general'),
+              label: '基本設定',
+              Icon: Settings,
+            },
+            {
+              key: 'conversion',
+              href: pageHref('conversion'),
+              label: '他機関→標準へ変換',
+              Icon: ArrowLeftRight,
+            },
+          ]}
+        />
+      )}
+
+      {props.view === 'settings' && settingsTab !== 'conversion' && (
         <>
           <section className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 space-y-3">
             <h2 className="text-sm font-semibold text-slate-900">実施回</h2>
@@ -379,6 +429,17 @@ export function HealthCheckAdminClient(props: {
         </>
       )}
 
+      {props.view === 'settings' && settingsTab === 'conversion' && (
+        <ConversionSettingsPanel
+          institutions={props.institutions}
+          items={props.items}
+          judgmentCodes={props.judgmentCodes ?? []}
+          judgmentCodeMaps={props.judgmentCodeMaps ?? []}
+          unitConversions={props.unitConversions ?? []}
+          itemThresholds={props.itemThresholds ?? []}
+        />
+      )}
+
       {props.view !== 'settings' && props.campaigns.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-slate-600">
@@ -411,7 +472,27 @@ export function HealthCheckAdminClient(props: {
         </p>
       )}
 
-      {props.view === 'import' && props.selectedCampaign && spec && (
+      {props.view === 'import' && (
+        <SubNav
+          current={importTab}
+          items={[
+            {
+              key: 'csv',
+              href: pageHref('csv'),
+              label: 'データ取込（CSV）',
+              Icon: Upload,
+            },
+            {
+              key: 'manual',
+              href: pageHref('manual'),
+              label: 'データ取込（手入力）',
+              Icon: PenLine,
+            },
+          ]}
+        />
+      )}
+
+      {props.view === 'import' && importTab !== 'manual' && props.selectedCampaign && spec && (
         <CsvImportPanel
           campaignId={props.selectedCampaign.id}
           institutions={props.institutions}
@@ -421,7 +502,7 @@ export function HealthCheckAdminClient(props: {
         />
       )}
 
-      {props.view === 'manual' && props.selectedCampaign && (
+      {props.view === 'import' && importTab === 'manual' && props.selectedCampaign && (
         <ManualEntryPanel
           campaignId={props.selectedCampaign.id}
           institutions={props.institutions}
@@ -828,7 +909,13 @@ function InstitutionCsvFormatPanel({
                 const registered =
                   (mapsByInst.get(inst.id)?.length ?? 0) > 0 || Boolean(inst.preset_code)
                 return (
-                  <tr key={inst.id} className="border-t border-slate-100">
+                  <tr
+                    key={inst.id}
+                    className={`border-t border-slate-100 cursor-pointer ${
+                      inst.id === resolvedId ? 'bg-orange-50/60' : ''
+                    }`}
+                    onClick={() => setInstitutionId(inst.id)}
+                  >
                     <td className="px-3 py-1">
                       {inst.name}
                       {inst.is_standard && (
@@ -841,7 +928,10 @@ function InstitutionCsvFormatPanel({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => setDetailInst(inst)}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setDetailInst(inst)
+                          }}
                         >
                           項目詳細
                         </Button>
@@ -856,7 +946,8 @@ function InstitutionCsvFormatPanel({
                         aria-label={`${inst.name}を削除`}
                         disabled={pending}
                         className="inline-flex items-center justify-center rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                        onClick={() => {
+                        onClick={e => {
+                          e.stopPropagation()
                           if (
                             !confirm(
                               `健診機関「${inst.name}」を削除しますか？登録したCSV形式も削除されます。受診結果の機関名は空になります。`
@@ -1007,6 +1098,36 @@ function CsvFilePick({
         className="sr-only"
         onChange={e => onFileName(e.target.files?.[0]?.name ?? null)}
       />
+    </div>
+  )
+}
+
+function SubNav({
+  current,
+  items,
+}: {
+  current: string
+  items: { key: string; href: string; label: string; Icon: LucideIcon }[]
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map(item => {
+        const active = current === item.key
+        return (
+          <Link
+            key={item.key}
+            href={item.href}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+              active
+                ? 'bg-primary text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <item.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {item.label}
+          </Link>
+        )
+      })}
     </div>
   )
 }

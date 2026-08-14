@@ -2,32 +2,23 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { BarChart3, PenLine, Settings, Upload } from 'lucide-react'
+import { BarChart3, Settings, Upload } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
 
 const TABS = [
   {
     href: APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK,
-    label: 'データ取込（CSV）',
-    match: 'exact' as const,
+    label: '健診結果取込',
     Icon: Upload,
-  },
-  {
-    href: APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_MANUAL,
-    label: 'データ取込（手入力）',
-    match: 'prefix' as const,
-    Icon: PenLine,
   },
   {
     href: APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_ANALYSIS,
     label: '受診率・組織分析',
-    match: 'prefix' as const,
     Icon: BarChart3,
   },
   {
     href: APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_SETTINGS,
     label: '設定',
-    match: 'prefix' as const,
     Icon: Settings,
   },
 ]
@@ -45,9 +36,14 @@ export function HealthCheckAdminNav() {
     >
       {TABS.map(tab => {
         const active =
-          tab.match === 'exact'
-            ? pathname === tab.href
-            : pathname === tab.href || pathname.startsWith(`${tab.href}/`)
+          tab.href === APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK
+            ? pathname === tab.href ||
+              pathname.startsWith(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_MANUAL)
+            : tab.href === APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_SETTINGS
+              ? pathname === tab.href ||
+                pathname.startsWith(`${tab.href}/`) ||
+                pathname.startsWith(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_CONVERSION)
+              : pathname === tab.href || pathname.startsWith(`${tab.href}/`)
         return (
           <Link
             key={tab.href}

@@ -6,7 +6,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { createAnnouncement } from '@/features/dashboard/actions'
 import { toJSTISOString } from '@/lib/datetime'
-import { convertItemValue, convertOverallJudgment, indexJudgmentCodes } from './convert'
+import { convertItemValue, convertOverallJudgment, buildConvertContext } from './convert'
 import {
   applyPresetToInstitutionCore,
   commitCsvImportCore,
@@ -21,11 +21,9 @@ import {
 } from './kyokai-preset'
 import type {
   CampaignStatus,
-  ConvertContext,
   EmploymentJudgment,
   FileKind,
   HealthCheckItem,
-  HealthCheckJudgmentCode,
   MergedCsvPerson,
 } from './types'
 import { HR_ROLES, MEDICAL_ROLES } from './types'
@@ -46,6 +44,7 @@ function revalidateHealthCheck() {
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK)
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_MANUAL)
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_ANALYSIS)
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_CONVERSION)
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_SETTINGS)
   revalidatePath(APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_REVIEW)
 }
@@ -168,6 +167,216 @@ export async function setStandardInstitution(id: string): Promise<{ ok: boolean;
   const { error } = await supabase
     .from('health_check_institutions')
     .update({ is_standard: true })
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+function uniqueConflict(error: { code?: string; message?: string } | null): boolean {
+  return error?.code === '23505' || Boolean(error?.message?.includes('duplicate'))
+}
+
+async function requireOtherInstitution(
+  supabase: any,
+  tenantId: string,
+  institutionId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!institutionId) return { ok: false, error: '機関を選んでください' }
+  const { data } = await supabase
+    .from('health_check_institutions')
+    .select('id, is_standard')
+    .eq('id', institutionId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!data) return { ok: false, error: '機関が見つかりません' }
+  if (data.is_standard) {
+    return { ok: false, error: '標準機関の取込は変換しません。他機関を選んでください' }
+  }
+  return { ok: true }
+}
+
+export async function createJudgmentCode(input: {
+  code: string
+  label?: string | null
+  severity_rank?: number
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const code = input.code.trim()
+  if (!code) return { ok: false, error: '判定コードを入力してください' }
+  const supabase = await getSupabase()
+  const { error } = await supabase.from('health_check_judgment_codes').insert({
+    tenant_id: user.tenant_id,
+    code,
+    label: (input.label ?? '').trim() || code,
+    severity_rank: Number.isFinite(input.severity_rank) ? Number(input.severity_rank) : 0,
+  })
+  if (error) {
+    if (uniqueConflict(error))
+      return { ok: false, error: `判定コード ${code} はすでに登録されています` }
+    return { ok: false, error: error.message }
+  }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function deleteJudgmentCode(id: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('health_check_judgment_codes')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function upsertJudgmentCodeMap(input: {
+  institutionId: string
+  rawCode: string
+  standardJudgmentId: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const rawCode = input.rawCode.trim()
+  if (!rawCode) return { ok: false, error: '機関の判定コードを入力してください' }
+  if (!input.institutionId) return { ok: false, error: '機関を選んでください' }
+  if (!input.standardJudgmentId) return { ok: false, error: '標準判定コードを選んでください' }
+
+  const supabase = await getSupabase()
+  const inst = await requireOtherInstitution(supabase, user.tenant_id, input.institutionId)
+  if (!inst.ok) return inst
+
+  const { error } = await supabase.from('health_check_judgment_code_maps').upsert(
+    {
+      tenant_id: user.tenant_id,
+      institution_id: input.institutionId,
+      raw_code: rawCode,
+      standard_judgment_id: input.standardJudgmentId,
+    },
+    { onConflict: 'institution_id,raw_code' }
+  )
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function deleteJudgmentCodeMap(id: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('health_check_judgment_code_maps')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function upsertUnitConversion(input: {
+  institutionId: string
+  itemId: string
+  fromUnit: string
+  toUnit: string
+  multiplier: number
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const fromUnit = input.fromUnit.trim()
+  const toUnit = input.toUnit.trim()
+  if (!input.itemId) return { ok: false, error: '検査項目を選んでください' }
+  if (!fromUnit || !toUnit) return { ok: false, error: '変換元・変換先の単位を入力してください' }
+  if (!Number.isFinite(input.multiplier) || input.multiplier === 0) {
+    return { ok: false, error: '倍率は0以外の数値を入力してください' }
+  }
+
+  const supabase = await getSupabase()
+  const inst = await requireOtherInstitution(supabase, user.tenant_id, input.institutionId)
+  if (!inst.ok) return inst
+
+  const { error } = await supabase.from('health_check_unit_conversions').upsert(
+    {
+      tenant_id: user.tenant_id,
+      institution_id: input.institutionId,
+      item_id: input.itemId,
+      from_unit: fromUnit,
+      to_unit: toUnit,
+      multiplier: input.multiplier,
+    },
+    { onConflict: 'institution_id,item_id,from_unit,to_unit' }
+  )
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function deleteUnitConversion(id: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('health_check_unit_conversions')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', user.tenant_id)
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function createItemThreshold(input: {
+  institutionId: string
+  itemId: string
+  sex?: 'male' | 'female' | null
+  minValue?: number | null
+  maxValue?: number | null
+  judgmentId: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  if (!input.itemId) return { ok: false, error: '検査項目を選んでください' }
+  if (!input.judgmentId) return { ok: false, error: '標準判定コードを選んでください' }
+  const minValue = input.minValue ?? null
+  const maxValue = input.maxValue ?? null
+  if (minValue == null && maxValue == null) {
+    return { ok: false, error: '下限または上限を入力してください' }
+  }
+  if (minValue != null && maxValue != null && minValue > maxValue) {
+    return { ok: false, error: '下限は上限以下にしてください' }
+  }
+
+  const supabase = await getSupabase()
+  const inst = await requireOtherInstitution(supabase, user.tenant_id, input.institutionId)
+  if (!inst.ok) return inst
+
+  const { error } = await supabase.from('health_check_item_thresholds').insert({
+    tenant_id: user.tenant_id,
+    institution_id: input.institutionId,
+    item_id: input.itemId,
+    sex: input.sex ?? null,
+    min_value: minValue,
+    max_value: maxValue,
+    judgment_id: input.judgmentId,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidateHealthCheck()
+  return { ok: true }
+}
+
+export async function deleteItemThreshold(id: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await getServerUser()
+  if (!user?.tenant_id || !isHr(user.appRole)) return { ok: false, error: '権限がありません' }
+  const supabase = await getSupabase()
+  const { error } = await supabase
+    .from('health_check_item_thresholds')
+    .delete()
     .eq('id', id)
     .eq('tenant_id', user.tenant_id)
   if (error) return { ok: false, error: error.message }
@@ -362,7 +571,7 @@ export async function saveManualResult(input: {
   const supabase = await getSupabase()
   const { data: emp } = await supabase
     .from('employees')
-    .select('id, employee_no')
+    .select('id, employee_no, sex')
     .eq('id', input.employeeId)
     .maybeSingle()
   if (!emp?.employee_no) return { ok: false, error: '従業員番号がありません' }
@@ -374,23 +583,49 @@ export async function saveManualResult(input: {
     .eq('employee_id', input.employeeId)
     .maybeSingle()
 
-  const { data: institution } = await supabase
-    .from('health_check_institutions')
-    .select('is_standard')
-    .eq('id', input.institutionId)
-    .maybeSingle()
-  const { data: codes } = await supabase
-    .from('health_check_judgment_codes')
-    .select('*')
-    .eq('tenant_id', user.tenant_id)
-  const ctx: ConvertContext = {
+  const [
+    { data: institution },
+    { data: codes },
+    { data: codeMaps },
+    { data: conversions },
+    { data: thresholds },
+  ] = await Promise.all([
+    supabase
+      .from('health_check_institutions')
+      .select('is_standard')
+      .eq('id', input.institutionId)
+      .maybeSingle(),
+    supabase.from('health_check_judgment_codes').select('*').eq('tenant_id', user.tenant_id),
+    supabase
+      .from('health_check_judgment_code_maps')
+      .select('raw_code, standard_judgment_id')
+      .eq('institution_id', input.institutionId),
+    supabase
+      .from('health_check_unit_conversions')
+      .select('*')
+      .eq('institution_id', input.institutionId),
+    supabase
+      .from('health_check_item_thresholds')
+      .select('*')
+      .eq('institution_id', input.institutionId),
+  ])
+
+  const g = String(emp.sex ?? '')
+  const sex: 'male' | 'female' | null =
+    g === 'male' || g === '男' || g === '男性'
+      ? 'male'
+      : g === 'female' || g === '女' || g === '女性'
+        ? 'female'
+        : null
+
+  const ctx = buildConvertContext({
     isStandardInstitution: Boolean(institution?.is_standard),
-    judgmentCodeByRaw: new Map(),
-    judgmentCodeByStandardCode: indexJudgmentCodes(codes ?? []),
-    unitMultiplierByItemAndFrom: new Map(),
-    thresholdsByItemId: [],
-    employeeSex: null,
-  }
+    judgmentCodes: codes ?? [],
+    codeMaps: codeMaps ?? [],
+    conversions: conversions ?? [],
+    thresholds: thresholds ?? [],
+    employeeSex: sex,
+  })
   const overall = convertOverallJudgment(input.overallJudgmentRaw ?? null, ctx)
 
   let recordId: string

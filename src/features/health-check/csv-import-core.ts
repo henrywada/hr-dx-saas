@@ -228,11 +228,11 @@ export async function commitCsvImportCore(input: {
   const { data: conversions } = await supabase
     .from('health_check_unit_conversions')
     .select('*')
-    .eq('tenant_id', tenantId)
+    .eq('institution_id', input.institutionId)
   const { data: thresholds } = await supabase
     .from('health_check_item_thresholds')
     .select('*')
-    .eq('tenant_id', tenantId)
+    .eq('institution_id', input.institutionId)
 
   const judgmentCodes = (codes ?? []) as HealthCheckJudgmentCode[]
   const byStandard = indexJudgmentCodes(judgmentCodes)

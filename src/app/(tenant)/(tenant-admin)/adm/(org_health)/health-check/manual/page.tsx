@@ -1,50 +1,14 @@
-import { HealthCheckAdminClient } from '@/features/health-check/components/HealthCheckAdminClient'
-import {
-  getCampaigns,
-  getInstitutions,
-  getItems,
-  getManualFormItemIds,
-} from '@/features/health-check/queries'
-import { getEmployees } from '@/features/organization/queries'
+import { redirect } from 'next/navigation'
+import { APP_ROUTES } from '@/config/routes'
 
-export const metadata = { title: '健康診断管理（データ取込・手入力）' }
-
-export default async function AdminHealthCheckManualPage({
+/** 旧URL。健診結果取込の手入力サブタブへ誘導する */
+export default async function AdminHealthCheckManualRedirectPage({
   searchParams,
 }: {
   searchParams: Promise<{ campaignId?: string }>
 }) {
   const { campaignId } = await searchParams
-  const [campaigns, institutions, items, employees, manualItemIds] = await Promise.all([
-    getCampaigns(),
-    getInstitutions(),
-    getItems(),
-    getEmployees(),
-    getManualFormItemIds(),
-  ])
-  const selected = campaigns.find(c => c.id === campaignId) ?? campaigns[0] ?? null
-
-  return (
-    <HealthCheckAdminClient
-      view="manual"
-      campaigns={campaigns}
-      selectedCampaign={selected}
-      institutions={institutions}
-      presets={[]}
-      items={items}
-      stats={null}
-      records={[]}
-      notReceived={[]}
-      orgRows={[]}
-      orgLayer="all"
-      employees={(employees ?? []).map(
-        (e: { id: string; name: string; employee_no: string | null }) => ({
-          id: e.id,
-          name: e.name,
-          employee_no: e.employee_no,
-        })
-      )}
-      manualItemIds={manualItemIds}
-    />
-  )
+  const q = new URLSearchParams({ tab: 'manual' })
+  if (campaignId) q.set('campaignId', campaignId)
+  redirect(`${APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK}?${q.toString()}`)
 }

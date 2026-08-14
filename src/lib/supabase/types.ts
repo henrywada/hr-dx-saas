@@ -4356,6 +4356,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          institution_id: string
           item_id: string
           judgment_id: string | null
           max_value: number | null
@@ -4367,6 +4368,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          institution_id: string
           item_id: string
           judgment_id?: string | null
           max_value?: number | null
@@ -4378,6 +4380,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          institution_id?: string
           item_id?: string
           judgment_id?: string | null
           max_value?: number | null
@@ -4387,6 +4390,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "health_check_item_thresholds_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_institutions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "health_check_item_thresholds_item_id_fkey"
             columns: ["item_id"]
@@ -4754,6 +4764,7 @@ export type Database = {
           created_at: string
           from_unit: string
           id: string
+          institution_id: string
           item_id: string
           multiplier: number
           tenant_id: string
@@ -4764,6 +4775,7 @@ export type Database = {
           created_at?: string
           from_unit: string
           id?: string
+          institution_id: string
           item_id: string
           multiplier?: number
           tenant_id: string
@@ -4774,6 +4786,7 @@ export type Database = {
           created_at?: string
           from_unit?: string
           id?: string
+          institution_id?: string
           item_id?: string
           multiplier?: number
           tenant_id?: string
@@ -4781,6 +4794,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "health_check_unit_conversions_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "health_check_institutions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "health_check_unit_conversions_item_id_fkey"
             columns: ["item_id"]

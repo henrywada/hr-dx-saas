@@ -111,6 +111,35 @@ export type InstitutionCsvColumnMap = {
   column_role: ColumnRole
 }
 
+/** 他機関の生判定コード → テナント標準判定 */
+export type HealthCheckJudgmentCodeMap = {
+  id: string
+  institution_id: string
+  raw_code: string
+  standard_judgment_id: string
+}
+
+/** 他機関単位 → 標準機関単位 */
+export type HealthCheckUnitConversion = {
+  id: string
+  institution_id: string
+  item_id: string
+  from_unit: string
+  to_unit: string
+  multiplier: number
+}
+
+/** 他機関の数値を標準判定へ再判定するカットオフ */
+export type HealthCheckItemThreshold = {
+  id: string
+  institution_id: string
+  item_id: string
+  sex: 'male' | 'female' | null
+  min_value: number | null
+  max_value: number | null
+  judgment_id: string | null
+}
+
 export const FILE_KIND_LABEL: Record<FileKind, string> = {
   main: '結果本表',
   additional: '追加検査',

@@ -180,13 +180,15 @@ export const APP_ROUTES = {
     /** 定期健康診断（本人結果） */
     HEALTH_CHECK: '/health-check',
     HEALTH_CHECK_DETAIL: (recordId: string) => `/health-check/${recordId}`,
-    /** 定期健康診断管理（人事）データ取込（CSV） */
+    /** 定期健康診断管理（人事）健診結果取込 */
     ADMIN_HEALTH_CHECK: '/adm/health-check',
-    /** 定期健康診断管理 データ取込（手入力） */
+    /** 旧URL。健診結果取込（手入力）へリダイレクト */
     ADMIN_HEALTH_CHECK_MANUAL: '/adm/health-check/manual',
     /** 定期健康診断管理 受診率・組織分析 */
     ADMIN_HEALTH_CHECK_ANALYSIS: '/adm/health-check/analysis',
-    /** 定期健康診断管理 実施回・機関・CSV・手入力項目 */
+    /** 旧URL。設定（他機関→標準へ変換）へリダイレクト */
+    ADMIN_HEALTH_CHECK_CONVERSION: '/adm/health-check/conversion',
+    /** 定期健康診断管理 設定（実施回・機関・変換式） */
     ADMIN_HEALTH_CHECK_SETTINGS: '/adm/health-check/settings',
     /** 定期健康診断結果参照（産業医・保健師） */
     ADMIN_HEALTH_CHECK_REVIEW: '/adm/health-check-review',

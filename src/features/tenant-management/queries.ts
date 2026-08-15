@@ -1,6 +1,42 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { TenantWithManager, SaasEmployee } from './types'
 
+type AdminClient = ReturnType<typeof createAdminClient>
+
+/**
+ * auth.users のメールを user_id 一括で取得する。
+ * 個別 RPC を数百件並列すると Next.js 16 開発ランタイムが
+ * RangeError: Maximum call stack size exceeded で落ちるため、1回のRPCにまとめる。
+ */
+async function getAuthUserEmailMap(
+  supabase: AdminClient,
+  userIds: Array<string | null | undefined>
+): Promise<Map<string, string>> {
+  const emailMap = new Map<string, string>()
+  const uniqueIds = [...new Set(userIds.filter((id): id is string => Boolean(id)))]
+  if (uniqueIds.length === 0) return emailMap
+
+  const { data, error } = (await supabase.rpc(
+    // types.ts 未再生成でも呼べるようキャスト
+    'get_auth_user_emails' as never,
+    { p_user_ids: uniqueIds } as never
+  )) as {
+    data: Array<{ user_id: string; email: string }> | null
+    error: { message: string } | null
+  }
+  if (error) {
+    console.error('get_auth_user_emails error:', error)
+    return emailMap
+  }
+
+  for (const row of data ?? []) {
+    if (row.user_id && row.email) {
+      emailMap.set(String(row.user_id), String(row.email))
+    }
+  }
+  return emailMap
+}
+
 /**
  * 全テナント一覧を取得する（SaaS管理者用: RLSバイパス）
  * テナントの責任者（is_manager=true）情報も結合して返す
@@ -45,20 +81,16 @@ export async function getAllTenants(): Promise<TenantWithManager[]> {
       if (mgrError) {
         console.error('getManagers error (テナント一覧は表示を続行):', mgrError)
       } else if (managers && managers.length > 0) {
-        // RPC経由でメールアドレスを個別取得（auth.admin.listUsers はJWTエラーのためバイパス）
+        const emailMap = await getAuthUserEmailMap(
+          supabase,
+          managers.map(mgr => mgr.user_id)
+        )
         for (const mgr of managers) {
-          let email: string | null = null
-          if (mgr.user_id) {
-            try {
-              const { data: userEmail } = await supabase.rpc('get_auth_user_email', {
-                p_user_id: mgr.user_id,
-              })
-              email = userEmail || null
-            } catch {
-              // メール取得失敗はスキップ
-            }
-          }
-          managerMap.set(mgr.tenant_id, { name: mgr.name, email, user_id: mgr.user_id || null })
+          managerMap.set(mgr.tenant_id, {
+            name: mgr.name,
+            email: mgr.user_id ? (emailMap.get(mgr.user_id) ?? null) : null,
+            user_id: mgr.user_id || null,
+          })
         }
       }
     } catch (mgrErr) {
@@ -173,18 +205,10 @@ export async function getSaasEmployees(): Promise<SaasEmployee[]> {
       return []
     }
 
-    // 3. user_id → email をまとめて RPC で取得
-    const userIds = (employees ?? [])
-      .map(e => (e as { user_id?: string | null }).user_id)
-      .filter(Boolean) as string[]
-
-    const emailMap = new Map<string, string>()
-    await Promise.all(
-      userIds.map(async uid => {
-        const { data } = await supabase.rpc('get_auth_user_email', { p_user_id: uid })
-        if (data) emailMap.set(uid, String(data))
-      })
-    )
+    // 3. user_id → email を1回のRPCで一括取得
+    const userIds = (employees ?? []).map(e => (e as { user_id?: string | null }).user_id)
+    const emailMap = await getAuthUserEmailMap(supabase, userIds)
+    console.log(`getSaasEmployees: 従業員${employees?.length ?? 0}件 / メール${emailMap.size}件`)
 
     // 4. 整形
     return (employees ?? [])

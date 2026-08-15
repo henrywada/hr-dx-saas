@@ -18,6 +18,10 @@ interface Props {
     ui_dashboard_element_id: string
     is_visible: boolean
   }[]
+  title?: string
+  description?: string
+  selectId?: string
+  emptyLabel?: string
 }
 
 const SCREEN_LABEL: Record<string, string> = {
@@ -29,6 +33,10 @@ export default function TenantDashboardUiTab({
   initialTenants,
   initialElements,
   initialOverrides,
+  title = 'ダッシュボード表示制御',
+  description = 'オフにすると該当テナントの /top・/adm で要素が非表示になります（行なし＝表示）。service 紐付けがある要素は、契約（テナント×サービス）も必要です。',
+  selectId = 'dashboard-ui-tenant-select',
+  emptyLabel = 'テナントが存在しません',
 }: Props) {
   const router = useRouter()
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
@@ -65,11 +73,7 @@ export default function TenantDashboardUiTab({
     setLoading(true)
     const nextVisible = !currentlyVisible
     try {
-      const result = await setTenantUiElementVisibility(
-        selectedTenantId,
-        elementId,
-        nextVisible
-      )
+      const result = await setTenantUiElementVisibility(selectedTenantId, elementId, nextVisible)
       if (!result.success) {
         alert(`更新に失敗しました: ${result.error}`)
         return
@@ -77,16 +81,11 @@ export default function TenantDashboardUiTab({
       setOverrides(prev => {
         if (nextVisible) {
           return prev.filter(
-            o =>
-              !(
-                o.tenant_id === selectedTenantId &&
-                o.ui_dashboard_element_id === elementId
-              )
+            o => !(o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId)
           )
         }
         const exists = prev.some(
-          o =>
-            o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId
+          o => o.tenant_id === selectedTenantId && o.ui_dashboard_element_id === elementId
         )
         if (exists) {
           return prev.map(o =>
@@ -119,11 +118,7 @@ export default function TenantDashboardUiTab({
     setLoading(true)
     try {
       const ids = elements.map(el => el.id)
-      const result = await bulkSetTenantUiElementVisibility(
-        selectedTenantId,
-        ids,
-        wantVisible
-      )
+      const result = await bulkSetTenantUiElementVisibility(selectedTenantId, ids, wantVisible)
       if (!result.success) {
         alert(`更新に失敗しました: ${result.error}`)
         return
@@ -132,11 +127,7 @@ export default function TenantDashboardUiTab({
         if (wantVisible) {
           const idSet = new Set(ids)
           return prev.filter(
-            o =>
-              !(
-                o.tenant_id === selectedTenantId &&
-                idSet.has(o.ui_dashboard_element_id)
-              )
+            o => !(o.tenant_id === selectedTenantId && idSet.has(o.ui_dashboard_element_id))
           )
         }
         return [
@@ -161,17 +152,14 @@ export default function TenantDashboardUiTab({
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
       <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
         <div className="mb-4">
-          <h2 className="text-lg font-medium text-gray-900">ダッシュボード表示制御</h2>
-          <p className="mt-1 text-xs text-gray-500">
-            オフにすると該当テナントの /top・/adm で要素が非表示になります（行なし＝表示）。
-            service 紐付けがある要素は、契約（テナント×サービス）も必要です。
-          </p>
+          <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+          <p className="mt-1 text-xs text-gray-500">{description}</p>
         </div>
-        <label htmlFor="dashboard-ui-tenant-select" className="sr-only">
+        <label htmlFor={selectId} className="sr-only">
           対象のテナントを選択
         </label>
         <select
-          id="dashboard-ui-tenant-select"
+          id={selectId}
           value={selectedTenantId}
           onChange={e => setSelectedTenantId(e.target.value)}
           className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
@@ -181,7 +169,7 @@ export default function TenantDashboardUiTab({
               {t.name}
             </option>
           ))}
-          {tenants.length === 0 && <option value="">テナントが存在しません</option>}
+          {tenants.length === 0 && <option value="">{emptyLabel}</option>}
         </select>
       </div>
 

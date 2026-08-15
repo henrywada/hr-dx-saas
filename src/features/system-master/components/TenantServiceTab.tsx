@@ -11,6 +11,12 @@ interface Props {
   initialServices: any[]
   initialTenantServices: any[]
   initialCategories: any[]
+  /** カード見出し（未指定時は契約テナント向け） */
+  title?: string
+  /** セレクトの id（タブが複数ある場合の重複回避） */
+  selectId?: string
+  /** 対象が0件のときのセレクト表示 */
+  emptyLabel?: string
 }
 
 export default function TenantServiceTab({
@@ -18,6 +24,9 @@ export default function TenantServiceTab({
   initialServices,
   initialTenantServices,
   initialCategories,
+  title = 'テナント×サービス管理',
+  selectId = 'tenant-select',
+  emptyLabel = 'テナントが存在しません',
 }: Props) {
   const router = useRouter()
   const { toggleTenantService, bulkSetTenantServices } = useSystemMaster()
@@ -119,13 +128,13 @@ export default function TenantServiceTab({
       {/* テナント選択 */}
       <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
         <div className="mb-4">
-          <h2 className="text-lg font-medium text-gray-900">テナント×サービス管理</h2>
+          <h2 className="text-lg font-medium text-gray-900">{title}</h2>
         </div>
-        <label htmlFor="tenant-select" className="sr-only">
+        <label htmlFor={selectId} className="sr-only">
           対象のテナントを選択
         </label>
         <select
-          id="tenant-select"
+          id={selectId}
           value={selectedTenantId}
           onChange={e => setSelectedTenantId(e.target.value)}
           className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
@@ -135,7 +144,7 @@ export default function TenantServiceTab({
               {t.name}
             </option>
           ))}
-          {tenants.length === 0 && <option value="">テナントが存在しません</option>}
+          {tenants.length === 0 && <option value="">{emptyLabel}</option>}
         </select>
       </div>
 

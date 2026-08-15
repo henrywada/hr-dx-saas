@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { createPaymentIntent, completeSignup } from '../actions'
 import { StripeElementsForm } from './StripeElementsForm'
 import type { PlanType, SignupFormData, BankTransferInstructions } from '../types'
-import { PLAN_CONFIG } from '../types'
+import type { PlanConfigRow } from '@/features/plan-config/types'
 import { step1Schema, type Step1Input } from '../schemas'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '')
@@ -31,13 +31,14 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 
 interface SignupWizardProps {
   initialPlan: PlanType
+  planConfig: PlanConfigRow
 }
 
-export function SignupWizard({ initialPlan }: SignupWizardProps) {
+export function SignupWizard({ initialPlan, planConfig }: SignupWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [plan] = useState<PlanType>(initialPlan)
-  const config = PLAN_CONFIG[plan]
+  const config = planConfig
 
   const [step1Data, setStep1Data] = useState<Step1Input | null>(null)
   const [clientSecret, setClientSecret] = useState<string>('')

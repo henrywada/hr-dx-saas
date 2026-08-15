@@ -36,7 +36,7 @@ export interface SignupActionResult {
   redirectTo?: string
 }
 
-/** プランごとの設定値 */
+/** プランごとの設定値（DB plan_config 未整備時のフォールバック） */
 export const PLAN_CONFIG: Record<
   PlanType,
   {

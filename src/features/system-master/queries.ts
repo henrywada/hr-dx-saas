@@ -16,9 +16,7 @@ function buildCategoryClassSortMap(
   classIndex: ClassIndexRow[],
   classes: SortOrderRow[]
 ): Map<string, number> {
-  const classSortById = new Map(
-    classes.map(c => [c.id, c.sort_order ?? Number.MAX_SAFE_INTEGER])
-  )
+  const classSortById = new Map(classes.map(c => [c.id, c.sort_order ?? Number.MAX_SAFE_INTEGER]))
   const map = new Map<string, number>()
   for (const row of classIndex) {
     if (!row.service_category_id || !row.service_class_id) continue
@@ -111,15 +109,7 @@ export async function getServiceCategories() {
   const rows = categoriesRes.data || []
   // 表示順: service_class.sort_order → service_category.sort_order
   rows.sort((a, b) =>
-    compareClassCategoryServiceSort(
-      a.id,
-      b.id,
-      a.sort_order,
-      b.sort_order,
-      0,
-      0,
-      classSortMap
-    )
+    compareClassCategoryServiceSort(a.id, b.id, a.sort_order, b.sort_order, 0, 0, classSortMap)
   )
   return rows
 }
@@ -194,10 +184,28 @@ export async function getTenants() {
   const { data, error } = await supabase
     .from('tenants')
     .select('id, name')
+    // プラン別テンプレート（Plan100 等）は契約テナントではないため除外
+    .eq('is_template', false)
     .order('name', { ascending: true })
 
   if (error) {
     console.error('getTenants error:', error)
+    return []
+  }
+  return data || []
+}
+
+/** プラン別テンプレート用テナント（PlanFree 等）のみ取得する */
+export async function getTemplateTenants() {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('id, name')
+    .eq('is_template', true)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('getTemplateTenants error:', error)
     return []
   }
   return data || []

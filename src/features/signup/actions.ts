@@ -4,9 +4,9 @@ import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWelcomeEmail, sendBankTransferEmail } from '@/lib/mail/send'
 import type { SignupFormData, SignupActionResult, PlanType } from './types'
-import { PLAN_CONFIG } from './types'
 import { signupSchema } from './schemas'
-import { copyTenantServicesFromTemplate } from './lib/copy-tenant-services'
+import { getPlanConfig } from '@/features/plan-config/queries'
+import { copyPlanTemplateToNewTenant } from './lib/copy-tenant-services'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stripe インスタンス（サーバー専用）
@@ -51,7 +51,7 @@ export async function createPaymentIntent(
   email: string,
   companyName: string
 ): Promise<{ clientSecret: string; paymentIntentId: string; bankTransfer?: object }> {
-  const config = PLAN_CONFIG[plan]
+  const config = await getPlanConfig(plan)
   if (!config.available) throw new Error('このプランは現在準備中です')
   if (config.paymentMethod === 'free') throw new Error('無料プランに PaymentIntent は不要です')
 
@@ -130,7 +130,7 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
   }
 
   const { plan, applicantName, companyName, email, industry, paymentIntentId } = data
-  const config = PLAN_CONFIG[plan]
+  const config = await getPlanConfig(plan)
 
   // 準備中プランは UI をバイパスした直接 POST も拒否する
   if (!config.available) {
@@ -266,9 +266,9 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
       return { success: false, error: '従業員登録失敗: ' + empError.message }
     }
 
-    // ⑤ プランのテンプレートテナントから tenant_service をコピー
+    // ⑤ プランのテンプレートから tenant_service とダッシュボード表示をコピー
     //    （失敗は非致命: 警告ログのみでサインアップは続行。詳細はヘルパーのコメント参照）
-    await copyTenantServicesFromTemplate(supabase, plan, tenantId)
+    await copyPlanTemplateToNewTenant(supabase, plan, tenantId)
 
     // ⑥ パスワード設定リンク生成（72時間有効）
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -286,7 +286,7 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
       if (config.paymentMethod === 'bank_transfer' && data.bankTransferInstructions) {
         await sendBankTransferEmail(email, applicantName, data.bankTransferInstructions, resetLink)
       } else {
-        await sendWelcomeEmail(email, applicantName, plan, resetLink)
+        await sendWelcomeEmail(email, applicantName, plan, resetLink, config.label)
       }
     } catch (emailError) {
       // メール失敗はロールバック不要（登録は完了している）

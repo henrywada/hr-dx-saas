@@ -5,12 +5,14 @@ import {
   getServices,
   getAppRoles,
   getTenants,
+  getTemplateTenants,
 } from '@/features/system-master/queries'
 import { getAppRoleServices, getTenantServices } from '@/features/system-master/actions'
 import {
   getAllUiDashboardElements,
   getAllTenantUiDashboardElements,
 } from '@/features/dashboard-ui-visibility/actions'
+import { getAllPlanConfigs } from '@/features/plan-config/queries'
 import SystemMasterTabs from '@/features/system-master/components/SystemMasterTabs'
 
 export default async function SystemMasterPage() {
@@ -22,9 +24,11 @@ export default async function SystemMasterPage() {
     roles,
     roleServices,
     tenants,
+    templateTenants,
     tenantServices,
     uiDashboardElements,
     tenantUiDashboardElements,
+    planConfigs,
   ] = await Promise.all([
     getServiceClasses(),
     getServiceClassIndex(),
@@ -33,9 +37,11 @@ export default async function SystemMasterPage() {
     getAppRoles(),
     getAppRoleServices(),
     getTenants(),
+    getTemplateTenants(),
     getTenantServices(),
     getAllUiDashboardElements().catch(() => []),
     getAllTenantUiDashboardElements().catch(() => []),
+    getAllPlanConfigs(),
   ])
 
   return (
@@ -50,9 +56,11 @@ export default async function SystemMasterPage() {
             initialRoles={roles}
             initialRoleServices={roleServices}
             initialTenants={tenants}
+            initialTemplateTenants={templateTenants}
             initialTenantServices={tenantServices}
             initialUiDashboardElements={uiDashboardElements}
             initialTenantUiDashboardElements={tenantUiDashboardElements}
+            initialPlanConfigs={planConfigs}
           />
         </div>
       </div>

@@ -72,9 +72,10 @@ export async function sendWelcomeEmail(
   email: string,
   name: string,
   plan: PlanType,
-  resetLink: string
+  resetLink: string,
+  planLabelOverride?: string
 ) {
-  const planLabel = PLAN_CONFIG[plan].label
+  const planLabel = escapeHtml(planLabelOverride ?? PLAN_CONFIG[plan].label)
   const safeName = escapeHtml(name)
 
   await sendMail({

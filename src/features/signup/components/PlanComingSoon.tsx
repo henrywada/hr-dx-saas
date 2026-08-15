@@ -1,20 +1,21 @@
 import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { APP_ROUTES } from '@/config/routes'
-import { PLAN_CONFIG, type PlanType } from '../types'
+import type { PlanType } from '../types'
+import type { PlanConfigRow } from '@/features/plan-config/types'
 
 interface PlanComingSoonProps {
   plan: PlanType
+  config: PlanConfigRow
+  freeMaxEmployees: number
 }
 
 /**
- * 準備中プラン（PLAN_CONFIG.available === false）が指定された場合の案内画面。
+ * 準備中プラン（available === false）が指定された場合の案内画面。
  * ユーザーの意図と異なるプランで登録される事故を防ぐため、
  * 無料プランへサイレントにフォールバックせず明示的に案内する。
  */
-export function PlanComingSoon({ plan }: PlanComingSoonProps) {
-  const config = PLAN_CONFIG[plan]
-
+export function PlanComingSoon({ config, freeMaxEmployees }: PlanComingSoonProps) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
       <div className="w-16 h-16 mx-auto mb-6 bg-gray-100 rounded-2xl flex items-center justify-center">
@@ -30,7 +31,7 @@ export function PlanComingSoon({ plan }: PlanComingSoonProps) {
         {config.label}
         （従業員{config.maxEmployees}名以下）は現在準備中です。
         <br />
-        無料プラン（従業員{PLAN_CONFIG.free.maxEmployees}名以下）は今すぐご利用いただけます。
+        無料プラン（従業員{freeMaxEmployees}名以下）は今すぐご利用いただけます。
       </p>
 
       <Link

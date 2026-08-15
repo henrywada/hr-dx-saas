@@ -434,8 +434,8 @@ verify_jwt = false
 
 [analytics]
 enabled = true
-# 他スタック・旧コンテナと 54427 がぶつかる場合があるため空き番に変更
-port = 54437
+# Windows の除外ポート範囲（Hyper-V が 54357-54456 を予約）と衝突するため空き番に変更
+port = 54537
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
 

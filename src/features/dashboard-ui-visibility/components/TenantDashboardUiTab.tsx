@@ -8,6 +8,13 @@ import {
   bulkSetTenantUiElementVisibility,
 } from '@/features/dashboard-ui-visibility/actions'
 import type { UiDashboardElement } from '@/features/dashboard-ui-visibility/types'
+import { DashboardPreviewButton } from './DashboardPreviewModal'
+import type {
+  PreviewCategory,
+  PreviewClass,
+  PreviewClassIndex,
+  PreviewService,
+} from '../visibility'
 
 interface Props {
   initialTenants: { id: string; name: string }[]
@@ -22,6 +29,11 @@ interface Props {
   description?: string
   selectId?: string
   emptyLabel?: string
+  initialTenantServices?: { tenant_id: string; service_id: string }[]
+  menuServices?: PreviewService[]
+  menuCategories?: PreviewCategory[]
+  menuClasses?: PreviewClass[]
+  menuClassIndex?: PreviewClassIndex[]
 }
 
 const SCREEN_LABEL: Record<string, string> = {
@@ -37,6 +49,11 @@ export default function TenantDashboardUiTab({
   description = 'オフにすると該当テナントの /top・/adm で要素が非表示になります（行なし＝表示）。service 紐付けがある要素は、契約（テナント×サービス）も必要です。',
   selectId = 'dashboard-ui-tenant-select',
   emptyLabel = 'テナントが存在しません',
+  initialTenantServices = [],
+  menuServices = [],
+  menuCategories = [],
+  menuClasses = [],
+  menuClassIndex = [],
 }: Props) {
   const router = useRouter()
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
@@ -151,9 +168,35 @@ export default function TenantDashboardUiTab({
   return (
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
       <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
-        <div className="mb-4">
-          <h2 className="text-lg font-medium text-gray-900">{title}</h2>
-          <p className="mt-1 text-xs text-gray-500">{description}</p>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+            <p className="mt-1 text-xs text-gray-500">{description}</p>
+          </div>
+          <DashboardPreviewButton
+            tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
+            elements={elements}
+            contractedServiceIds={
+              new Set(
+                initialTenantServices
+                  .filter(ts => ts.tenant_id === selectedTenantId)
+                  .map(ts => ts.service_id)
+                  .filter(Boolean)
+              )
+            }
+            hiddenElementIds={
+              new Set(
+                overrides
+                  .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
+                  .map(o => o.ui_dashboard_element_id)
+              )
+            }
+            disabled={!selectedTenantId}
+            services={menuServices}
+            categories={menuCategories}
+            classes={menuClasses}
+            classIndex={menuClassIndex}
+          />
         </div>
         <label htmlFor={selectId} className="sr-only">
           対象のテナントを選択

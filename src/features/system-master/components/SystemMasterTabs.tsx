@@ -13,6 +13,7 @@ import PlanConfigTab from '@/features/plan-config/components/PlanConfigTab'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import type { UiDashboardElement } from '@/features/dashboard-ui-visibility/types'
 import type { PlanConfigRow } from '@/features/plan-config/types'
+import type { PlanType } from '@/features/signup/types'
 
 type TabType =
   | 'service_class'
@@ -81,6 +82,7 @@ interface Props {
     is_visible: boolean
   }[]
   initialPlanConfigs: PlanConfigRow[]
+  existingTenantCounts: Record<PlanType, number>
 }
 
 export default function SystemMasterTabs({
@@ -96,6 +98,7 @@ export default function SystemMasterTabs({
   initialUiDashboardElements,
   initialTenantUiDashboardElements,
   initialPlanConfigs,
+  existingTenantCounts,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('service_class')
   const activeGroup = groupOf(activeTab)
@@ -185,9 +188,20 @@ export default function SystemMasterTabs({
             initialServices={initialServices}
             initialTenantServices={initialTenantServices}
             initialCategories={initialCategories}
+            dashboardElements={initialUiDashboardElements}
+            dashboardOverrides={initialTenantUiDashboardElements}
+            menuServices={initialServices}
+            menuCategories={initialCategories}
+            menuClasses={initialClasses}
+            menuClassIndex={initialClassIndex}
           />
         )}
-        {activeTab === 'plan_config' && <PlanConfigTab initialPlans={initialPlanConfigs} />}
+        {activeTab === 'plan_config' && (
+          <PlanConfigTab
+            initialPlans={initialPlanConfigs}
+            existingTenantCounts={existingTenantCounts}
+          />
+        )}
         {activeTab === 'template_tenant' && (
           <TenantServiceTab
             initialTenants={initialTemplateTenants}
@@ -197,6 +211,12 @@ export default function SystemMasterTabs({
             title="テンプレート用テナント管理"
             selectId="template-tenant-select"
             emptyLabel="テンプレート用テナントが存在しません"
+            dashboardElements={initialUiDashboardElements}
+            dashboardOverrides={initialTenantUiDashboardElements}
+            menuServices={initialServices}
+            menuCategories={initialCategories}
+            menuClasses={initialClasses}
+            menuClassIndex={initialClassIndex}
           />
         )}
         {activeTab === 'dashboard_ui' && (
@@ -204,6 +224,11 @@ export default function SystemMasterTabs({
             initialTenants={initialTenants}
             initialElements={initialUiDashboardElements}
             initialOverrides={initialTenantUiDashboardElements}
+            initialTenantServices={initialTenantServices}
+            menuServices={initialServices}
+            menuCategories={initialCategories}
+            menuClasses={initialClasses}
+            menuClassIndex={initialClassIndex}
           />
         )}
         {activeTab === 'template_dashboard_ui' && (
@@ -211,6 +236,11 @@ export default function SystemMasterTabs({
             initialTenants={initialTemplateTenants}
             initialElements={initialUiDashboardElements}
             initialOverrides={initialTenantUiDashboardElements}
+            initialTenantServices={initialTenantServices}
+            menuServices={initialServices}
+            menuCategories={initialCategories}
+            menuClasses={initialClasses}
+            menuClassIndex={initialClassIndex}
             title="テンプレート用ダッシュボード表示"
             description="オフにした要素は、このプランで新規申込したテナントの /top・/adm で非表示になります（サインアップ時にコピー）。"
             selectId="template-dashboard-ui-tenant-select"

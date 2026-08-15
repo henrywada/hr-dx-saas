@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PLAN_CONFIG, type PlanType } from '@/features/signup/types'
+import { isSyncTargetTenant } from './sync'
 import type { PlanConfigRow } from './types'
 
 const PLAN_ORDER: PlanType[] = ['free', 'plan100', 'plan300', 'plan500', 'plan1000']
@@ -90,4 +91,30 @@ export async function getAllPlanConfigs(): Promise<PlanConfigRow[]> {
 export async function getPlanConfig(plan: PlanType): Promise<PlanConfigRow> {
   const all = await getAllPlanConfigs()
   return all.find(r => r.planType === plan) ?? fromCodeDefault(plan)
+}
+
+function emptyTenantCounts(): Record<PlanType, number> {
+  return Object.fromEntries(PLAN_ORDER.map(plan => [plan, 0])) as Record<PlanType, number>
+}
+
+/** テンプレートを除く、プラン別の既存テナント件数 */
+export async function getExistingTenantCountsByPlan(): Promise<Record<PlanType, number>> {
+  const counts = emptyTenantCounts()
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('plan_type, is_template')
+    .eq('is_template', false)
+
+  if (error || !data) {
+    if (error) console.error('getExistingTenantCountsByPlan error:', error)
+    return counts
+  }
+
+  for (const row of data) {
+    if (!Object.hasOwn(PLAN_CONFIG, row.plan_type)) continue
+    if (!isSyncTargetTenant(row, row.plan_type)) continue
+    counts[row.plan_type as PlanType] += 1
+  }
+  return counts
 }

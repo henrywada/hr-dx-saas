@@ -12,7 +12,7 @@ import {
   getAllUiDashboardElements,
   getAllTenantUiDashboardElements,
 } from '@/features/dashboard-ui-visibility/actions'
-import { getAllPlanConfigs } from '@/features/plan-config/queries'
+import { getAllPlanConfigs, getExistingTenantCountsByPlan } from '@/features/plan-config/queries'
 import SystemMasterTabs from '@/features/system-master/components/SystemMasterTabs'
 
 export default async function SystemMasterPage() {
@@ -29,6 +29,7 @@ export default async function SystemMasterPage() {
     uiDashboardElements,
     tenantUiDashboardElements,
     planConfigs,
+    existingTenantCounts,
   ] = await Promise.all([
     getServiceClasses(),
     getServiceClassIndex(),
@@ -42,6 +43,7 @@ export default async function SystemMasterPage() {
     getAllUiDashboardElements().catch(() => []),
     getAllTenantUiDashboardElements().catch(() => []),
     getAllPlanConfigs(),
+    getExistingTenantCountsByPlan(),
   ])
 
   return (
@@ -61,6 +63,7 @@ export default async function SystemMasterPage() {
             initialUiDashboardElements={uiDashboardElements}
             initialTenantUiDashboardElements={tenantUiDashboardElements}
             initialPlanConfigs={planConfigs}
+            existingTenantCounts={existingTenantCounts}
           />
         </div>
       </div>

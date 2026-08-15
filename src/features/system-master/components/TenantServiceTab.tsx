@@ -5,6 +5,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSystemMaster } from '../hooks/useSystemMaster'
 import { Check } from 'lucide-react'
+import { DashboardPreviewButton } from '@/features/dashboard-ui-visibility/components/DashboardPreviewModal'
+import type { UiDashboardElement } from '@/features/dashboard-ui-visibility/types'
+import type {
+  PreviewCategory,
+  PreviewClass,
+  PreviewClassIndex,
+  PreviewService,
+} from '@/features/dashboard-ui-visibility/visibility'
 
 interface Props {
   initialTenants: any[]
@@ -17,6 +25,16 @@ interface Props {
   selectId?: string
   /** 対象が0件のときのセレクト表示 */
   emptyLabel?: string
+  dashboardElements?: UiDashboardElement[]
+  dashboardOverrides?: {
+    tenant_id: string
+    ui_dashboard_element_id: string
+    is_visible: boolean
+  }[]
+  menuServices?: PreviewService[]
+  menuCategories?: PreviewCategory[]
+  menuClasses?: PreviewClass[]
+  menuClassIndex?: PreviewClassIndex[]
 }
 
 export default function TenantServiceTab({
@@ -27,6 +45,12 @@ export default function TenantServiceTab({
   title = 'テナント×サービス管理',
   selectId = 'tenant-select',
   emptyLabel = 'テナントが存在しません',
+  dashboardElements = [],
+  dashboardOverrides = [],
+  menuServices = [],
+  menuCategories = [],
+  menuClasses = [],
+  menuClassIndex = [],
 }: Props) {
   const router = useRouter()
   const { toggleTenantService, bulkSetTenantServices } = useSystemMaster()
@@ -62,7 +86,21 @@ export default function TenantServiceTab({
 
       if (!result.success) {
         alert(`更新に失敗しました: ${result.error}`)
+        return
       }
+      const nextEnabled = !currentEnabled
+      setTenantServices(prev => {
+        if (nextEnabled) {
+          if (prev.some(ts => ts.tenant_id === selectedTenantId && ts.service_id === serviceId)) {
+            return prev
+          }
+          return [...prev, { tenant_id: selectedTenantId, service_id: serviceId }]
+        }
+        return prev.filter(
+          ts => !(ts.tenant_id === selectedTenantId && ts.service_id === serviceId)
+        )
+      })
+      router.refresh()
     } catch (error: any) {
       alert(`エラーが発生しました: ${error.message}`)
     } finally {
@@ -127,8 +165,32 @@ export default function TenantServiceTab({
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
       {/* テナント選択 */}
       <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
-        <div className="mb-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+          <DashboardPreviewButton
+            tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
+            elements={dashboardElements}
+            contractedServiceIds={
+              new Set(
+                tenantServices
+                  .filter(ts => ts.tenant_id === selectedTenantId)
+                  .map(ts => ts.service_id)
+                  .filter(Boolean)
+              )
+            }
+            hiddenElementIds={
+              new Set(
+                dashboardOverrides
+                  .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
+                  .map(o => o.ui_dashboard_element_id)
+              )
+            }
+            disabled={!selectedTenantId}
+            services={menuServices.length > 0 ? menuServices : services}
+            categories={menuCategories.length > 0 ? menuCategories : initialCategories}
+            classes={menuClasses}
+            classIndex={menuClassIndex}
+          />
         </div>
         <label htmlFor={selectId} className="sr-only">
           対象のテナントを選択

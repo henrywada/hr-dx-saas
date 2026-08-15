@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { updatePlanConfig } from '../actions'
+import { syncPlanToExistingTenants, updatePlanConfig } from '../actions'
+import { canEnablePlanSync } from '../sync'
 import type { PlanConfigRow, PlanConfigUpdateInput } from '../types'
 import type { PlanType } from '@/features/signup/types'
 
@@ -38,9 +39,10 @@ function toDraft(row: PlanConfigRow): Draft {
 
 interface Props {
   initialPlans: PlanConfigRow[]
+  existingTenantCounts: Record<PlanType, number>
 }
 
-export default function PlanConfigTab({ initialPlans }: Props) {
+export default function PlanConfigTab({ initialPlans, existingTenantCounts }: Props) {
   const [drafts, setDrafts] = useState<Record<PlanType, Draft>>(() => {
     const next = {} as Record<PlanType, Draft>
     for (const row of initialPlans) next[row.planType] = toDraft(row)
@@ -48,6 +50,7 @@ export default function PlanConfigTab({ initialPlans }: Props) {
   })
   const [saving, setSaving] = useState<PlanType | null>(null)
   const [saved, setSaved] = useState<PlanType | null>(null)
+  const [syncing, setSyncing] = useState<PlanType | null>(null)
 
   const patch = (planType: PlanType, partial: Partial<Draft>) => {
     setDrafts(prev => ({ ...prev, [planType]: { ...prev[planType], ...partial } }))
@@ -71,12 +74,43 @@ export default function PlanConfigTab({ initialPlans }: Props) {
     }
   }
 
+  const handleSync = async (row: PlanConfigRow) => {
+    if (!canEnablePlanSync(existingTenantCounts[row.planType] ?? 0)) return
+    const confirmed = window.confirm(
+      `「${row.label}」の既存テナントへ、保存済みの最大人数とテンプレート「${row.templateTenantName}」のサービス・ダッシュボード表示を反映します。\n\n` +
+        '・テンプレート自身は対象外です\n' +
+        '・未保存のプラン条件は反映されません。先に保存してください\n' +
+        '・契約終了日・決済状態・稼働状態は変更しません\n' +
+        '・テンプレートにないサービスは既存テナントから削除されます\n\n' +
+        'よろしいですか？'
+    )
+    if (!confirmed) return
+
+    setSyncing(row.planType)
+    try {
+      const result = await syncPlanToExistingTenants(row.planType)
+      if (!result.success) {
+        alert(result.error ?? '同期に失敗しました')
+        return
+      }
+      if ((result.tenantCount ?? 0) === 0) {
+        alert('対象の既存テナントはありません')
+        return
+      }
+      alert(`${result.tenantCount}件のテナントを更新しました`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '同期に失敗しました')
+    } finally {
+      setSyncing(null)
+    }
+  }
+
   return (
     <div className="space-y-3 w-full">
       <div>
         <h2 className="text-sm font-semibold text-[#24292f]">プラン条件</h2>
         <p className="mt-1 text-xs text-gray-500">
-          サインアップ時の上限人数・契約月数・申込可否などを変更します。プランコードとテンプレートテナント名は変更できません。
+          サインアップ時の上限人数・契約月数・申込可否などを変更します。プランコードとテンプレートテナント名は変更できません。「同期」は同じ契約タイプの既存テナントへ、保存済みの最大人数とテンプレートのサービス・ダッシュボード表示を反映します。
         </p>
       </div>
 
@@ -95,7 +129,7 @@ export default function PlanConfigTab({ initialPlans }: Props) {
               <th className="px-3 py-1 text-left text-xs font-semibold text-[#24292f]">
                 テンプレート
               </th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-[#24292f] w-24">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-[#24292f] w-40">
                 操作
               </th>
             </tr>
@@ -104,6 +138,7 @@ export default function PlanConfigTab({ initialPlans }: Props) {
             {initialPlans.map(row => {
               const draft = drafts[row.planType]
               if (!draft) return null
+              const canSync = canEnablePlanSync(existingTenantCounts[row.planType] ?? 0)
               return (
                 <tr
                   key={row.planType}
@@ -207,18 +242,29 @@ export default function PlanConfigTab({ initialPlans }: Props) {
                     ) : null}
                   </td>
                   <td className="px-3 py-1 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleSave(row.planType)}
-                      disabled={saving === row.planType}
-                      className="bg-[#FD7601] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50"
-                    >
-                      {saving === row.planType
-                        ? '保存中'
-                        : saved === row.planType
-                          ? '保存済'
-                          : '保存'}
-                    </button>
+                    <div className="flex justify-center items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSave(row.planType)}
+                        disabled={saving === row.planType || syncing === row.planType}
+                        className="bg-[#FD7601] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                      >
+                        {saving === row.planType
+                          ? '保存中'
+                          : saved === row.planType
+                            ? '保存済'
+                            : '保存'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSync(row)}
+                        disabled={!canSync || saving === row.planType || syncing === row.planType}
+                        title={canSync ? undefined : '対象の既存テナントがありません'}
+                        className="bg-white border border-gray-300 text-[#24292f] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#f6f8fa] disabled:opacity-50"
+                      >
+                        {syncing === row.planType ? '同期中' : '同期'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSystemMaster } from '../hooks/useSystemMaster'
 import { Check } from 'lucide-react'
@@ -13,6 +13,15 @@ import type {
   PreviewClassIndex,
   PreviewService,
 } from '@/features/dashboard-ui-visibility/visibility'
+
+/** テナント×サービス一覧で絞り込める対象（saas_adm は一覧対象外） */
+type AudienceFilter = 'all' | 'all_users' | 'adm'
+
+const AUDIENCE_RADIO_OPTIONS: { value: AudienceFilter; label: string }[] = [
+  { value: 'all', label: '全て' },
+  { value: 'all_users', label: 'all_users' },
+  { value: 'adm', label: 'adm' },
+]
 
 interface Props {
   initialTenants: any[]
@@ -60,6 +69,8 @@ export default function TenantServiceTab({
   const [tenantServices, setTenantServices] = useState<any[]>(initialTenantServices)
   const [selectedTenantId, setSelectedTenantId] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  // 初期表示は「全て」（all_users + adm）
+  const [selectedAudience, setSelectedAudience] = useState<AudienceFilter>('all')
 
   // カテゴリIDから名前を引くマップ
   const categoryMap = new Map<string, string>()
@@ -114,8 +125,17 @@ export default function TenantServiceTab({
     )
   }
 
-  // SaaS 管理専用サービスは一覧から除外（getServices と同じ並び）
-  const displayServices = services.filter(s => s.target_audience !== 'saas_adm')
+  // SaaS 管理専用は除外し、選択された対象(AUDIENCE)で絞り込み
+  const displayServices = useMemo(
+    () =>
+      services.filter(s => {
+        if (s.target_audience === 'saas_adm') return false
+        if (selectedAudience === 'all') return true
+        const audience = s.target_audience ?? 'all_users'
+        return audience === selectedAudience
+      }),
+    [services, selectedAudience]
+  )
   const allRowsEnabled = displayServices.length > 0 && displayServices.every(s => isEnabled(s.id))
   const noRowsEnabled = displayServices.length === 0 || displayServices.every(s => !isEnabled(s.id))
 
@@ -163,51 +183,74 @@ export default function TenantServiceTab({
 
   return (
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
-      {/* テナント選択 */}
-      <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-medium text-gray-900">{title}</h2>
-          <DashboardPreviewButton
-            tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
-            elements={dashboardElements}
-            contractedServiceIds={
-              new Set(
-                tenantServices
-                  .filter(ts => ts.tenant_id === selectedTenantId)
-                  .map(ts => ts.service_id)
-                  .filter(Boolean)
-              )
-            }
-            hiddenElementIds={
-              new Set(
-                dashboardOverrides
-                  .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
-                  .map(o => o.ui_dashboard_element_id)
-              )
-            }
-            disabled={!selectedTenantId}
-            services={menuServices.length > 0 ? menuServices : services}
-            categories={menuCategories.length > 0 ? menuCategories : initialCategories}
-            classes={menuClasses}
-            classIndex={menuClassIndex}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* テナント選択 */}
+        <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs h-full">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+            <DashboardPreviewButton
+              tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
+              elements={dashboardElements}
+              contractedServiceIds={
+                new Set(
+                  tenantServices
+                    .filter(ts => ts.tenant_id === selectedTenantId)
+                    .map(ts => ts.service_id)
+                    .filter(Boolean)
+                )
+              }
+              hiddenElementIds={
+                new Set(
+                  dashboardOverrides
+                    .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
+                    .map(o => o.ui_dashboard_element_id)
+                )
+              }
+              disabled={!selectedTenantId}
+              services={menuServices.length > 0 ? menuServices : services}
+              categories={menuCategories.length > 0 ? menuCategories : initialCategories}
+              classes={menuClasses}
+              classIndex={menuClassIndex}
+            />
+          </div>
+          <label htmlFor={selectId} className="sr-only">
+            対象のテナントを選択
+          </label>
+          <select
+            id={selectId}
+            value={selectedTenantId}
+            onChange={e => setSelectedTenantId(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
+          >
+            {tenants.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+            {tenants.length === 0 && <option value="">{emptyLabel}</option>}
+          </select>
         </div>
-        <label htmlFor={selectId} className="sr-only">
-          対象のテナントを選択
-        </label>
-        <select
-          id={selectId}
-          value={selectedTenantId}
-          onChange={e => setSelectedTenantId(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
-        >
-          {tenants.map(t => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-          {tenants.length === 0 && <option value="">{emptyLabel}</option>}
-        </select>
+
+        {/* 対象(AUDIENCE)で一覧を絞り込み */}
+        <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs h-full">
+          <h2 className="mb-4 text-lg font-medium text-gray-900">対象(AUDIENCE)</h2>
+          <fieldset className="flex flex-wrap items-center gap-4 border-0 p-0">
+            <legend className="sr-only">対象(AUDIENCE)で絞り込み</legend>
+            {AUDIENCE_RADIO_OPTIONS.map(option => (
+              <label key={option.value} className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="radio"
+                  name={`${selectId}-audience`}
+                  value={option.value}
+                  checked={selectedAudience === option.value}
+                  onChange={() => setSelectedAudience(option.value)}
+                  className="h-4 w-4 border-gray-300 text-[#FD7601] focus:ring-[#FD7601]"
+                />
+                <span className="text-xs font-medium text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </fieldset>
+        </div>
       </div>
 
       {/* サービス一覧（縦並び） */}
@@ -325,10 +368,12 @@ export default function TenantServiceTab({
                   </tr>
                 )
               })}
-              {services.length === 0 && (
+              {displayServices.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
-                    サービスが登録されていません。
+                    {services.filter(s => s.target_audience !== 'saas_adm').length === 0
+                      ? 'サービスが登録されていません。'
+                      : '選択した対象(AUDIENCE)に該当するサービスがありません。'}
                   </td>
                 </tr>
               )}

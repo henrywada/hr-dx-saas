@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import {
@@ -41,6 +41,15 @@ const SCREEN_LABEL: Record<string, string> = {
   adm: '管理画面 (/adm)',
 }
 
+/** ダッシュボード一覧で絞り込める画面（対象） */
+type ScreenFilter = 'all' | 'top' | 'adm'
+
+const SCREEN_RADIO_OPTIONS: { value: ScreenFilter; label: string }[] = [
+  { value: 'all', label: '全て' },
+  { value: 'top', label: '/top' },
+  { value: 'adm', label: '/adm' },
+]
+
 export default function TenantDashboardUiTab({
   initialTenants,
   initialElements,
@@ -62,6 +71,8 @@ export default function TenantDashboardUiTab({
   const [overrides, setOverrides] = useState(initialOverrides)
   const [selectedTenantId, setSelectedTenantId] = useState('')
   const [loading, setLoading] = useState(false)
+  // 初期表示は「全て」（/top + /adm）
+  const [selectedScreen, setSelectedScreen] = useState<ScreenFilter>('all')
 
   useEffect(() => {
     if (initialTenants.length > 0 && !selectedTenantId) {
@@ -76,14 +87,21 @@ export default function TenantDashboardUiTab({
     return row?.is_visible !== false
   }
 
-  const allRowsVisible = elements.length > 0 && elements.every(el => isVisible(el.id))
-  const noRowsVisible = elements.length === 0 || elements.every(el => !isVisible(el.id))
+  const displayElements = useMemo(
+    () =>
+      selectedScreen === 'all' ? elements : elements.filter(el => el.screen === selectedScreen),
+    [elements, selectedScreen]
+  )
+
+  const allRowsVisible = displayElements.length > 0 && displayElements.every(el => isVisible(el.id))
+  const noRowsVisible =
+    displayElements.length === 0 || displayElements.every(el => !isVisible(el.id))
 
   useEffect(() => {
     const el = headerCheckboxRef.current
     if (!el) return
-    el.indeterminate = !allRowsVisible && !noRowsVisible && elements.length > 0
-  }, [allRowsVisible, noRowsVisible, elements.length, overrides, selectedTenantId])
+    el.indeterminate = !allRowsVisible && !noRowsVisible && displayElements.length > 0
+  }, [allRowsVisible, noRowsVisible, displayElements.length, overrides, selectedTenantId])
 
   const handleToggle = async (elementId: string, currentlyVisible: boolean) => {
     if (loading || !selectedTenantId) return
@@ -131,10 +149,10 @@ export default function TenantDashboardUiTab({
 
   const handleBulkToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const wantVisible = e.target.checked
-    if (loading || !selectedTenantId || elements.length === 0) return
+    if (loading || !selectedTenantId || displayElements.length === 0) return
     setLoading(true)
     try {
-      const ids = elements.map(el => el.id)
+      const ids = displayElements.map(el => el.id)
       const result = await bulkSetTenantUiElementVisibility(selectedTenantId, ids, wantVisible)
       if (!result.success) {
         alert(`更新に失敗しました: ${result.error}`)
@@ -167,53 +185,76 @@ export default function TenantDashboardUiTab({
 
   return (
     <div style={{ gap: 'var(--space-3)' }} className="flex flex-col">
-      <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs max-w-2xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-medium text-gray-900">{title}</h2>
-            <p className="mt-1 text-xs text-gray-500">{description}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs h-full">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+              <p className="mt-1 text-xs text-gray-500">{description}</p>
+            </div>
+            <DashboardPreviewButton
+              tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
+              elements={elements}
+              contractedServiceIds={
+                new Set(
+                  initialTenantServices
+                    .filter(ts => ts.tenant_id === selectedTenantId)
+                    .map(ts => ts.service_id)
+                    .filter(Boolean)
+                )
+              }
+              hiddenElementIds={
+                new Set(
+                  overrides
+                    .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
+                    .map(o => o.ui_dashboard_element_id)
+                )
+              }
+              disabled={!selectedTenantId}
+              services={menuServices}
+              categories={menuCategories}
+              classes={menuClasses}
+              classIndex={menuClassIndex}
+            />
           </div>
-          <DashboardPreviewButton
-            tenantName={tenants.find(t => t.id === selectedTenantId)?.name ?? '未選択'}
-            elements={elements}
-            contractedServiceIds={
-              new Set(
-                initialTenantServices
-                  .filter(ts => ts.tenant_id === selectedTenantId)
-                  .map(ts => ts.service_id)
-                  .filter(Boolean)
-              )
-            }
-            hiddenElementIds={
-              new Set(
-                overrides
-                  .filter(o => o.tenant_id === selectedTenantId && o.is_visible === false)
-                  .map(o => o.ui_dashboard_element_id)
-              )
-            }
-            disabled={!selectedTenantId}
-            services={menuServices}
-            categories={menuCategories}
-            classes={menuClasses}
-            classIndex={menuClassIndex}
-          />
+          <label htmlFor={selectId} className="sr-only">
+            対象のテナントを選択
+          </label>
+          <select
+            id={selectId}
+            value={selectedTenantId}
+            onChange={e => setSelectedTenantId(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
+          >
+            {tenants.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+            {tenants.length === 0 && <option value="">{emptyLabel}</option>}
+          </select>
         </div>
-        <label htmlFor={selectId} className="sr-only">
-          対象のテナントを選択
-        </label>
-        <select
-          id={selectId}
-          value={selectedTenantId}
-          onChange={e => setSelectedTenantId(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-[#FD7601] focus:border-[#FD7601] sm:text-xs rounded-md bg-gray-50"
-        >
-          {tenants.map(t => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-          {tenants.length === 0 && <option value="">{emptyLabel}</option>}
-        </select>
+
+        {/* 対象(AUDIENCE)で一覧を絞り込み */}
+        <div className="bg-white p-5 rounded-md border border-gray-200 shadow-xs h-full">
+          <h2 className="mb-4 text-lg font-medium text-gray-900">対象(AUDIENCE)</h2>
+          <fieldset className="flex flex-wrap items-center gap-4 border-0 p-0">
+            <legend className="sr-only">対象(AUDIENCE)で絞り込み</legend>
+            {SCREEN_RADIO_OPTIONS.map(option => (
+              <label key={option.value} className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="radio"
+                  name={`${selectId}-audience`}
+                  value={option.value}
+                  checked={selectedScreen === option.value}
+                  onChange={() => setSelectedScreen(option.value)}
+                  className="h-4 w-4 border-gray-300 text-[#FD7601] focus:ring-[#FD7601]"
+                />
+                <span className="text-xs font-medium text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </fieldset>
+        </div>
       </div>
 
       {selectedTenantId ? (
@@ -245,7 +286,7 @@ export default function TenantDashboardUiTab({
                         type="checkbox"
                         checked={allRowsVisible}
                         onChange={handleBulkToggle}
-                        disabled={loading || elements.length === 0}
+                        disabled={loading || displayElements.length === 0}
                         className="h-4 w-4 rounded border-gray-300 text-[#FD7601] focus:ring-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="表示中の要素をすべて表示または非表示にする"
                       />
@@ -256,7 +297,7 @@ export default function TenantDashboardUiTab({
               </tr>
             </thead>
             <tbody>
-              {elements.map((el, rowIndex) => {
+              {displayElements.map((el, rowIndex) => {
                 const visible = isVisible(el.id)
                 return (
                   <tr
@@ -311,10 +352,12 @@ export default function TenantDashboardUiTab({
                   </tr>
                 )
               })}
-              {elements.length === 0 && (
+              {displayElements.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
-                    ダッシュボード要素マスタがありません。マイグレーションを適用してください。
+                    {elements.length === 0
+                      ? 'ダッシュボード要素マスタがありません。マイグレーションを適用してください。'
+                      : '選択した対象(AUDIENCE)に該当する要素がありません。'}
                   </td>
                 </tr>
               )}

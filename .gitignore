@@ -53,7 +53,11 @@ backups/
 backup_*.sql
 
 # ローカルのマニュアル類（バージョン管理しない）
-docs/manual/
+# ディレクトリごと除外すると配下のファイルを再包含できないため、中身を対象にする
+docs/manual/*
+# 参照資料として共有するものは追跡する（機能カタログは LP・企画側からも参照する）
+!docs/manual/機能カタログ.md
+!docs/manual/プラン別有効サービス.md
 
 # Cursor のローカルスキル定義（バージョン管理しない）
 .cursor/skills/my-grill-me/

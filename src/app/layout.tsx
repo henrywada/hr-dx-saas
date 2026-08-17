@@ -2,8 +2,19 @@ import type { Metadata } from 'next'
 import { Noto_Sans_JP, Geist_Mono, Barlow, Playfair_Display } from 'next/font/google'
 import '@/styles/globals.css'
 import PerformancePatch from '@/components/PerformancePatch'
+import { isLocalEnv } from '@/lib/env/deploy-env'
+
+// ローカル環境だけタブタイトルに [LOCAL] を付け、複数タブを開いていても
+// 本番と取り違えないようにする（フッターの環境バッジはスクロールしないと
+// 見えない場面があるため、タブ側でも判別できるようにする）。
+// 本番・Preview では template を '%s' にして各ページの title をそのまま表示する。
+const isLocal = isLocalEnv()
 
 export const metadata: Metadata = {
+  title: {
+    default: isLocal ? '[LOCAL] HR-DX' : 'HR-DX',
+    template: isLocal ? '[LOCAL] %s' : '%s',
+  },
   icons: {
     // PC / Android ブラウザ用（src/app/favicon.ico と同じ白い H ロゴ）
     icon: [

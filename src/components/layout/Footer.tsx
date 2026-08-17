@@ -1,7 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
+import { getDeployBadge } from '@/lib/env/deploy-env'
 
 export function Footer() {
+  const { label, dotClass, commitSha } = getDeployBadge()
+
   return (
     <footer className="h-12 bg-white border-t border-slate-200 flex items-center relative px-[24px] text-xs shrink-0 z-10">
       {/* Left: Links */}
@@ -19,10 +22,14 @@ export function Footer() {
         &copy; 2026 HR-dx Inc. All rights reserved.
       </div>
 
-      {/* Right: Version */}
+      {/* Right: Version + 環境バッジ（ドット色とラベルで local / preview / prod を判別する） */}
       <div className="ml-auto flex items-center gap-2">
-        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+        <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
         <span className="text-slate-400 lowercase font-mono">v2.7.33</span>
+        <span className="text-slate-400 lowercase font-mono">
+          · {label}
+          {commitSha && ` · ${commitSha}`}
+        </span>
       </div>
     </footer>
   )

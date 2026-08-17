@@ -9,6 +9,13 @@ const vercelOrigin =
 const nextConfig: NextConfig = {
   // pdf-parse / pdfjs-dist を webpack が束ねると Node 上で Object.defineProperty 等が壊れるためサーバでは外部解決
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  // デプロイ環境の判別用。Vercel が自動注入する VERCEL_ENV / VERCEL_GIT_COMMIT_SHA を
+  // ビルド時にクライアントへ露出させる（ローカルでは未定義のため local / dev になる）。
+  // 参照は src/lib/env/deploy-env.ts 経由で行う。
+  env: {
+    NEXT_PUBLIC_DEPLOY_ENV: process.env.VERCEL_ENV ?? 'local',
+    NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+  },
   // 人事ナレッジ取り込み・eラーニング動画アップロード等、Server Action の大きな FormData 用
   experimental: {
     // ミドルウェアがボディを複製するときの上限。既定 ~10MB だと大きめの multipart が途中で切れ

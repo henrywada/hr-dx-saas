@@ -25,7 +25,7 @@ export function Footer() {
       {/* Right: Version + 環境バッジ（ドット色とラベルで local / preview / prod を判別する） */}
       <div className="ml-auto flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
-        <span className="text-slate-400 lowercase font-mono">v2.7.34</span>
+        <span className="text-slate-400 lowercase font-mono">v2.8.0</span>
         <span className="text-slate-400 lowercase font-mono">
           · {label}
           {commitSha && ` · ${commitSha}`}

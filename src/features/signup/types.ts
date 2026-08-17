@@ -65,7 +65,8 @@ export const PLAN_CONFIG: Record<
     initialStatus: 'active',
     paymentMethod: 'free',
     paymentStatus: 'unpaid',
-    contractMonths: 3,
+    // 無期限（契約終了日を設定しない）。2026-08-17 に 3 ヶ月から変更
+    contractMonths: null,
     available: true,
     templateTenantName: 'PlanFree',
   },

@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { execSync } from 'node:child_process'
 import { STATIC_SECURITY_HEADERS } from './src/lib/security/static-headers'
 
 const vercelOrigin =
@@ -6,15 +7,45 @@ const vercelOrigin =
     ? `https://${process.env.VERCEL_URL}`
     : null
 
+/**
+ * ローカル開発時のコミット SHA を git から取得する。
+ *
+ * Vercel では `VERCEL_GIT_COMMIT_SHA` が自動注入されるが、ローカルには存在しない。
+ * 手元のコードが本番に出ているコミットと同一かをフッター上で突き合わせられるよう、
+ * ローカルでは git の HEAD を読む。
+ *
+ * 未コミットの変更がある場合は末尾に `*` を付け、「本番と同じコミットだが手元に
+ * 差分がある」状態を区別できるようにする。git が使えない環境では 'dev' を返す。
+ *
+ * 注意：この値は next.config.ts の評価時（＝dev server 起動時 / ビルド時）に確定する。
+ * 起動したまま commit しても表示は更新されないため、正確に見たいときは再起動する。
+ */
+function resolveLocalCommitSha(): string {
+  const run = (cmd: string) =>
+    execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+
+  try {
+    const sha = run('git rev-parse --short=7 HEAD')
+    const isDirty = run('git status --porcelain').length > 0
+    return isDirty ? `${sha}*` : sha
+  } catch {
+    return 'dev'
+  }
+}
+
 const nextConfig: NextConfig = {
   // pdf-parse / pdfjs-dist を webpack が束ねると Node 上で Object.defineProperty 等が壊れるためサーバでは外部解決
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
   // デプロイ環境の判別用。Vercel が自動注入する VERCEL_ENV / VERCEL_GIT_COMMIT_SHA を
-  // ビルド時にクライアントへ露出させる（ローカルでは未定義のため local / dev になる）。
-  // 参照は src/lib/env/deploy-env.ts 経由で行う。
+  // ビルド時にクライアントへ露出させる。ローカルでは VERCEL_* が無いため 'local' と
+  // git の HEAD（未コミット変更があれば末尾に '*'）を埋め込み、本番フッターの SHA と
+  // 突き合わせられるようにする。参照は src/lib/env/deploy-env.ts 経由で行う。
   env: {
     NEXT_PUBLIC_DEPLOY_ENV: process.env.VERCEL_ENV ?? 'local',
-    NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+    NEXT_PUBLIC_COMMIT_SHA:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? resolveLocalCommitSha(),
   },
   // 人事ナレッジ取り込み・eラーニング動画アップロード等、Server Action の大きな FormData 用
   experimental: {

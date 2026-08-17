@@ -49,15 +49,18 @@ export function isLocalEnv(): boolean {
 }
 
 /**
- * デプロイされたコミットの短縮 SHA（先頭 7 桁）。
+ * 表示中のコードのコミット短縮 SHA（7 桁）。next.config.ts で 7 桁に揃えて埋め込む。
  *
- * ローカルではコミットが確定しないため null を返す。
- * バージョン番号と違いビルドごとに必ず変わるため、「本番に反映済みか」の判定に使える。
+ * ローカルでは git の HEAD が入り、未コミットの変更があると末尾に `*` が付く
+ * （例: `970e66f*`）。git が使えない環境では null を返す。
+ *
+ * バージョン番号と違いコミットごとに必ず変わるため、ローカルと本番のフッターを
+ * 見比べれば「手元のコードが本番に反映済みか」を版数の上げ忘れと無関係に判定できる。
  */
 export function getCommitSha(): string | null {
   const sha = process.env.NEXT_PUBLIC_COMMIT_SHA
   if (!sha || sha === 'dev') return null
-  return sha.slice(0, 7)
+  return sha
 }
 
 /** バッジ表示用の値をまとめて返す */

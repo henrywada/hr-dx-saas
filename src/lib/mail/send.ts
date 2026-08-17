@@ -146,3 +146,73 @@ export function formatExpiryDate(expirySeconds: number): string {
   const min = pad(expirationDate.getMinutes())
   return `${y}/${m}/${d} ${h}:${min}`
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 運営者（SaaS 管理者）向け通知
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 新規契約通知のデフォルト宛先（SIGNUP_ADMIN_NOTIFY_EMAIL で上書き可能） */
+const DEFAULT_SIGNUP_ADMIN_EMAIL = 'wada007@gmail.com'
+
+/** 支払方法コードの日本語ラベル */
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  card: 'クレジットカード',
+  bank_transfer: '銀行振込',
+  free: '無料（決済なし）',
+}
+
+/** 日時を Asia/Tokyo で「YYYY/MM/DD HH:mm」形式に整形する */
+function formatJst(value: Date | string): string {
+  const date = typeof value === 'string' ? new Date(value) : value
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+/**
+ * セルフサービス サインアップ: 運営者への新規契約通知メール送信
+ *
+ * サインアップ処理（テナント・契約・ユーザー作成）の完了後に呼び出す。
+ * 送信失敗は登録処理を巻き戻さない（呼び出し側で握りつぶす）。
+ */
+export async function sendSignupAdminNotification(info: {
+  tenantId: string
+  companyName: string
+  applicantName: string
+  applicantEmail: string
+  planLabel: string
+  industry?: string | null
+  paymentMethod: string
+  paidAmount: number
+  contractEndAt: string | null
+}) {
+  const to = process.env.SIGNUP_ADMIN_NOTIFY_EMAIL || DEFAULT_SIGNUP_ADMIN_EMAIL
+
+  const rows: [string, string][] = [
+    ['会社名', escapeHtml(info.companyName)],
+    ['申込者名', escapeHtml(info.applicantName)],
+    ['メールアドレス', escapeHtml(info.applicantEmail)],
+    ['業種', escapeHtml(info.industry || '未入力')],
+    ['プラン', escapeHtml(info.planLabel)],
+    ['支払方法', PAYMENT_METHOD_LABEL[info.paymentMethod] ?? escapeHtml(info.paymentMethod)],
+    ['決済金額', `¥${info.paidAmount.toLocaleString('ja-JP')}`],
+    ['契約終了日', info.contractEndAt ? formatJst(info.contractEndAt) : '無期限'],
+    ['テナントID', escapeHtml(info.tenantId)],
+    ['申込日時', formatJst(new Date())],
+  ]
+
+  await sendMail({
+    to,
+    subject: `【HR-DX】新規契約: ${info.companyName}（${info.planLabel}）`,
+    html: `<p>新規契約のサインアップが完了しました。</p>
+<table border="1" cellpadding="6" cellspacing="0">
+${rows.map(([label, value]) => `  <tr><th align="left">${label}</th><td>${value}</td></tr>`).join('\n')}
+</table>`,
+  })
+}

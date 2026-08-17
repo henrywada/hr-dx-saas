@@ -2,7 +2,11 @@
 
 import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendWelcomeEmail, sendBankTransferEmail } from '@/lib/mail/send'
+import {
+  sendWelcomeEmail,
+  sendBankTransferEmail,
+  sendSignupAdminNotification,
+} from '@/lib/mail/send'
 import type { SignupFormData, SignupActionResult, PlanType } from './types'
 import { signupSchema } from './schemas'
 import { getPlanConfig } from '@/features/plan-config/queries'
@@ -291,6 +295,24 @@ export async function completeSignup(data: SignupFormData): Promise<SignupAction
     } catch (emailError) {
       // メール失敗はロールバック不要（登録は完了している）
       console.warn('ウェルカムメール送信失敗（登録は完了済み）:', emailError)
+    }
+
+    // ⑧ 運営者への新規契約通知（申込者向けメールの成否に関わらず送信する）
+    try {
+      await sendSignupAdminNotification({
+        tenantId,
+        companyName,
+        applicantName,
+        applicantEmail: email,
+        planLabel: config.label,
+        industry: industry ?? null,
+        paymentMethod: config.paymentMethod,
+        paidAmount,
+        contractEndAt,
+      })
+    } catch (notifyError) {
+      // 通知失敗もロールバック不要（登録は完了している）
+      console.warn('運営者向け新規契約通知の送信失敗（登録は完了済み）:', notifyError)
     }
 
     return { success: true, redirectTo: '/signup/complete' }

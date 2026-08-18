@@ -1170,8 +1170,15 @@ async function main() {
     await check('法人税法22条', () => taxGetLawArticle('法人税法', '22')),
     await check('裁決事例検索（交際費）', () => taxSearchSaiketsu('交際費')),
     await check('改正履歴（労基法）', async () => {
-      const hits = await fetchLawRevisions('322AC0000000049')
-      return { ok: hits.length > 0 }
+      // fetchLawRevisions は callExternal を通さず例外を投げる仕様のため、
+      // ここで捕捉して他項目と同じ {ok} 形式に揃える（クラッシュさせない）
+      try {
+        const hits = await fetchLawRevisions('322AC0000000049')
+        return { ok: hits.length > 0 }
+      } catch (e) {
+        console.error('  改正履歴の取得で例外:', e instanceof Error ? e.message : e)
+        return { ok: false }
+      }
     }),
   ]
 

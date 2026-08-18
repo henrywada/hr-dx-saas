@@ -777,7 +777,15 @@ export type Database = {
           target?: Json | null
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "closure_audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       closure_warnings: {
         Row: {
@@ -826,6 +834,13 @@ export type Database = {
             columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closure_warnings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5859,6 +5874,13 @@ export type Database = {
             referencedRelation: "monthly_overtime_closures"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "monthly_employee_overtime_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       monthly_overtime_closures: {
@@ -5956,6 +5978,13 @@ export type Database = {
             referencedRelation: "myou_companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "myou_alert_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       myou_companies: {
@@ -5983,7 +6012,15 @@ export type Database = {
           name?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "myou_companies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       myou_delivery_logs: {
         Row: {
@@ -6043,6 +6080,13 @@ export type Database = {
             referencedRelation: "myou_lots"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "myou_delivery_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       myou_lots: {
@@ -6088,7 +6132,15 @@ export type Database = {
           status?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "myou_lots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       myou_trace_labels: {
         Row: {
@@ -6137,6 +6189,13 @@ export type Database = {
             columns: ["lot_id"]
             isOneToOne: false
             referencedRelation: "myou_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myou_trace_labels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -6719,6 +6778,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_config: {
+        Row: {
+          available: boolean
+          contract_months: number | null
+          created_at: string
+          initial_status: string
+          label: string
+          max_employees: number
+          payment_method: string
+          payment_status: string
+          plan_type: string
+          sort_order: number
+          stripe_price_id_env: string | null
+          template_tenant_name: string
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          contract_months?: number | null
+          created_at?: string
+          initial_status: string
+          label: string
+          max_employees: number
+          payment_method: string
+          payment_status: string
+          plan_type: string
+          sort_order?: number
+          stripe_price_id_env?: string | null
+          template_tenant_name: string
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          contract_months?: number | null
+          created_at?: string
+          initial_status?: string
+          label?: string
+          max_employees?: number
+          payment_method?: string
+          payment_status?: string
+          plan_type?: string
+          sort_order?: number
+          stripe_price_id_env?: string | null
+          template_tenant_name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       program_targets: {
         Row: {
@@ -7358,6 +7465,13 @@ export type Database = {
             columns: ["questionnaire_id"]
             isOneToOne: false
             referencedRelation: "questionnaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -10110,7 +10224,15 @@ export type Database = {
           tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telework_activity_stats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telework_audit_logs: {
         Row: {
@@ -10143,7 +10265,15 @@ export type Database = {
           related_table?: string | null
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telework_audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telework_pc_devices: {
         Row: {
@@ -10203,7 +10333,15 @@ export type Database = {
           tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telework_pc_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telework_pc_logs: {
         Row: {
@@ -10236,7 +10374,15 @@ export type Database = {
           tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telework_pc_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telework_sessions: {
         Row: {
@@ -10302,7 +10448,15 @@ export type Database = {
           user_id?: string
           worked_seconds?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telework_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_contracts: {
         Row: {
@@ -10780,6 +10934,54 @@ export type Database = {
           },
         ]
       }
+      tenant_research_queries: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          id: string
+          keyword: string
+          mode: string
+          result_count: number
+          sub_tab: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          keyword: string
+          mode: string
+          result_count?: number
+          sub_tab: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          keyword?: string
+          mode?: string
+          result_count?: number
+          sub_tab?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_research_queries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_research_queries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_service: {
         Row: {
           id: string
@@ -11078,7 +11280,15 @@ export type Database = {
           tenant_id?: string
           work_date?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "timecard_corrections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_plan_template_courses: {
         Row: {
@@ -11713,6 +11923,13 @@ export type Database = {
         }[]
       }
       get_auth_user_email: { Args: { p_user_id: string }; Returns: string }
+      get_auth_user_emails: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       get_condition_drop_alerts: {
         Args: { p_days?: number }
         Returns: {

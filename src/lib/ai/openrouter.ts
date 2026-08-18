@@ -90,6 +90,12 @@ export type OpenRouterChatOptions = {
   json?: boolean
   tools?: OpenRouterTool[]
   timeoutMs?: number
+  /**
+   * 推論（thinking）の制御。Gemini 2.5 系は thinking が既定 ON で、
+   * max_tokens を食い潰して応答が途中終了することがある。
+   * exclude: true で thinking を出力から除外する。未指定時は現状の挙動を維持する。
+   */
+  reasoning?: { exclude?: boolean }
 }
 
 export type OpenRouterChatResult = {
@@ -118,6 +124,9 @@ export async function openRouterChat(opts: OpenRouterChatOptions): Promise<OpenR
     messages: opts.messages,
     temperature: opts.temperature ?? 0.3,
     max_tokens: opts.maxTokens ?? 2000,
+  }
+  if (opts.reasoning) {
+    body.reasoning = opts.reasoning
   }
   if (opts.json) {
     body.response_format = { type: 'json_object' }

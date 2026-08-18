@@ -1,5 +1,6 @@
 'use server'
 
+import { openRouterChat, OPENROUTER_SUMMARIZE_MODEL } from '@/lib/ai/openrouter'
 import { getServerUser } from '@/lib/auth/server-user'
 import { createClient } from '@/lib/supabase/server'
 
@@ -14,6 +15,11 @@ import {
   laborSearchLaw,
   laborSearchMhlw,
 } from './lib/labor-law-client'
+import {
+  buildSummarySystemPrompt,
+  buildSummaryUserPrompt,
+  SUMMARY_MAX_TOKENS,
+} from './lib/summarize-prompt'
 import {
   taxGetSaiketsu,
   taxGetTsutatsu,
@@ -214,4 +220,46 @@ export async function fetchResearchDocument(
         error: { kind: 'invalid_input', message: '不正な取得対象が指定されました。' },
       }
   }
+}
+
+/**
+ * 取得済み原文の要約を生成する。
+ *
+ * 入力は「画面上で実際に取得した原文」のみ。モデルに検索させず、RAG も引かない。
+ * ユーザーが明示的に要約ボタンを押したときだけ呼ばれる（自動実行しない）。
+ */
+export async function summarizeResearchDocument(
+  doc: ResearchDocument
+): Promise<ResearchResult<string>> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return UNAUTHORIZED
+
+  if (!process.env.OPENROUTER_API_KEY) {
+    return {
+      ok: false,
+      error: { kind: 'invalid_input', message: 'OPENROUTER_API_KEY が未設定です。' },
+    }
+  }
+
+  if (!doc?.body?.trim()) {
+    return {
+      ok: false,
+      error: { kind: 'invalid_input', message: '要約する原文がありません。' },
+    }
+  }
+
+  return callExternal('AI要約', async () => {
+    const res = await openRouterChat({
+      model: OPENROUTER_SUMMARIZE_MODEL,
+      messages: [
+        { role: 'system', content: buildSummarySystemPrompt() },
+        { role: 'user', content: buildSummaryUserPrompt(doc) },
+      ],
+      temperature: 0.1,
+      maxTokens: SUMMARY_MAX_TOKENS,
+      // Gemini 2.5 系の thinking が出力予算を食い潰し、要約が途中終了するのを防ぐ
+      reasoning: { exclude: true },
+    })
+    return res.content
+  })
 }

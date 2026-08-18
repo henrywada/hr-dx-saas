@@ -1,10 +1,19 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
+import { runResearchSearch } from '../actions'
+import { ResultList } from './ResultList'
+import { SearchForm } from './SearchForm'
 import { ModeRadioGroup } from './ModeRadioGroup'
-import type { ResearchHistoryRow, ResearchMode, ResearchSubTab } from '../types'
+import type {
+  ResearchError,
+  ResearchHistoryRow,
+  ResearchHit,
+  ResearchMode,
+  ResearchSubTab,
+} from '../types'
 
 /** モードごとのサブタブ定義 */
 export const SUB_TABS_BY_MODE: Record<ResearchMode, { value: ResearchSubTab; label: string }[]> = {
@@ -38,6 +47,35 @@ export function ResearchClient({
 
   const [mode, setMode] = useState<ResearchMode>(initialMode)
   const [subTab, setSubTab] = useState<ResearchSubTab>(SUB_TABS_BY_MODE[initialMode][0].value)
+
+  const [hits, setHits] = useState<ResearchHit[]>([])
+  const [selectedHit, setSelectedHit] = useState<ResearchHit | null>(null)
+  const [searchError, setSearchError] = useState<ResearchError | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  const handleSearch = useCallback(
+    (input: { keyword: string; article?: string }) => {
+      startTransition(async () => {
+        setSearchError(null)
+        setSelectedHit(null)
+        const result = await runResearchSearch({
+          mode,
+          subTab,
+          keyword: input.keyword,
+          article: input.article,
+        })
+        // strict: false（strictNullChecks 無効）環境では `if (result.ok)` の else 節で
+        // result.error への絞り込みが効かないため、明示的に === true で判定する
+        if (result.ok === true) {
+          setHits(result.data)
+        } else {
+          setHits([])
+          setSearchError(result.error)
+        }
+      })
+    },
+    [mode, subTab]
+  )
 
   // モードは URL に持たせて共有・ブックマークできるようにする
   const handleModeChange = useCallback(
@@ -80,9 +118,25 @@ export function ResearchClient({
         ))}
       </nav>
 
-      <p className="text-xs text-slate-400">
-        現在の対象: {mode} / {subTab}（履歴 {initialHistory.length} 件）
-      </p>
+      <SearchForm subTab={subTab} pending={pending} onSubmit={handleSearch} />
+
+      {searchError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-xs text-red-700">{searchError.message}</p>
+          {searchError.sourceUrl && (
+            <a
+              href={searchError.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-red-700 underline mt-1 inline-block"
+            >
+              出典サイトを直接開く
+            </a>
+          )}
+        </div>
+      )}
+
+      <ResultList hits={hits} selectedId={selectedHit?.id ?? null} onSelect={setSelectedHit} />
 
       <footer className="pt-4 border-t border-slate-200">
         <p className="text-xs text-slate-500">

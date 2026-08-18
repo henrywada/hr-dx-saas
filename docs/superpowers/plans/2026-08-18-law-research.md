@@ -2344,11 +2344,15 @@ export function ResultList({
 
 - [ ] **Step 3: ResearchClient に検索状態を組み込む**
 
-import に追加:
+既存の react の import 行を書き換える（**新しい `from 'react'` 行を追加しないこと**。重複 import になり `npm run lint` で落ちる）:
 
 ```typescript
-import { useTransition } from 'react'
+import { useCallback, useState, useTransition } from 'react'
+```
 
+続けて、以下の import を追加する:
+
+```typescript
 import { runResearchSearch } from '../actions'
 import { ResultList } from './ResultList'
 import { SearchForm } from './SearchForm'
@@ -2447,7 +2451,7 @@ git commit -m "feat: 調べる機能の検索フォームと結果一覧を追�
 **Interfaces:**
 
 - Consumes: `fetchResearchDocument` / `summarizeResearchDocument`（Task 7・8）、Task 1 の型
-- Produces: `SourceDetailPanel`（props: `hit: ResearchHit | null`, `document: ResearchDocument | null`, `loading: boolean`, `error: ResearchError | null`）、`AiSummaryCard`（props: `document: ResearchDocument`）、`HistoryPanel`（props: `rows: ResearchHistoryRow[]`, `onPick: (row: ResearchHistoryRow) => void`）
+- Produces: `SourceDetailPanel`（props: `hit: ResearchHit | null`, `doc: ResearchDocument | null`, `loading: boolean`, `error: ResearchError | null`）、`AiSummaryCard`（props: `doc: ResearchDocument`）、`HistoryPanel`（props: `rows: ResearchHistoryRow[]`, `onPick: (row: ResearchHistoryRow) => void`）
 
 - [ ] **Step 1: AiSummaryCard を書く**
 
@@ -2461,7 +2465,8 @@ import { useState, useTransition } from 'react'
 import { summarizeResearchDocument } from '../actions'
 import type { ResearchDocument } from '../types'
 
-export function AiSummaryCard({ document }: { document: ResearchDocument }) {
+// prop 名は doc。DOM グローバルの document をシャドーイングしないため
+export function AiSummaryCard({ doc }: { doc: ResearchDocument }) {
   const [summary, setSummary] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -2470,7 +2475,7 @@ export function AiSummaryCard({ document }: { document: ResearchDocument }) {
   const handleSummarize = () => {
     startTransition(async () => {
       setError(null)
-      const result = await summarizeResearchDocument(document)
+      const result = await summarizeResearchDocument(doc)
       if (result.ok) setSummary(result.data)
       else setError(result.error.message)
     })
@@ -2499,15 +2504,10 @@ export function AiSummaryCard({ document }: { document: ResearchDocument }) {
           </div>
           <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-2">
             この要約は上記の原文のみを根拠に生成されています。正本は原文です。 出典:{' '}
-            <a
-              href={document.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              {document.sourceUrl}
+            <a href={doc.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+              {doc.sourceUrl}
             </a>
-            （取得: {document.fetchedAt.slice(0, 10)}）
+            （取得: {doc.fetchedAt.slice(0, 10)}）
           </p>
         </>
       )}
@@ -2532,14 +2532,15 @@ export function AiSummaryCard({ document }: { document: ResearchDocument }) {
 import { AiSummaryCard } from './AiSummaryCard'
 import type { ResearchDocument, ResearchError, ResearchHit } from '../types'
 
+// prop 名は doc。DOM グローバルの document をシャドーイングしないため
 export function SourceDetailPanel({
   hit,
-  document,
+  doc,
   loading,
   error,
 }: {
   hit: ResearchHit | null
-  document: ResearchDocument | null
+  doc: ResearchDocument | null
   loading: boolean
   error: ResearchError | null
 }) {
@@ -2577,33 +2578,28 @@ export function SourceDetailPanel({
     )
   }
 
-  if (!document) return null
+  if (!doc) return null
 
   return (
     <div className="space-y-3">
       <article className="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
         <header className="space-y-1 border-b border-slate-100 pb-3">
-          <h2 className="text-sm font-semibold text-slate-900">{document.title}</h2>
+          <h2 className="text-sm font-semibold text-slate-900">{doc.title}</h2>
           <p className="text-[11px] text-slate-500">
             出典:{' '}
-            <a
-              href={document.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              {document.sourceUrl}
+            <a href={doc.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+              {doc.sourceUrl}
             </a>
-            {' ／ '}取得日時: {document.fetchedAt.slice(0, 19).replace('T', ' ')}
+            {' ／ '}取得日時: {doc.fetchedAt.slice(0, 19).replace('T', ' ')}
           </p>
         </header>
 
         <div className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">
-          {document.body}
+          {doc.body}
         </div>
       </article>
 
-      <AiSummaryCard document={document} />
+      <AiSummaryCard doc={doc} />
     </div>
   )
 }
@@ -2678,22 +2674,23 @@ import type { ResearchDocument } from '../types'
 `handleSearch` の直後に追加:
 
 ```typescript
-const [document, setDocument] = useState<ResearchDocument | null>(null)
-const [documentError, setDocumentError] = useState<ResearchError | null>(null)
-const [documentLoading, setDocumentLoading] = useState(false)
+// 変数名は doc 系。DOM グローバルの document をシャドーイングしないため
+const [doc, setDoc] = useState<ResearchDocument | null>(null)
+const [docError, setDocError] = useState<ResearchError | null>(null)
+const [docLoading, setDocLoading] = useState(false)
 
 const handleSelect = useCallback((hit: ResearchHit) => {
   setSelectedHit(hit)
-  setDocument(null)
-  setDocumentError(null)
-  setDocumentLoading(true)
+  setDoc(null)
+  setDocError(null)
+  setDocLoading(true)
 
   fetchResearchDocument(hit.ref)
     .then(result => {
-      if (result.ok) setDocument(result.data)
-      else setDocumentError(result.error)
+      if (result.ok) setDoc(result.data)
+      else setDocError(result.error)
     })
-    .finally(() => setDocumentLoading(false))
+    .finally(() => setDocLoading(false))
 }, [])
 
 // 履歴から再実行する。モードとサブタブも履歴の値へ戻す
@@ -2728,9 +2725,9 @@ const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
         </div>
         <SourceDetailPanel
           hit={selectedHit}
-          document={document}
-          loading={documentLoading}
-          error={documentError}
+          doc={doc}
+          loading={docLoading}
+          error={docError}
         />
       </div>
 ```

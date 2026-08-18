@@ -20,6 +20,15 @@
 --   対象外: grant_llm_usage.tenant_id は ON DELETE SET NULL のまま維持する
 --           （助成金AI利用ログの課金・監査証跡として意図的な設計の可能性が
 --             あるため、本マイグレーションでは変更しない）。
+--
+--   注意: 本番調査で、マイグレーション履歴上は適用済みだが実テーブルが
+--         存在しない3ファイル分・8テーブル（lifecycle_instances/
+--         lifecycle_task_templates/lifecycle_tasks、training_plan_templates/
+--         training_plan_template_courses/employee_training_plans、
+--         turnover_risk_scores/turnover_risk_action_logs）が見つかった。
+--         これは本マイグレーションと無関係な既存のスキーマドリフトのため、
+--         Part A は対象テーブルが存在しない場合は RAISE NOTICE でスキップする
+--         （欠落テーブル自体の復元は別途調査・対応する）。
 -- =============================================================
 
 -- -------------------------------------------------------------
@@ -75,8 +84,13 @@ DECLARE
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
+    IF to_regclass('public.' || t) IS NULL THEN
+      RAISE NOTICE 'テーブル public.% が存在しないためスキップします（既存のスキーマドリフト、別途調査が必要）', t;
+      CONTINUE;
+    END IF;
+
     EXECUTE format(
-      'ALTER TABLE public.%I DROP CONSTRAINT %I',
+      'ALTER TABLE public.%I DROP CONSTRAINT IF EXISTS %I',
       t, t || '_tenant_id_fkey'
     );
     EXECUTE format(

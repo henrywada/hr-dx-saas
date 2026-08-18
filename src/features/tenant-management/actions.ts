@@ -274,41 +274,10 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
       .select('user_id')
       .eq('tenant_id', tenantId)
 
-    // 2. tenant_service の削除
-    const { error: tsError } = await supabase
-      .from('tenant_service')
-      .delete()
-      .eq('tenant_id', tenantId)
-
-    if (tsError) {
-      console.error('テナントサービス削除エラー:', tsError)
-      return { success: false, error: 'テナントサービス削除失敗: ' + tsError.message }
-    }
-
-    // 3. employees の削除
-    const { error: empError } = await supabase.from('employees').delete().eq('tenant_id', tenantId)
-
-    if (empError) {
-      console.error('従業員削除エラー:', empError)
-      return { success: false, error: '従業員削除失敗: ' + empError.message }
-    }
-
-    // 4. divisions の削除
-    const { error: divError } = await supabase.from('divisions').delete().eq('tenant_id', tenantId)
-
-    if (divError) {
-      console.error('組織削除エラー:', divError)
-    }
-
-    // 5. tenants の削除
-    const { error: tenantError } = await supabase.from('tenants').delete().eq('id', tenantId)
-
-    if (tenantError) {
-      console.error('テナント削除エラー:', tenantError)
-      return { success: false, error: 'テナント削除失敗: ' + tenantError.message }
-    }
-
-    // 6. auth.users の削除（RPC関数経由でGoTrueバイパス）
+    // 2. auth.users の削除（RPC関数経由でGoTrueバイパス）を tenants 削除より先に行う。
+    //    delete_auth_user は employees/auth.identities/auth.users を単純 DELETE するだけの
+    //    冪等な処理のため、途中で失敗してもここで中断すれば tenants 本体は無傷のまま残り、
+    //    安全に再実行できる（成功済みユーザーへの再呼び出しは0行DELETEになるだけで害がない）
     if (employees && employees.length > 0) {
       for (const emp of employees) {
         if (emp.user_id) {
@@ -316,10 +285,22 @@ export async function deleteTenant(tenantId: string): Promise<TenantActionResult
             p_user_id: emp.user_id,
           })
           if (delErr) {
-            console.warn('ユーザー削除警告 (' + emp.user_id + '):', delErr)
+            console.error('ユーザー削除失敗 (' + emp.user_id + '):', delErr)
+            return { success: false, error: 'ユーザー削除失敗: ' + delErr.message }
           }
         }
       }
+    }
+
+    // 3. tenants の削除
+    //    tenant_id -> tenants.id の外部キーは全テーブルで ON DELETE CASCADE 済み
+    //    （supabase/migrations/20260818090000_tenant_fk_cascade_hardening.sql）のため、
+    //    tenant_service / employees / divisions を含む関連データは自動的に削除される
+    const { error: tenantError } = await supabase.from('tenants').delete().eq('id', tenantId)
+
+    if (tenantError) {
+      console.error('テナント削除エラー:', tenantError)
+      return { success: false, error: 'テナント削除失敗: ' + tenantError.message }
     }
 
     revalidatePath(REVALIDATE_PATH)

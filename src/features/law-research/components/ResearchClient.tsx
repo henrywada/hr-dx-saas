@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { fetchResearchDocument, runResearchSearch } from '../actions'
@@ -85,7 +85,12 @@ export function ResearchClient({
   const [docError, setDocError] = useState<ResearchError | null>(null)
   const [docLoading, setDocLoading] = useState(false)
 
+  // 詳細取得の世代カウンタ。行を素早く切り替えたとき、
+  // 遅れて届いた古いレスポンスで新しい選択を上書きしないようにする。
+  const docRequestIdRef = useRef(0)
+
   const handleSelect = useCallback((hit: ResearchHit) => {
+    const requestId = ++docRequestIdRef.current
     setSelectedHit(hit)
     setDoc(null)
     setDocError(null)
@@ -93,44 +98,60 @@ export function ResearchClient({
 
     fetchResearchDocument(hit.ref)
       .then(result => {
+        // 自分より新しい取得が始まっていたら、この結果は捨てる
+        if (docRequestIdRef.current !== requestId) return
         if (result.ok === true) setDoc(result.data)
         else setDocError(result.error)
       })
-      .finally(() => setDocLoading(false))
+      .finally(() => {
+        if (docRequestIdRef.current !== requestId) return
+        setDocLoading(false)
+      })
   }, [])
 
-  // 履歴から再実行する。モードとサブタブも履歴の値へ戻す
-  const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
-    setMode(row.mode)
-    setSubTab(row.sub_tab)
-    setSelectedHit(null)
-    startTransition(async () => {
-      const result = await runResearchSearch({
-        mode: row.mode,
-        subTab: row.sub_tab,
-        keyword: row.keyword,
-      })
-      if (result.ok === true) {
-        setHits(result.data)
-        setSearchError(null)
-      } else {
-        setHits([])
-        setSearchError(result.error)
-      }
-    })
-  }, [])
+  // モードを URL に反映する。共有・ブックマークしたときに同じモードで開けるようにする。
+  const syncModeToUrl = useCallback(
+    (next: ResearchMode) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('mode', next)
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    },
+    [pathname, router, searchParams]
+  )
 
   // モードは URL に持たせて共有・ブックマークできるようにする
   const handleModeChange = useCallback(
     (next: ResearchMode) => {
       setMode(next)
       setSubTab(SUB_TABS_BY_MODE[next][0].value)
-
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('mode', next)
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+      syncModeToUrl(next)
     },
-    [pathname, router, searchParams]
+    [syncModeToUrl]
+  )
+
+  // 履歴から再実行する。モードとサブタブも履歴の値へ戻す
+  const handlePickHistory = useCallback(
+    (row: ResearchHistoryRow) => {
+      setMode(row.mode)
+      setSubTab(row.sub_tab)
+      syncModeToUrl(row.mode)
+      setSelectedHit(null)
+      startTransition(async () => {
+        const result = await runResearchSearch({
+          mode: row.mode,
+          subTab: row.sub_tab,
+          keyword: row.keyword,
+        })
+        if (result.ok === true) {
+          setHits(result.data)
+          setSearchError(null)
+        } else {
+          setHits([])
+          setSearchError(result.error)
+        }
+      })
+    },
+    [syncModeToUrl]
   )
 
   return (

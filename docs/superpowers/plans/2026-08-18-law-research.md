@@ -1267,14 +1267,17 @@ CREATE INDEX IF NOT EXISTS idx_tenant_research_queries_tenant_created
 
 ALTER TABLE public.tenant_research_queries ENABLE ROW LEVEL SECURITY;
 
+-- テナント分離は既存ヘルパー current_tenant_id() を使う。
+-- この関数は STABLE SECURITY DEFINER + SET search_path = public で定義されており、
+-- 中身は「employees から user_id = auth.uid() の tenant_id を1件引く」。
+-- SECURITY DEFINER のため employees 自身の RLS に対する再帰を避けられ、
+-- STABLE のためプランナが結果をキャッシュできる。
+-- 本DBのポリシーは 289件がこのヘルパー、91件が生のサブクエリを使っており、ヘルパーが現行の主流。
 CREATE POLICY "tenant_isolation" ON public.tenant_research_queries
-  FOR ALL USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.employees
-      WHERE auth_user_id = auth.uid()
-    )
-  );
+  FOR ALL USING (tenant_id = public.current_tenant_id());
 ```
+
+> **注意: `employees` のカラム名は `user_id` であり `auth_user_id` ではない。** プロジェクトの CLAUDE.md にあるマイグレーションテンプレートは `auth_user_id` と書いているが、これは実スキーマと合っていない（実際に本タスクで適用エラーになった）。生のサブクエリを書く場合は `WHERE user_id = auth.uid()` とすること。
 
 > ポリシーは新規テーブルへの初回作成なので `CREATE POLICY` のみで足りる。再実行が必要になった場合も、テーブルが `IF NOT EXISTS` で守られているため、このマイグレーション自体を再適用することはない。
 

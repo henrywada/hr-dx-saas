@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { runResearchSearch } from '../actions'
 import { ResultList } from './ResultList'
-import { SearchForm } from './SearchForm'
+import { PRIMARY_FIELD, SearchForm } from './SearchForm'
 import { ModeRadioGroup } from './ModeRadioGroup'
 import type {
   ResearchError,
@@ -118,7 +118,18 @@ export function ResearchClient({
         ))}
       </nav>
 
-      <SearchForm subTab={subTab} pending={pending} onSubmit={handleSearch} />
+      {/*
+        key に入力欄のラベルを使うことで、入力欄の意味が変わったときだけ
+        SearchForm を再マウントして入力値をリセットする。
+        「厚労省通達」↔「安衛通達」はどちらも『キーワード』欄なので値が保持され、
+        「法令名」→「キーワード」→「法令ID」のように意味が変わる切替ではリセットされる。
+      */}
+      <SearchForm
+        key={PRIMARY_FIELD[subTab].label}
+        subTab={subTab}
+        pending={pending}
+        onSubmit={handleSearch}
+      />
 
       {searchError && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">

@@ -9,8 +9,12 @@ const SUB_TABS_WITH_ARTICLE: ResearchSubTab[] = ['tax_article', 'labor_article',
 /** 第2入力に通達番号が必要なサブタブ */
 const SUB_TABS_WITH_NUMBER: ResearchSubTab[] = ['tax_tsutatsu']
 
-/** サブタブごとの第1入力のラベルとプレースホルダ */
-const PRIMARY_FIELD: Record<ResearchSubTab, { label: string; placeholder: string }> = {
+/**
+ * サブタブごとの第1入力のラベルとプレースホルダ。
+ * ResearchClient が「入力欄の意味が変わったか」を判定するために export する
+ * （ラベルが同じ間は入力値を保持し、変わったらリセットする）。
+ */
+export const PRIMARY_FIELD: Record<ResearchSubTab, { label: string; placeholder: string }> = {
   tax_article: { label: '法令名', placeholder: '法人税法 / 所得税法' },
   tax_tsutatsu: { label: '通達名', placeholder: '法人税基本通達' },
   tax_saiketsu: { label: 'キーワード', placeholder: '交際費 / 役員報酬' },

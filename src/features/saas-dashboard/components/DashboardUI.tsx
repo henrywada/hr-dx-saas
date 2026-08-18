@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { APP_ROUTES } from '@/config/routes'
 import { DASHBOARD_CARDS } from '@/config/dashboard-config'
+import { formatDateInJST } from '@/lib/datetime'
 import {
   LineChart,
   Line,
@@ -24,6 +25,7 @@ export interface DashboardUIProps {
   tenants: Array<{
     id: string
     name: string
+    created_at: string | null
     accessCount: number
     actual_count: number
     contract_limit: number
@@ -93,9 +95,9 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* チャート */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-[#e2e6ec] p-6 shadow-sm min-h-[300px]">
+        <div className="bg-white rounded-xl border border-[#e2e6ec] p-6 shadow-sm min-h-[300px]">
           <h3 className="font-bold text-lg mb-4 text-[#24292f]">日次アクティビティ</h3>
           <div className="h-64 bg-white rounded-lg border border-dashed border-[#e2e6ec] p-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -117,19 +119,25 @@ export default function DashboardUI({ stats, tenants, activityData }: DashboardU
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-[#57606a]">
+                  <th className="text-left py-2 font-medium">No</th>
                   <th className="text-left py-2 font-medium">テナント名</th>
+                  <th className="text-left py-2 font-medium">作成日</th>
                   <th className="text-center py-2 font-medium">アクセス数</th>
                   <th className="text-center py-2 font-medium">登録数</th>
                   <th className="text-right py-2 font-medium">上限</th>
                 </tr>
               </thead>
               <tbody>
-                {tenants.map(t => (
+                {tenants.map((t, index) => (
                   <tr
                     key={t.id}
                     className="border-b last:border-0 hover:bg-[#f6f8fa] transition-colors"
                   >
+                    <td className="py-3 text-[#57606a]">{index + 1}</td>
                     <td className="py-3 font-medium text-[#24292f]">{t.name}</td>
+                    <td className="py-3 text-[#57606a]">
+                      {t.created_at ? formatDateInJST(t.created_at) : '-'}
+                    </td>
                     <td className="py-3 text-center text-emerald-600 font-bold">
                       {t.accessCount.toLocaleString()}
                     </td>

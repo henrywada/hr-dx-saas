@@ -58,17 +58,20 @@ export async function getSaasTenants() {
         `
         id,
         name,
+        created_at,
         max_employees,
         employees:employees(count)
       `
       )
       .eq('is_template', false)
+      .order('created_at', { ascending: false })
 
     if (error) throw error
 
     type TenantRow = {
       id: string
       name: string
+      created_at: string | null
       max_employees: number | null
       employees: { count: number }[]
     }
@@ -76,6 +79,7 @@ export async function getSaasTenants() {
     return (data as unknown as TenantRow[]).map(t => ({
       id: t.id,
       name: t.name,
+      created_at: t.created_at,
       contract_limit: t.max_employees ?? null,
       actual_count: t.employees?.[0]?.count ?? 0,
     }))

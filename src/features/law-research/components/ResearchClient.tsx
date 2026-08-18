@@ -3,11 +3,14 @@
 import { useCallback, useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import { runResearchSearch } from '../actions'
+import { fetchResearchDocument, runResearchSearch } from '../actions'
+import { HistoryPanel } from './HistoryPanel'
 import { ResultList } from './ResultList'
+import { SourceDetailPanel } from './SourceDetailPanel'
 import { PRIMARY_FIELD, SearchForm } from './SearchForm'
 import { ModeRadioGroup } from './ModeRadioGroup'
 import type {
+  ResearchDocument,
   ResearchError,
   ResearchHistoryRow,
   ResearchHit,
@@ -76,6 +79,46 @@ export function ResearchClient({
     },
     [mode, subTab]
   )
+
+  // 変数名は doc 系。DOM グローバルの document をシャドーイングしないため
+  const [doc, setDoc] = useState<ResearchDocument | null>(null)
+  const [docError, setDocError] = useState<ResearchError | null>(null)
+  const [docLoading, setDocLoading] = useState(false)
+
+  const handleSelect = useCallback((hit: ResearchHit) => {
+    setSelectedHit(hit)
+    setDoc(null)
+    setDocError(null)
+    setDocLoading(true)
+
+    fetchResearchDocument(hit.ref)
+      .then(result => {
+        if (result.ok === true) setDoc(result.data)
+        else setDocError(result.error)
+      })
+      .finally(() => setDocLoading(false))
+  }, [])
+
+  // 履歴から再実行する。モードとサブタブも履歴の値へ戻す
+  const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
+    setMode(row.mode)
+    setSubTab(row.sub_tab)
+    setSelectedHit(null)
+    startTransition(async () => {
+      const result = await runResearchSearch({
+        mode: row.mode,
+        subTab: row.sub_tab,
+        keyword: row.keyword,
+      })
+      if (result.ok === true) {
+        setHits(result.data)
+        setSearchError(null)
+      } else {
+        setHits([])
+        setSearchError(result.error)
+      }
+    })
+  }, [])
 
   // モードは URL に持たせて共有・ブックマークできるようにする
   const handleModeChange = useCallback(
@@ -147,7 +190,13 @@ export function ResearchClient({
         </div>
       )}
 
-      <ResultList hits={hits} selectedId={selectedHit?.id ?? null} onSelect={setSelectedHit} />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="space-y-3">
+          <ResultList hits={hits} selectedId={selectedHit?.id ?? null} onSelect={handleSelect} />
+          <HistoryPanel rows={initialHistory} onPick={handlePickHistory} />
+        </div>
+        <SourceDetailPanel hit={selectedHit} doc={doc} loading={docLoading} error={docError} />
+      </div>
 
       <footer className="pt-4 border-t border-slate-200">
         <p className="text-xs text-slate-500">

@@ -19,6 +19,7 @@
 - 型チェックは `npm run type-check`（= `tsc --noEmit`）
 - 依存バージョンは**完全固定**（`^` や `~` を付けない）: `tax-law-mcp` は `0.5.4`、`labor-law-mcp` は `0.2.1`
 - TypeScript は `strict: false`
+- **`strict: false` の落とし穴:** `ResearchResult` のような判別可能ユニオンを `if (result.ok) { … } else { result.error }` で分岐すると、else 側が誤って `{ ok: true }` に絞られて型エラーになる（実機確認済み）。**`if (result.ok === true)` と明示比較すること。** `if (!result.ok) return result.error` も同様に通らない
 - **コードコメントは日本語で書く**
 - `createAdminClient()` は使用禁止。`createClient()`（`@/lib/supabase/server`）のみ
 - URL のハードコード禁止。`APP_ROUTES`（`@/config/routes`）から参照する
@@ -2388,7 +2389,7 @@ const handleSearch = useCallback(
         keyword: input.keyword,
         article: input.article,
       })
-      if (result.ok) {
+      if (result.ok === true) {
         setHits(result.data)
       } else {
         setHits([])
@@ -2486,7 +2487,7 @@ export function AiSummaryCard({ doc }: { doc: ResearchDocument }) {
     startTransition(async () => {
       setError(null)
       const result = await summarizeResearchDocument(doc)
-      if (result.ok) setSummary(result.data)
+      if (result.ok === true) setSummary(result.data)
       else setError(result.error.message)
     })
   }
@@ -2697,7 +2698,7 @@ const handleSelect = useCallback((hit: ResearchHit) => {
 
   fetchResearchDocument(hit.ref)
     .then(result => {
-      if (result.ok) setDoc(result.data)
+      if (result.ok === true) setDoc(result.data)
       else setDocError(result.error)
     })
     .finally(() => setDocLoading(false))
@@ -2714,7 +2715,7 @@ const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
       subTab: row.sub_tab,
       keyword: row.keyword,
     })
-    if (result.ok) {
+    if (result.ok === true) {
       setHits(result.data)
       setSearchError(null)
     } else {

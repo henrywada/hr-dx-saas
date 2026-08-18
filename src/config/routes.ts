@@ -146,6 +146,8 @@ export const APP_ROUTES = {
     ADMIN_EXIT_INTERVIEW: '/adm/exit-interview',
     /** AI 人事相談アシスタント（NEW-1） */
     ADMIN_HR_ASSISTANT: '/adm/hr-assistant',
+    /** 調べる（税法・労務法・法令の原文検索）— (research)/research */
+    ADMIN_RESEARCH: '/adm/research',
     /** OKR / 目標管理ダッシュボード（NEW-2） */
     ADMIN_OKR_DASHBOARD: '/adm/okr',
     /** OKR ツリービュー（NEW-2） */

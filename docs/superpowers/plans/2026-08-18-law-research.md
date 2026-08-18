@@ -2705,7 +2705,13 @@ const [doc, setDoc] = useState<ResearchDocument | null>(null)
 const [docError, setDocError] = useState<ResearchError | null>(null)
 const [docLoading, setDocLoading] = useState(false)
 
+// 詳細取得の世代カウンタ。行を素早く切り替えたとき、遅れて届いた古いレスポンスで
+// 新しい選択を上書きしないようにする（一覧のハイライトと表示中の原文が食い違うと、
+// 誤った根拠を見せることになる）。
+const docRequestIdRef = useRef(0)
+
 const handleSelect = useCallback((hit: ResearchHit) => {
+  const requestId = ++docRequestIdRef.current
   setSelectedHit(hit)
   setDoc(null)
   setDocError(null)
@@ -2713,16 +2719,23 @@ const handleSelect = useCallback((hit: ResearchHit) => {
 
   fetchResearchDocument(hit.ref)
     .then(result => {
+      // 自分より新しい取得が始まっていたら、この結果は捨てる
+      if (docRequestIdRef.current !== requestId) return
       if (result.ok === true) setDoc(result.data)
       else setDocError(result.error)
     })
-    .finally(() => setDocLoading(false))
+    .finally(() => {
+      if (docRequestIdRef.current !== requestId) return
+      setDocLoading(false)
+    })
 }, [])
 
-// 履歴から再実行する。モードとサブタブも履歴の値へ戻す
+// 履歴から再実行する。モードとサブタブも履歴の値へ戻し、URL も揃える
+// （揃えないとリロード時に page.tsx の parseMode が古いモードを返して画面と食い違う）
 const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
   setMode(row.mode)
   setSubTab(row.sub_tab)
+  syncModeToUrl(row.mode)
   setSelectedHit(null)
   startTransition(async () => {
     const result = await runResearchSearch({
@@ -2738,8 +2751,13 @@ const handlePickHistory = useCallback((row: ResearchHistoryRow) => {
       setSearchError(result.error)
     }
   })
-}, [])
+}, [syncModeToUrl])
 ```
+
+> **`syncModeToUrl` について:** Task 9 の `handleModeChange` に直書きしていた URL 更新処理は、
+> 共通の `useCallback` ヘルパー `syncModeToUrl(next: ResearchMode)` に切り出し、
+> `handleModeChange` と `handlePickHistory` の両方から呼ぶ。両者の依存配列は `[syncModeToUrl]` になる。
+> また react の import に `useRef` を足す（既存の1行を書き換えること。新しい `from 'react'` 行は重複 import になる）。
 
 `<ResultList ... />` の行を、以下の2カラムレイアウトへ置き換える:
 

@@ -2204,8 +2204,12 @@ const SUB_TABS_WITH_ARTICLE: ResearchSubTab[] = ['tax_article', 'labor_article',
 /** 第2入力に通達番号が必要なサブタブ */
 const SUB_TABS_WITH_NUMBER: ResearchSubTab[] = ['tax_tsutatsu']
 
-/** サブタブごとの第1入力のラベルとプレースホルダ */
-const PRIMARY_FIELD: Record<ResearchSubTab, { label: string; placeholder: string }> = {
+/**
+ * サブタブごとの第1入力のラベルとプレースホルダ。
+ * ResearchClient が「入力欄の意味が変わったか」を判定するために export する
+ * （ラベルが同じ間は入力値を保持し、変わったらリセットする）。
+ */
+export const PRIMARY_FIELD: Record<ResearchSubTab, { label: string; placeholder: string }> = {
   tax_article: { label: '法令名', placeholder: '法人税法 / 所得税法' },
   tax_tsutatsu: { label: '通達名', placeholder: '法人税基本通達' },
   tax_saiketsu: { label: 'キーワード', placeholder: '交際費 / 役員報酬' },
@@ -2366,7 +2370,7 @@ import { useCallback, useState, useTransition } from 'react'
 ```typescript
 import { runResearchSearch } from '../actions'
 import { ResultList } from './ResultList'
-import { SearchForm } from './SearchForm'
+import { PRIMARY_FIELD, SearchForm } from './SearchForm'
 import type { ResearchError, ResearchHit } from '../types'
 ```
 
@@ -2404,7 +2408,18 @@ const handleSearch = useCallback(
 `<p className="text-xs text-slate-400">現在の対象: ...</p>` の段落を、以下で置き換える:
 
 ```typescript
-      <SearchForm subTab={subTab} pending={pending} onSubmit={handleSearch} />
+      {/*
+        key に入力欄のラベルを使うことで、入力欄の意味が変わったときだけ
+        SearchForm を再マウントして入力値をリセットする。
+        「厚労省通達」↔「安衛通達」はどちらも『キーワード』欄なので値が保持され、
+        「法令名」→「キーワード」→「法令ID」のように意味が変わる切替ではリセットされる。
+      */}
+      <SearchForm
+        key={PRIMARY_FIELD[subTab].label}
+        subTab={subTab}
+        pending={pending}
+        onSubmit={handleSearch}
+      />
 
       {searchError && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">

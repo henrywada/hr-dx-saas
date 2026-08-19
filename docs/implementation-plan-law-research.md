@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_research_queries (
   mode TEXT NOT NULL CHECK (mode IN ('tax', 'labor', 'law')),
   sub_tab TEXT NOT NULL,
   keyword TEXT NOT NULL,
+  article TEXT, -- 条番号・通達番号。履歴から再実行したとき目次でなく条文自体を再取得するために必要
   result_count INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -118,7 +119,6 @@ src/features/law-research/
     SourceDetailPanel.tsx      原文全文・出典URL・取得日時
     AiSummaryCard.tsx          AI要約（明示ボタンで実行）
     HistoryPanel.tsx           検索履歴
-    ResearchHelpModalTrigger.tsx
 ```
 
 ### データフロー

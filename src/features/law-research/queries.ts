@@ -18,7 +18,7 @@ export async function listResearchHistory(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tenant_research_queries')
-    .select('id, mode, sub_tab, keyword, result_count, created_at')
+    .select('id, mode, sub_tab, keyword, article, result_count, created_at')
     .eq('tenant_id', user.tenant_id)
     .order('created_at', { ascending: false })
     .limit(limit)

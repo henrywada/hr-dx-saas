@@ -10936,6 +10936,7 @@ export type Database = {
       }
       tenant_research_queries: {
         Row: {
+          article: string | null
           created_at: string
           employee_id: string | null
           id: string
@@ -10946,6 +10947,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          article?: string | null
           created_at?: string
           employee_id?: string | null
           id?: string
@@ -10956,6 +10958,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          article?: string | null
           created_at?: string
           employee_id?: string | null
           id?: string

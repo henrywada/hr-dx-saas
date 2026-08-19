@@ -1,11 +1,21 @@
 'use client'
 
-import type { ResearchHistoryRow, ResearchMode } from '../types'
+import type { ResearchHistoryRow, ResearchMode, ResearchSubTab } from '../types'
 
 const MODE_LABEL: Record<ResearchMode, string> = {
   tax: '税法',
   labor: '労務法',
   law: '法令',
+}
+
+/** 「第◯条」形式で表示するサブタブ（条文系）。通達番号系は番号をそのまま併記する */
+const ARTICLE_SUB_TABS: ResearchSubTab[] = ['tax_article', 'labor_article', 'law_article']
+
+/** 履歴行の表示文言を組み立てる。条番号・通達番号があれば併記する */
+function formatHistoryLabel(row: ResearchHistoryRow): string {
+  if (!row.article) return row.keyword
+  if (ARTICLE_SUB_TABS.includes(row.sub_tab)) return `${row.keyword} 第${row.article}条`
+  return `${row.keyword} ${row.article}`
 }
 
 export function HistoryPanel({
@@ -37,7 +47,9 @@ export function HistoryPanel({
               <span className="text-[11px] text-slate-400 w-14 shrink-0">
                 {MODE_LABEL[row.mode] ?? row.mode}
               </span>
-              <span className="text-xs text-slate-800 truncate flex-1">{row.keyword}</span>
+              <span className="text-xs text-slate-800 truncate flex-1">
+                {formatHistoryLabel(row)}
+              </span>
               <span className="text-[11px] text-slate-400 shrink-0">{row.result_count}件</span>
             </button>
           </li>

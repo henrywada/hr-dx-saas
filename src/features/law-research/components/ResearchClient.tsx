@@ -141,6 +141,7 @@ export function ResearchClient({
           mode: row.mode,
           subTab: row.sub_tab,
           keyword: row.keyword,
+          article: row.article ?? undefined,
         })
         if (result.ok === true) {
           setHits(result.data)

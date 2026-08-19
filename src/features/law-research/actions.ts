@@ -56,6 +56,7 @@ async function recordHistory(input: {
   mode: ResearchMode
   subTab: ResearchSubTab
   keyword: string
+  article: string | null
   resultCount: number
 }): Promise<void> {
   const supabase = await createClient()
@@ -65,6 +66,7 @@ async function recordHistory(input: {
     mode: input.mode,
     sub_tab: input.subTab,
     keyword: input.keyword,
+    article: input.article,
     result_count: input.resultCount,
   })
 
@@ -188,10 +190,12 @@ export async function runResearchSearch(input: {
     }
   }
 
+  const article = input.article?.trim() || undefined
+
   const result = await dispatchSearch({
     subTab: input.subTab,
     keyword,
-    article: input.article?.trim() || undefined,
+    article,
   })
 
   await recordHistory({
@@ -200,6 +204,7 @@ export async function runResearchSearch(input: {
     mode: input.mode,
     subTab: input.subTab,
     keyword,
+    article: article ?? null,
     resultCount: result.ok ? result.data.length : 0,
   })
 

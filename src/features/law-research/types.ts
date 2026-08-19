@@ -87,6 +87,8 @@ export type ResearchHistoryRow = {
   mode: ResearchMode
   sub_tab: ResearchSubTab
   keyword: string
+  /** 条番号・通達番号。指定なしの検索では null */
+  article: string | null
   result_count: number
   created_at: string
 }

@@ -185,6 +185,16 @@ import { searchSaiketsu } from 'tax-law-mcp/dist/lib/services/saiketsu-service.j
 
 `tenant_service` / `app_role_service` で契約テナント・役割別に表示制御する。`app_role = 'employee'` には割り当てない。
 
+### 公開方針: 契約単位の個別付与（2026-08-19 決定）
+
+**マイグレーションでは `tenant_service` に一括 INSERT しない。** 本機能は契約単位で個別に付与する方針とする。
+
+`AppSidebar` は `tenant_service` に登録された `service_id` で `/adm/*` メニューを絞り込むため、割当の無いテナントには「調べる」は表示されない。つまり**マイグレーション適用直後は全テナントで非表示**であり、これは意図した状態である。
+
+付与の手順: SaaS 管理者が `/saas_adm` の `TenantServiceTab`（`src/features/system-master/components/TenantServiceTab.tsx`）から、契約したテナントに対して個別に割り当てる。
+
+`app_role_service` は行が無ければ全ロールに表示されるため、役割を絞る必要が出るまで割当は不要。
+
 ## 7. 成功指標
 
 | 指標                              | 目標                                                      |

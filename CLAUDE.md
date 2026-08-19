@@ -519,22 +519,29 @@ export async function someAction(input: SomeInput): Promise<Result> {
 ### マイグレーション SQL テンプレート
 
 ```sql
-CREATE TABLE public.new_table (
+CREATE TABLE IF NOT EXISTS public.new_table (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.new_table ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_isolation" ON public.new_table
-  FOR ALL USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.employees
-      WHERE auth_user_id = auth.uid()
-    )
-  );
+  FOR ALL USING (tenant_id = public.current_tenant_id());
 ```
+
+**テンプレートの各要素の理由（変更するときは必ず読むこと）:**
+
+| 要素                         | 理由                                                                                                                                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CREATE TABLE IF NOT EXISTS` | 上の「絶対禁止」表のとおり。`IF NOT EXISTS` の無い `CREATE TABLE` は既存テーブルの定義上書き・データ消失につながる                                                                                                            |
+| `ON DELETE CASCADE`          | 付け忘れるとテナント削除時にトランザクションデータが取り残される。過去にこれが原因で本番に孤児レコードが残った                                                                                                                |
+| `public.current_tenant_id()` | `employees` から `tenant_id` を1件引くヘルパー（`STABLE SECURITY DEFINER`、`SET search_path = public`）。`SECURITY DEFINER` により `employees` 自身の RLS への再帰を避けられ、`STABLE` なのでプランナが結果をキャッシュできる |
+
+⚠️ **`employees` のカラム名は `user_id` です。`auth_user_id` は存在しません。**
+生のサブクエリを書く場合は `WHERE user_id = auth.uid()` としてください。
+ただし本DBのポリシーは 289件が `current_tenant_id()`、91件が生のサブクエリで、ヘルパーが現行の主流です。
 
 ---
 

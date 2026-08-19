@@ -1,6 +1,6 @@
 // tax-law-mcp のサービス層を直接 import する。理由は labor-law-client.ts のコメント参照。
 // バージョンは package.json で完全固定している（0.5.4）。
-import { getLawArticle } from 'tax-law-mcp/dist/lib/services/law-service.js'
+import { getLawArticle, getLawToc } from 'tax-law-mcp/dist/lib/services/law-service.js'
 import { getTsutatsu, listTsutatsuToc } from 'tax-law-mcp/dist/lib/services/tsutatsu-service.js'
 import { getSaiketsu, searchSaiketsu } from 'tax-law-mcp/dist/lib/services/saiketsu-service.js'
 
@@ -26,6 +26,24 @@ export function taxGetLawArticle(
     `${lawName} 第${article}条`,
     async () =>
       toLawArticleDocument(await getLawArticle({ lawName, article }), new Date().toISOString()),
+    { sourceUrl: EGOV_SITE }
+  )
+}
+
+/** 税法の目次を取得する */
+export function taxGetLawToc(lawName: string): Promise<ResearchResult<ResearchDocument>> {
+  return callExternal(
+    `${lawName} の目次`,
+    async () => {
+      const r = await getLawToc({ lawName })
+      return {
+        title: `${r.lawTitle} 目次`,
+        identifier: '',
+        body: r.toc,
+        sourceUrl: r.egovUrl,
+        fetchedAt: new Date().toISOString(),
+      }
+    },
     { sourceUrl: EGOV_SITE }
   )
 }

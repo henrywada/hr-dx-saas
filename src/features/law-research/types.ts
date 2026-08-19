@@ -24,6 +24,12 @@ export type ResearchSubTab =
 export type ResearchRef =
   | { kind: 'law_article'; lawName: string; article: string }
   | { kind: 'law_toc'; lawName: string }
+  // 税法だけ別 ref にする理由: labor-law-mcp のレジストリは労働・社会保険系45法令向けで
+  // 税法を含まない。税法名を law_article/law_toc（labor-law-mcp 経由）に渡すと、
+  // エラーにはならず名前が似た別の法令を返してしまう（例:「所法」→裁判所法）。
+  // tax-law-mcp のレジストリを使う専用 ref を分けることで誤った法令の取得を防ぐ。
+  | { kind: 'tax_law_article'; lawName: string; article: string }
+  | { kind: 'tax_law_toc'; lawName: string }
   | { kind: 'mhlw_tsutatsu'; dataId: string }
   | { kind: 'jaish_tsutatsu'; url: string }
   | { kind: 'tax_tsutatsu'; tsutatsuName: string; number: string }

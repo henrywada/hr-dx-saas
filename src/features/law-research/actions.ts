@@ -21,6 +21,8 @@ import {
   SUMMARY_MAX_TOKENS,
 } from './lib/summarize-prompt'
 import {
+  taxGetLawArticle,
+  taxGetLawToc,
   taxGetSaiketsu,
   taxGetTsutatsu,
   taxListTsutatsuToc,
@@ -118,9 +120,21 @@ async function dispatchSearch(input: {
       return callExternal('改正履歴', () => fetchLawRevisions(keyword), { sourceUrl: EGOV_SITE })
 
     // --- 直接指定（外部通信は詳細取得で行う）---
-    // 条文取得は e-Gov v2 を叩く点で税法・労務法・法令モードとも同一のため、
-    // ref は共通の law_article / law_toc に寄せる（DRY）
+    // 税法は tax-law-mcp のレジストリを使う。labor-law-mcp のレジストリは
+    // 労働・社会保険系45法令向けで税法を含まず、税法名を渡すと別の法令を返すため。
     case 'tax_article':
+      return directHit({
+        id: `${subTab}-${keyword}-${article ?? ''}`,
+        title: article ? `${keyword} 第${article}条` : `${keyword} 目次`,
+        identifier: article ? `第${article}条` : '',
+        ref: article
+          ? { kind: 'tax_law_article', lawName: keyword, article }
+          : { kind: 'tax_law_toc', lawName: keyword },
+        sourceUrl: EGOV_SITE,
+      })
+
+    // 条文取得は e-Gov v2 を叩く点で労務法・法令モードとも同一のため、
+    // ref は共通の law_article / law_toc に寄せる（DRY）
     case 'labor_article':
     case 'law_article':
       return directHit({
@@ -204,6 +218,10 @@ export async function fetchResearchDocument(
       return laborGetLawArticle(ref.lawName, ref.article)
     case 'law_toc':
       return laborGetLawToc(ref.lawName)
+    case 'tax_law_article':
+      return taxGetLawArticle(ref.lawName, ref.article)
+    case 'tax_law_toc':
+      return taxGetLawToc(ref.lawName)
     case 'mhlw_tsutatsu':
       return laborGetMhlw(ref.dataId)
     case 'jaish_tsutatsu':

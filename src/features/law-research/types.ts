@@ -52,6 +52,8 @@ export type ResearchHit = {
   ref: ResearchRef
   /** 出典サイト上の原文ページURL */
   sourceUrl: string
+  /** 一覧に出す資料区分。未設定なら UI 側で ref.kind から決める */
+  sourceLabel?: string
 }
 
 /** 原文全文（詳細パネル表示用） */

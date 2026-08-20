@@ -1,10 +1,16 @@
 'use server'
 
+import { APP_ROUTES } from '@/config/routes'
 import { openRouterChat, OPENROUTER_SUMMARIZE_MODEL } from '@/lib/ai/openrouter'
 import { getServerUser } from '@/lib/auth/server-user'
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 
-import { fetchLawRevisions } from './lib/egov-revision'
+import {
+  extractKeywordCandidates,
+  extractLawTitleKeywords,
+  extractSearchKeyword,
+} from './lib/extract-keyword'
 import { callExternal } from './lib/external-call'
 import {
   laborGetJaish,
@@ -15,6 +21,7 @@ import {
   laborSearchLaw,
   laborSearchMhlw,
 } from './lib/labor-law-client'
+import { mergeSearchResults } from './lib/merge-search-results'
 import {
   buildSummarySystemPrompt,
   buildSummaryUserPrompt,
@@ -43,8 +50,12 @@ const UNAUTHORIZED: ResearchResult<never> = {
   error: { kind: 'invalid_input', message: 'ログイン情報が無効です。再度ログインしてください。' },
 }
 
-const EGOV_SITE = 'https://laws.e-gov.go.jp/'
-const NTA_SITE = 'https://www.nta.go.jp/law/tsutatsu/kihon/'
+/** 履歴テーブルの sub_tab は互換のため残す。検索自体はモード単位で行う */
+const HISTORY_SUB_TAB: Record<ResearchMode, ResearchSubTab> = {
+  tax: 'tax_saiketsu',
+  labor: 'labor_mhlw',
+  law: 'law_search',
+}
 
 /**
  * 検索履歴を記録する。
@@ -74,98 +85,32 @@ async function recordHistory(input: {
 }
 
 /**
- * 条文・通達の「直接指定」を一覧1件として返す。
- * 検索ではなく指定なのでここでは外部通信せず、詳細取得（fetchResearchDocument）へ繋ぐ。
+ * モード単位で原文を検索する。
+ * 人事・経営者は資料の種別を選ばないため、労務は通達と法令をまとめて引く。
  */
-function directHit(input: {
-  id: string
-  title: string
-  identifier: string
-  ref: ResearchRef
-  sourceUrl: string
-}): ResearchResult<ResearchHit[]> {
-  return {
-    ok: true,
-    data: [
-      {
-        id: input.id,
-        title: input.title,
-        identifier: input.identifier,
-        dateLabel: '',
-        summary: '',
-        ref: input.ref,
-        sourceUrl: input.sourceUrl,
-      },
-    ],
-  }
-}
-
-/** サブタブごとの検索を実行する */
-async function dispatchSearch(input: {
-  subTab: ResearchSubTab
+async function searchByMode(
+  mode: ResearchMode,
   keyword: string
-  article?: string
-}): Promise<ResearchResult<ResearchHit[]>> {
-  const { subTab, keyword, article } = input
+): Promise<ResearchResult<ResearchHit[]>> {
+  const q = extractKeywordCandidates(keyword)[0] || extractSearchKeyword(keyword)
 
-  switch (subTab) {
-    // --- キーワード検索（外部通信あり）---
-    case 'labor_mhlw':
-      return laborSearchMhlw(keyword)
-    case 'labor_jaish':
-      return laborSearchJaish(keyword)
-    case 'law_search':
-      return laborSearchLaw(keyword)
-    case 'tax_saiketsu':
-      return taxSearchSaiketsu(keyword)
-    case 'law_revision':
-      return callExternal('改正履歴', () => fetchLawRevisions(keyword), { sourceUrl: EGOV_SITE })
-
-    // --- 直接指定（外部通信は詳細取得で行う）---
-    // 税法は tax-law-mcp のレジストリを使う。labor-law-mcp のレジストリは
-    // 労働・社会保険系45法令向けで税法を含まず、税法名を渡すと別の法令を返すため。
-    case 'tax_article':
-      return directHit({
-        id: `${subTab}-${keyword}-${article ?? ''}`,
-        title: article ? `${keyword} 第${article}条` : `${keyword} 目次`,
-        identifier: article ? `第${article}条` : '',
-        ref: article
-          ? { kind: 'tax_law_article', lawName: keyword, article }
-          : { kind: 'tax_law_toc', lawName: keyword },
-        sourceUrl: EGOV_SITE,
-      })
-
-    // 条文取得は e-Gov v2 を叩く点で労務法・法令モードとも同一のため、
-    // ref は共通の law_article / law_toc に寄せる（DRY）
-    case 'labor_article':
-    case 'law_article':
-      return directHit({
-        id: `${subTab}-${keyword}-${article ?? ''}`,
-        title: article ? `${keyword} 第${article}条` : `${keyword} 目次`,
-        identifier: article ? `第${article}条` : '',
-        ref: article
-          ? { kind: 'law_article', lawName: keyword, article }
-          : { kind: 'law_toc', lawName: keyword },
-        sourceUrl: EGOV_SITE,
-      })
-
-    // 通達番号を知らないユーザーが大半なので、番号未入力なら目次を返して辿れるようにする
-    case 'tax_tsutatsu':
-      return directHit({
-        id: `${keyword}-${article ?? 'toc'}`,
-        title: article ? `${keyword} ${article}` : `${keyword} 目次`,
-        identifier: article ?? '',
-        ref: article
-          ? { kind: 'tax_tsutatsu', tsutatsuName: keyword, number: article }
-          : { kind: 'tax_tsutatsu_toc', tsutatsuName: keyword },
-        sourceUrl: NTA_SITE,
-      })
-
-    default:
-      return {
-        ok: false,
-        error: { kind: 'invalid_input', message: '不正な検索対象が指定されました。' },
-      }
+  switch (mode) {
+    case 'tax':
+      return taxSearchSaiketsu(q)
+    case 'labor': {
+      const titleKeywords = extractLawTitleKeywords(keyword)
+      const [mhlw, jaish, ...laws] = await Promise.all([
+        laborSearchMhlw(q),
+        laborSearchJaish(q),
+        ...titleKeywords.map(k => laborSearchLaw(k)),
+      ])
+      return mergeSearchResults([mhlw, jaish, ...laws])
+    }
+    case 'law': {
+      const titleKeywords = extractLawTitleKeywords(keyword)
+      const results = await Promise.all(titleKeywords.map(k => laborSearchLaw(k)))
+      return mergeSearchResults(results)
+    }
   }
 }
 
@@ -175,9 +120,7 @@ async function dispatchSearch(input: {
  */
 export async function runResearchSearch(input: {
   mode: ResearchMode
-  subTab: ResearchSubTab
   keyword: string
-  article?: string
 }): Promise<ResearchResult<ResearchHit[]>> {
   const user = await getServerUser()
   if (!user?.tenant_id) return UNAUTHORIZED
@@ -186,29 +129,58 @@ export async function runResearchSearch(input: {
   if (!keyword) {
     return {
       ok: false,
-      error: { kind: 'invalid_input', message: '検索キーワードを入力してください。' },
+      error: { kind: 'invalid_input', message: '調べたいことを入力してください。' },
     }
   }
 
-  const article = input.article?.trim() || undefined
-
-  const result = await dispatchSearch({
-    subTab: input.subTab,
-    keyword,
-    article,
-  })
+  const result = await searchByMode(input.mode, keyword)
 
   await recordHistory({
     tenantId: user.tenant_id,
     employeeId: user.employee_id ?? null,
     mode: input.mode,
-    subTab: input.subTab,
+    subTab: HISTORY_SUB_TAB[input.mode],
     keyword,
-    article: article ?? null,
+    article: null,
     resultCount: result.ok ? result.data.length : 0,
   })
 
   return result
+}
+
+/**
+ * 検索履歴を1件削除する。
+ * 対象は必ず id と tenant_id の両方で絞る（範囲無指定の DELETE は禁止）。
+ */
+export async function deleteResearchHistory(id: string): Promise<ResearchResult<{ id: string }>> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return UNAUTHORIZED
+
+  const historyId = id?.trim()
+  if (!historyId) {
+    return {
+      ok: false,
+      error: { kind: 'invalid_input', message: '削除する履歴が指定されていません。' },
+    }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('tenant_research_queries')
+    .delete()
+    .eq('id', historyId)
+    .eq('tenant_id', user.tenant_id)
+
+  if (error) {
+    console.error('[law-research] deleteResearchHistory', error)
+    return {
+      ok: false,
+      error: { kind: 'upstream', message: '検索履歴を削除できませんでした。' },
+    }
+  }
+
+  revalidatePath(APP_ROUTES.TENANT.ADMIN_RESEARCH)
+  return { ok: true, data: { id: historyId } }
 }
 
 /** 一覧行から原文全文を取得する */

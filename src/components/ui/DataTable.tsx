@@ -35,6 +35,8 @@ export interface DataTableProps<T> {
   onSortChange?: (key: keyof T | null, order: 'asc' | 'desc' | null) => void
   /** 表の最終行に固定表示する合計行等。呼び出し側で columns 数に合わせた <tr> を組み立てて渡す */
   footer?: ReactNode
+  /** ヘッダー右端の操作（戻るなど）。最終列の見出しと同じ行に置く */
+  headerAction?: ReactNode
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 20
@@ -54,6 +56,7 @@ export function DataTable<T extends Record<string, any>>({
   sortOrder: externalSortOrder,
   onSortChange,
   footer,
+  headerAction,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<keyof T | null>(externalSortKey ?? null)
@@ -172,32 +175,35 @@ export function DataTable<T extends Record<string, any>>({
                   />
                 </th>
               )}
-              {columns.map(column => (
+              {columns.map((column, columnIndex) => (
                 <th
                   key={String(column.key)}
-                  className={`px-4 py-1 text-left text-xs font-semibold text-[#24292f] uppercase tracking-wider ${
+                  className={`px-4 py-1 text-left text-xs font-semibold text-[#24292f] ${
                     column.width || ''
                   }`}
                 >
-                  {column.sortable ? (
-                    <button
-                      onClick={() => toggleSort(column.key)}
-                      className="flex items-center gap-1.5 hover:text-gray-900"
-                    >
-                      {column.label}
-                      {sortKey === column.key && sortOrder === 'asc' && (
-                        <ChevronUp className="w-3 h-3 text-[#FD7601]" />
-                      )}
-                      {sortKey === column.key && sortOrder === 'desc' && (
-                        <ChevronDown className="w-3 h-3 text-[#FD7601]" />
-                      )}
-                      {sortKey !== column.key && (
-                        <ChevronsUpDown className="w-3 h-3 text-gray-400" />
-                      )}
-                    </button>
-                  ) : (
-                    column.label
-                  )}
+                  <div className="flex items-center justify-between gap-3">
+                    {column.sortable ? (
+                      <button
+                        onClick={() => toggleSort(column.key)}
+                        className="flex items-center gap-1.5 uppercase tracking-wider hover:text-gray-900"
+                      >
+                        {column.label}
+                        {sortKey === column.key && sortOrder === 'asc' && (
+                          <ChevronUp className="w-3 h-3 text-[#FD7601]" />
+                        )}
+                        {sortKey === column.key && sortOrder === 'desc' && (
+                          <ChevronDown className="w-3 h-3 text-[#FD7601]" />
+                        )}
+                        {sortKey !== column.key && (
+                          <ChevronsUpDown className="w-3 h-3 text-gray-400" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="uppercase tracking-wider">{column.label}</span>
+                    )}
+                    {headerAction && columnIndex === columns.length - 1 ? headerAction : null}
+                  </div>
                 </th>
               ))}
             </tr>

@@ -1,5 +1,7 @@
 'use client'
 
+import { Trash2 } from 'lucide-react'
+
 import type { ResearchHistoryRow, ResearchMode, ResearchSubTab } from '../types'
 
 const MODE_LABEL: Record<ResearchMode, string> = {
@@ -20,10 +22,14 @@ function formatHistoryLabel(row: ResearchHistoryRow): string {
 
 export function HistoryPanel({
   rows,
+  pendingId,
   onPick,
+  onDelete,
 }: {
   rows: ResearchHistoryRow[]
+  pendingId: string | null
   onPick: (row: ResearchHistoryRow) => void
+  onDelete: (id: string) => void
 }) {
   if (rows.length === 0) {
     return (
@@ -38,11 +44,11 @@ export function HistoryPanel({
       <h3 className="text-sm font-medium text-slate-900">検索履歴</h3>
       <ul className="divide-y divide-slate-100">
         {rows.map(row => (
-          <li key={row.id}>
+          <li key={row.id} className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => onPick(row)}
-              className="w-full text-left py-1.5 hover:bg-slate-50 flex items-center gap-2"
+              className="min-w-0 flex-1 text-left py-1.5 hover:bg-slate-50 flex items-center gap-2"
             >
               <span className="text-[11px] text-slate-400 w-14 shrink-0">
                 {MODE_LABEL[row.mode] ?? row.mode}
@@ -51,6 +57,15 @@ export function HistoryPanel({
                 {formatHistoryLabel(row)}
               </span>
               <span className="text-[11px] text-slate-400 shrink-0">{row.result_count}件</span>
+            </button>
+            <button
+              type="button"
+              aria-label="この履歴を削除"
+              disabled={pendingId === row.id}
+              onClick={() => onDelete(row.id)}
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           </li>
         ))}

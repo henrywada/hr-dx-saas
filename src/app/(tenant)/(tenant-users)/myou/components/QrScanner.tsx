@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { useEffect, useId, useRef } from 'react'
+import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
 
 interface QrScannerProps {
   onScanSuccess: (decodedText: string) => void
@@ -16,6 +16,8 @@ export default function QrScanner({
   fps = 10,
   qrbox = 250,
 }: QrScannerProps) {
+  const reactId = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const readerId = `myouQrReader${reactId}`
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   // コールバックは ref で保持する。呼び出し側が useCallback していなくても
   // 親の再レンダーでスキャナー（カメラ）が破棄・再初期化されないようにするため
@@ -29,42 +31,44 @@ export default function QrScanner({
   })
 
   useEffect(() => {
-    // スキャナーの初期化
-    // id="reader" の要素に描画する
-    scannerRef.current = new Html5QrcodeScanner(
-      'reader',
+    let cancelled = false
+    const scanner = new Html5QrcodeScanner(
+      readerId,
       {
-        fps: fps,
-        qrbox: qrbox,
-        // 背面カメラを優先
+        fps,
+        qrbox,
         rememberLastUsedCamera: true,
-        supportedScanTypes: [0], // Html5QrcodeScanType.SCAN_TYPE_CAMERA
+        // カメラが使えない環境でも、QR画像ファイルから読み取れるようにする
+        supportedScanTypes: [
+          Html5QrcodeScanType.SCAN_TYPE_CAMERA,
+          Html5QrcodeScanType.SCAN_TYPE_FILE,
+        ],
       },
       /* verbose= */ false
     )
+    scannerRef.current = scanner
 
-    scannerRef.current.render(
+    scanner.render(
       decodedText => {
+        if (cancelled) return
         onScanSuccessRef.current(decodedText)
       },
       errorMessage => {
+        if (cancelled) return
         onScanErrorRef.current?.(errorMessage)
       }
     )
 
-    // クリーンアップ
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(error => {
-          console.error('Failed to clear html5QrcodeScanner', error)
-        })
-      }
+      cancelled = true
+      scanner.clear().catch(() => {})
+      if (scannerRef.current === scanner) scannerRef.current = null
     }
-  }, [fps, qrbox])
+  }, [fps, qrbox, readerId])
 
   return (
-    <div className="w-full max-w-md mx-auto overflow-hidden rounded-lg shadow-lg bg-black">
-      <div id="reader" className="w-full"></div>
+    <div className="myou-qr-scanner w-full max-w-md mx-auto rounded-lg border border-gray-200 bg-white shadow-sm [&_button]:mt-2 [&_button]:rounded-lg [&_button]:border [&_button]:border-blue-200 [&_button]:bg-blue-600 [&_button]:px-3 [&_button]:py-1.5 [&_button]:text-xs [&_button]:font-semibold [&_button]:text-white [&_button]:hover:bg-blue-700">
+      <div id={readerId} className="w-full" />
     </div>
   )
 }

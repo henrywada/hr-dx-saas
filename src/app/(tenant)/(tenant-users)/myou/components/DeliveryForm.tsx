@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { deliverFromLot } from '@/features/myou/actions'
-import { parseLotQrContent } from '@/features/myou/lib/qr-parser'
+import { prepareDeliveryScan } from '@/features/myou/lib/delivery-scan'
 import { toJSTDateString } from '@/lib/datetime'
 import type { LotInventoryItem, MyouCompany, TraceLabel } from '@/features/myou/types'
 import QrScanner from './QrScanner'
@@ -18,8 +18,6 @@ interface DeliveryFormProps {
 type DeliveryTab = 'qr' | 'inventory'
 
 type Message = { type: 'success' | 'error' | 'warning'; text: string }
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 /** 有効期限の初期値（本日 + 2年）をJST基準のYYYY-MM-DDで返す */
 function getDefaultExpirationDate(): string {
@@ -53,6 +51,9 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
   const [modalError, setModalError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<Message | null>(null)
+  const [lastScannedLot, setLastScannedLot] = useState('')
+  const [manualQrText, setManualQrText] = useState('')
+  const processingRef = useRef(false)
 
   const submitDelivery = (
     lotNo: string,
@@ -61,46 +62,58 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
     expDate: string
   ) => {
     startTransition(async () => {
-      const result = await deliverFromLot({
-        lot_no: lotNo,
-        company_id: selectedCompanyId,
-        quantity: qty,
-        expiration_date: expDate,
-        customer_order_no: customerOrderNo.trim() || undefined,
-      })
+      try {
+        const result = await deliverFromLot({
+          lot_no: lotNo,
+          company_id: selectedCompanyId,
+          quantity: qty,
+          expiration_date: expDate,
+          customer_order_no: customerOrderNo.trim() || undefined,
+        })
 
-      if (result.success && result.label) {
-        setMessage({ type: 'success', text: `出荷登録成功: ${lotNo}（${qty}個）` })
-        setIssuedLabel(result.label)
-        setDeliveringItem(null)
-        setModalError(null)
-      } else if (forItem) {
-        setModalError(result.error || '登録に失敗しました。')
-      } else {
-        setMessage({ type: 'error', text: result.error || '登録に失敗しました。' })
+        if (result.success && result.label) {
+          setMessage({ type: 'success', text: `出荷登録成功: ${lotNo}（${qty}個）` })
+          setIssuedLabel(result.label)
+          setDeliveringItem(null)
+          setModalError(null)
+        } else if (forItem) {
+          setModalError(result.error || '登録に失敗しました。')
+        } else {
+          setMessage({ type: 'error', text: result.error || '登録に失敗しました。' })
+        }
+      } finally {
+        processingRef.current = false
       }
     })
   }
 
-  const handleScanSuccess = (decodedText: string) => {
-    if (isPending) return
+  const applyDecodedText = (decodedText: string) => {
+    const result = prepareDeliveryScan({
+      decodedText,
+      selectedCompanyId,
+      quantity,
+      expirationDate,
+    })
+    if (result.lotNo) setLastScannedLot(result.lotNo)
 
-    if (!selectedCompanyId) {
-      setMessage({ type: 'error', text: '先に出荷先（施工会社）を選択してください。' })
+    if (result.ok === false) {
+      setMessage({ type: 'error', text: result.error })
+      if (!selectedCompanyId) {
+        document.getElementById('company')?.focus()
+      }
       return
     }
-    if (Number.isNaN(quantity) || quantity < 1) {
-      setMessage({ type: 'error', text: '受注数量を入力してください。' })
+    if (processingRef.current) {
+      setMessage({ type: 'warning', text: '出荷処理中です。完了するまでお待ちください。' })
       return
     }
-    if (!DATE_PATTERN.test(expirationDate)) {
-      setMessage({ type: 'error', text: '有効期限を入力してください。' })
-      return
-    }
-
-    const { lotNo } = parseLotQrContent(decodedText)
+    processingRef.current = true
     setMessage(null)
-    submitDelivery(lotNo, quantity, null, expirationDate)
+    submitDelivery(result.lotNo, quantity, null, expirationDate)
+  }
+
+  const handleScanSuccess = (decodedText: string) => {
+    applyDecodedText(decodedText)
   }
 
   const handleDeliverClick = (item: LotInventoryItem) => {
@@ -146,7 +159,11 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
             id="company"
             value={selectedCompanyId}
             onChange={e => setSelectedCompanyId(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+              !selectedCompanyId && message?.text.includes('出荷先')
+                ? 'border-red-400 ring-2 ring-red-200'
+                : 'border-gray-300'
+            }`}
           >
             <option value="">-- 選択してください --</option>
             {companies.map(company => (
@@ -226,6 +243,15 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
 
       {activeTab === 'qr' ? (
         <>
+          {messageBanner}
+
+          {lastScannedLot && (
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">直前のスキャン内容:</h3>
+              <p className="text-xs text-blue-800">ロット番号: {lastScannedLot}</p>
+            </div>
+          )}
+
           <div className="relative">
             <QrScanner onScanSuccess={handleScanSuccess} />
             {isPending && (
@@ -235,11 +261,35 @@ export default function DeliveryForm({ companies, lots }: DeliveryFormProps) {
             )}
           </div>
 
-          {messageBanner}
+          <form
+            className="flex flex-col sm:flex-row gap-2"
+            onSubmit={e => {
+              e.preventDefault()
+              if (manualQrText.trim()) applyDecodedText(manualQrText.trim())
+            }}
+          >
+            <input
+              id="manual-qr-text"
+              type="text"
+              value={manualQrText}
+              onChange={e => setManualQrText(e.target.value)}
+              aria-label="QR内容の手入力"
+              placeholder="カメラが使えないときは QR内容を貼り付け（例: LOT:LOT-20260820-0001,MFG:2026-08-20）"
+              className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              読み取る
+            </button>
+          </form>
 
           <div className="text-center text-gray-500 text-sm">
-            <p>ロットQRコードを枠内に収めてスキャンしてください</p>
-            <p className="mt-1">※カメラの使用許可が必要です</p>
+            <p>カメラ許可のボタンを押してから、ロットQRコードを枠内に収めてスキャンしてください</p>
+            <p className="mt-1">
+              カメラが使えない場合は、上の入力欄にQR内容を貼り付けるか、画像ファイルから読み取れます
+            </p>
             <p className="mt-1">
               残数が不足しているロットをスキャンした場合はエラーになります。別のロットをスキャンしてください。
             </p>

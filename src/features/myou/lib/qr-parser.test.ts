@@ -56,6 +56,11 @@ test('buildLotQrPayload は manufacturedDate・serialNo を省略すると LOT �
   assert.equal(payload, 'LOT:LOT-20260707-0004')
 })
 
+test('buildLotQrPayload は serialNo が空のとき LOT と MFG のみのペイロードを生成する', () => {
+  const payload = buildLotQrPayload('LOT-20260707-0004', '2026-07-01', '')
+  assert.equal(payload, 'LOT:LOT-20260707-0004,MFG:2026-07-01')
+})
+
 test('buildLotNo は LOT-YYYYMMDD-NNNN 形式で採番する', () => {
   assert.equal(buildLotNo('2026-07-07', 1), 'LOT-20260707-0001')
   assert.equal(buildLotNo('2026-07-07', 42), 'LOT-20260707-0042')

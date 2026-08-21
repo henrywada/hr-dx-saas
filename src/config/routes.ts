@@ -79,6 +79,8 @@ export const APP_ROUTES = {
 
     /** 残業申請の承認（上長・同一部署）— (tenant-users)/(overtime) */
     OVERTIME_APPROVAL: '/approval',
+    /** 残業申請（本人向け）— (tenant-users)/(overtime) */
+    OVERTIME_APPLICATION: '/application',
     /** 管理：人事ナレッジ（文書取り込み） */
     ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',
     /** アンケート管理（作成・設問編集・アサイン） */

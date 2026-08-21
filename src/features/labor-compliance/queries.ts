@@ -8,6 +8,7 @@ import type {
   DivisionHeatmapRow,
 } from './types'
 import { ALERT_SEVERITY, ALERT_TYPE_LABELS, getAlertSeverityLevel } from './types'
+import { OVERTIME_CLOSURE_WARNING_TYPES } from '@/features/attendance/types'
 
 function periodMonthDate(yearMonth: string): string {
   return `${yearMonth}-01`
@@ -237,4 +238,30 @@ export async function getLaborComplianceBundle(
     const msg = e instanceof Error ? e.message : '不明なエラー'
     return { ok: false, error: msg }
   }
+}
+
+export interface MyOvertimeWarningRow {
+  id: string
+  warning_type: string
+  created_at: string
+}
+
+/** 本人の未解決な36協定超過警告を取得する（/top 通知フィード用） */
+export async function getMyOvertimeWarnings(employeeId: string): Promise<MyOvertimeWarningRow[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('closure_warnings')
+    .select('id, warning_type, created_at')
+    .eq('tenant_id', user.tenant_id)
+    .eq('employee_id', employeeId)
+    .in('warning_type', OVERTIME_CLOSURE_WARNING_TYPES)
+    .is('resolved_at', null)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error || !data) return []
+  return data as MyOvertimeWarningRow[]
 }

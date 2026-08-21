@@ -1019,6 +1019,48 @@ export type Database = {
           },
         ]
       }
+      dashboard_feed_read_state: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          employee_id: string
+          id: string
+          read_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          employee_id: string
+          id?: string
+          read_at?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          employee_id?: string
+          id?: string
+          read_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_feed_read_state_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_feed_read_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       division_establishment_anchors: {
         Row: {
           created_at: string
@@ -12106,6 +12148,22 @@ export type Database = {
           lot_id: string
           previous_status: string
         }[]
+      }
+      post_condition_alert_announcement: {
+        Args: {
+          p_alert_label: string
+          p_dedupe_marker: string
+          p_employee_id: string
+        }
+        Returns: number
+      }
+      post_health_check_interview_announcement: {
+        Args: { p_kind: string; p_record_id: string }
+        Returns: string
+      }
+      post_kudos_announcement: {
+        Args: { p_kudos_id: string; p_recipient_employee_id: string }
+        Returns: string
       }
       rag_session_tenant_id: { Args: never; Returns: string }
       resolve_active_period_for_employee_v2: {

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { createAnnouncement } from '@/features/dashboard/actions'
+import { postHealthCheckInterviewAnnouncement } from '@/features/dashboard/actions'
 import { toJSTISOString } from '@/lib/datetime'
 import { convertItemValue, convertOverallJudgment, buildConvertContext } from './convert'
 import {
@@ -755,20 +755,18 @@ export async function saveEmploymentJudgment(input: {
     })
   }
 
+  // 宛先従業員の解決、呼び出し元ロール（company_doctor）の検証、本文はRPC内部で行う。
+  // 呼び出し元が任意のtitle/bodyや宛先を指定することはできない
   if (nurseTurnOn) {
-    await createAnnouncement({
-      title: '保健師との面談が推奨されています',
-      body: '定期健康診断の結果を踏まえ、保健師との面談が推奨されています。結果画面から予約できます。',
-      recipient_employee_id: current.employee_id,
-      target_audience: '個別',
+    await postHealthCheckInterviewAnnouncement({
+      recordId: input.recordId,
+      kind: 'nurse',
     })
   }
   if (doctorTurnOn) {
-    await createAnnouncement({
-      title: '産業医との面談が推奨されています',
-      body: '定期健康診断の結果を踏まえ、産業医との面談が推奨されています。結果画面から予約できます。',
-      recipient_employee_id: current.employee_id,
-      target_audience: '個別',
+    await postHealthCheckInterviewAnnouncement({
+      recordId: input.recordId,
+      kind: 'doctor',
     })
   }
 

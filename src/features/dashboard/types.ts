@@ -9,6 +9,8 @@ export type ImportantTask = {
 export type Announcement = {
   id: string
   dateLabel: string
+  /** 生の ISO 8601 タイムスタンプ（フィード集約層のソート用） */
+  publishedAt: string
   title: string
   body: string | null
   targetAudience: string | null

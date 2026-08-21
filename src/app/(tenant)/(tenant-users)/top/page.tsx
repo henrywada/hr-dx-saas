@@ -1,26 +1,19 @@
 import React from 'react'
-import { AlertCircle, Calendar, ChevronRight, Bell, ClipboardList, Zap } from 'lucide-react'
+import { AlertCircle, Calendar, ChevronRight, ClipboardList, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth/server-user'
-import {
-  getEmployeeImportantTask,
-  getPendingAssignedQuestionnairesForTop,
-  getTopAnnouncements,
-} from '@/features/dashboard/queries'
+import { getEmployeeImportantTask } from '@/features/dashboard/queries'
 import {
   getActivePeriod,
   checkStressCheckEligibility,
   checkExistingResponse,
 } from '@/features/stress-check/queries'
-import { getPendingConsultationCount } from '@/features/consultation/queries'
 import { getTodayCheckin } from '@/features/condition-checkin/queries'
 import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWidget'
-import { PendingQuestionnaireNoticeCards } from '@/features/dashboard/components/PendingQuestionnaireNoticeCards'
-import { ConsultationPendingNotice } from '@/features/dashboard/components/ConsultationPendingNotice'
-import { getRecentKudosCountForRecipient } from '@/features/recognition/queries'
-import { KudosPendingNotice } from '@/features/recognition/components/KudosPendingNotice'
-import { getMyPendingLifecycleTasks } from '@/features/lifecycle/queries'
-import { PendingLifecycleTaskNoticeCards } from '@/features/lifecycle/components/PendingLifecycleTaskNoticeCards'
+import { FeedPanel } from '@/features/dashboard/components/FeedPanel'
+import { getTopFeedItems } from '@/features/dashboard/feed/queries'
+import type { FeedProviderContext } from '@/features/dashboard/feed/provider'
+import type { FeedItem } from '@/features/dashboard/feed/types'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
 import { InterviewBookingService } from '@/features/adm/high-stress-followup/components/InterviewBookingService'
@@ -29,9 +22,6 @@ import {
   getVisibleDashboardElementKeys,
   isDashboardElementVisible,
 } from '@/features/dashboard-ui-visibility/queries'
-import { APP_ROUTES } from '@/config/routes'
-
-const CONSULTATION_STAFF_ROLES = ['hr', 'hr_manager', 'hsc', 'company_doctor', 'company_nurse']
 
 export default async function DashboardPage() {
   const user = await getServerUser()
@@ -40,43 +30,42 @@ export default async function DashboardPage() {
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
   const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
 
-  const [
-    importantTask,
-    announcements,
-    pendingQuestionnaires,
-    activePeriod,
-    pendingConsultationCount,
-    todayCheckin,
-    pendingKudosCount,
-    pendingLifecycleTasks,
-    visibleKeys,
-  ] = await Promise.all([
+  const [importantTask, activePeriod, todayCheckin, visibleKeys] = await Promise.all([
     getEmployeeImportantTask(user?.id ?? null, user?.tenant_id ?? null),
-    getTopAnnouncements(),
-    getPendingAssignedQuestionnairesForTop(user?.employee_id),
     getActivePeriod(),
-    getPendingConsultationCount(),
     user?.employee_id ? getTodayCheckin(user.employee_id) : Promise.resolve(null),
-    user?.employee_id ? getRecentKudosCountForRecipient(user.employee_id) : Promise.resolve(0),
-    user?.employee_id ? getMyPendingLifecycleTasks(user.employee_id) : Promise.resolve([]),
     getVisibleDashboardElementKeys(user?.tenant_id, 'top'),
   ])
 
   const v = (key: string) => isDashboardElementVisible(visibleKeys, key)
 
-  // 産業医・保健師・人事系の役割は /adm/consultation-queue、上司は /consultation/inbox へ誘導
-  const consultationInboxHref = CONSULTATION_STAFF_ROLES.includes(user?.appRole ?? '')
-    ? APP_ROUTES.TENANT.ADMIN_CONSULTATION_QUEUE
-    : APP_ROUTES.TENANT.CONSULTATION_INBOX
+  // employee_id を持たない（人事DB未紐付けの）ユーザーでも、個人非依存のプロバイダ
+  // （人事お知らせ等）は表示できるよう、employee_id 欠如だけではフィード全体を止めない
+  const feedCtx: FeedProviderContext | null = user
+    ? {
+        employeeId: user.employee_id ?? '',
+        userId: user.id,
+        tenantId: user.tenant_id ?? '',
+        divisionId: user.division_id ?? null,
+        appRole: user.appRole,
+        isManager: Boolean(user.is_manager),
+      }
+    : null
 
   // ストレスチェックカード表示判定（実施期間の日付 + 対象者判定のみ。回答有無は見ない）
   let showStressCheckTask = false
   let stressCheckAlreadyAnswered = false
-  if (activePeriod && user?.id && v('top.card.stress_check')) {
-    const [eligibility, alreadyAnswered] = await Promise.all([
-      checkStressCheckEligibility(activePeriod.id, user.id),
-      checkExistingResponse(activePeriod.id, user.id),
-    ])
+  const [eligibilityResult, feedItems] = await Promise.all([
+    activePeriod && user?.id && v('top.card.stress_check')
+      ? Promise.all([
+          checkStressCheckEligibility(activePeriod.id, user.id),
+          checkExistingResponse(activePeriod.id, user.id),
+        ])
+      : Promise.resolve(null),
+    feedCtx ? getTopFeedItems(feedCtx, visibleKeys) : Promise.resolve<FeedItem[]>([]),
+  ])
+  if (eligibilityResult) {
+    const [eligibility, alreadyAnswered] = eligibilityResult
     showStressCheckTask = eligibility.eligible
     stressCheckAlreadyAnswered = alreadyAnswered
   }
@@ -85,7 +74,7 @@ export default async function DashboardPage() {
   const showCondition = Boolean(user?.employee_id) && v('top.card.condition_checkin')
   const showImportantTask = Boolean(importantTask?.isPending) && v('top.card.important_task')
   const showTaskRow = showCondition || showImportantTask || showStressCheckTask
-  const showAnnouncements = v('top.section.announcements')
+  const showFeed = v('top.section.feed')
   const showQuickAccess = v('top.section.quick_access')
 
   return (
@@ -206,75 +195,10 @@ export default async function DashboardPage() {
       )}
 
       {/* 3. 2-Column Layout */}
-      {(showAnnouncements || showQuickAccess) && (
+      {(showFeed || showQuickAccess) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Left: Notices */}
-          {showAnnouncements && (
-            <div className="bg-white rounded-lg border border-slate-200 shadow-xs flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-backwards">
-              <div className="px-5 py-2 border-b border-[#ebebeb] flex items-center gap-3 bg-slate-50/50">
-                <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md shadow-inner">
-                  <Bell className="w-4 h-4" />
-                </div>
-                <h3 className="font-bold text-sm text-slate-800">お知らせ</h3>
-              </div>
-              <div className="p-0 flex-1">
-                {v('top.notice.consultation') && (
-                  <ConsultationPendingNotice
-                    count={pendingConsultationCount}
-                    href={consultationInboxHref}
-                  />
-                )}
-                {v('top.notice.kudos') && (
-                  <KudosPendingNotice count={pendingKudosCount} href={APP_ROUTES.TENANT.KUDOS} />
-                )}
-                {v('top.notice.questionnaire') && (
-                  <PendingQuestionnaireNoticeCards pending={pendingQuestionnaires} />
-                )}
-                {v('top.notice.lifecycle') && (
-                  <PendingLifecycleTaskNoticeCards
-                    pending={pendingLifecycleTasks}
-                    appRole={user?.appRole}
-                  />
-                )}
-                <ul
-                  className={`divide-y divide-[#ebebeb]${pendingQuestionnaires.length > 0 && announcements.length > 0 ? ' border-t border-[#ebebeb]' : ''}`}
-                >
-                  {announcements.map(item => (
-                    <li key={item.id} className="group hover:bg-slate-50/80 transition-colors">
-                      <div className="flex items-start gap-3 p-4 sm:px-5 outline-none focus:bg-slate-50">
-                        <div className="flex-1 space-y-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-semibold text-slate-400 font-mono tracking-tight">
-                              {item.dateLabel}
-                            </span>
-                            {item.targetAudience && (
-                              <span className="text-xs text-slate-500 bg-slate-100 px-1 py-0.5 rounded">
-                                対象: {item.targetAudience}
-                              </span>
-                            )}
-                            {item.isNew && (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 leading-none">
-                                NEW
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs font-medium text-slate-800 group-hover:text-blue-600 transition-colors leading-relaxed">
-                            🔔 {item.title}
-                          </p>
-                          {item.body && (
-                            <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed whitespace-pre-line">
-                              {item.body}
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
+          {/* Left: Notification Feed */}
+          {showFeed && <FeedPanel items={feedItems} />}
 
           {/* Right: Shortcuts */}
           {showQuickAccess && (

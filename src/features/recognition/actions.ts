@@ -8,20 +8,34 @@ import {
   createKudosSchema,
   toggleReactionSchema,
   valueTagSchema,
+  areRecipientsInTenant,
   type CreateKudosInput,
   type ToggleReactionInput,
   type ValueTagInput,
 } from './types'
 import { VALUE_TAGS } from './labels'
-import { createAnnouncement } from '@/features/dashboard/actions'
+import { postKudosAnnouncement } from '@/features/dashboard/actions'
 
 /** Kudos投稿（宛先1名以上、本文、任意でバリュータグ） */
 export async function createKudos(input: CreateKudosInput): Promise<void> {
   const user = await getServerUser()
-  if (!user?.employee_id) throw new Error('Unauthorized')
+  if (!user?.employee_id || !user?.tenant_id) throw new Error('Unauthorized')
 
   const parsed = createKudosSchema.parse(input)
   const supabase = await createClient()
+
+  // 宛先が自テナント内の従業員であることを検証する（クロステナントのID指定を防ぐ）
+  const { data: validRecipients, error: recipientsCheckError } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('tenant_id', user.tenant_id)
+    .in('id', parsed.recipientEmployeeIds)
+
+  if (recipientsCheckError) throw recipientsCheckError
+  const validIds = (validRecipients ?? []).map(r => r.id)
+  if (!areRecipientsInTenant(parsed.recipientEmployeeIds, validIds)) {
+    throw new Error('宛先に自テナント外の従業員が含まれています')
+  }
 
   const { data: kudos, error } = await supabase
     .from('kudos')
@@ -46,20 +60,12 @@ export async function createKudos(input: CreateKudosInput): Promise<void> {
   if (recipientsError) throw recipientsError
 
   // K-S2: 受信者へ個人宛お知らせを発行（/top のお知らせ欄に表示）
-  const senderName = user.name ?? '同僚'
-  const valueTagSuffix = parsed.valueTag ? `（${parsed.valueTag}）` : ''
-  const bodyPreview =
-    parsed.message.length > 120 ? `${parsed.message.slice(0, 120)}…` : parsed.message
-
+  // タイトル・本文は自由入力を受け付けない専用RPCが実在するkudos行から生成する
   await Promise.all(
     parsed.recipientEmployeeIds.map(recipientId =>
-      createAnnouncement({
-        title: `💛 ${senderName}さんから感謝・称賛が届きました${valueTagSuffix}`,
-        body: `${bodyPreview}\n\n詳細は「感謝・称賛」画面でご確認ください。`,
-        target_audience: 'あなた宛',
-        recipient_employee_id: recipientId,
-        is_new: true,
-        sort_order: 10,
+      postKudosAnnouncement({
+        kudosId: kudos.id,
+        recipientEmployeeId: recipientId,
       })
     )
   )

@@ -85,3 +85,17 @@ export interface MvpCandidate {
   /** 表彰登録フォームへ流用する推奨コメント */
   suggest_comment: string
 }
+
+/**
+ * Kudos宛先が自テナント内の従業員のみで構成されているかを判定する（クロステナントのID指定を防ぐ）。
+ * 重複IDが含まれていても正当な宛先を誤って拒否しないよう、重複排除した件数で比較する。
+ */
+export function areRecipientsInTenant(
+  requestedRecipientIds: string[],
+  validTenantEmployeeIds: string[]
+): boolean {
+  const requested = new Set(requestedRecipientIds)
+  const valid = new Set(validTenantEmployeeIds)
+  if (requested.size !== valid.size) return false
+  return [...requested].every(id => valid.has(id))
+}

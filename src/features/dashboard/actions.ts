@@ -98,6 +98,77 @@ export async function deleteAnnouncement(id: string) {
   return { success: true }
 }
 
+/**
+ * ドメイン機能（Kudos・コンディションアラート・健診面談推奨）から個人宛のシステム通知を投稿する。
+ * announcements の INSERT RLS は hr/hr_manager/developer のみに制限されているため、
+ * それ以外のロールから実行されるシステム通知は SECURITY DEFINER の専用RPC経由で投稿する。
+ *
+ * セキュリティ上の理由から、汎用の自由文字列RPC（post_system_announcement）は廃止した。
+ * 呼び出し元が任意の title/body・任意の recipient_employee_id を指定できてしまうと、
+ * 同一テナント内の任意の同僚へなりすましのシステム通知を偽装投稿できてしまうため、
+ * 用途ごとにDB側で正当性を検証し固定テンプレートから本文を組み立てる専用RPCに分割している
+ * （post_kudos_announcement / post_condition_alert_announcement / post_health_check_interview_announcement）。
+ */
+
+/** Kudos受信を announcements へ橋渡しする。呼び出し元が実際に作成した kudos 行にのみ紐付けられる。 */
+export async function postKudosAnnouncement(values: {
+  kudosId: string
+  recipientEmployeeId: string
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('post_kudos_announcement', {
+    p_kudos_id: values.kudosId,
+    p_recipient_employee_id: values.recipientEmployeeId,
+  })
+
+  if (error) {
+    console.error('postKudosAnnouncement error:', error)
+    return { success: false, error: 'Kudos通知の投稿に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  return { success: true }
+}
+
+/** コンディション低下アラートを産業医・保健師へ通知する。宛先はRPC内部で固定解決される。 */
+export async function postConditionAlertAnnouncement(values: {
+  employeeId: string
+  alertLabel: string
+  dedupeMarker: string
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('post_condition_alert_announcement', {
+    p_employee_id: values.employeeId,
+    p_alert_label: values.alertLabel,
+    p_dedupe_marker: values.dedupeMarker,
+  })
+
+  if (error) {
+    console.error('postConditionAlertAnnouncement error:', error)
+    return { success: false, error: 'コンディションアラートの投稿に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  return { success: true }
+}
+
+/** 健診結果を踏まえた面談推奨を本人へ通知する。呼び出し元が company_doctor ロールである必要がある。 */
+export async function postHealthCheckInterviewAnnouncement(values: {
+  recordId: string
+  kind: 'nurse' | 'doctor'
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('post_health_check_interview_announcement', {
+    p_record_id: values.recordId,
+    p_kind: values.kind,
+  })
+
+  if (error) {
+    console.error('postHealthCheckInterviewAnnouncement error:', error)
+    return { success: false, error: '面談推奨通知の投稿に失敗しました' }
+  }
+  revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  return { success: true }
+}
+
 // ========== 人事へのお問合せ（メール） ==========
 
 const hrInquirySchema = z.object({
@@ -129,9 +200,7 @@ async function resolveHrInquiryEmailFromTenantSettings(tenantId: string): Promis
   return raw || null
 }
 
-export type SendHrInquiryMailResult =
-  | { ok: true }
-  | { ok: false; error: string }
+export type SendHrInquiryMailResult = { ok: true } | { ok: false; error: string }
 
 export async function sendHrInquiryMail(formData: FormData): Promise<SendHrInquiryMailResult> {
   const user = await getServerUser()
@@ -179,7 +248,7 @@ export async function sendHrInquiryMail(formData: FormData): Promise<SendHrInqui
   <p><strong>本文</strong></p>
   <pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 8px;">${escapeHtml(body)}</pre>
   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
-  <p style="font-size: 12px; color: #64748b;">${metaLines.map((l) => escapeHtml(l)).join('<br/>')}</p>
+  <p style="font-size: 12px; color: #64748b;">${metaLines.map(l => escapeHtml(l)).join('<br/>')}</p>
 </div>
 `
 

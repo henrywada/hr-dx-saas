@@ -3,6 +3,8 @@ import {
   getPulseSurveyPeriodKey,
   pulseSurveyPeriodDeadlineFallbackYmd,
   toJSTDateString,
+  toJSTISOString,
+  formatDateInJST,
   type PulseSurveyCadence,
 } from '@/lib/datetime'
 import { getTenantPulseSurveyCadence } from '@/lib/server/pulse-survey-cadence-persistence'
@@ -27,19 +29,17 @@ export async function getTopAnnouncements(): Promise<Announcement[]> {
   const { data, error } = await supabase
     .from('announcements')
     .select('id, title, body, published_at, is_new, target_audience')
+    // 予約投稿（未来日の published_at）は表示しない
+    .lte('published_at', toJSTISOString())
+    .order('sort_order', { ascending: true })
     .order('published_at', { ascending: false })
     .limit(ANNOUNCEMENT_LIMIT)
 
   if (error || !data) return []
 
   return data.map(row => {
-    const d = row.published_at ? new Date(row.published_at) : null
-    const dateLabel = d
-      ? `${d.getFullYear()}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d
-          .getDate()
-          .toString()
-          .padStart(2, '0')}`
-      : ''
+    const publishedAt = (row.published_at as string | null) ?? ''
+    const dateLabel = publishedAt ? formatDateInJST(publishedAt).replace(/\//g, '.') : ''
 
     return {
       id: row.id as string,
@@ -47,6 +47,7 @@ export async function getTopAnnouncements(): Promise<Announcement[]> {
       body: (row.body as string | null) ?? null,
       targetAudience: (row.target_audience as string | null) ?? null,
       dateLabel,
+      publishedAt,
       isNew: !!row.is_new,
     }
   })
@@ -129,8 +130,7 @@ export async function getEmployeeImportantTask(
 
   const title = echoActiveTitle ?? period?.title ?? DEFAULT_PULSE_TITLE
   const description = period?.description ?? DEFAULT_PULSE_DESCRIPTION
-  const linkPath =
-    period?.link_path ?? `/survey/answer?period=${encodeURIComponent(surveyPeriod)}`
+  const linkPath = period?.link_path ?? `/survey/answer?period=${encodeURIComponent(surveyPeriod)}`
 
   return {
     title,
@@ -176,5 +176,3 @@ export async function getAnnouncementsForAdmin(): Promise<AnnouncementRow[]> {
   if (error || !data) return []
   return data as AnnouncementRow[]
 }
-
-

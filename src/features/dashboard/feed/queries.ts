@@ -4,7 +4,10 @@ import { sortFeedItems } from './sort'
 import type { FeedItem, RawFeedItem } from './types'
 import type { FeedProvider, FeedProviderContext } from './provider'
 
+/** /top パネルの表示上限 */
 export const FEED_LIMIT = 6
+/** /notifications 一覧ページの表示上限 */
+export const NOTIFICATIONS_PAGE_LIMIT = 100
 
 /** visibleKeys（ui_dashboard_element 由来）でプロバイダをフィルタする。
  * これにより tenant_service 未契約テナントに対してはプロバイダの fetch 自体が呼ばれなくなる。 */
@@ -24,10 +27,11 @@ export function applyReadState(items: RawFeedItem[], readKeys: Set<string>): Fee
  * reject したプロバイダの結果は無視する（graceful degradation）。 */
 export function aggregateSettledFeedItems(
   settled: PromiseSettledResult<RawFeedItem[]>[],
-  readKeys: Set<string>
+  readKeys: Set<string>,
+  limit: number = FEED_LIMIT
 ): FeedItem[] {
   const rawItems = settled.flatMap(r => (r.status === 'fulfilled' ? r.value : []))
-  return sortFeedItems(applyReadState(rawItems, readKeys)).slice(0, FEED_LIMIT)
+  return sortFeedItems(applyReadState(rawItems, readKeys)).slice(0, limit)
 }
 
 /** dedupeKey の一覧のうち既読済みのものを取得する */
@@ -48,9 +52,10 @@ export async function getReadDedupeKeys(
   return new Set(data.map(row => row.dedupe_key as string))
 }
 
-export async function getTopFeedItems(
+async function fetchFeedItems(
   ctx: FeedProviderContext,
-  visibleKeys: Set<string> | null
+  visibleKeys: Set<string> | null,
+  limit: number
 ): Promise<FeedItem[]> {
   const enabledProviders = filterEnabledProviders(FEED_PROVIDERS, visibleKeys)
 
@@ -66,5 +71,21 @@ export async function getTopFeedItems(
   )
   const readKeys = await getReadDedupeKeys(ctx.employeeId, dedupeKeys)
 
-  return aggregateSettledFeedItems(settled, readKeys)
+  return aggregateSettledFeedItems(settled, readKeys, limit)
+}
+
+/** /top パネル向け（上位 FEED_LIMIT 件） */
+export async function getTopFeedItems(
+  ctx: FeedProviderContext,
+  visibleKeys: Set<string> | null
+): Promise<FeedItem[]> {
+  return fetchFeedItems(ctx, visibleKeys, FEED_LIMIT)
+}
+
+/** /notifications 一覧ページ向け（上位 NOTIFICATIONS_PAGE_LIMIT 件） */
+export async function getAllFeedItems(
+  ctx: FeedProviderContext,
+  visibleKeys: Set<string> | null
+): Promise<FeedItem[]> {
+  return fetchFeedItems(ctx, visibleKeys, NOTIFICATIONS_PAGE_LIMIT)
 }

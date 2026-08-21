@@ -56,7 +56,7 @@ test('aggregateSettledFeedItems: rejectしたプロバイダの結果は無視�
   assert.equal(result[0].dedupeKey, 'ok')
 })
 
-test('aggregateSettledFeedItems: FEED_LIMIT件数を超える分は切り捨てる', () => {
+test('aggregateSettledFeedItems: limit省略時はFEED_LIMIT(6)件数を超える分を切り捨てる', () => {
   const many: RawFeedItem[] = Array.from({ length: 10 }, (_, i) =>
     rawItem({
       dedupeKey: `item-${i}`,
@@ -66,6 +66,18 @@ test('aggregateSettledFeedItems: FEED_LIMIT件数を超える分は切り捨て�
   const settled: PromiseSettledResult<RawFeedItem[]>[] = [{ status: 'fulfilled', value: many }]
   const result = aggregateSettledFeedItems(settled, new Set())
   assert.equal(result.length, 6)
+})
+
+test('aggregateSettledFeedItems: limitを指定するとその件数まで返す', () => {
+  const many: RawFeedItem[] = Array.from({ length: 10 }, (_, i) =>
+    rawItem({
+      dedupeKey: `item-${i}`,
+      occurredAt: `2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+    })
+  )
+  const settled: PromiseSettledResult<RawFeedItem[]>[] = [{ status: 'fulfilled', value: many }]
+  const result = aggregateSettledFeedItems(settled, new Set(), 100)
+  assert.equal(result.length, 10)
 })
 
 test('aggregateSettledFeedItems: 全プロバイダがrejectしても空配列を返す（例外を投げない）', () => {

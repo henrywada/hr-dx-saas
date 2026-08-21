@@ -15,6 +15,8 @@ export const APP_ROUTES = {
   },
   TENANT: {
     PORTAL: '/top',
+    /** 通知フィード一覧（/top お知らせパネルの「すべて見る」先） */
+    NOTIFICATIONS: '/notifications',
     ADMIN: '/adm',
     ADMIN_ANNOUNCEMENTS: '/adm/announcements',
     /** テナント基本設定（お問合せメール等）— (base_mnt)/settings */

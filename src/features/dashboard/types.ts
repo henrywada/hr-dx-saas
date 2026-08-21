@@ -24,10 +24,18 @@ export type AnnouncementRow = {
   title: string
   body: string | null
   published_at: string
+  /** 掲載期限（NULL=無期限） */
+  expires_at: string | null
   is_new: boolean
   target_audience: string | null
   recipient_employee_id: string | null
   sort_order: number
   created_at: string
   updated_at: string
+}
+
+/** 管理画面のお知らせ一覧に添える受信者選択肢 */
+export type EmployeeOption = {
+  id: string
+  name: string
 }

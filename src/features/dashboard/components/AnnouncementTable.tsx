@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react'
 import { Plus, Pencil, Trash2, Bell } from 'lucide-react'
-import type { AnnouncementRow } from '../types'
+import type { AnnouncementRow, EmployeeOption } from '../types'
 import { deleteAnnouncement } from '../actions'
 import { AnnouncementFormDialog } from './AnnouncementFormDialog'
 import { formatDateInJST } from '@/lib/datetime'
@@ -10,9 +10,10 @@ import TenantBackLink from '@/components/common/TenantBackLink'
 
 interface AnnouncementTableProps {
   announcements: AnnouncementRow[]
+  employees: EmployeeOption[]
 }
 
-export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
+export function AnnouncementTable({ announcements, employees }: AnnouncementTableProps) {
   const [isPending, startTransition] = useTransition()
   const [dialogState, setDialogState] = useState<{
     open: boolean
@@ -31,6 +32,7 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
   }
 
   const formatDate = (iso: string) => formatDateInJST(iso).replace(/\//g, '.')
+  const employeeNameMap = new Map(employees.map(e => [e.id, e.name]))
 
   return (
     <div className="space-y-4">
@@ -77,6 +79,12 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
                 <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider hidden md:table-cell">
                   対象
                 </th>
+                <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider hidden lg:table-cell">
+                  宛先
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider hidden lg:table-cell">
+                  掲載期限
+                </th>
                 <th className="text-left px-4 py-3 font-semibold text-[#57606a] text-xs uppercase tracking-wider">
                   NEW
                 </th>
@@ -88,7 +96,7 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
             <tbody>
               {announcements.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 px-4">
+                  <td colSpan={7} className="text-center py-12 px-4">
                     <Bell className="w-10 h-10 mx-auto mb-3 text-[#57606a] opacity-30" />
                     <p className="text-sm font-medium text-[#24292f]">お知らせはまだありません</p>
                     <p className="text-xs text-[#57606a] mt-1 max-w-sm mx-auto">
@@ -108,6 +116,14 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
                     <td className="px-4 py-3 font-medium text-[#24292f]">{a.title}</td>
                     <td className="px-4 py-3 text-[#57606a] hidden md:table-cell">
                       {a.target_audience || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-[#57606a] hidden lg:table-cell">
+                      {a.recipient_employee_id
+                        ? (employeeNameMap.get(a.recipient_employee_id) ?? '（退職済み等）')
+                        : '全社員'}
+                    </td>
+                    <td className="px-4 py-3 text-[#57606a] hidden lg:table-cell font-mono text-xs">
+                      {a.expires_at ? formatDate(a.expires_at) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {a.is_new ? (
@@ -148,6 +164,7 @@ export function AnnouncementTable({ announcements }: AnnouncementTableProps) {
         open={dialogState.open}
         onClose={() => setDialogState({ open: false })}
         announcement={dialogState.announcement}
+        employees={employees}
       />
 
       {deleteTarget && (

@@ -12,7 +12,7 @@ import { getTodayCheckin } from '@/features/condition-checkin/queries'
 import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWidget'
 import { FeedPanel } from '@/features/dashboard/components/FeedPanel'
 import { getTopFeedItems } from '@/features/dashboard/feed/queries'
-import type { FeedProviderContext } from '@/features/dashboard/feed/provider'
+import { buildFeedProviderContext } from '@/features/dashboard/feed/provider'
 import type { FeedItem } from '@/features/dashboard/feed/types'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
@@ -39,18 +39,7 @@ export default async function DashboardPage() {
 
   const v = (key: string) => isDashboardElementVisible(visibleKeys, key)
 
-  // employee_id を持たない（人事DB未紐付けの）ユーザーでも、個人非依存のプロバイダ
-  // （人事お知らせ等）は表示できるよう、employee_id 欠如だけではフィード全体を止めない
-  const feedCtx: FeedProviderContext | null = user
-    ? {
-        employeeId: user.employee_id ?? '',
-        userId: user.id,
-        tenantId: user.tenant_id ?? '',
-        divisionId: user.division_id ?? null,
-        appRole: user.appRole,
-        isManager: Boolean(user.is_manager),
-      }
-    : null
+  const feedCtx = buildFeedProviderContext(user)
 
   // ストレスチェックカード表示判定（実施期間の日付 + 対象者判定のみ。回答有無は見ない）
   let showStressCheckTask = false

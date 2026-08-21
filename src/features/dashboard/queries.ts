@@ -10,7 +10,7 @@ import {
 import { getTenantPulseSurveyCadence } from '@/lib/server/pulse-survey-cadence-persistence'
 import { getAssignedQuestionnaires } from '@/features/questionnaire/queries'
 import type { AssignedQuestionnaire } from '@/features/questionnaire/types'
-import { ImportantTask, Announcement, AnnouncementRow } from './types'
+import { ImportantTask, Announcement, AnnouncementRow, EmployeeOption } from './types'
 
 // announcements / pulse_survey_periods 等は型定義に含まれない場合があるため any でラップ
 async function getSupabase() {
@@ -21,16 +21,22 @@ async function getSupabase() {
 // 従業員専用トップ画面向けのクエリ群
 // - tenant_id / user_id は RLS + current_tenant_id() に委ねつつ、必要なものだけ明示的に指定
 
-const ANNOUNCEMENT_LIMIT = 4
+// /top パネル（上位6件表示）と /notifications 一覧（上位100件表示）の両方から
+// announcement フィードプロバイダ経由で呼ばれる。最終的な表示件数はフィード集約層で
+// 絞られるため、ここでは /notifications 側で十分な件数を取れるよう余裕を持たせる。
+const ANNOUNCEMENT_LIMIT = 20
 
 export async function getTopAnnouncements(): Promise<Announcement[]> {
   const supabase = await getSupabase()
+  const nowIso = toJSTISOString()
 
   const { data, error } = await supabase
     .from('announcements')
     .select('id, title, body, published_at, is_new, target_audience')
     // 予約投稿（未来日の published_at）は表示しない
-    .lte('published_at', toJSTISOString())
+    .lte('published_at', nowIso)
+    // 掲載期限切れ（expires_at が過去）は表示しない。NULL は無期限
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order('sort_order', { ascending: true })
     .order('published_at', { ascending: false })
     .limit(ANNOUNCEMENT_LIMIT)
@@ -175,4 +181,17 @@ export async function getAnnouncementsForAdmin(): Promise<AnnouncementRow[]> {
 
   if (error || !data) return []
   return data as AnnouncementRow[]
+}
+
+/** 個人宛お知らせの宛先選択肢（在籍中の従業員、氏名昇順） */
+export async function getEmployeeOptionsForAnnouncements(): Promise<EmployeeOption[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name')
+    .eq('active_status', 'active')
+    .order('name', { ascending: true })
+
+  if (error || !data) return []
+  return data.map(row => ({ id: row.id, name: row.name ?? '(氏名未設定)' }))
 }

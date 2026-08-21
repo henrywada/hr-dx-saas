@@ -21,6 +21,7 @@ export async function createAnnouncement(values: {
   title: string
   body?: string | null
   published_at?: string
+  expires_at?: string | null
   is_new?: boolean
   target_audience?: string | null
   sort_order?: number
@@ -39,6 +40,7 @@ export async function createAnnouncement(values: {
       title: values.title,
       body: values.body ?? null,
       published_at: values.published_at ?? toJSTISOString(),
+      expires_at: values.expires_at ?? null,
       is_new: values.is_new ?? true,
       target_audience: values.target_audience ?? null,
       sort_order: values.sort_order ?? 0,
@@ -53,6 +55,7 @@ export async function createAnnouncement(values: {
   }
   revalidatePath(`${ADM_PATH}/announcements`)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  revalidatePath(APP_ROUTES.TENANT.NOTIFICATIONS)
   return { success: true, data }
 }
 
@@ -62,6 +65,7 @@ export async function updateAnnouncement(
     title?: string
     body?: string | null
     published_at?: string
+    expires_at?: string | null
     is_new?: boolean
     target_audience?: string | null
     sort_order?: number
@@ -82,6 +86,7 @@ export async function updateAnnouncement(
   }
   revalidatePath(`${ADM_PATH}/announcements`)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  revalidatePath(APP_ROUTES.TENANT.NOTIFICATIONS)
   return { success: true, data }
 }
 
@@ -95,6 +100,7 @@ export async function deleteAnnouncement(id: string) {
   }
   revalidatePath(`${ADM_PATH}/announcements`)
   revalidatePath(APP_ROUTES.TENANT.PORTAL)
+  revalidatePath(APP_ROUTES.TENANT.NOTIFICATIONS)
   return { success: true }
 }
 

@@ -114,6 +114,7 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          expires_at: string | null
           id: string
           is_new: boolean
           published_at: string
@@ -127,6 +128,7 @@ export type Database = {
         Insert: {
           body?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_new?: boolean
           published_at?: string
@@ -140,6 +142,7 @@ export type Database = {
         Update: {
           body?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_new?: boolean
           published_at?: string

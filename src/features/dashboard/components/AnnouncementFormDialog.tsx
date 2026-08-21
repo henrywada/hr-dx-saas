@@ -2,20 +2,24 @@
 
 import React, { useState, useTransition, useEffect } from 'react'
 import { X } from 'lucide-react'
-import type { AnnouncementRow } from '../types'
+import type { AnnouncementRow, EmployeeOption } from '../types'
 import { createAnnouncement, updateAnnouncement } from '../actions'
 import { toJSTISOString } from '@/lib/datetime'
+import { publishStatusPreview } from './publish-status-preview'
 
 interface AnnouncementFormDialogProps {
   open: boolean
   onClose: () => void
   announcement?: AnnouncementRow | null
+  /** 個人宛指定用の在籍従業員一覧（空 = 全社員対象のまま） */
+  employees: EmployeeOption[]
 }
 
 export function AnnouncementFormDialog({
   open,
   onClose,
   announcement,
+  employees,
 }: AnnouncementFormDialogProps) {
   const isEdit = !!announcement
   const [isPending, startTransition] = useTransition()
@@ -24,9 +28,11 @@ export function AnnouncementFormDialog({
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [publishedAt, setPublishedAt] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [isNew, setIsNew] = useState(true)
   const [targetAudience, setTargetAudience] = useState('')
   const [sortOrder, setSortOrder] = useState(0)
+  const [recipientEmployeeId, setRecipientEmployeeId] = useState('')
 
   useEffect(() => {
     if (open) {
@@ -38,9 +44,13 @@ export function AnnouncementFormDialog({
           ? new Date(announcement.published_at).toISOString().slice(0, 16)
           : toJSTISOString().slice(0, 16)
       )
+      setExpiresAt(
+        announcement?.expires_at ? new Date(announcement.expires_at).toISOString().slice(0, 16) : ''
+      )
       setIsNew(announcement?.is_new ?? true)
       setTargetAudience(announcement?.target_audience || '')
       setSortOrder(announcement?.sort_order ?? 0)
+      setRecipientEmployeeId(announcement?.recipient_employee_id || '')
     }
   }, [open, announcement])
 
@@ -52,6 +62,7 @@ export function AnnouncementFormDialog({
         const publishedAtISO = publishedAt
           ? toJSTISOString(new Date(publishedAt))
           : toJSTISOString()
+        const expiresAtISO = expiresAt ? toJSTISOString(new Date(expiresAt)) : null
 
         let result
         if (isEdit && announcement) {
@@ -59,18 +70,22 @@ export function AnnouncementFormDialog({
             title,
             body: body || null,
             published_at: publishedAtISO,
+            expires_at: expiresAtISO,
             is_new: isNew,
             target_audience: targetAudience || null,
             sort_order: sortOrder,
+            recipient_employee_id: recipientEmployeeId || null,
           })
         } else {
           result = await createAnnouncement({
             title,
             body: body || null,
             published_at: publishedAtISO,
+            expires_at: expiresAtISO,
             is_new: isNew,
             target_audience: targetAudience || null,
             sort_order: sortOrder,
+            recipient_employee_id: recipientEmployeeId || null,
           })
         }
 
@@ -86,6 +101,8 @@ export function AnnouncementFormDialog({
   }
 
   if (!open) return null
+
+  const preview = publishStatusPreview(publishedAt, expiresAt)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -104,9 +121,7 @@ export function AnnouncementFormDialog({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
-          )}
+          {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
 
           <div>
             <label className="block text-sm font-medium text-[#24292f] mb-1">タイトル *</label>
@@ -131,15 +146,38 @@ export function AnnouncementFormDialog({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[#24292f] mb-1">公開日時</label>
-            <input
-              type="datetime-local"
-              value={publishedAt}
-              onChange={e => setPublishedAt(e.target.value)}
-              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">公開日時</label>
+              <input
+                type="datetime-local"
+                value={publishedAt}
+                onChange={e => setPublishedAt(e.target.value)}
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#24292f] mb-1">
+                掲載期限（任意）
+              </label>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={e => setExpiresAt(e.target.value)}
+                className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
+              />
+            </div>
           </div>
+
+          {preview && (
+            <p
+              className={`text-xs rounded-lg px-3 py-2 ${
+                preview.startsWith('⚠') ? 'bg-red-50 text-red-600' : 'bg-[#f6f8fa] text-[#57606a]'
+              }`}
+            >
+              {preview}
+            </p>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-[#24292f] mb-1">対象</label>
@@ -150,6 +188,25 @@ export function AnnouncementFormDialog({
               className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
               placeholder="例: 全社員対象"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#24292f] mb-1">個人宛（任意）</label>
+            <select
+              value={recipientEmployeeId}
+              onChange={e => setRecipientEmployeeId(e.target.value)}
+              className="w-full px-3 py-2 border border-[#e2e6ec] rounded-lg text-sm focus:ring-2 focus:ring-[#FD7601] focus:border-[#FD7601] outline-none"
+            >
+              <option value="">全社員対象（個人宛にしない）</option>
+              {employees.map(employee => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-[#57606a] mt-1">
+              指定すると、その従業員のみに表示される個人宛お知らせになります。
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

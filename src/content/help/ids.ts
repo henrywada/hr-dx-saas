@@ -51,6 +51,8 @@ export const HELP_CONTENT_IDS = {
   MYOU_EXPIRATION_ALERTS: 'myou-expiration-alerts-guide',
   /** 施工会社（納入先）管理の使い方 */
   MYOU_COMPANIES: 'myou-companies-guide',
+  /** お知らせ管理の登録の仕組み・TOP画面フィードへの通知の仕組み */
+  ANNOUNCEMENTS: 'set-announce',
 } as const
 
 export type HelpContentId = (typeof HELP_CONTENT_IDS)[keyof typeof HELP_CONTENT_IDS]

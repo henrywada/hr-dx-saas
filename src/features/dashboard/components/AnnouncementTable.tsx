@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Bell } from 'lucide-react'
 import type { AnnouncementRow, EmployeeOption } from '../types'
 import { deleteAnnouncement } from '../actions'
 import { AnnouncementFormDialog } from './AnnouncementFormDialog'
+import { AnnouncementsHelpModalTrigger } from './AnnouncementsHelpModalTrigger'
 import { formatDateInJST } from '@/lib/datetime'
 import TenantBackLink from '@/components/common/TenantBackLink'
 
@@ -45,6 +46,7 @@ export function AnnouncementTable({ announcements, employees }: AnnouncementTabl
           </p>
         </div>
         <div className="flex gap-2">
+          <AnnouncementsHelpModalTrigger />
           <TenantBackLink />
           <button
             onClick={() => setDialogState({ open: true })}

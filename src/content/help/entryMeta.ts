@@ -47,3 +47,5 @@ export const MYOU_TRACEABILITY_DISPLAY_TITLE = 'トレーサビリティ検索�
 export const MYOU_EXPIRATION_ALERTS_DISPLAY_TITLE = '有効期限監視の使い方'
 /** myou-companies-guide: 施工会社管理の使い方 */
 export const MYOU_COMPANIES_DISPLAY_TITLE = '施工会社管理の使い方'
+/** set-announce: お知らせ管理の登録・通知の仕組み */
+export const ANNOUNCEMENTS_DISPLAY_TITLE = 'お知らせ管理の仕組み'

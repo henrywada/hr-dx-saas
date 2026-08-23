@@ -13,6 +13,7 @@ import { CheckinWidget } from '@/features/condition-checkin/components/CheckinWi
 import { FeedPanel } from '@/features/dashboard/components/FeedPanel'
 import { getTopFeedItems } from '@/features/dashboard/feed/queries'
 import { buildFeedProviderContext } from '@/features/dashboard/feed/provider'
+import { splitFeedItemsByKind } from '@/features/dashboard/feed/split'
 import type { FeedItem } from '@/features/dashboard/feed/types'
 import QuickAccessCards from '../../(tenant-admin)/components/QuickAccess/QuickAccessCards.server'
 import { HrInquiryNavLink } from '@/features/dashboard/components/HrInquiryNavLink'
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
   const showTaskRow = showCondition || showImportantTask || showStressCheckTask
   const showFeed = v('top.section.feed')
   const showQuickAccess = v('top.section.quick_access')
+  const { noticeItems, actionItems } = splitFeedItemsByKind(feedItems)
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-6 mx-auto max-w-[1200px]">
@@ -187,7 +189,19 @@ export default async function DashboardPage() {
       {(showFeed || showQuickAccess) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* Left: Notification Feed */}
-          {showFeed && <FeedPanel items={feedItems} />}
+          {showFeed && (
+            <div className="flex flex-col gap-3">
+              <FeedPanel items={noticeItems} />
+              {actionItems.length > 0 && (
+                <FeedPanel
+                  items={actionItems}
+                  title="要対応タスク"
+                  icon={AlertCircle}
+                  iconClassName="bg-orange-100 text-orange-600"
+                />
+              )}
+            </div>
+          )}
 
           {/* Right: Shortcuts */}
           {showQuickAccess && (

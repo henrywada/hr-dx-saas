@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { getDeployBadge } from '@/lib/env/deploy-env'
+import { APP_ROUTES } from '@/config/routes'
 
 export function Footer() {
   const { label, dotClass, commitSha } = getDeployBadge()
@@ -9,10 +10,16 @@ export function Footer() {
     <footer className="h-12 bg-white border-t border-slate-200 flex items-center relative px-[24px] text-xs shrink-0 z-10">
       {/* Left: Links */}
       <div className="flex items-center gap-4 text-slate-500">
-        <Link href="#" className="hover:text-accent-orange hover:underline">
+        <Link
+          href={APP_ROUTES.PUBLIC.PRIVACY_POLICY}
+          className="hover:text-accent-orange hover:underline"
+        >
           プライバシーポリシー
         </Link>
-        <Link href="#" className="hover:text-accent-orange hover:underline">
+        <Link
+          href={APP_ROUTES.PUBLIC.TERMS_OF_SERVICE}
+          className="hover:text-accent-orange hover:underline"
+        >
           利用規約
         </Link>
       </div>
@@ -25,7 +32,7 @@ export function Footer() {
       {/* Right: Version + 環境バッジ（ドット色とラベルで local / preview / prod を判別する） */}
       <div className="ml-auto flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
-        <span className="text-slate-400 lowercase font-mono">v2.8.9</span>
+        <span className="text-slate-400 lowercase font-mono">v2.8.10</span>
         <span className="text-slate-400 lowercase font-mono">
           · {label}
           {commitSha && ` · ${commitSha}`}

@@ -6,6 +6,10 @@ export const APP_ROUTES = {
     MYOU_PRODUCT_MANUALS: '/p/myou/product-manuals',
     /** 助成金情報配信メールからの配信停止（署名付きトークン・認証不要） */
     GRANT_NOTIFIER_UNSUBSCRIBE: '/p/grant-notifier/unsubscribe',
+    /** プライバシーポリシー（認証不要） */
+    PRIVACY_POLICY: '/p/privacy-policy',
+    /** 利用規約（認証不要） */
+    TERMS_OF_SERVICE: '/p/terms',
   },
   AUTH: {
     LOGIN: '/login',

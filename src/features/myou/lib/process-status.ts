@@ -1,14 +1,18 @@
-export type ProcessStatus = 'unused' | 'used' | 'alert_ignored'
+export type ProcessStatus = 'unused' | 'used' | 'alert_ignored' | 'sent'
 
-export const PROCESS_STATUS_VALUES = ['unused', 'used', 'alert_ignored'] as const
+export const PROCESS_STATUS_VALUES = ['unused', 'used', 'alert_ignored', 'sent'] as const
 
-/** 編集モーダルで選べる処理ステータス（使用済は出荷リストの使用数で管理するため除外） */
+/**
+ * 編集モーダルで選べる処理ステータス。
+ * used（出荷リストの使用数で管理）と sent（アラート送信成功時に自動設定）は手動選択の対象外
+ */
 export const PROCESS_STATUS_EDIT_VALUES = ['unused', 'alert_ignored'] as const
 
 const LABELS: Record<ProcessStatus, string> = {
   unused: '未使用',
   used: '使用済',
   alert_ignored: 'アラート無視',
+  sent: '送信済',
 }
 
 /** 処理ステータスの画面表示名 */

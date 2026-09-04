@@ -96,6 +96,13 @@ export interface LotTraceResult {
   history: DeliveryLogWithCompany[]
 }
 
+/** アラート送信ログの送信対象トレースラベル1件分の情報（ロット番号・有効期限表示用） */
+export interface AlertLogTargetLabel {
+  trace_no: string
+  lot_no: string
+  expiration_date: string | null
+}
+
 /** アラート送信ログの行 */
 export interface AlertLogRow {
   id: string
@@ -107,6 +114,8 @@ export interface AlertLogRow {
   /** 送信時点の処理ステータス（過去ログは null） */
   process_status: ProcessStatus | null
   myou_companies: { name: string } | null
+  /** target_trace_nos に対応するロット番号・有効期限（表示用、突合できなかった分は含まれない） */
+  target_labels: AlertLogTargetLabel[]
 }
 
 /** 有効期限間近のトレーサビリティQR発行分（客先出荷済み、施工会社JOIN済み） */

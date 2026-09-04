@@ -107,6 +107,7 @@ export async function getExpiringTraceLabels(): Promise<ExpiringTraceLabel[]> {
     `
     )
     .eq('tenant_id', user.tenant_id)
+    .eq('process_status', 'unused')
     .gte('expiration_date', from)
     .lte('expiration_date', to)
     .order('expiration_date', { ascending: true })
@@ -203,7 +204,44 @@ export async function getAlertLogs(): Promise<AlertLogRow[]> {
     })
     return []
   }
-  return (data || []) as AlertLogRow[]
+
+  const rows = (data || []) as Omit<AlertLogRow, 'target_labels'>[]
+  if (rows.length === 0) return []
+
+  // 全ログの対象TraceNoをまとめて突合し、ロット番号・有効期限を取得する
+  const allTraceNos = Array.from(new Set(rows.flatMap(row => row.target_trace_nos ?? [])))
+  const labelByTraceNo = new Map<string, { lot_no: string; expiration_date: string | null }>()
+
+  if (allTraceNos.length > 0) {
+    const { data: traceLabels, error: traceLabelsError } = await supabase
+      .from('myou_trace_labels')
+      .select('trace_no, expiration_date, myou_lots ( lot_no )')
+      .eq('tenant_id', user.tenant_id)
+      .in('trace_no', allTraceNos)
+
+    if (traceLabelsError) {
+      console.error('Error fetching trace labels for alert logs:', traceLabelsError)
+    } else {
+      for (const label of (traceLabels || []) as {
+        trace_no: string
+        expiration_date: string | null
+        myou_lots: { lot_no: string } | null
+      }[]) {
+        labelByTraceNo.set(label.trace_no, {
+          lot_no: label.myou_lots?.lot_no ?? '',
+          expiration_date: label.expiration_date,
+        })
+      }
+    }
+  }
+
+  return rows.map(row => ({
+    ...row,
+    target_labels: (row.target_trace_nos ?? []).flatMap(traceNo => {
+      const label = labelByTraceNo.get(traceNo)
+      return label ? [{ trace_no: traceNo, ...label }] : []
+    }),
+  }))
 }
 
 /**

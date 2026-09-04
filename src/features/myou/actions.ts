@@ -425,6 +425,23 @@ export async function sendManualAlert(companyId: string) {
     console.error('Error logging alert:', logError)
   }
 
+  // 4. 送信成功時は対象を「送信済」に更新し、「期限間近の製品」一覧から除外する
+  if (mailResult.success) {
+    const { error: statusUpdateError } = await supabase
+      .from('myou_trace_labels')
+      .update({ process_status: 'sent' })
+      .eq('tenant_id', user.tenant_id)
+      .eq('company_id', companyId)
+      .in(
+        'trace_no',
+        items.map(item => item.trace_no)
+      )
+
+    if (statusUpdateError) {
+      console.error('Error updating process_status to sent:', statusUpdateError)
+    }
+  }
+
   revalidatePath(APP_ROUTES.MYOU.EXPIRATION_ALERTS)
 
   if (mailResult.success) {
@@ -453,15 +470,32 @@ export async function updateTraceProcessStatus(
   }
 
   const supabase = await getSupabase()
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('myou_trace_labels')
     .update({ process_status: statusParsed.data })
     .eq('id', idParsed.data)
     .eq('tenant_id', user.tenant_id)
+    .select('trace_no, company_id')
+    .single()
 
   if (error) {
     console.error('Error updating process_status:', error)
     return { success: false, error: '処理ステータスの更新に失敗しました。' }
+  }
+
+  // アラート無視に変更した場合、「アラート送信履歴」にも記録を残す（実際の送信は行わない）
+  if (statusParsed.data === 'alert_ignored') {
+    const { error: logError } = await supabase.from('myou_alert_logs').insert({
+      company_id: updated.company_id,
+      target_trace_nos: [updated.trace_no],
+      status: 'ignored',
+      error_message: null,
+      process_status: 'alert_ignored',
+    })
+
+    if (logError) {
+      console.error('Error logging alert_ignored:', logError)
+    }
   }
 
   revalidatePath(APP_ROUTES.MYOU.EXPIRATION_ALERTS)

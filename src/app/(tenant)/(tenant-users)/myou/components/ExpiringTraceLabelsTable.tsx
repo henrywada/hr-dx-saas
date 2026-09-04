@@ -18,6 +18,8 @@ function processStatusBadgeClass(status: ProcessStatus): string {
       return 'bg-gray-100 text-gray-700'
     case 'alert_ignored':
       return 'bg-slate-100 text-slate-700'
+    case 'sent':
+      return 'bg-green-100 text-green-700'
   }
 }
 
@@ -134,28 +136,28 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    TraceNo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ロット番号
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     未使用数量
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     有効期限
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    TraceNo
+                  </th>
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     状態
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     残り日数
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     処理ステータス
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     編集
                   </th>
                 </tr>
@@ -165,19 +167,19 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                   const daysLeft = getDaysUntilExpiration(label.expiration_date) ?? 0
                   return (
                     <tr key={label.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                        {label.trace_no}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
+                      <td className="px-6 py-1.5 whitespace-nowrap text-sm font-mono text-gray-700">
                         {label.lot_no}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-6 py-1.5 whitespace-nowrap text-sm text-gray-700">
                         {label.unused_quantity}個
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className="px-6 py-1.5 whitespace-nowrap text-sm text-gray-700">
                         {label.expiration_date}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-1.5 whitespace-nowrap text-sm font-mono text-gray-900">
+                        {label.trace_no}
+                      </td>
+                      <td className="px-6 py-1.5 whitespace-nowrap">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${
                             daysLeft <= 7
@@ -188,17 +190,17 @@ export default function ExpiringTraceLabelsTable({ labels }: Props) {
                           {daysLeft <= 0 ? '期限切れ' : '期限間近'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                      <td className="px-6 py-1.5 whitespace-nowrap text-sm font-bold text-gray-900">
                         {daysLeft > 0 ? `${daysLeft}日` : '0日'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-1.5 whitespace-nowrap">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${processStatusBadgeClass(label.process_status)}`}
                         >
                           {processStatusLabel(label.process_status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-1.5 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() =>

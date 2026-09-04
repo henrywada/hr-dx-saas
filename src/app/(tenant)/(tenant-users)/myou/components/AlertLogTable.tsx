@@ -1,6 +1,6 @@
 'use client'
 
-import { History, CheckCircle, XCircle } from 'lucide-react'
+import { History, CheckCircle, XCircle, Ban } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
 import type { AlertLogRow, ProcessStatus } from '@/features/myou/types'
 import { processStatusLabel } from '@/features/myou/lib/process-status'
@@ -12,6 +12,7 @@ interface Props {
 function processStatusBadgeClass(status: ProcessStatus): string {
   if (status === 'unused') return 'bg-blue-100 text-blue-700'
   if (status === 'used') return 'bg-gray-100 text-gray-700'
+  if (status === 'sent') return 'bg-green-100 text-green-700'
   return 'bg-slate-100 text-slate-700'
 }
 
@@ -38,22 +39,28 @@ export default function AlertLogTable({ logs }: Props) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 送信日時
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 施工会社
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                対象トレース件数
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ロット番号
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                有効期限
+              </th>
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                TraceNo
+              </th>
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 処理ステータス
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 送信ステータス
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 詳細
               </th>
             </tr>
@@ -61,19 +68,22 @@ export default function AlertLogTable({ logs }: Props) {
           <tbody className="bg-white divide-y divide-gray-200">
             {logs.map(log => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-1.5 whitespace-nowrap text-sm text-gray-900">
                   {formatDateTimeInJST(log.sent_at)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                <td className="px-6 py-1.5 whitespace-nowrap text-sm font-semibold text-gray-900">
                   {log.myou_companies?.name || '不明'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  <span className="font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 mr-2">
-                    {log.target_trace_nos?.length || 0}
-                  </span>
-                  件
+                <td className="px-6 py-1.5 whitespace-nowrap text-sm font-mono text-gray-700">
+                  {log.target_labels?.map(label => label.lot_no).join(', ') || '-'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-1.5 whitespace-nowrap text-sm text-gray-700">
+                  {log.target_labels?.map(label => label.expiration_date).join(', ') || '-'}
+                </td>
+                <td className="px-6 py-1.5 whitespace-nowrap text-sm font-mono text-gray-900">
+                  {log.target_trace_nos?.join(', ') || '-'}
+                </td>
+                <td className="px-6 py-1.5 whitespace-nowrap">
                   {log.process_status ? (
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded-full ${processStatusBadgeClass(log.process_status)}`}
@@ -84,18 +94,25 @@ export default function AlertLogTable({ logs }: Props) {
                     <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-1.5 whitespace-nowrap">
                   <span
                     className={`flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
                       log.status === 'success'
                         ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
+                        : log.status === 'ignored'
+                          ? 'bg-slate-100 text-slate-700'
+                          : 'bg-red-100 text-red-700'
                     }`}
                   >
                     {log.status === 'success' ? (
                       <>
                         <CheckCircle className="h-3 w-3" />
                         <span>成功</span>
+                      </>
+                    ) : log.status === 'ignored' ? (
+                      <>
+                        <Ban className="h-3 w-3" />
+                        <span>無視</span>
                       </>
                     ) : (
                       <>
@@ -105,10 +122,12 @@ export default function AlertLogTable({ logs }: Props) {
                     )}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
+                <td className="px-6 py-1.5 text-xs text-gray-500 max-w-xs truncate">
                   {log.status === 'success'
-                    ? log.target_trace_nos?.join(', ') || '-'
-                    : log.error_message || '不明なエラー'}
+                    ? '-'
+                    : log.status === 'ignored'
+                      ? '手動でアラート無視に設定'
+                      : log.error_message || '不明なエラー'}
                 </td>
               </tr>
             ))}

@@ -191,7 +191,7 @@ export default async function DashboardPage() {
           {/* Left: Notification Feed */}
           {showFeed && (
             <div className="flex flex-col gap-3">
-              <FeedPanel items={noticeItems} />
+              {noticeItems.length > 0 && <FeedPanel items={noticeItems} />}
               {actionItems.length > 0 && (
                 <FeedPanel
                   items={actionItems}

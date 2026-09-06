@@ -59,10 +59,22 @@ function cellStandardJudgment(row: EmployeeResultView['items'][number] | undefin
   return row.standardJudgmentCode ?? '—'
 }
 
+/** 標準判定コードが要注意（A以外）かどうか。A1〜A3=異常なし、B/C/D/G系=経過観察〜要治療 */
+function isAttentionJudgment(code: string): boolean {
+  return code !== '—' && !code.startsWith('A')
+}
+
 const cellClass =
   'py-1 px-2 border border-slate-200 bg-white text-slate-800 transition-colors duration-150 group-hover/hc:bg-[#f6f8fa]'
+const attentionCellClass =
+  'py-1 px-2 border border-slate-200 bg-red-100 text-slate-800 transition-colors duration-150 group-hover/hc:bg-red-200'
 const headerSubClass =
   'py-1 px-2 text-center font-normal text-[10px] text-slate-500 border border-slate-200 bg-white'
+
+/** 標準判定コードに応じて、機関値カラム以降の行セルに適用するクラスを返す */
+function judgmentRowClass(code: string): string {
+  return isAttentionJudgment(code) ? attentionCellClass : cellClass
+}
 
 export function ResultDetailView({
   view,
@@ -101,9 +113,11 @@ export function ResultDetailView({
         </div>
         <div>
           <dt className="text-slate-500">総合判定</dt>
-          <dd className="mt-0.5 font-medium text-slate-900">
-            機関={view.record.institution_overall_judgment_raw ?? '—'} / 標準=
-            {view.overallStandardCode ?? '—'}
+          <dd className="mt-0.5">
+            <span className="inline-flex items-baseline gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 text-sm font-bold text-orange-700">
+              機関={view.record.institution_overall_judgment_raw ?? '—'} / 標準=
+              {view.overallStandardCode ?? '—'}
+            </span>
           </dd>
         </div>
         <div>
@@ -174,19 +188,23 @@ export function ResultDetailView({
                 const cell = byRoundCode[i].get(item.code)
                 const key = r?.record.id ?? `empty-round-${i}`
                 if (i === 0) {
+                  const standardJudgment = cellStandardJudgment(cell)
+                  const rowClass = judgmentRowClass(standardJudgment)
                   return (
                     <Fragment key={key}>
-                      <td className={`${cellClass} font-mono`}>{cellInstitutionValue(cell)}</td>
-                      <td className={`${cellClass} font-mono`}>{cellStandardValue(cell)}</td>
-                      <td className={cellClass}>{cellInstitutionJudgment(cell)}</td>
-                      <td className={cellClass}>{cellStandardJudgment(cell)}</td>
+                      <td className={`${rowClass} font-mono`}>{cellInstitutionValue(cell)}</td>
+                      <td className={`${rowClass} font-mono`}>{cellStandardValue(cell)}</td>
+                      <td className={rowClass}>{cellInstitutionJudgment(cell)}</td>
+                      <td className={rowClass}>{standardJudgment}</td>
                     </Fragment>
                   )
                 }
+                const standardJudgment = cellStandardJudgment(cell)
+                const rowClass = judgmentRowClass(standardJudgment)
                 return (
                   <Fragment key={key}>
-                    <td className={`${cellClass} font-mono`}>{cellStandardValue(cell)}</td>
-                    <td className={cellClass}>{cellStandardJudgment(cell)}</td>
+                    <td className={`${rowClass} font-mono`}>{cellStandardValue(cell)}</td>
+                    <td className={rowClass}>{standardJudgment}</td>
                   </Fragment>
                 )
               })}

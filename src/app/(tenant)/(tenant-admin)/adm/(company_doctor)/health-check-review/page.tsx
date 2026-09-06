@@ -4,71 +4,11 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import { BulkDoctorJudgmentButton } from '@/features/health-check/components/BulkDoctorJudgmentButton'
+import { DoctorQueueSection } from '@/features/health-check/components/DoctorQueueSection'
 import { getCampaigns, getDoctorQueue } from '@/features/health-check/queries'
-import {
-  EMPLOYMENT_JUDGMENT_LABEL,
-  MEDICAL_ROLES,
-  type EmploymentJudgment,
-} from '@/features/health-check/types'
+import { MEDICAL_ROLES } from '@/features/health-check/types'
 
 export const metadata = { title: '健康診断結果参照' }
-
-type QueueRow = {
-  id: string
-  employee_name: string
-  division_name: string | null
-  exam_date: string
-  overall_standard_code: string | null
-  doctor_judgment_code: string | null
-  employment_judgment: EmploymentJudgment
-}
-
-function DoctorQueueTable({ title, rows }: { title: string; rows: QueueRow[] }) {
-  return (
-    <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-x-auto">
-      <div className="flex items-baseline justify-between gap-3 px-4 pt-3">
-        <h2 className="text-xs font-semibold text-slate-900">{title}</h2>
-        <p className="text-xs text-slate-600">
-          合計 <span className="font-semibold tabular-nums text-slate-900">{rows.length}</span>件
-        </p>
-      </div>
-      <table className="w-full text-xs border-collapse mt-2">
-        <thead>
-          <tr className="border-b border-slate-200">
-            <th className="text-left py-1 px-4">氏名</th>
-            <th className="text-left py-1 px-4">部署</th>
-            <th className="text-left py-1 px-4">受診日</th>
-            <th className="text-left py-1 px-4">標準総合判定</th>
-            <th className="text-left py-1 px-4">産業医判定</th>
-            <th className="text-left py-1 px-4">就業判定</th>
-            <th className="py-1 px-4" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(r => (
-            <tr key={r.id} className="border-b border-slate-100 hover:bg-[#f6f8fa]">
-              <td className="py-1 px-4">{r.employee_name}</td>
-              <td className="py-1 px-4">{r.division_name ?? '—'}</td>
-              <td className="py-1 px-4">{r.exam_date}</td>
-              <td className="py-1 px-4">{r.overall_standard_code ?? '—'}</td>
-              <td className="py-1 px-4">{r.doctor_judgment_code ?? '—'}</td>
-              <td className="py-1 px-4">{EMPLOYMENT_JUDGMENT_LABEL[r.employment_judgment]}</td>
-              <td className="py-1 px-4">
-                <Link
-                  href={APP_ROUTES.TENANT.ADMIN_HEALTH_CHECK_REVIEW_DETAIL(r.id)}
-                  className="font-semibold text-(--brand) hover:underline"
-                >
-                  開く
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {rows.length === 0 && <p className="px-4 py-6 text-xs text-slate-400">該当者はいません</p>}
-    </div>
-  )
-}
 
 export default async function HealthCheckReviewPage({
   searchParams,
@@ -116,14 +56,15 @@ export default async function HealthCheckReviewPage({
           ))}
         </div>
       )}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] text-slate-500">標準値は詳細で確認します。</p>
-        {user.appRole === 'company_doctor' && (
-          <BulkDoctorJudgmentButton campaignId={selected?.id ?? null} candidates={candidates} />
-        )}
-      </div>
-      <DoctorQueueTable title="産業医 未判定" rows={pending} />
-      <DoctorQueueTable title="産業医 判定済" rows={judged} />
+      <DoctorQueueSection
+        pending={pending}
+        judged={judged}
+        bulkActionSlot={
+          user.appRole === 'company_doctor' ? (
+            <BulkDoctorJudgmentButton campaignId={selected?.id ?? null} candidates={candidates} />
+          ) : null
+        }
+      />
     </div>
   )
 }

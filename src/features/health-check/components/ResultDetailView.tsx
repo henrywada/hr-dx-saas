@@ -98,6 +98,13 @@ export function ResultDetailView({
     <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <div>
+          <dt className="text-slate-500">機関</dt>
+          <dd className="mt-0.5 font-medium text-slate-900">
+            {view.institution?.name ?? '—'}
+            {view.institution?.is_standard ? '（標準）' : ''}
+          </dd>
+        </div>
+        <div>
           <dt className="text-slate-500">受診日</dt>
           <dd className="mt-0.5 font-medium text-slate-900">
             {view.record.exam_date}
@@ -105,10 +112,9 @@ export function ResultDetailView({
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">機関</dt>
+          <dt className="text-slate-500">就業判定</dt>
           <dd className="mt-0.5 font-medium text-slate-900">
-            {view.institution?.name ?? '—'}
-            {view.institution?.is_standard ? '（標準）' : ''}
+            {EMPLOYMENT_JUDGMENT_LABEL[view.record.employment_judgment]}
           </dd>
         </div>
         <div>
@@ -118,12 +124,6 @@ export function ResultDetailView({
               機関={view.record.institution_overall_judgment_raw ?? '—'} / 標準=
               {view.overallStandardCode ?? '—'}
             </span>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">就業判定</dt>
-          <dd className="mt-0.5 font-medium text-slate-900">
-            {EMPLOYMENT_JUDGMENT_LABEL[view.record.employment_judgment]}
           </dd>
         </div>
       </dl>

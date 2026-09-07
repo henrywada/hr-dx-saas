@@ -11,9 +11,13 @@ const STATUS_LABEL: Record<Task['status'], string> = {
 
 interface KanbanBoardProps {
   tasks: Task[]
+  /** 閲覧者本人の従業員ID（従業員レコード無しユーザーは null） */
+  myEmployeeId: string | null
+  /** 閲覧者がこのタスクグループの責任者またはマネージャーか（全タスクを操作可能） */
+  canOperateAllTasks: boolean
 }
 
-export function KanbanBoard({ tasks }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, myEmployeeId, canOperateAllTasks }: KanbanBoardProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
       {TASK_STATUSES.map(status => (
@@ -23,7 +27,12 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
             {tasks
               .filter(task => task.status === status)
               .map(task => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  myEmployeeId={myEmployeeId}
+                  canOperateAllTasks={canOperateAllTasks}
+                />
               ))}
           </div>
         </div>

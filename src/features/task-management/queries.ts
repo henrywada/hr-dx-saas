@@ -90,6 +90,7 @@ export async function getObjectiveDetail(
     .select('*')
     .eq('objective_id', objectiveId)
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (milestoneError) throw milestoneError
 
@@ -103,6 +104,7 @@ export async function getObjectiveDetail(
       .select('*')
       .in('milestone_id', milestoneIds)
       .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (groupError) throw groupError
 
@@ -124,10 +126,13 @@ export interface TaskGroupSummary {
   group: TaskGroup
   managerEmployeeIds: string[]
   memberEmployeeIds: string[]
+  /** タスクグループの祖先にあたる目標（task_objectives）の責任者の従業員ID */
+  objectiveOwnerEmployeeId: string
 }
 
 /**
- * タスクグループ（task_groups）1件と、そのマネージャー・メンバーの従業員ID一覧を取得する。
+ * タスクグループ（task_groups）1件と、そのマネージャー・メンバーの従業員ID一覧、
+ * および祖先目標の責任者IDを取得する。
  * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
  */
 export async function getTaskGroupSummary(
@@ -156,10 +161,29 @@ export async function getTaskGroupSummary(
 
   if (memberError) throw memberError
 
+  // タスクグループ → マイルストーン → 目標 の順に辿って責任者IDを解決する
+  // （このファイルの他の関数と同様、単純な連続クエリで済ませる）。
+  const { data: milestoneRow, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('objective_id')
+    .eq('id', groupRow.milestone_id)
+    .single()
+
+  if (milestoneError) throw milestoneError
+
+  const { data: objectiveRow, error: objectiveError } = await supabase
+    .from('task_objectives')
+    .select('owner_employee_id')
+    .eq('id', milestoneRow.objective_id)
+    .single()
+
+  if (objectiveError) throw objectiveError
+
   return {
     group: mapTaskGroup(groupRow),
     managerEmployeeIds: (managerRows ?? []).map(r => r.employee_id),
     memberEmployeeIds: (memberRows ?? []).map(r => r.employee_id),
+    objectiveOwnerEmployeeId: objectiveRow.owner_employee_id,
   }
 }
 
@@ -200,6 +224,7 @@ export async function getTaskGroupBoard(
     .select('*')
     .eq('task_group_id', taskGroupId)
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (taskError) throw taskError
 

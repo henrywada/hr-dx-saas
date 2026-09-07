@@ -279,6 +279,10 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
  * `title` / `assignee_employee_id` 等の他カラムは絶対に含めない
  * （RLS の `tasks_update` ポリシーは担当者本人の更新を許可するが、行レベルの制御しかできず
  * カラム単位の制限はできないため、「どのカラムを書き込むか」はこのアクションのコードが担保する）。
+ *
+ * 権限が無い場合のサイレント失敗対策: RLS ポリシーに合致しない `UPDATE` は
+ * エラーを返さず0件更新で成功扱いになる。`.select('id')` で更新行を取得し、
+ * 0件なら明示的にエラーを投げる（最終レビュー Finding 1-3 で修正）。
  */
 export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<void> {
   const user = await getServerUser()
@@ -295,12 +299,16 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<vo
 
   if (fetchError) throw fetchError
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('tasks')
     .update({ status: parsed.status, updated_at: new Date().toISOString() })
     .eq('id', parsed.taskId)
+    .select('id')
 
   if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このタスクを更新する権限がありません')
+  }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
@@ -310,6 +318,7 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<vo
  *
  * カラム制限: `.update()` には `progress_percent` と `updated_at` のみを渡す。
  * `status` 等の他カラムは絶対に含めない（理由は `updateTaskStatus` と同様）。
+ * 0件更新時のエラー化についても `updateTaskStatus` と同様（最終レビュー Finding 1-3）。
  */
 export async function updateTaskProgress(input: UpdateTaskProgressInput): Promise<void> {
   const user = await getServerUser()
@@ -326,12 +335,16 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
 
   if (fetchError) throw fetchError
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('tasks')
     .update({ progress_percent: parsed.progressPercent, updated_at: new Date().toISOString() })
     .eq('id', parsed.taskId)
+    .select('id')
 
   if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このタスクを更新する権限がありません')
+  }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }

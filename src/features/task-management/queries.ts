@@ -118,3 +118,46 @@ export async function getObjectiveDetail(
     taskGroupsByMilestoneId,
   }
 }
+
+export interface TaskGroupSummary {
+  group: TaskGroup
+  managerEmployeeIds: string[]
+  memberEmployeeIds: string[]
+}
+
+/**
+ * タスクグループ（task_groups）1件と、そのマネージャー・メンバーの従業員ID一覧を取得する。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getTaskGroupSummary(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<TaskGroupSummary> {
+  const { data: groupRow, error: groupError } = await supabase
+    .from('task_groups')
+    .select('*')
+    .eq('id', taskGroupId)
+    .single()
+
+  if (groupError) throw groupError
+
+  const { data: managerRows, error: managerError } = await supabase
+    .from('task_group_managers')
+    .select('employee_id')
+    .eq('task_group_id', taskGroupId)
+
+  if (managerError) throw managerError
+
+  const { data: memberRows, error: memberError } = await supabase
+    .from('task_group_members')
+    .select('employee_id')
+    .eq('task_group_id', taskGroupId)
+
+  if (memberError) throw memberError
+
+  return {
+    group: mapTaskGroup(groupRow),
+    managerEmployeeIds: (managerRows ?? []).map(r => r.employee_id),
+    memberEmployeeIds: (memberRows ?? []).map(r => r.employee_id),
+  }
+}

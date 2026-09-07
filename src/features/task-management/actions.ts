@@ -11,6 +11,12 @@ import {
   type CreateMilestoneInput,
   createTaskGroupSchema,
   type CreateTaskGroupInput,
+  assignManagerSchema,
+  type AssignManagerInput,
+  assignMemberSchema,
+  type AssignMemberInput,
+  removeMemberSchema,
+  type RemoveMemberInput,
 } from './types'
 
 /**
@@ -132,4 +138,90 @@ export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id
   revalidatePath(APP_ROUTES.tasks.objectiveDetail(milestone.objective_id))
 
   return { id: data.id }
+}
+
+/**
+ * タスクグループ（task_groups）にマネージャーを割り当てる。
+ *
+ * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
+ * 従業員レコードが無いユーザーは undefined になりうる）。
+ * task_group_managers.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
+ * 実際の割当可否（責任者のみ）は RLS の INSERT ポリシーが強制する
+ * （`is_task_group_owner`）。`canAssignManager`（Task5）は UI 表示制御用。
+ */
+export async function assignManager(input: AssignManagerInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id) {
+    throw new Error('テナント情報が取得できませんでした')
+  }
+
+  const parsed = assignManagerSchema.parse(input)
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('task_group_managers').insert({
+    tenant_id: user.tenant_id,
+    task_group_id: parsed.taskGroupId,
+    employee_id: parsed.employeeId,
+  })
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
+}
+
+/**
+ * タスクグループ（task_groups）にメンバーを追加する。
+ *
+ * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
+ * 従業員レコードが無いユーザーは undefined になりうる）。
+ * task_group_members.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
+ * 実際の割当可否（責任者またはマネージャー）は RLS の INSERT ポリシーが強制する
+ * （`is_task_group_owner` / `is_task_group_manager`）。`canAssignMember`（Task5）は UI 表示制御用。
+ */
+export async function assignMember(input: AssignMemberInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id) {
+    throw new Error('テナント情報が取得できませんでした')
+  }
+
+  const parsed = assignMemberSchema.parse(input)
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('task_group_members').insert({
+    tenant_id: user.tenant_id,
+    task_group_id: parsed.taskGroupId,
+    employee_id: parsed.employeeId,
+  })
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
+}
+
+/**
+ * タスクグループ（task_groups）からメンバーを解除する。
+ *
+ * この操作は tenant_id を書き込みに使用しないため（DELETE の絞り込みは
+ * task_group_id / employee_id のみ、テナント分離は RLS の USING 句が担保する）、
+ * user.tenant_id の欠落チェックは不要。
+ * 実際の解除可否（責任者またはマネージャー）は RLS の DELETE ポリシーが強制する。
+ */
+export async function removeMember(input: RemoveMemberInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = removeMemberSchema.parse(input)
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('task_group_members')
+    .delete()
+    .eq('task_group_id', parsed.taskGroupId)
+    .eq('employee_id', parsed.employeeId)
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
 }

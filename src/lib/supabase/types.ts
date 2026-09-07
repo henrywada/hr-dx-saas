@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -10238,6 +10239,81 @@ export type Database = {
           },
         ]
       }
+      task_comments: {
+        Row: {
+          body: string
+          comment_type: string
+          created_at: string
+          employee_id: string
+          id: string
+          parent_comment_id: string | null
+          task_group_id: string | null
+          task_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          comment_type?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          parent_comment_id?: string | null
+          task_group_id?: string | null
+          task_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          comment_type?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          parent_comment_id?: string | null
+          task_group_id?: string | null
+          task_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_group_id_fkey"
+            columns: ["task_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_group_managers: {
         Row: {
           assigned_at: string
@@ -12210,6 +12286,12 @@ export type Database = {
         Args: { p_tenant_id: string; p_variant_id: string }
         Returns: undefined
       }
+      can_comment_on_task: { Args: { p_task_id: string }; Returns: boolean }
+      can_comment_on_task_group: {
+        Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       check_employee_condition_drop_alert: {
         Args: { p_employee_id: string }
         Returns: {
@@ -12431,6 +12513,10 @@ export type Database = {
       }
       is_task_group_owner: {
         Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      is_task_group_owner_by_milestone: {
+        Args: { p_milestone_id: string }
         Returns: boolean
       }
       is_task_group_participant: {
@@ -12736,3 +12822,5 @@ export const Constants = {
   },
 } as const
 
+A new version of Supabase CLI is available: v2.116.0 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

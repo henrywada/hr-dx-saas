@@ -1,0 +1,160 @@
+# タスク管理 実装計画（PRD）
+
+## 1. 問題定義
+
+組織内のタスク管理が属人化・非可視化されており、目標設定からメンバーへの割当、進捗把握、労働時間配分の可視化までを一元管理する機能が存在しない。またタスクマネージャーとメンバー間、責任者との間のコミュニケーション（報告・助言・進言）が仕組み化されておらず、状況把握が場当たり的になっている。
+
+プロダクトの2大ゴール（コミュニケーションを大切にするシステム／組織健康度の可視化）に対し、タスク管理機能は「役割の明確化・可視化」「進捗の透明化」「工数配分の可視化」を通じて直接貢献する。
+
+## 2. ユーザーストーリー
+
+| As a                       | I want to                                        | So that                                      |
+| -------------------------- | ------------------------------------------------ | -------------------------------------------- |
+| 責任者                     | 目標・マイルストーン・タスクグループを作成したい | 組織の目標を明確化し、達成計画を構造化できる |
+| 責任者                     | タスクグループにタスクマネージャーを割り当てたい | 実行の権限委譲ができる                       |
+| タスクマネージャー         | タスクを細分化してメンバーに割り当てたい         | 作業を具体化し責任を明確化できる             |
+| タスクマネージャー         | メンバーをグループに追加・削除したい             | 体制変更に素早く対応できる                   |
+| メンバー                   | 自分のタスクの進捗・状態を報告したい             | 進捗を正確に共有できる                       |
+| メンバー                   | 同じグループの他メンバーの進捗を見たい           | チーム全体の状況を把握し助け合える           |
+| 責任者・タスクマネージャー | タスクの状態を俯瞰したい                         | 必要なタイミングで助言・介入ができる         |
+| 経営者・人事責任者         | 組織全体のタスク進捗状況を把握したい             | 組織健康度・業務負荷の判断材料にできる       |
+
+## 3. 要求（優先度別）
+
+**Must（Phase 1 — MVP）**
+
+1. タスクグループの組織化（目標 → マイルストーン → タスクグループの階層作成）
+2. 割当手順：責任者 → タスクグループ → タスクマネージャー → メンバー
+3. 責任者による目標・マイルストーン・タスクグループの作成
+4. タスクマネージャーによるタスク細分化とメンバー割当（メンバー割当はタスクマネージャーも実行可。マネージャー割当は責任者のみ）
+5. メンバーによるステータス・進捗率(%)報告
+6. カンバンボードによる可視化（タスクグループ別）
+
+**Should（Phase 2）**
+
+7. タスク単位の工数入力（自由入力形式：作業日・時間・メモ）
+8. 工数分布グラフ（メンバー別・タスクグループ別）
+9. タスク／タスクグループ単位のコメントスレッド（報告・助言・進言）
+
+**Could（Phase 3）**
+
+10. 組織ツリー可視化（責任者 → マネージャー → メンバー、進捗率を重ね表示）
+11. 進捗サマリ（進捗リング／バー、目標・マイルストーン単位の集計ダッシュボード）
+12. ダッシュボードフィード連携（既存 `dashboard/feed` 基盤へのイベント配信：割当通知・期限接近・コメント通知等）
+13. 状態変化時のアニメーション演出
+
+**Won't（今回スコープ外）**
+
+- 勤怠管理との自動連動（工数の自動取得）— 後日開発
+- タスク管理の役割と既存 `app_role` の連動（独立運用を維持する）
+
+## 4. データモデル
+
+新規テーブルはすべて `tenant_id NOT NULL`、RLS 有効化必須、`employees`/自テーブルへの参照は `ON DELETE CASCADE`。
+
+**Phase 1**
+
+- `task_objectives` — `id`, `tenant_id`, `owner_employee_id`, `title`, `description`, `status`, `due_date`, `created_at`, `updated_at`
+- `task_milestones` — `id`, `tenant_id`, `objective_id → task_objectives`, `title`, `description`, `due_date`, `status`, `sort_order`, `created_at`, `updated_at`
+- `task_groups` — `id`, `tenant_id`, `milestone_id → task_milestones`, `name`, `description`, `status`, `sort_order`, `created_at`, `updated_at`
+- `task_group_managers` — `id`, `tenant_id`, `task_group_id → task_groups`, `employee_id → employees`, `assigned_at`
+- `task_group_members` — `id`, `tenant_id`, `task_group_id → task_groups`, `employee_id → employees`, `joined_at`
+- `tasks` — `id`, `tenant_id`, `task_group_id → task_groups`, `title`, `description`, `assignee_employee_id → employees`, `status`(`todo`/`in_progress`/`review`/`done`/`blocked`), `progress_percent`(0-100, NOT NULL DEFAULT 0), `priority`, `due_date`, `sort_order`, `created_by_employee_id`, `created_at`, `updated_at`
+
+**Phase 2 追加**
+
+- `task_work_logs` — `id`, `tenant_id`, `task_id → tasks`, `employee_id`, `work_date`, `hours`, `note`, `created_at`
+- `task_comments` — `id`, `tenant_id`, `task_id → tasks`(nullable), `task_group_id → task_groups`(nullable、いずれか一方必須のCHECK制約), `employee_id`, `parent_comment_id`(自己参照、nullable、スレッド返信用), `comment_type`(`report`/`advice`/`suggestion`/`general`), `body`, `created_at`, `updated_at`
+
+**権限ヘルパー関数**（`current_tenant_id()` と同じ `STABLE SECURITY DEFINER` / `SET search_path = public` パターン）
+
+- `is_task_objective_owner(p_objective_id uuid)`
+- `is_task_group_manager(p_task_group_id uuid)`
+- `is_task_group_member(p_task_group_id uuid)`
+- `is_task_group_participant(p_task_group_id uuid)`（manager もしくは member もしくは祖先 objective の owner）
+
+## 5. 権限モデル
+
+役割は既存 `app_role` とは独立し、割当テーブル（`task_objectives.owner_employee_id` / `task_group_managers` / `task_group_members`）への登録によって決まる。同一人物が、ある目標では責任者、別グループではメンバー、ということも自然に成立する。
+
+| 操作                                     | 責任者               | タスクマネージャー               | メンバー                                 | テナント管理者 |
+| ---------------------------------------- | -------------------- | -------------------------------- | ---------------------------------------- | -------------- |
+| 目標・マイルストーン作成/編集            | ✅                   | ❌                               | ❌                                       | ✅             |
+| タスクグループ作成                       | ✅                   | ❌                               | ❌                                       | ✅             |
+| タスクグループへの**マネージャー**割当   | ✅                   | ❌                               | ❌                                       | ✅             |
+| タスクグループへの**メンバー**割当・解除 | ✅                   | ✅（自分が管理するグループのみ） | ❌                                       | ✅             |
+| タスク作成・編集・割当                   | ✅                   | ✅                               | ❌                                       | ✅             |
+| タスクのステータス・進捗率更新           | ✅                   | ✅                               | ✅（自分が担当のタスクのみ）             | ✅             |
+| 閲覧（SELECT）                           | 自分の目標配下すべて | 自分が管理するグループ配下       | 自分が所属するグループ配下は全メンバー分 | 全件           |
+
+メンバーは自分の担当タスクだけでなく、同じタスクグループ内の他メンバーの進捗も閲覧できる（グループを跨いだ閲覧は不可）。プロダクトの「コミュニケーションを大切にする」ゴールに沿った透明性重視の設計。
+
+## 6. 画面構成・配置ルール
+
+`(tenant-users)` 配下に一本化し、ログインユーザーが関与する目標・グループのみを表示する。「責任者」は一般従業員でもなり得るため、`app_role` による画面分岐は行わない。
+
+```
+src/app/(tenant)/(tenant-users)/tasks/
+  page.tsx                      # 自分が関与する目標一覧
+  loading.tsx / error.tsx
+  objectives/new/page.tsx       # 目標作成（作成者が自動的に責任者になる）
+  objectives/[id]/page.tsx      # 目標詳細：マイルストーン一覧＋進捗サマリ
+  groups/[id]/page.tsx          # タスクグループ詳細：カンバンボード＋メンバー一覧
+  groups/[id]/loading.tsx / error.tsx
+
+src/features/task-management/
+  queries.ts   # getMyObjectives, getObjectiveDetail, getTaskGroupBoard など
+  actions.ts   # createObjective, createMilestone, createTaskGroup,
+               # assignManager, assignMember, removeMember,
+               # createTask, updateTaskStatus, updateTaskProgress
+  types.ts
+  components/
+    ObjectiveCard.tsx / ObjectiveForm.tsx
+    MilestoneList.tsx / TaskGroupForm.tsx
+    KanbanBoard.tsx / TaskCard.tsx / TaskForm.tsx
+    ManagerAssignModal.tsx / MemberAssignModal.tsx
+```
+
+`src/config/routes.ts` の `APP_ROUTES` に `tasks.root` / `tasks.objectiveNew` / `tasks.objectiveDetail(id)` / `tasks.groupDetail(id)` を追加する。
+
+## 7. マスタ登録
+
+- `service_category`：新規カテゴリ「タスク管理」を追加（サイドメニュー表示用）
+- `services`：`/tasks` への遷移サービスを登録
+- `tenant_service`：契約テナントに対して機能を有効化
+- `app_role_service`：全 `app_role`（`employee` を含む）に対して機能を許可する（責任者・タスクマネージャーは `app_role` に関係なく一般従業員でもなり得るため）
+
+## 8. 可視化ビュー（フェーズ対応）
+
+| ビュー                                         | フェーズ | 内容                                                           |
+| ---------------------------------------------- | -------- | -------------------------------------------------------------- |
+| カンバンボード（タスクグループ別）             | Phase 1  | ステータス列でタスクカードを表示、ドラッグ＆ドロップで状態変更 |
+| 工数分布（メンバー／タスクグループ別グラフ）   | Phase 2  | 工数ログの棒グラフ集計                                         |
+| 組織ツリー（責任者 → マネージャー → メンバー） | Phase 3  | 役割階層図、各ノードに担当タスク数・進捗率を重ね表示           |
+| 進捗サマリ（進捗リング／バー）                 | Phase 3  | 目標・マイルストーン単位の達成率集計                           |
+
+## 9. テスト方針
+
+- **Unit**：進捗率ロールアップ計算（タスク → グループ → マイルストーン → 目標）、権限判定ヘルパー関数
+- **Integration**：Server Actions の RLS 越境防止（他テナント・無関係グループへの操作拒否、タスクマネージャーのメンバー割当可／マネージャー割当不可の境界確認）
+- **E2E**：責任者が目標作成 → タスクグループ作成 → マネージャー割当 → マネージャーがメンバー割当・タスク作成 → メンバーがステータス／進捗率更新 → カンバンボード反映、の一連フロー
+
+## 10. 成功指標
+
+- タスクグループ・タスクの登録数、ステータス更新頻度（週次アクティブ率）
+- メンバーの進捗報告遵守率（期限に対する更新遅延の有無）
+- （Phase 2 以降）コメントスレッドの投稿数（コミュニケーション促進の定量指標）
+
+## 11. オープンクエスチョン
+
+- タスクの期限超過・遅延の通知タイミング（Phase 3 の通知連携で確定）
+- 目標の複数責任者対応（現状は単一 `owner_employee_id` のみ。必要になれば `task_objective_owners` 中間テーブルへ拡張）
+- 進捗率(%)とステータスの整合性ルール（UI側で自動連動させるか、独立入力のままにするかは Phase 1 実装時に決定）
+
+## 12. 実装ステータス
+
+| Phase   | 内容                                             | 状態   |
+| ------- | ------------------------------------------------ | ------ |
+| Phase 1 | 組織化・割当・進捗・カンバン可視化               | 未着手 |
+| Phase 2 | 工数入力・工数分布・コメントスレッド             | 未着手 |
+| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 未着手 |

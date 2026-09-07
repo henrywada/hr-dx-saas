@@ -272,4 +272,15 @@ export const APP_ROUTES = {
     /** 資料一覧（目次：全体像・簡単操作マニュアル・システム仕様書） */
     DOC_INDEX: '/myou/doc-index',
   },
+  /** タスク管理（OKR・マイルストーン・チェックイン） */
+  tasks: {
+    /** タスク管理ルート */
+    root: '/tasks',
+    /** 新規目標作成 */
+    objectiveNew: '/tasks/objectives/new',
+    /** 目標詳細 */
+    objectiveDetail: (id: string) => `/tasks/objectives/${id}`,
+    /** タスクグループ詳細 */
+    groupDetail: (id: string) => `/tasks/groups/${id}`,
+  },
 } as const

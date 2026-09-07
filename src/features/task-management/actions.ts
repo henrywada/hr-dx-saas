@@ -4,7 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
-import { createObjectiveSchema, type CreateObjectiveInput } from './types'
+import {
+  createObjectiveSchema,
+  type CreateObjectiveInput,
+  createMilestoneSchema,
+  type CreateMilestoneInput,
+} from './types'
 
 /**
  * 目標（task_objectives）を新規作成する。
@@ -41,6 +46,42 @@ export async function createObjective(input: CreateObjectiveInput): Promise<{ id
   if (error) throw error
 
   revalidatePath(APP_ROUTES.tasks.root)
+
+  return { id: data.id }
+}
+
+/**
+ * マイルストーン（task_milestones）を新規作成する。
+ *
+ * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
+ * 従業員レコードが無いユーザーは undefined になりうる）。
+ * task_milestones.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
+ */
+export async function createMilestone(input: CreateMilestoneInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id) {
+    throw new Error('テナント情報が取得できませんでした')
+  }
+
+  const parsed = createMilestoneSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('task_milestones')
+    .insert({
+      tenant_id: user.tenant_id,
+      objective_id: parsed.objectiveId,
+      title: parsed.title,
+      description: parsed.description ?? null,
+      due_date: parsed.dueDate ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.objectiveDetail(parsed.objectiveId))
 
   return { id: data.id }
 }

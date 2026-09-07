@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type { TaskObjective, TaskMilestone, TaskGroup, Task } from './types'
+import type { EmployeeOption } from './employee-filter'
 import { calculateAverageProgress } from './progress'
 
 /** DB行（snake_case）を TaskObjective（camelCase）に変換する */
@@ -202,6 +203,27 @@ function mapTask(row: Database['public']['Tables']['tasks']['Row']): Task {
     dueDate: row.due_date,
     sortOrder: row.sort_order,
   }
+}
+
+/**
+ * 従業員選択UI（EmployeePicker）用に、テナント内の従業員一覧を id・氏名のみで取得する。
+ * RLS の SELECT ポリシーが可視範囲（自テナント内）を絞り込むため、
+ * ここでは追加のテナントフィルタは行わない。
+ */
+export async function getTenantEmployees(
+  supabase: SupabaseClient<Database>
+): Promise<EmployeeOption[]> {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name')
+    .order('name', { ascending: true })
+
+  if (error) throw error
+
+  return (data ?? []).map(row => ({
+    id: row.id,
+    name: row.name ?? '（名前未設定）',
+  }))
 }
 
 export interface TaskGroupBoard extends TaskGroupSummary {

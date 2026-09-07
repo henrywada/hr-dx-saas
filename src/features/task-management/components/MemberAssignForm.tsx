@@ -3,18 +3,24 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { assignMember, removeMember } from '../actions'
+import { EmployeePicker } from './EmployeePicker'
+import type { EmployeeOption } from '../employee-filter'
 
 interface MemberAssignFormProps {
   taskGroupId: string
   memberEmployeeIds: string[]
+  employees: EmployeeOption[]
 }
 
 /**
  * タスクグループのメンバー一覧表示と追加・解除フォーム。
- * Phase1 では従業員選択を employeeId のテキスト入力とする（Task13 で従業員選択UIに置き換え検討）。
  * 追加・解除可否（責任者またはマネージャー）は RLS が強制するため、失敗時はエラーメッセージで通知する。
  */
-export function MemberAssignForm({ taskGroupId, memberEmployeeIds }: MemberAssignFormProps) {
+export function MemberAssignForm({
+  taskGroupId,
+  memberEmployeeIds,
+  employees,
+}: MemberAssignFormProps) {
   const router = useRouter()
   const [employeeId, setEmployeeId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +52,10 @@ export function MemberAssignForm({ taskGroupId, memberEmployeeIds }: MemberAssig
     })
   }
 
+  function employeeName(id: string): string {
+    return employees.find(e => e.id === id)?.name ?? id
+  }
+
   return (
     <div className="space-y-2">
       <ul className="flex flex-wrap gap-2">
@@ -54,7 +64,7 @@ export function MemberAssignForm({ taskGroupId, memberEmployeeIds }: MemberAssig
             key={id}
             className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs"
           >
-            {id}
+            {employeeName(id)}
             <button
               type="button"
               onClick={() => handleRemove(id)}
@@ -68,18 +78,15 @@ export function MemberAssignForm({ taskGroupId, memberEmployeeIds }: MemberAssig
       </ul>
       <form onSubmit={handleAdd} className="flex items-end gap-2">
         <label className="text-xs font-medium text-slate-700">
-          追加するメンバーの従業員ID
-          <input
-            value={employeeId}
-            onChange={e => setEmployeeId(e.target.value)}
-            required
-            className="mt-1 block rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
-          />
+          追加するメンバー
+          <div className="mt-1 w-56">
+            <EmployeePicker employees={employees} value={employeeId} onChange={setEmployeeId} />
+          </div>
         </label>
         {error && <p className="text-xs text-red-600">{error}</p>}
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !employeeId}
           className="rounded-lg bg-[#FD7601] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
         >
           追加

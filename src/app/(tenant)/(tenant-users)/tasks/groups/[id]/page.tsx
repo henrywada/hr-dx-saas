@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import { getTaskGroupBoard } from '@/features/task-management/queries'
+import { getTaskGroupBoard, getTenantEmployees } from '@/features/task-management/queries'
 import { KanbanBoard } from '@/features/task-management/components/KanbanBoard'
 import { TaskForm } from '@/features/task-management/components/TaskForm'
 import { ManagerAssignForm } from '@/features/task-management/components/ManagerAssignForm'
@@ -30,6 +30,15 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
   const canManageMembers = canAssignMember(isOwner, isManager)
   const canOperateAllTasks = isOwner || isManager
 
+  // 従業員選択フォーム（TaskForm/ManagerAssignForm/MemberAssignForm）はいずれも
+  // 責任者・マネージャーにしか表示されないため、それ以外の一般メンバーには
+  // テナント全従業員一覧の取得自体を行わない（無駄なクエリ・データ転送を避ける）。
+  const needsEmployees = isOwner || isManager || canManageMembers
+  const employees = needsEmployees ? await getTenantEmployees(supabase) : []
+  const assignableEmployees = employees.filter(
+    e => board.managerEmployeeIds.includes(e.id) || board.memberEmployeeIds.includes(e.id)
+  )
+
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 lg:px-8 py-5 mx-auto max-w-[1920px]">
       <div className="flex items-center justify-between">
@@ -39,7 +48,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
 
       {(isOwner || isManager) && (
         <section className="space-y-2">
-          <TaskForm taskGroupId={board.group.id} />
+          <TaskForm taskGroupId={board.group.id} assignableEmployees={assignableEmployees} />
         </section>
       )}
 
@@ -53,7 +62,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
         {canAssignManager(isOwner) && (
           <div className="rounded-lg border border-slate-200 p-3">
             <h2 className="text-xs font-semibold text-slate-900 mb-2">マネージャー割当</h2>
-            <ManagerAssignForm taskGroupId={board.group.id} />
+            <ManagerAssignForm taskGroupId={board.group.id} employees={employees} />
           </div>
         )}
         {canManageMembers && (
@@ -62,6 +71,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
             <MemberAssignForm
               taskGroupId={board.group.id}
               memberEmployeeIds={board.memberEmployeeIds}
+              employees={employees}
             />
           </div>
         )}

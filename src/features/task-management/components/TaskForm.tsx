@@ -4,12 +4,16 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createTask } from '../actions'
 import { TASK_PRIORITIES, type TaskPriority } from '../types'
+import { EmployeePicker } from './EmployeePicker'
+import type { EmployeeOption } from '../employee-filter'
 
 interface TaskFormProps {
   taskGroupId: string
+  /** 担当者として選択できる従業員（そのタスクグループのマネージャー・メンバーのみ） */
+  assignableEmployees: EmployeeOption[]
 }
 
-export function TaskForm({ taskGroupId }: TaskFormProps) {
+export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [assigneeEmployeeId, setAssigneeEmployeeId] = useState('')
@@ -49,12 +53,15 @@ export function TaskForm({ taskGroupId }: TaskFormProps) {
         />
       </label>
       <label className="text-xs font-medium text-slate-700">
-        担当者の従業員ID
-        <input
-          value={assigneeEmployeeId}
-          onChange={e => setAssigneeEmployeeId(e.target.value)}
-          className="mt-1 block rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
-        />
+        担当者
+        <div className="mt-1 w-56">
+          <EmployeePicker
+            employees={assignableEmployees}
+            value={assigneeEmployeeId}
+            onChange={setAssigneeEmployeeId}
+            placeholder="未割当"
+          />
+        </div>
       </label>
       <label className="text-xs font-medium text-slate-700">
         優先度

@@ -19,6 +19,10 @@ import {
   type RemoveMemberInput,
   createTaskSchema,
   type CreateTaskInput,
+  updateTaskStatusSchema,
+  type UpdateTaskStatusInput,
+  updateTaskProgressSchema,
+  type UpdateTaskProgressInput,
 } from './types'
 
 /**
@@ -266,4 +270,68 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
   revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
 
   return { id: data.id }
+}
+
+/**
+ * タスク（tasks）のステータスのみを更新する。
+ *
+ * カラム制限: `.update()` には `status` と `updated_at` のみを渡す。
+ * `title` / `assignee_employee_id` 等の他カラムは絶対に含めない
+ * （RLS の `tasks_update` ポリシーは担当者本人の更新を許可するが、行レベルの制御しかできず
+ * カラム単位の制限はできないため、「どのカラムを書き込むか」はこのアクションのコードが担保する）。
+ */
+export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateTaskStatusSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: fetchError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', parsed.taskId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ status: parsed.status, updated_at: new Date().toISOString() })
+    .eq('id', parsed.taskId)
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスク（tasks）の進捗率のみを更新する。
+ *
+ * カラム制限: `.update()` には `progress_percent` と `updated_at` のみを渡す。
+ * `status` 等の他カラムは絶対に含めない（理由は `updateTaskStatus` と同様）。
+ */
+export async function updateTaskProgress(input: UpdateTaskProgressInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateTaskProgressSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: fetchError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', parsed.taskId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ progress_percent: parsed.progressPercent, updated_at: new Date().toISOString() })
+    .eq('id', parsed.taskId)
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }

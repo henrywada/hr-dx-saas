@@ -118,3 +118,45 @@ export interface Task {
   dueDate: string | null
   sortOrder: number
 }
+
+export const COMMENT_TYPES = ['report', 'advice', 'suggestion', 'general'] as const
+export type CommentType = (typeof COMMENT_TYPES)[number]
+
+export const createCommentSchema = z
+  .object({
+    taskId: z.string().uuid().optional(),
+    taskGroupId: z.string().uuid().optional(),
+    parentCommentId: z.string().uuid().optional(),
+    commentType: z.enum(COMMENT_TYPES),
+    body: z.string().min(1).max(2000),
+  })
+  .refine(data => (data.taskId ? 1 : 0) + (data.taskGroupId ? 1 : 0) === 1, {
+    message: 'taskId と taskGroupId はどちらか一方のみ指定する',
+  })
+export type CreateCommentInput = z.infer<typeof createCommentSchema>
+
+export const updateCommentSchema = z.object({
+  commentId: z.string().uuid(),
+  body: z.string().min(1).max(2000),
+})
+export type UpdateCommentInput = z.infer<typeof updateCommentSchema>
+
+export const deleteCommentSchema = z.object({
+  commentId: z.string().uuid(),
+})
+export type DeleteCommentInput = z.infer<typeof deleteCommentSchema>
+
+export interface TaskComment {
+  id: string
+  tenantId: string
+  taskId: string | null
+  taskGroupId: string | null
+  employeeId: string
+  /** 投稿者の氏名（employees.name が null の場合のフォールバック済み） */
+  employeeName: string
+  parentCommentId: string | null
+  commentType: CommentType
+  body: string
+  createdAt: string
+  updatedAt: string
+}

@@ -10238,6 +10238,334 @@ export type Database = {
           },
         ]
       }
+      task_group_managers: {
+        Row: {
+          assigned_at: string
+          employee_id: string
+          id: string
+          task_group_id: string
+          tenant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          employee_id: string
+          id?: string
+          task_group_id: string
+          tenant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          employee_id?: string
+          id?: string
+          task_group_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_group_managers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_group_managers_task_group_id_fkey"
+            columns: ["task_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_group_managers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_group_members: {
+        Row: {
+          employee_id: string
+          id: string
+          joined_at: string
+          task_group_id: string
+          tenant_id: string
+        }
+        Insert: {
+          employee_id: string
+          id?: string
+          joined_at?: string
+          task_group_id: string
+          tenant_id: string
+        }
+        Update: {
+          employee_id?: string
+          id?: string
+          joined_at?: string
+          task_group_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_group_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_group_members_task_group_id_fkey"
+            columns: ["task_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_group_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          milestone_id: string
+          name: string
+          sort_order: number
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          milestone_id: string
+          name: string
+          sort_order?: number
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          milestone_id?: string
+          name?: string
+          sort_order?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_groups_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "task_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_milestones: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          objective_id: string
+          sort_order: number
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          objective_id: string
+          sort_order?: number
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          objective_id?: string
+          sort_order?: number
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_milestones_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "task_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_milestones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_objectives: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          owner_employee_id: string
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_employee_id: string
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_employee_id?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_objectives_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_objectives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_employee_id: string | null
+          created_at: string
+          created_by_employee_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          progress_percent: number
+          sort_order: number
+          status: string
+          task_group_id: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_employee_id?: string | null
+          created_at?: string
+          created_by_employee_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          progress_percent?: number
+          sort_order?: number
+          status?: string
+          task_group_id: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_employee_id?: string | null
+          created_at?: string
+          created_by_employee_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          progress_percent?: number
+          sort_order?: number
+          status?: string
+          task_group_id?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_employee_id_fkey"
+            columns: ["created_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_task_group_id_fkey"
+            columns: ["task_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telework_activity_stats: {
         Row: {
           active_seconds: number | null
@@ -12093,6 +12421,26 @@ export type Database = {
       }
       is_health_check_hr: { Args: never; Returns: boolean }
       is_health_check_medical: { Args: never; Returns: boolean }
+      is_task_group_manager: {
+        Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      is_task_group_member: {
+        Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      is_task_group_owner: {
+        Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      is_task_group_participant: {
+        Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      is_task_objective_owner: {
+        Args: { p_objective_id: string }
+        Returns: boolean
+      }
       list_work_time_record_monthly_counts: {
         Args: { p_tenant_id: string }
         Returns: {

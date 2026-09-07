@@ -91,12 +91,19 @@ export async function createMilestone(input: CreateMilestoneInput): Promise<{ id
 /**
  * タスクグループ（task_groups）を新規作成する。
  *
+ * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
+ * 従業員レコードが無いユーザーは undefined になりうる）。
+ * task_groups.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
+ *
  * revalidatePath には目標詳細ページのパスが必要だが、入力には milestoneId しか
  * 含まれないため、先にマイルストーンから objective_id を引いてから挿入する。
  */
 export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id: string }> {
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id) {
+    throw new Error('テナント情報が取得できませんでした')
+  }
 
   const parsed = createTaskGroupSchema.parse(input)
   const supabase = await createClient()

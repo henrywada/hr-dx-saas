@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateTaskStatus, updateTaskProgress } from '../actions'
 import { TASK_STATUSES, type Task } from '../types'
+import { CommentThread } from './CommentThread'
 
 const PRIORITY_LABEL: Record<Task['priority'], string> = {
   low: '低',
@@ -26,9 +27,20 @@ interface TaskDetailModalProps {
   onClose: () => void
   /** ステータス・進捗編集を行えるか（責任者/マネージャー/担当者本人。RLSが最終防衛） */
   canOperate: boolean
+  /** 閲覧者本人の従業員ID（コメント編集可否の判定に使う） */
+  currentEmployeeId: string | null
+  /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
+  canModerateComments: boolean
 }
 
-export function TaskDetailModal({ task, isOpen, onClose, canOperate }: TaskDetailModalProps) {
+export function TaskDetailModal({
+  task,
+  isOpen,
+  onClose,
+  canOperate,
+  currentEmployeeId,
+  canModerateComments,
+}: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -119,6 +131,16 @@ export function TaskDetailModal({ task, isOpen, onClose, canOperate }: TaskDetai
             />
           </label>
           {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        </div>
+
+        <div className="mt-4 border-t border-slate-200 pt-3">
+          <h3 className="mb-2 text-xs font-semibold text-slate-900">コメント</h3>
+          <CommentThread
+            target={{ taskId: task.id }}
+            canPost={canOperate}
+            currentEmployeeId={currentEmployeeId}
+            canModerate={canModerateComments}
+          />
         </div>
       </div>
     </div>

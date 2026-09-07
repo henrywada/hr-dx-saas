@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import type { TaskObjective, TaskMilestone, TaskGroup } from './types'
+import type { TaskObjective, TaskMilestone, TaskGroup, Task } from './types'
+import { calculateAverageProgress } from './progress'
 
 /** DB行（snake_case）を TaskObjective（camelCase）に変換する */
 function mapObjective(row: Database['public']['Tables']['task_objectives']['Row']): TaskObjective {
@@ -159,5 +160,54 @@ export async function getTaskGroupSummary(
     group: mapTaskGroup(groupRow),
     managerEmployeeIds: (managerRows ?? []).map(r => r.employee_id),
     memberEmployeeIds: (memberRows ?? []).map(r => r.employee_id),
+  }
+}
+
+/** DB行（snake_case）を Task（camelCase）に変換する */
+function mapTask(row: Database['public']['Tables']['tasks']['Row']): Task {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    taskGroupId: row.task_group_id,
+    title: row.title,
+    description: row.description,
+    assigneeEmployeeId: row.assignee_employee_id,
+    status: row.status as Task['status'],
+    progressPercent: row.progress_percent,
+    priority: row.priority as Task['priority'],
+    dueDate: row.due_date,
+    sortOrder: row.sort_order,
+  }
+}
+
+export interface TaskGroupBoard extends TaskGroupSummary {
+  tasks: Task[]
+  averageProgress: number
+}
+
+/**
+ * タスクグループ（task_groups）1件のサマリーと、配下のタスク一覧・平均進捗率を取得する（カンバン画面用）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getTaskGroupBoard(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<TaskGroupBoard> {
+  const summary = await getTaskGroupSummary(supabase, taskGroupId)
+
+  const { data: taskRows, error: taskError } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('task_group_id', taskGroupId)
+    .order('sort_order', { ascending: true })
+
+  if (taskError) throw taskError
+
+  const tasks = (taskRows ?? []).map(mapTask)
+
+  return {
+    ...summary,
+    tasks,
+    averageProgress: calculateAverageProgress(tasks.map(t => t.progressPercent)),
   }
 }

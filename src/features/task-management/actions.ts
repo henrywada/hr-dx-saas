@@ -9,6 +9,8 @@ import {
   type CreateObjectiveInput,
   createMilestoneSchema,
   type CreateMilestoneInput,
+  createTaskGroupSchema,
+  type CreateTaskGroupInput,
 } from './types'
 
 /**
@@ -82,6 +84,45 @@ export async function createMilestone(input: CreateMilestoneInput): Promise<{ id
   if (error) throw error
 
   revalidatePath(APP_ROUTES.tasks.objectiveDetail(parsed.objectiveId))
+
+  return { id: data.id }
+}
+
+/**
+ * タスクグループ（task_groups）を新規作成する。
+ *
+ * revalidatePath には目標詳細ページのパスが必要だが、入力には milestoneId しか
+ * 含まれないため、先にマイルストーンから objective_id を引いてから挿入する。
+ */
+export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = createTaskGroupSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: milestone, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('objective_id')
+    .eq('id', parsed.milestoneId)
+    .single()
+
+  if (milestoneError) throw milestoneError
+
+  const { data, error } = await supabase
+    .from('task_groups')
+    .insert({
+      tenant_id: user.tenant_id,
+      milestone_id: parsed.milestoneId,
+      name: parsed.name,
+      description: parsed.description ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.objectiveDetail(milestone.objective_id))
 
   return { id: data.id }
 }

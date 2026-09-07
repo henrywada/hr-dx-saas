@@ -9,7 +9,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const { id } = await params
   const user = await getServerUser()
   const supabase = await createClient()
-  const { objective, milestones } = await getObjectiveDetail(supabase, id)
+  const { objective, milestones, taskGroupsByMilestoneId } = await getObjectiveDetail(supabase, id)
   // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は task_milestones の RLS INSERT ポリシーが担う。
   // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は責任者ではない扱いにする。
   const isOwner = user?.employee_id
@@ -23,7 +23,11 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-slate-900">マイルストーン</h2>
-        <MilestoneList milestones={milestones} />
+        <MilestoneList
+          milestones={milestones}
+          taskGroupsByMilestoneId={taskGroupsByMilestoneId}
+          canCreateTaskGroup={isOwner}
+        />
         {isOwner && <MilestoneForm objectiveId={objective.id} />}
       </section>
     </div>

@@ -150,6 +150,12 @@ src/features/task-management/
 - タスクの期限超過・遅延の通知タイミング（Phase 3 の通知連携で確定）
 - 目標の複数責任者対応（現状は単一 `owner_employee_id` のみ。必要になれば `task_objective_owners` 中間テーブルへ拡張）
 - 進捗率(%)とステータスの整合性ルール（UI側で自動連動させるか、独立入力のままにするかは Phase 1 実装時に決定）
+- **従業員選択UI（最終レビュー Finding 4）**：Phase 1 のマネージャー割当・メンバー割当・タスク担当者指定フォームは
+  従業員UUIDのテキスト直接入力のままであり、実運用に耐えない。従業員選択UI（検索付きコンボボックス等）が
+  未実装のため、`service.release_status`（route_path='/tasks'）を `公開` から `下書き` に変更し、
+  一般公開を止めた状態で Phase 1 の実装を完了させている
+  （`supabase/migrations/20260907090411_set_task_management_release_status_draft.sql`）。
+  従業員選択UIを実装したら `release_status` を `公開` に戻すことがこの機能の go-live 手順になる。
 
 ## 12. 実装ステータス
 

@@ -17,6 +17,8 @@ import {
   type AssignMemberInput,
   removeMemberSchema,
   type RemoveMemberInput,
+  createTaskSchema,
+  type CreateTaskInput,
 } from './types'
 
 /**
@@ -224,4 +226,44 @@ export async function removeMember(input: RemoveMemberInput): Promise<void> {
   if (error) throw error
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
+}
+
+/**
+ * タスク（tasks）を新規作成する。
+ *
+ * 注意: AppUser.tenant_id / employee_id は共に optional
+ * （`src/types/auth.ts` 参照。従業員レコードが無いユーザーは undefined になりうる）。
+ * tasks.tenant_id / created_by_employee_id は NOT NULL のため、
+ * ここで欠落を検出して早期に弾く。
+ */
+export async function createTask(input: CreateTaskInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id || !user.employee_id) {
+    throw new Error('テナントまたは従業員情報が取得できませんでした')
+  }
+
+  const parsed = createTaskSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({
+      tenant_id: user.tenant_id,
+      task_group_id: parsed.taskGroupId,
+      title: parsed.title,
+      description: parsed.description ?? null,
+      assignee_employee_id: parsed.assigneeEmployeeId ?? null,
+      priority: parsed.priority,
+      due_date: parsed.dueDate ?? null,
+      created_by_employee_id: user.employee_id,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
+
+  return { id: data.id }
 }

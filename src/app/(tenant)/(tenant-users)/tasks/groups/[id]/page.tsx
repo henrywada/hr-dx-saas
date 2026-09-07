@@ -5,6 +5,7 @@ import { KanbanBoard } from '@/features/task-management/components/KanbanBoard'
 import { TaskForm } from '@/features/task-management/components/TaskForm'
 import { ManagerAssignForm } from '@/features/task-management/components/ManagerAssignForm'
 import { MemberAssignForm } from '@/features/task-management/components/MemberAssignForm'
+import { CommentThread } from '@/features/task-management/components/CommentThread'
 import {
   isObjectiveOwner,
   isTaskGroupManager,
@@ -75,6 +76,16 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
             />
           </div>
         )}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="text-xs font-semibold text-slate-900 mb-2">タスクグループへのコメント</h2>
+        <CommentThread
+          target={{ taskGroupId: board.group.id }}
+          canPost={isOwner || isManager}
+          currentEmployeeId={user?.employee_id ?? null}
+          canModerate={isOwner || isManager}
+        />
       </section>
     </div>
   )

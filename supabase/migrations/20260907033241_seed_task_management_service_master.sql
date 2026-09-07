@@ -30,8 +30,15 @@ DECLARE
   v_category_id uuid;
   v_service_id uuid;
 BEGIN
-  -- service_class「便利ツール」を名前で解決する（既存のはず。無ければ何もしない＝紐付けをスキップ）
-  SELECT id INTO v_class_id FROM public.service_class WHERE name = '便利ツール' LIMIT 1;
+  -- service_class「便利ツール」を名前で解決する（既存のはず。無ければ何もしない＝紐付けをスキップ）。
+  -- ローカルDBには同名「便利ツール」が2行存在する（sort_order=80: 一般ユーザー向け、
+  -- sort_order=1800: 管理者向け「-----▼▼管理▼▼-------」配下）。ORDER BY を付けないと
+  -- クエリプランナの都合でどちらが解決されるか不定になり、NOT EXISTS ガードが
+  -- (v_class_id, v_category_id) 単位のスコープであるため、実行のたびに異なる行が
+  -- 解決されると service_class_index に2本目の紐付けが増える冪等性違反になりうる。
+  -- sort_order ASC で常に一般ユーザー向け（sort_order=80、target_audience='all_users'と整合）を
+  -- 決定的に選ぶ。
+  SELECT id INTO v_class_id FROM public.service_class WHERE name = '便利ツール' ORDER BY sort_order ASC LIMIT 1;
 
   -- service_category「タスク管理」を名前で解決（無ければ作成、冪等）
   SELECT id INTO v_category_id FROM public.service_category WHERE name = 'タスク管理' LIMIT 1;

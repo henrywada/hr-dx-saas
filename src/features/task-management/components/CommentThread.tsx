@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { getTaskCommentsAction, createComment } from '../actions'
+import { getTaskCommentsAction, createComment, updateComment, deleteComment } from '../actions'
 import { buildCommentTree, type CommentNode } from '../comment-tree'
 import { COMMENT_TYPES, type CommentType, type TaskComment } from '../types'
 
@@ -16,9 +16,18 @@ interface CommentThreadProps {
   target: { taskId: string } | { taskGroupId: string }
   /** このユーザーがトップレベルのコメントを投稿できるか（対象への投稿権限。RLSが最終防衛） */
   canPost: boolean
+  /** 閲覧者本人の従業員ID（編集可否の判定に使う。従業員レコード無しユーザーは null） */
+  currentEmployeeId: string | null
+  /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
+  canModerate: boolean
 }
 
-export function CommentThread({ target, canPost }: CommentThreadProps) {
+export function CommentThread({
+  target,
+  canPost,
+  currentEmployeeId,
+  canModerate,
+}: CommentThreadProps) {
   const [comments, setComments] = useState<TaskComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -64,6 +73,8 @@ export function CommentThread({ target, canPost }: CommentThreadProps) {
             replyingToId={replyingToId}
             setReplyingToId={setReplyingToId}
             onPosted={reload}
+            currentEmployeeId={currentEmployeeId}
+            canModerate={canModerate}
           />
         ))}
       </ul>
@@ -85,9 +96,56 @@ interface CommentItemProps {
   replyingToId: string | null
   setReplyingToId: (id: string | null) => void
   onPosted: () => void
+  /** 閲覧者本人の従業員ID（編集可否の判定に使う。従業員レコード無しユーザーは null） */
+  currentEmployeeId: string | null
+  /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
+  canModerate: boolean
 }
 
-function CommentItem({ node, target, replyingToId, setReplyingToId, onPosted }: CommentItemProps) {
+function CommentItem({
+  node,
+  target,
+  replyingToId,
+  setReplyingToId,
+  onPosted,
+  currentEmployeeId,
+  canModerate,
+}: CommentItemProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editBody, setEditBody] = useState(node.body)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  const isOwnComment = currentEmployeeId !== null && node.employeeId === currentEmployeeId
+  const canEdit = isOwnComment
+  const canDelete = isOwnComment || canModerate
+
+  function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    setActionError(null)
+    startTransition(async () => {
+      try {
+        await updateComment({ commentId: node.id, body: editBody })
+        setIsEditing(false)
+        onPosted()
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'コメントの編集に失敗しました')
+      }
+    })
+  }
+
+  function handleDelete() {
+    setActionError(null)
+    startTransition(async () => {
+      try {
+        await deleteComment({ commentId: node.id })
+        onPosted()
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'コメントの削除に失敗しました')
+      }
+    })
+  }
+
   return (
     <li className="rounded-lg border border-slate-200 p-3">
       <div className="flex items-center justify-between">
@@ -96,14 +154,71 @@ function CommentItem({ node, target, replyingToId, setReplyingToId, onPosted }: 
           {COMMENT_TYPE_LABEL[node.commentType]}
         </span>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-xs text-slate-700">{node.body}</p>
-      <button
-        type="button"
-        onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
-        className="mt-1 text-[10px] text-[#FD7601]"
-      >
-        返信
-      </button>
+
+      {isEditing ? (
+        <form onSubmit={handleSaveEdit} className="mt-1 space-y-1">
+          <textarea
+            value={editBody}
+            onChange={e => setEditBody(e.target.value)}
+            required
+            rows={2}
+            className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+          />
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={isPending || !editBody}
+              className="rounded-lg bg-[#FD7601] px-2 py-1 text-[10px] font-medium text-white disabled:opacity-50"
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false)
+                setEditBody(node.body)
+              }}
+              className="text-[10px] text-slate-500"
+            >
+              キャンセル
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="mt-1 whitespace-pre-wrap text-xs text-slate-700">{node.body}</p>
+      )}
+
+      {actionError && <p className="mt-1 text-xs text-red-600">{actionError}</p>}
+
+      <div className="mt-1 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+          className="text-[10px] text-[#FD7601]"
+        >
+          返信
+        </button>
+        {canEdit && !isEditing && (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="text-[10px] text-slate-500"
+          >
+            編集
+          </button>
+        )}
+        {canDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="text-[10px] text-red-500 disabled:opacity-50"
+          >
+            削除
+          </button>
+        )}
+      </div>
+
       {replyingToId === node.id && (
         <div className="mt-2">
           <CommentForm
@@ -127,6 +242,8 @@ function CommentItem({ node, target, replyingToId, setReplyingToId, onPosted }: 
               replyingToId={replyingToId}
               setReplyingToId={setReplyingToId}
               onPosted={onPosted}
+              currentEmployeeId={currentEmployeeId}
+              canModerate={canModerate}
             />
           ))}
         </ul>

@@ -153,7 +153,12 @@ function WorkLogItem({ log, onChanged, currentEmployeeId }: WorkLogItemProps) {
             </button>
             <button
               type="button"
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false)
+                setWorkDate(log.workDate)
+                setHours(String(log.hours))
+                setNote(log.note ?? '')
+              }}
               className="text-[10px] text-slate-500"
             >
               キャンセル
@@ -202,7 +207,10 @@ interface WorkLogFormProps {
 }
 
 function WorkLogForm({ taskId, onPosted }: WorkLogFormProps) {
-  const today = new Date().toISOString().slice(0, 10)
+  // JST（Asia/Tokyo）基準の「今日」をYYYY-MM-DD形式で計算する。
+  // Date.toISOString() はUTC基準になるため、JST 0:00〜8:59台は前日にずれてしまう
+  // （CLAUDE.mdの「Supabaseへの日時書き込みはAsia/Tokyoで行う」規約に準拠）。
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date())
   const [workDate, setWorkDate] = useState(today)
   const [hours, setHours] = useState('')
   const [note, setNote] = useState('')

@@ -146,6 +146,12 @@ export const deleteCommentSchema = z.object({
 })
 export type DeleteCommentInput = z.infer<typeof deleteCommentSchema>
 
+export const getTaskCommentsTargetSchema = z.union([
+  z.object({ taskId: z.string().uuid() }),
+  z.object({ taskGroupId: z.string().uuid() }),
+])
+export type GetTaskCommentsTarget = z.infer<typeof getTaskCommentsTargetSchema>
+
 export interface TaskComment {
   id: string
   tenantId: string

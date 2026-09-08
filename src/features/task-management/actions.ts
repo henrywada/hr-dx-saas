@@ -29,6 +29,7 @@ import {
   type UpdateCommentInput,
   deleteCommentSchema,
   type DeleteCommentInput,
+  getTaskCommentsTargetSchema,
   type TaskComment,
 } from './types'
 import { getTaskComments } from './queries'
@@ -510,6 +511,7 @@ export async function getTaskCommentsAction(
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
 
+  const parsed = getTaskCommentsTargetSchema.parse(target)
   const supabase = await createClient()
-  return getTaskComments(supabase, target)
+  return getTaskComments(supabase, parsed)
 }

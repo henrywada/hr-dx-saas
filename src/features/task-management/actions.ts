@@ -23,7 +23,16 @@ import {
   type UpdateTaskStatusInput,
   updateTaskProgressSchema,
   type UpdateTaskProgressInput,
+  createCommentSchema,
+  type CreateCommentInput,
+  updateCommentSchema,
+  type UpdateCommentInput,
+  deleteCommentSchema,
+  type DeleteCommentInput,
+  getTaskCommentsTargetSchema,
+  type TaskComment,
 } from './types'
+import { getTaskComments } from './queries'
 
 /**
  * 目標（task_objectives）を新規作成する。
@@ -347,4 +356,162 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
   }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * コメント（task_comments）を新規作成する。
+ *
+ * 注意: AppUser.tenant_id / employee_id は共に optional のため早期に弾く。
+ * 投稿可否（対象に応じた権限）は RLS の INSERT ポリシーが強制する
+ * （`can_comment_on_task` / `can_comment_on_task_group`）。
+ * revalidatePath はタスクグループ詳細ページ（コメントがどちらの対象でも
+ * 表示場所は最終的にこのページ配下になる）を対象にする。
+ */
+export async function createComment(input: CreateCommentInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id || !user.employee_id) {
+    throw new Error('テナントまたは従業員情報が取得できませんでした')
+  }
+
+  const parsed = createCommentSchema.parse(input)
+  const supabase = await createClient()
+
+  // revalidatePath 用に対象タスクグループのIDを解決する
+  let taskGroupIdForRevalidate: string
+  if (parsed.taskGroupId) {
+    taskGroupIdForRevalidate = parsed.taskGroupId
+  } else {
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('task_group_id')
+      .eq('id', parsed.taskId)
+      .single()
+    if (taskError) throw taskError
+    taskGroupIdForRevalidate = task.task_group_id
+  }
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .insert({
+      tenant_id: user.tenant_id,
+      task_id: parsed.taskId ?? null,
+      task_group_id: parsed.taskGroupId ?? null,
+      employee_id: user.employee_id,
+      parent_comment_id: parsed.parentCommentId ?? null,
+      comment_type: parsed.commentType,
+      body: parsed.body,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
+
+  return { id: data.id }
+}
+
+/**
+ * コメント（task_comments）の本文のみを更新する。
+ *
+ * カラム制限: `.update()` には `body` と `updated_at` のみを渡す
+ * （`updateTaskStatus`/`updateTaskProgress` と同じ理由）。
+ * 更新可否（投稿者本人のみ）は RLS の UPDATE ポリシーが強制する。
+ * 0件更新時はエラーを投げる（`updateTaskStatus` と同じパターン）。
+ */
+export async function updateComment(input: UpdateCommentInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateCommentSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: comment, error: fetchError } = await supabase
+    .from('task_comments')
+    .select('task_id, task_group_id')
+    .eq('id', parsed.commentId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .update({ body: parsed.body, updated_at: new Date().toISOString() })
+    .eq('id', parsed.commentId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このコメントを編集する権限がありません')
+  }
+
+  const taskGroupIdForRevalidate =
+    comment.task_group_id ??
+    (await supabase.from('tasks').select('task_group_id').eq('id', comment.task_id!).single()).data
+      ?.task_group_id
+
+  if (taskGroupIdForRevalidate) {
+    revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
+  }
+}
+
+/**
+ * コメント（task_comments）を削除する。
+ * 削除可否（投稿者本人、または責任者・マネージャー）は RLS の DELETE ポリシーが強制する。
+ * 0件削除時はエラーを投げる。
+ */
+export async function deleteComment(input: DeleteCommentInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = deleteCommentSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: comment, error: fetchError } = await supabase
+    .from('task_comments')
+    .select('task_id, task_group_id')
+    .eq('id', parsed.commentId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .delete()
+    .eq('id', parsed.commentId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このコメントを削除する権限がありません')
+  }
+
+  const taskGroupIdForRevalidate =
+    comment.task_group_id ??
+    (await supabase.from('tasks').select('task_group_id').eq('id', comment.task_id!).single()).data
+      ?.task_group_id
+
+  if (taskGroupIdForRevalidate) {
+    revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
+  }
+}
+
+/**
+ * コメント一覧を取得する読み取り専用 Server Action。
+ *
+ * 通常このプロジェクトでは SELECT は queries.ts に置くが、タスク詳細モーダルや
+ * タスクグループのコメント欄は Client Component からモーダルを開いたタイミング等で
+ * 動的に取得する必要があり、Client Component が呼べるのは Server Action のみのため、
+ * ここに薄いラッパーとして置く（`docs/implementation-plan-task-management.md` セクション13.4）。
+ */
+export async function getTaskCommentsAction(
+  target: { taskId: string } | { taskGroupId: string }
+): Promise<TaskComment[]> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = getTaskCommentsTargetSchema.parse(target)
+  const supabase = await createClient()
+  return getTaskComments(supabase, parsed)
 }

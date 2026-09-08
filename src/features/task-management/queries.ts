@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import type { TaskObjective, TaskMilestone, TaskGroup, Task } from './types'
+import type { TaskObjective, TaskMilestone, TaskGroup, Task, TaskComment } from './types'
 import type { EmployeeOption } from './employee-filter'
 import { calculateAverageProgress } from './progress'
 
@@ -257,4 +257,50 @@ export async function getTaskGroupBoard(
     tasks,
     averageProgress: calculateAverageProgress(tasks.map(t => t.progressPercent)),
   }
+}
+
+/** DB行（snake_case、employees とのJOIN込み）を TaskComment（camelCase）に変換する */
+function mapComment(
+  row: Database['public']['Tables']['task_comments']['Row'] & {
+    employee: { name: string | null } | null
+  }
+): TaskComment {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    taskId: row.task_id,
+    taskGroupId: row.task_group_id,
+    employeeId: row.employee_id,
+    employeeName: row.employee?.name ?? '（名前未設定）',
+    parentCommentId: row.parent_comment_id,
+    commentType: row.comment_type as TaskComment['commentType'],
+    body: row.body,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
+ * タスクまたはタスクグループに紐づくコメント一覧を作成日時の昇順で取得する。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getTaskComments(
+  supabase: SupabaseClient<Database>,
+  target: { taskId: string } | { taskGroupId: string }
+): Promise<TaskComment[]> {
+  let query = supabase
+    .from('task_comments')
+    .select('*, employee:employee_id(name)')
+    .order('created_at', { ascending: true })
+
+  query =
+    'taskId' in target
+      ? query.eq('task_id', target.taskId)
+      : query.eq('task_group_id', target.taskGroupId)
+
+  const { data, error } = await query
+
+  if (error) throw error
+
+  return (data ?? []).map(mapComment)
 }

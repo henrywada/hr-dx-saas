@@ -1,5 +1,9 @@
+'use client'
+
+import { useState } from 'react'
 import { TASK_STATUSES, type Task } from '../types'
 import { TaskCard } from './TaskCard'
+import { TaskDetailModal } from './TaskDetailModal'
 
 const STATUS_LABEL: Record<Task['status'], string> = {
   todo: '未着手',
@@ -17,7 +21,22 @@ interface KanbanBoardProps {
   canOperateAllTasks: boolean
 }
 
+/**
+ * 最終レビュー Finding I4: モーダルの開閉状態（どのタスクが開いているか）を
+ * KanbanBoard 側で一元管理する。タスクのステータスが変わると、そのタスクは
+ * 別のステータス列（別の親 <div>）に移動するため、状態を TaskCard 自身が
+ * 持っていると TaskCard がアンマウント/再マウントされてモーダルが理由不明に
+ * 閉じてしまっていた（コメントスレッド閲覧中の状態が失われる）。
+ * KanbanBoard はどのタスクがどのステータス列に属するかに関わらず存在し続ける
+ * ため、ここに状態を置けばステータス変更後も生存する。
+ */
 export function KanbanBoard({ tasks, myEmployeeId, canOperateAllTasks }: KanbanBoardProps) {
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const openTask = openTaskId ? (tasks.find(t => t.id === openTaskId) ?? null) : null
+  const canOperateOpenTask = openTask
+    ? canOperateAllTasks || openTask.assigneeEmployeeId === myEmployeeId
+    : false
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
       {TASK_STATUSES.map(status => (
@@ -27,16 +46,21 @@ export function KanbanBoard({ tasks, myEmployeeId, canOperateAllTasks }: KanbanB
             {tasks
               .filter(task => task.status === status)
               .map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  myEmployeeId={myEmployeeId}
-                  canOperateAllTasks={canOperateAllTasks}
-                />
+                <TaskCard key={task.id} task={task} onOpen={() => setOpenTaskId(task.id)} />
               ))}
           </div>
         </div>
       ))}
+      {openTask && (
+        <TaskDetailModal
+          task={openTask}
+          isOpen={true}
+          onClose={() => setOpenTaskId(null)}
+          canOperate={canOperateOpenTask}
+          currentEmployeeId={myEmployeeId}
+          canModerateComments={canOperateAllTasks}
+        />
+      )}
     </div>
   )
 }

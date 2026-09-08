@@ -5,6 +5,9 @@ import {
   createTaskSchema,
   updateTaskStatusSchema,
   updateTaskProgressSchema,
+  createCommentSchema,
+  updateCommentSchema,
+  deleteCommentSchema,
 } from './types'
 
 test('目標作成: titleのみで成功する', () => {
@@ -65,4 +68,88 @@ test('進捗率更新: 0と100は許容される', () => {
   })
   assert.equal(min.success, true)
   assert.equal(max.success, true)
+})
+
+test('コメント作成: taskIdのみ指定で成功する', () => {
+  const result = createCommentSchema.safeParse({
+    taskId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'report',
+    body: '進捗を報告します',
+  })
+  assert.equal(result.success, true)
+})
+
+test('コメント作成: taskGroupIdのみ指定で成功する', () => {
+  const result = createCommentSchema.safeParse({
+    taskGroupId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'advice',
+    body: '助言です',
+  })
+  assert.equal(result.success, true)
+})
+
+test('コメント作成: taskIdとtaskGroupIdを両方指定すると拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskId: '11111111-1111-4111-8111-111111111111',
+    taskGroupId: '22222222-2222-4222-8222-222222222222',
+    commentType: 'general',
+    body: 'x',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: taskIdとtaskGroupIdをどちらも指定しないと拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    commentType: 'general',
+    body: 'x',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: bodyが空文字は拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'general',
+    body: '',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: 未定義のcommentTypeは拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'unknown',
+    body: 'x',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: parentCommentIdは省略可能', () => {
+  const result = createCommentSchema.safeParse({
+    taskId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'general',
+    body: 'x',
+  })
+  assert.equal(result.success, true)
+})
+
+test('コメント更新: bodyのみで成功する', () => {
+  const result = updateCommentSchema.safeParse({
+    commentId: '11111111-1111-4111-8111-111111111111',
+    body: '修正後の本文',
+  })
+  assert.equal(result.success, true)
+})
+
+test('コメント更新: bodyが空文字は拒否される', () => {
+  const result = updateCommentSchema.safeParse({
+    commentId: '11111111-1111-4111-8111-111111111111',
+    body: '',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント削除: commentIdがUUID形式でなければ拒否される', () => {
+  const result = deleteCommentSchema.safeParse({ commentId: 'not-a-uuid' })
+  assert.equal(result.success, false)
 })

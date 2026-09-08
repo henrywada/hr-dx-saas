@@ -8,6 +8,7 @@ import { oneOnOneFeedProvider } from '@/features/one-on-one/feed-provider'
 import { careerDiscussionFeedProvider } from '@/features/career-discussions/feed-provider'
 import { healthCheckFeedProvider } from '@/features/health-check/feed-provider'
 import { overtimeComplianceFeedProvider } from '@/features/labor-compliance/feed-provider'
+import { taskManagementFeedProvider } from '@/features/task-management/feed-provider'
 import type { FeedProvider } from './provider'
 
 // 新しい通知ソースを追加する場合はここに1行追加するだけでよい（page.tsx の変更は不要）
@@ -22,4 +23,5 @@ export const FEED_PROVIDERS: FeedProvider[] = [
   careerDiscussionFeedProvider,
   healthCheckFeedProvider,
   overtimeComplianceFeedProvider,
+  taskManagementFeedProvider,
 ]

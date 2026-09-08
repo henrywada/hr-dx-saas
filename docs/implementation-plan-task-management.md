@@ -166,11 +166,11 @@ src/features/task-management/
 
 ## 12. 実装ステータス
 
-| Phase   | 内容                                             | 状態                                          |
-| ------- | ------------------------------------------------ | --------------------------------------------- |
-| Phase 1 | 組織化・割当・進捗・カンバン可視化               | 完了（公開済み）                              |
-| Phase 2 | 工数入力・工数分布・コメントスレッド             | 実装完了（デプロイ・E2E検証待ち）             |
-| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 一部完了（進捗サマリ完了／残り3項目は未着手） |
+| Phase   | 内容                                             | 状態                                                    |
+| ------- | ------------------------------------------------ | ------------------------------------------------------- |
+| Phase 1 | 組織化・割当・進捗・カンバン可視化               | 完了（公開済み）                                        |
+| Phase 2 | 工数入力・工数分布・コメントスレッド             | 実装完了（デプロイ・E2E検証待ち）                       |
+| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 一部完了（進捗サマリ・通知連携完了／残り2項目は未着手） |
 
 ## 13. Phase 2 詳細設計（コメントスレッド機能）
 
@@ -301,3 +301,46 @@ Phase 3（組織ツリー可視化・進捗サマリ・ダッシュボードフ�
 | 5   | 手動 E2E 確認                                                         | 完了 |
 
 **手動E2E確認（#5）の「完了」の中身について**：ローカルDBは `task_objectives` 2件・`task_groups` 12件は実データとして存在するが、配下の `tasks` は0件であり、非ゼロの進捗率を画面上で確認できるデータが無い。加えて検証実施時のサンドボックス環境でPlaywrightのブラウザ（Chrome実行ファイル。キャッシュ済みの `chromium-1234` とMCPが要求する `chromium-1243` のバージョン不一致により起動不可、`"chrome" executable not found` エラー）が起動できず、ブラウザを実際に操作するライブE2E確認は実施できていない（工数管理機能の14.5と同じ制約）。ここでの「完了」の根拠は、(1) Task 1〜4それぞれの独立したタスクレビューでCritical/Important指摘がゼロだったこと、(2) `ProgressRing`/`ProgressBar`のクランプ・0%描画ロジック（`Math.max(0, Math.min(100, Math.round(progress)))`、空配列時に`calculateAverageProgress`が0を返す）を本タスクで実装コードを再読し確認したこと、(3) `getMyObjectivesWithProgress`・`getObjectiveDetail`の集計クエリがTask 2でのライブ実行によりPostgREST側で構文エラー無く受理されることを確認済みであること（ただし当時 `tasks` は0件だったため、確認できたのは埋め込みフィルタ（`task_group:task_group_id!inner(milestone_id)` 等）のクエリ構文・リレーションパスの妥当性のみであり、非ゼロの実データに対する行の形状処理やバケット分け・集計ロジックそのものの動作は未検証であること）、(4) 平均計算ロジック（フラット平均、重み付けなし）がTask 2のレビューで仮想データに対して手計算検証済みであることの4点である。ライブブラウザでの動作確認（進捗リング・バーの実描画、タスクグループ側での進捗率変更後のリロード反映）は、`tasks` にテストデータがあり、かつブラウザが利用可能な環境で後日改めて実施することが望ましい。
+
+## 16. Phase 3 詳細設計（ダッシュボードフィード連携）
+
+Phase 3の2番目のサブ機能として、要求12（ダッシュボードフィード連携：割当通知・期限接近・コメント通知等）に対応する。
+
+### 16.1 既存基盤の前提
+
+既存の `dashboard/feed` 基盤は「プル型」アーキテクチャであり、単一のイベントログテーブルへ書き込む方式ではない。各機能ドメインが `FeedProvider`（`src/features/dashboard/feed/provider.ts`）インターフェース（`key: string` と `fetch(ctx: FeedProviderContext): Promise<RawFeedItem[]>`）を実装し、`src/features/dashboard/feed/registry.ts` の `FEED_PROVIDERS` 配列に登録することで、`/top` パネル・`/notifications` 一覧の両方に自動的に表示される。過去に汎用の書き込みRPC（`post_system_announcement()`）が存在したが、なりすまし投稿の脆弱性のため廃止されており、新規の汎用書き込みAPIを追加しない（既存の廃止判断を踏襲する）。本サブ機能もこのプル型パターンに従い、既存の `tasks`/`task_comments` テーブルを読み取り時に都度導出する形で実装する。新規テーブル・マイグレーションは、`ui_dashboard_element` へのマスタ登録行の追加のみで、イベントログ用のテーブルは追加しない。
+
+### 16.2 スコープ（フィードアイテム2種）
+
+- **割当・期限接近通知**：自分（`assignee_employee_id`）が担当し、かつ未完了（`status <> 'done'`）のタスクを1件＝1アイテムとして表示する。`kind: 'action_prompt'`（タスクが完了する、または担当者から外れるまで表示され続ける。既読の概念を持たない設計——`FeedItemRow.tsx` の `canDismiss` 判定が `kind === 'system_notice'` を要求するため、`action_prompt` は構造的に既読化できない。これは意図的な仕様であり、対応不要）
+- **コメント通知**：自分が閲覧可能なタスク／タスクグループへの、直近3日以内・自分以外が投稿したコメントを1件＝1アイテムとして表示する。`kind: 'system_notice'`（既読化可能、`dismissible: true`）。可視範囲の絞り込みは新たに実装せず、`task_comments_select` の既存RLSポリシーにそのまま委ねる（追加のテナント・権限フィルタは行わない、既存の `queries.ts` の規約と同じ）。**注意**：`task_comments_select`（`20260907135655_create_task_comments_table.sql`）は `current_employee_app_role() <> 'employee'` の行で、テナント管理者・産業医等（`employee` 以外の役割）に対してはグループ参加者チェックを経由せずテナント全体のコメントを可視にする。そのためこれらの役割では、本フィードのコメント通知も「自分の担当分のみ」ではなく「テナント全体のコメント」を対象とする（後述16.3の上限設定はこのケースを踏まえたもの）
+
+### 16.3 データ取得方式
+
+- `src/features/task-management/feed-provider.ts`（新規）に `taskManagementFeedProvider: FeedProvider` を実装する
+- 割当通知：`tasks` を `assignee_employee_id` と `status <> 'done'` で絞り込み、`due_date` 昇順（null は後）で取得する。1クエリで完結する（既存のPostgREST 1000行上限問題は、個人が担当する未完了タスク数が現実的に1000件を超えることは無いため対象外と判断する。進捗サマリ機能で対応が必要だったのは「テナント内の全可視目標を横断集計する」ケースであり、本機能は「自分の担当分のみ」であるため規模が本質的に異なる）。ただし `/top` のフィード表示枠（`FEED_LIMIT`）を1機能が占有しないよう `.limit(5)` を付与し、期限が近い上位5件のみを対象とする
+- コメント通知：`task_comments` を `employee_id <> 自分` かつ `created_at >= 3日前` で絞り込み、`created_at` 降順で `.limit(20)` を付与して取得する。上限を設けるのは、16.2で述べた通り非employeeロールでは可視範囲がテナント全体になり得るため（PostgREST 1000行上限のサイレント切り捨て・共有`read_state`のdedupeKey肥大化・`/top`の表示枠占有を避ける）。`task_id` 経由のコメントは埋め込み `task:task_id(title, task_group_id)` で、`task_group_id` 直接指定のコメントは埋め込み `taskGroup:task_group_id(name)` で、リンク先（`APP_ROUTES.tasks.groupDetail`）と表示名を解決する
+- 両クエリとも `ctx.employeeId` が空文字列（従業員レコード無しユーザー）の場合は空配列を返す（既存の `one_on_one`/`questionnaire` 等のプロバイダと同じガード）
+
+### 16.4 型・登録の追加
+
+- `src/features/dashboard/feed/types.ts` の `FeedItemCategory` に `'task_management'` を追加する
+- `src/features/dashboard/feed/registry.ts` の `FEED_PROVIDERS` 配列に `taskManagementFeedProvider` を追加する
+- `src/features/dashboard/components/FeedItemRow.tsx` の `CATEGORY_ICON`/`CATEGORY_COLOR`（`Record<FeedItemCategory, ...>` のため型エラーで追加が強制される）に `task_management` のアイコン・色を追加する
+- マイグレーションで `ui_dashboard_element` に `top.feed.task_management` を1行追加し、`service.route_path = '/tasks'` の行と `service_id` を紐付ける（既存の `20260821100000_top_feed_phase2_ui_dashboard_element.sql` と同じ2ステップ構成：INSERT → UPDATE...JOIN による service_id 紐付け）。これにより `tenant_service` 未契約テナントには本プロバイダの `fetch` 自体が呼ばれなくなる
+
+### 16.5 severity の割当方針
+
+- 割当通知：期限超過なら `critical`、期限まで3日以内なら `warning`、それ以外（期限が3日超先、または期限未設定）は `action`（既存の `questionnaire` プロバイダと同じ「シンプルなaction_prompt」のデフォルト値を踏襲）
+- コメント通知：常に `info`（既存の情報通知系プロバイダと同じ扱い）
+
+### 16.6 実装ステータス（サブタスク単位）
+
+| #   | 内容                                                                    | 状態 |
+| --- | ----------------------------------------------------------------------- | ---- |
+| 1   | `src/features/task-management/feed-provider.ts`（割当・コメント両対応） | 完了 |
+| 2   | `FeedItemCategory`・`registry.ts`・`FeedItemRow.tsx` への登録           | 完了 |
+| 3   | `ui_dashboard_element` マイグレーション                                 | 完了 |
+| 4   | 手動 E2E 確認                                                           | 完了 |
+
+**手動E2E確認（#4）の「完了」の中身について**：ローカルDBの `tasks`/`task_comments` はいずれも0件であり（`task_objectives` 2件・`task_groups` 12件は実データとして存在するが、その配下の `tasks`/`task_comments` が無い）、割当通知・コメント通知のいずれもフィード上に表示させて確認できるデータが存在しない。加えて検証実施時のサンドボックス環境でPlaywrightのブラウザが `"chrome" executable not found` エラーで起動できず、ブラウザを実際に操作するライブE2E確認は実施できていない（工数管理機能の14.5・進捗サマリ機能の15.5と同じ制約であり、本機能はデータ面の制約がその2つより一段と厳しい——`task_objectives`/`task_groups` はまだ実データが存在したのに対し、本機能が依存する `tasks`/`task_comments` は完全に0件のため）。ここでの「完了」の根拠は、(1) Task 1〜3それぞれの独立したタスクレビューでCritical/Important指摘がゼロ・修正ラウンドもゼロだったこと、(2) 割当通知・コメント通知のマッピングロジック（severity判定の期限境界値、`kind`/`dismissible`の割当、コメントのコンテキスト解決とフォールバック表示）を検証する純粋関数のユニットテスト15件が本タスクでも再実行しPASSを確認したこと、(3) `FeedItemCategory`・`registry.ts`・`FeedItemRow.tsx` への登録配線がTask 2の型チェック・レビューで独立に確認済みであること、(4) `ui_dashboard_element` マイグレーションがTask 3のレビューで独立に確認済みであることの4点である。加えて最終ホールブランチレビュー（opus）では、実DBのPostgRESTエンドポイントへ本プロバイダと同一のクエリ形（`task:task_id(...)`/`taskGroup:task_group_id(...)` の埋め込みリレーション込み）を直接curlで発行し、200応答とリレーション解決成功を独立に確認している（実データ0件のためレスポンス自体は空配列だが、クエリ構文とスキーマ整合性はDBレベルで検証済み）。ライブブラウザでの動作確認（フィードパネル・`/notifications` での実際の表示、コメント通知の既読化操作、担当タスク完了時のフィード消滅）は、`tasks`/`task_comments` にテストデータがあり、かつブラウザが利用可能な環境で後日改めて実施することが望ましい。

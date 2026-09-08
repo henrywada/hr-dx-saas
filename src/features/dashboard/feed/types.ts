@@ -14,6 +14,7 @@ export type FeedItemCategory =
   | 'kudos'
   | 'questionnaire'
   | 'lifecycle'
+  | 'task_management'
 
 /** 各プロバイダが生成する正規化済み通知アイテム */
 export interface FeedItem {

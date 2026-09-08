@@ -10,6 +10,7 @@ import {
   Heart,
   ClipboardList,
   ClipboardCheck,
+  ListTodo,
 } from 'lucide-react'
 import { markFeedItemRead } from '../feed/actions'
 import type { FeedItem, FeedItemCategory } from '../feed/types'
@@ -25,6 +26,7 @@ const CATEGORY_ICON: Record<FeedItemCategory, typeof Bell> = {
   one_on_one: Bell,
   career_discussion: Bell,
   overtime_compliance: MessageCircleWarning,
+  task_management: ListTodo,
 }
 
 const CATEGORY_COLOR: Record<FeedItemCategory, string> = {
@@ -38,6 +40,7 @@ const CATEGORY_COLOR: Record<FeedItemCategory, string> = {
   one_on_one: 'bg-purple-100 text-purple-700',
   career_discussion: 'bg-purple-100 text-purple-700',
   overtime_compliance: 'bg-red-100 text-red-700',
+  task_management: 'bg-emerald-100 text-emerald-700',
 }
 
 type Props = {

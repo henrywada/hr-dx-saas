@@ -75,6 +75,7 @@ export function CommentThread({
             onPosted={reload}
             currentEmployeeId={currentEmployeeId}
             canModerate={canModerate}
+            canPost={canPost}
           />
         ))}
       </ul>
@@ -100,6 +101,8 @@ interface CommentItemProps {
   currentEmployeeId: string | null
   /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
   canModerate: boolean
+  /** このユーザーが返信を投稿できるか（対象への投稿権限。RLSが最終防衛） */
+  canPost: boolean
 }
 
 function CommentItem({
@@ -110,6 +113,7 @@ function CommentItem({
   onPosted,
   currentEmployeeId,
   canModerate,
+  canPost,
 }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editBody, setEditBody] = useState(node.body)
@@ -135,6 +139,10 @@ function CommentItem({
   }
 
   function handleDelete() {
+    // 最終レビュー Finding I3: parent_comment_id は ON DELETE SET NULL のため
+    // 返信自体が消えることはないが、削除は取り消せない操作であるため確認を挟む
+    // （他の削除ボタンと同様、コードベースの既存パターン: window.confirm）。
+    if (!window.confirm('このコメントを削除しますか？')) return
     setActionError(null)
     startTransition(async () => {
       try {
@@ -191,13 +199,15 @@ function CommentItem({
       {actionError && <p className="mt-1 text-xs text-red-600">{actionError}</p>}
 
       <div className="mt-1 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
-          className="text-[10px] text-[#FD7601]"
-        >
-          返信
-        </button>
+        {canPost && (
+          <button
+            type="button"
+            onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+            className="text-[10px] text-[#FD7601]"
+          >
+            返信
+          </button>
+        )}
         {canEdit && !isEditing && (
           <button
             type="button"
@@ -219,7 +229,7 @@ function CommentItem({
         )}
       </div>
 
-      {replyingToId === node.id && (
+      {canPost && replyingToId === node.id && (
         <div className="mt-2">
           <CommentForm
             target={target}
@@ -244,6 +254,7 @@ function CommentItem({
               onPosted={onPosted}
               currentEmployeeId={currentEmployeeId}
               canModerate={canModerate}
+              canPost={canPost}
             />
           ))}
         </ul>

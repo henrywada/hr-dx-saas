@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { updateTaskStatus, updateTaskProgress } from '../actions'
 import { TASK_STATUSES, type Task } from '../types'
 import { CommentThread } from './CommentThread'
+import { WorkLogSection } from './WorkLogSection'
 
 const PRIORITY_LABEL: Record<Task['priority'], string> = {
   low: '低',
@@ -31,6 +32,8 @@ interface TaskDetailModalProps {
   currentEmployeeId: string | null
   /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
   canModerateComments: boolean
+  /** 閲覧者が自分の工数を記録できるか（グループ参加者または担当者本人。RLSが最終防衛） */
+  canLogWork: boolean
 }
 
 export function TaskDetailModal({
@@ -40,6 +43,7 @@ export function TaskDetailModal({
   canOperate,
   currentEmployeeId,
   canModerateComments,
+  canLogWork,
 }: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -140,6 +144,15 @@ export function TaskDetailModal({
             canPost={canOperate}
             currentEmployeeId={currentEmployeeId}
             canModerate={canModerateComments}
+          />
+        </div>
+
+        <div className="mt-4 border-t border-slate-200 pt-3">
+          <h3 className="mb-2 text-xs font-semibold text-slate-900">工数記録</h3>
+          <WorkLogSection
+            taskId={task.id}
+            canLogWork={canLogWork}
+            currentEmployeeId={currentEmployeeId}
           />
         </div>
       </div>

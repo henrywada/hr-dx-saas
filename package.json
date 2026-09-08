@@ -36,6 +36,7 @@
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "@xyflow/react": "^12.11.6",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

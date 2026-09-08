@@ -3,11 +3,13 @@ import { getServerUser } from '@/lib/auth/server-user'
 import {
   getObjectiveDetail,
   getWorkLogSummaryByObjective,
+  getObjectiveOrgTree,
 } from '@/features/task-management/queries'
 import { MilestoneList } from '@/features/task-management/components/MilestoneList'
 import { MilestoneForm } from '@/features/task-management/components/MilestoneForm'
 import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import { ProgressRing } from '@/features/task-management/components/ProgressRing'
+import { OrgTreeSection } from '@/features/task-management/components/OrgTreeSection'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
 
 export default async function ObjectiveDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +24,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
     objectiveProgress,
   } = await getObjectiveDetail(supabase, id)
   const workLogSummary = await getWorkLogSummaryByObjective(supabase, id)
+  const orgTree = await getObjectiveOrgTree(supabase, id)
   // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は task_milestones の RLS INSERT ポリシーが担う。
   // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は責任者ではない扱いにする。
   const isOwner = user?.employee_id
@@ -61,6 +64,11 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
           }))}
           emptyMessage="工数記録はまだありません。"
         />
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="text-xs font-semibold text-slate-900 mb-2">組織ツリー</h2>
+        <OrgTreeSection data={orgTree} />
       </section>
     </div>
   )

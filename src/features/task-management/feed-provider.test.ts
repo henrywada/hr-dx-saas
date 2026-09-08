@@ -28,7 +28,7 @@ test('id をキーにdedupeKeyとリンクを生成する（割当通知）', ()
     [assignedTaskRow({ id: 'xyz', task_group_id: 'g-9' })],
     '2026-08-20'
   )
-  assert.equal(items[0].dedupeKey, 'task_assignment:xyz')
+  assert.equal(items[0].dedupeKey, 'task_management:assignment:xyz')
   assert.equal(items[0].href, '/tasks/groups/g-9')
 })
 
@@ -164,6 +164,6 @@ test('kindはsystem_notice、dismissibleはtrue、severityはinfo', () => {
   assert.equal(items[0].kind, 'system_notice')
   assert.equal(items[0].dismissible, true)
   assert.equal(items[0].severity, 'info')
-  assert.equal(items[0].dedupeKey, 'task_comment:c-1')
+  assert.equal(items[0].dedupeKey, 'task_management:comment:c-1')
   assert.equal(items[0].category, 'task_management')
 })

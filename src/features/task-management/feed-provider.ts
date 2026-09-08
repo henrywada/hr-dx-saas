@@ -8,6 +8,11 @@ import type { RawFeedItem, FeedItemSeverity } from '@/features/dashboard/feed/ty
 const APPROACHING_DAYS = 3
 /** この日数以内に投稿されたコメントのみ通知対象とする */
 const COMMENT_LOOKBACK_DAYS = 3
+/** 割当通知の最大件数（期限昇順で上位のみ。/top の FEED_LIMIT 占有・PostgREST上限・
+ * 共有read_state の dedupeKey 蓄積を避けるための上限） */
+const MAX_ASSIGNMENT_ITEMS = 5
+/** コメント通知の最大件数（作成日時降順で最新のみ。理由は上記と同じ） */
+const MAX_COMMENT_ITEMS = 20
 
 export interface AssignedTaskRow {
   id: string
@@ -41,7 +46,7 @@ export function toTaskAssignmentFeedItems(
   todayYmd: string = toJSTDateString()
 ): RawFeedItem[] {
   return rows.map(row => ({
-    dedupeKey: `task_assignment:${row.id}`,
+    dedupeKey: `task_management:assignment:${row.id}`,
     kind: 'action_prompt',
     category: 'task_management',
     severity: computeAssignmentSeverity(row.due_date, todayYmd),
@@ -117,7 +122,7 @@ export function resolveTaskCommentContext(row: RawTaskCommentRow): TaskCommentFe
  * kind は system_notice（既読化可能）。 */
 export function toTaskCommentFeedItems(rows: TaskCommentFeedRow[]): RawFeedItem[] {
   return rows.map(row => ({
-    dedupeKey: `task_comment:${row.id}`,
+    dedupeKey: `task_management:comment:${row.id}`,
     kind: 'system_notice',
     category: 'task_management',
     severity: 'info',
@@ -151,7 +156,8 @@ export const taskManagementFeedProvider: FeedProvider = {
         .select('id, title, task_group_id, due_date, created_at')
         .eq('assignee_employee_id', ctx.employeeId)
         .neq('status', 'done')
-        .order('due_date', { ascending: true, nullsFirst: false }),
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .limit(MAX_ASSIGNMENT_ITEMS),
       supabase
         .from('task_comments')
         .select(
@@ -159,7 +165,8 @@ export const taskManagementFeedProvider: FeedProvider = {
         )
         .neq('employee_id', ctx.employeeId)
         .gte('created_at', lookbackIso)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(MAX_COMMENT_ITEMS),
     ])
 
     if (assignedResult.error) throw assignedResult.error

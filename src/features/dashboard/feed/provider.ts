@@ -13,6 +13,8 @@ export interface FeedProviderContext {
 export interface FeedProvider {
   /** ui_dashboard_element の element_key サフィックス（例: 'consultation' → top.feed.consultation） */
   key: string
+  /** 件数上限を持たないクエリを書かないこと。PostgREST 1000行上限のサイレント切り捨て・
+   * 共有read_state（dedupeKeyの既読管理）の肥大化・/top の表示枠占有を招く。 */
   fetch(ctx: FeedProviderContext): Promise<RawFeedItem[]>
 }
 

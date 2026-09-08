@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type {
   TaskObjective,
@@ -9,13 +9,48 @@ import type {
   TaskWorkLog,
 } from './types'
 import type { EmployeeOption } from './employee-filter'
-import { calculateAverageProgress } from './progress'
+import { calculateAverageProgress, groupProgressByParent } from './progress'
 import {
   aggregateHoursByEmployee,
   aggregateHoursByGroup,
   type EmployeeHoursSummary,
   type GroupHoursSummary,
 } from './work-log-summary'
+
+/** PostgREST（ローカル・本番とも）のデフォルト1リクエストあたり最大行数。`supabase/config.toml` の `max_rows` と一致させる */
+const POSTGREST_MAX_ROWS = 1000
+
+/**
+ * PostgRESTの1000行上限（{@link POSTGREST_MAX_ROWS}）を超える結果セットを、
+ * `.range()` によるページネーションで全件取得するヘルパー。
+ *
+ * `.range()` によるページ分割は行の並び順が安定していないと正しく全件を
+ * 網羅できない（同じ行が複数ページに重複したり、逆に漏れたりしうる）ため、
+ * `fetchPage` 側で必ず決定的な `.order()`（例：`.order('id')`）を指定すること。
+ */
+async function fetchAllRows<T>(
+  fetchPage: (
+    from: number,
+    to: number
+  ) => Promise<{ data: T[] | null; error: PostgrestError | null }>
+): Promise<T[]> {
+  const allRows: T[] = []
+  let from = 0
+
+  for (;;) {
+    const to = from + POSTGREST_MAX_ROWS - 1
+    const { data, error } = await fetchPage(from, to)
+    if (error) throw error
+
+    const rows = data ?? []
+    allRows.push(...rows)
+
+    if (rows.length < POSTGREST_MAX_ROWS) break
+    from += POSTGREST_MAX_ROWS
+  }
+
+  return allRows
+}
 
 /** DB行（snake_case）を TaskObjective（camelCase）に変換する */
 function mapObjective(row: Database['public']['Tables']['task_objectives']['Row']): TaskObjective {
@@ -81,6 +116,10 @@ export interface ObjectiveDetail {
   objective: TaskObjective
   milestones: TaskMilestone[]
   taskGroupsByMilestoneId: Record<string, TaskGroup[]>
+  /** マイルストーンID → そのマイルストーン配下全タスクのprogress_percentの単純平均（0-100） */
+  milestoneProgressById: Record<string, number>
+  /** 目標配下全タスクのprogress_percentの単純平均（0-100） */
+  objectiveProgress: number
 }
 
 /**
@@ -129,10 +168,54 @@ export async function getObjectiveDetail(
     }
   }
 
+  // マイルストーン別・目標全体の進捗率を計算する（要求11）。
+  // 全タスクの progress_percent をフラットに平均する（階層ごとの平均のさらに平均は取らない）。
+  const groupIdToMilestoneId = new Map<string, string>()
+  for (const [milestoneId, groups] of Object.entries(taskGroupsByMilestoneId)) {
+    for (const group of groups) {
+      groupIdToMilestoneId.set(group.id, milestoneId)
+    }
+  }
+
+  const allGroupIds = Array.from(groupIdToMilestoneId.keys())
+  const milestoneProgressById: Record<string, number> = {}
+  let objectiveProgress = 0
+
+  if (allGroupIds.length > 0) {
+    const taskRows = await fetchAllRows(async (from, to) => {
+      const result = await supabase
+        .from('tasks')
+        .select('progress_percent, task_group_id')
+        .in('task_group_id', allGroupIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: result.data, error: result.error }
+    })
+
+    const progressRows: { value: number; parentId: string }[] = []
+    const allProgress: number[] = []
+
+    for (const row of taskRows) {
+      const milestoneId = groupIdToMilestoneId.get(row.task_group_id)
+      if (!milestoneId) continue
+      progressRows.push({ value: row.progress_percent, parentId: milestoneId })
+      allProgress.push(row.progress_percent)
+    }
+
+    Object.assign(milestoneProgressById, groupProgressByParent(progressRows, milestoneIds))
+    objectiveProgress = calculateAverageProgress(allProgress)
+  } else {
+    for (const milestoneId of milestoneIds) {
+      milestoneProgressById[milestoneId] = 0
+    }
+  }
+
   return {
     objective: mapObjective(objectiveRow),
     milestones,
     taskGroupsByMilestoneId,
+    milestoneProgressById,
+    objectiveProgress,
   }
 }
 
@@ -445,4 +528,75 @@ export async function getWorkLogSummaryByObjective(
       }
     })
   )
+}
+
+export interface ObjectiveWithProgress {
+  objective: TaskObjective
+  progress: number
+}
+
+/** `task_group:task_group_id!inner(milestone_id)` 埋め込みフィルタで返る行の型 */
+interface TaskWithMilestoneRow {
+  progress_percent: number
+  task_group: { milestone_id: string }
+}
+
+/**
+ * 自分が閲覧可能な目標一覧を、それぞれの進捗率（配下全タスクのprogress_percentの単純平均）付きで取得する（要求11）。
+ *
+ * 目標ごとに個別クエリを発行するとN+1になるため、可視な全目標→全マイルストーン→
+ * （埋め込みフィルタで）全タスクの3クエリに抑える。タスクグループIDの配列を経由せず
+ * `task_group:task_group_id!inner(milestone_id)` + `.in('task_group.milestone_id', milestoneIds)`
+ * で直接タスクグループを介したフィルタを掛けることで、`.in()` に渡す配列サイズを
+ * 目標配下のタスクグループ総数ではなくマイルストーン総数に抑える
+ * （`getWorkLogSummaryByObjective` と同じ設計意図。詳細はそちらのコメント参照）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getMyObjectivesWithProgress(
+  supabase: SupabaseClient<Database>
+): Promise<ObjectiveWithProgress[]> {
+  const objectives = await getMyObjectives(supabase)
+  if (objectives.length === 0) return []
+
+  const objectiveIds = objectives.map(o => o.id)
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id, objective_id')
+    .in('objective_id', objectiveIds)
+
+  if (milestoneError) throw milestoneError
+
+  const objectiveIdByMilestoneId = new Map((milestoneRows ?? []).map(m => [m.id, m.objective_id]))
+  const milestoneIds = Array.from(objectiveIdByMilestoneId.keys())
+
+  const progressRows: { value: number; parentId: string }[] = []
+
+  if (milestoneIds.length > 0) {
+    const taskRows = await fetchAllRows(async (from, to) => {
+      const result = await supabase
+        .from('tasks')
+        .select('progress_percent, task_group:task_group_id!inner(milestone_id)')
+        .in('task_group.milestone_id', milestoneIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: result.data as unknown as TaskWithMilestoneRow[] | null, error: result.error }
+    })
+
+    for (const row of taskRows) {
+      const objectiveId = objectiveIdByMilestoneId.get(row.task_group.milestone_id)
+      if (!objectiveId) continue
+      progressRows.push({ value: row.progress_percent, parentId: objectiveId })
+    }
+  }
+
+  const progressByObjectiveId = groupProgressByParent(
+    progressRows,
+    objectives.map(o => o.id)
+  )
+
+  return objectives.map(objective => ({
+    objective,
+    progress: progressByObjectiveId[objective.id],
+  }))
 }

@@ -1,19 +1,7 @@
 /**
- * 工数分布グラフ用の色定数。ブランドカラー（#FD7601）を先頭に、
- * 既存のRecharts利用箇所（DeptStackedBarChart等）と同様、CSS変数ではなく
- * feature専用のTypeScript定数として定義する。
+ * 工数分布グラフ用のバー色定数（メンバー別・タスクグループ別で共用）。
+ * 以前はインデックス（＝表示順位）ごとに色をローテーションしていたが、
+ * 工数合計の順位が再描画のたびに入れ替わるとバー色まで変わってしまい紛らわしいため、
+ * HR-DX Design System のブランドカラーに統一する（`as const` で不変のプリミティブ値として扱う）。
  */
-export const WORK_LOG_CHART_COLORS = [
-  '#FD7601',
-  '#0EA5E9',
-  '#22C55E',
-  '#A855F7',
-  '#F43F5E',
-  '#EAB308',
-  '#14B8A6',
-  '#6366F1',
-]
-
-export function getChartColor(index: number): string {
-  return WORK_LOG_CHART_COLORS[index % WORK_LOG_CHART_COLORS.length]
-}
+export const WORK_LOG_CHART_COLOR = '#FD7601' as const

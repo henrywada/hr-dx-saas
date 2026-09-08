@@ -358,28 +358,28 @@ export async function getTaskWorkLogs(
   return (data ?? []).map(mapWorkLog)
 }
 
+/** `task:task_id!inner(task_group_id)` 埋め込みフィルタで返る行の型（tasksとのFK関係は多対一のため単一オブジェクト） */
+interface WorkLogWithTaskGroupRow {
+  hours: number
+  task: { task_group_id: string }
+}
+
 /**
  * タスクグループ1件配下の全タスクの工数を、メンバー別に合計して取得する（工数分布グラフ用）。
+ * タスクID一覧を集めて `.in('task_id', taskIds)` する代わりに、埋め込みフィルタ
+ * （`task:task_id!inner(...)` + `.eq('task.task_group_id', ...)`）で1クエリに統合している
+ * （`src/features/hr-kpi/queries.ts` の `app_role:app_role_id!inner(...)` と同じ手法）。
+ * これによりURL長がタスク件数ではなくクエリ自体の固定長で済み、大量タスクでもスケールする。
  * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
  */
 export async function getWorkLogSummaryByGroup(
   supabase: SupabaseClient<Database>,
   taskGroupId: string
 ): Promise<EmployeeHoursSummary[]> {
-  const { data: taskRows, error: taskError } = await supabase
-    .from('tasks')
-    .select('id')
-    .eq('task_group_id', taskGroupId)
-
-  if (taskError) throw taskError
-
-  const taskIds = (taskRows ?? []).map(t => t.id)
-  if (taskIds.length === 0) return []
-
   const { data, error } = await supabase
     .from('task_work_logs')
-    .select('hours, employee_id, employee:employee_id(name)')
-    .in('task_id', taskIds)
+    .select('hours, employee_id, employee:employee_id(name), task:task_id!inner(task_group_id)')
+    .eq('task.task_group_id', taskGroupId)
 
   if (error) throw error
 
@@ -394,6 +394,13 @@ export async function getWorkLogSummaryByGroup(
 
 /**
  * 目標1件配下の全タスクグループの工数を、タスクグループ別に合計して取得する（工数分布グラフ用）。
+ *
+ * タスクグループ配下のタスクID一覧を収集してから `.in('task_id', taskIds)` する方式は、
+ * マイルストーン・タスクグループ数が多い目標では taskIds 配列が肥大化し、
+ * PostgREST／リバースプロキシのURL長上限に抵触して目標詳細ページ全体がクラッシュしうる。
+ * 埋め込みフィルタ（`task:task_id!inner(task_group_id)` + `.in('task.task_group_id', groupIds)`）
+ * に置き換えることで、配列サイズをタスク件数ではなくタスクグループ件数（はるかに小さい）に抑える
+ * （`src/features/hr-kpi/queries.ts` の `app_role:app_role_id!inner(...)` と同じ手法）。
  * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
  */
 export async function getWorkLogSummaryByObjective(
@@ -421,28 +428,16 @@ export async function getWorkLogSummaryByObjective(
   const groupIds = groupRows!.map(g => g.id)
   const groupNameById = new Map(groupRows!.map(g => [g.id, g.name]))
 
-  const { data: taskRows, error: taskError } = await supabase
-    .from('tasks')
-    .select('id, task_group_id')
-    .in('task_group_id', groupIds)
-
-  if (taskError) throw taskError
-
-  const taskIds = (taskRows ?? []).map(t => t.id)
-  if (taskIds.length === 0) return []
-
-  const groupIdByTaskId = new Map((taskRows ?? []).map(t => [t.id, t.task_group_id]))
-
   const { data: logRows, error: logError } = await supabase
     .from('task_work_logs')
-    .select('hours, task_id')
-    .in('task_id', taskIds)
+    .select('hours, task:task_id!inner(task_group_id)')
+    .in('task.task_group_id', groupIds)
 
   if (logError) throw logError
 
   return aggregateHoursByGroup(
-    (logRows ?? []).map(row => {
-      const groupId = groupIdByTaskId.get(row.task_id)!
+    ((logRows ?? []) as unknown as WorkLogWithTaskGroupRow[]).map(row => {
+      const groupId = row.task.task_group_id
       return {
         taskGroupId: groupId,
         taskGroupName: groupNameById.get(groupId) ?? '（不明なグループ）',

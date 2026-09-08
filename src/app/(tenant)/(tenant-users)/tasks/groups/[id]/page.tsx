@@ -94,7 +94,11 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
       <section className="rounded-lg border border-slate-200 p-3">
         <h2 className="text-xs font-semibold text-slate-900 mb-2">メンバー別工数分布</h2>
         <WorkDistributionChart
-          data={workLogSummary.map(s => ({ label: s.employeeName, hours: s.totalHours }))}
+          data={workLogSummary.map(s => ({
+            id: s.employeeId,
+            label: s.employeeName,
+            hours: s.totalHours,
+          }))}
           emptyMessage="工数記録はまだありません。"
         />
       </section>

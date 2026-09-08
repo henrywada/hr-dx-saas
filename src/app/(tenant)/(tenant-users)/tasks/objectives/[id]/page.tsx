@@ -39,7 +39,11 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
       <section className="rounded-lg border border-slate-200 p-3">
         <h2 className="text-xs font-semibold text-slate-900 mb-2">タスクグループ別工数分布</h2>
         <WorkDistributionChart
-          data={workLogSummary.map(s => ({ label: s.taskGroupName, hours: s.totalHours }))}
+          data={workLogSummary.map(s => ({
+            id: s.taskGroupId,
+            label: s.taskGroupName,
+            hours: s.totalHours,
+          }))}
           emptyMessage="工数記録はまだありません。"
         />
       </section>

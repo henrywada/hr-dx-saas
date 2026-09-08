@@ -6,6 +6,7 @@ import {
   isTaskGroupMember,
   canAssignManager,
   canAssignMember,
+  canLogWork,
 } from './permissions'
 
 test('責任者本人ならtrue', () => {
@@ -37,4 +38,20 @@ test('メンバー割当は責任者かマネージャーなら可能', () => {
   assert.equal(canAssignMember(true, false), true)
   assert.equal(canAssignMember(false, true), true)
   assert.equal(canAssignMember(false, false), false)
+})
+
+test('責任者は工数を記録できる', () => {
+  assert.equal(canLogWork(true, false, false), true)
+})
+
+test('マネージャーは工数を記録できる', () => {
+  assert.equal(canLogWork(false, true, false), true)
+})
+
+test('メンバーは工数を記録できる', () => {
+  assert.equal(canLogWork(false, false, true), true)
+})
+
+test('参加者でなければ工数を記録できない', () => {
+  assert.equal(canLogWork(false, false, false), false)
 })

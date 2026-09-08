@@ -20,3 +20,8 @@ export function canAssignManager(isOwner: boolean): boolean {
 export function canAssignMember(isOwner: boolean, isManager: boolean): boolean {
   return isOwner || isManager
 }
+
+/** 責任者・マネージャー・メンバーのいずれかであれば、自分の工数を記録できる（セクション14.2） */
+export function canLogWork(isOwner: boolean, isManager: boolean, isMember: boolean): boolean {
+  return isOwner || isManager || isMember
+}

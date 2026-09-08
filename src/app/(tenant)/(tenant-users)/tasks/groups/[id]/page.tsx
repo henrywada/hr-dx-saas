@@ -1,16 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import { getTaskGroupBoard, getTenantEmployees } from '@/features/task-management/queries'
+import {
+  getTaskGroupBoard,
+  getTenantEmployees,
+  getWorkLogSummaryByGroup,
+} from '@/features/task-management/queries'
 import { KanbanBoard } from '@/features/task-management/components/KanbanBoard'
 import { TaskForm } from '@/features/task-management/components/TaskForm'
 import { ManagerAssignForm } from '@/features/task-management/components/ManagerAssignForm'
 import { MemberAssignForm } from '@/features/task-management/components/MemberAssignForm'
 import { CommentThread } from '@/features/task-management/components/CommentThread'
+import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import {
   isObjectiveOwner,
   isTaskGroupManager,
+  isTaskGroupMember,
   canAssignManager,
   canAssignMember,
+  canLogWork,
 } from '@/features/task-management/permissions'
 
 export default async function TaskGroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +25,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
   const user = await getServerUser()
   const supabase = await createClient()
   const board = await getTaskGroupBoard(supabase, id)
+  const workLogSummary = await getWorkLogSummaryByGroup(supabase, id)
 
   // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は tasks 等の RLS ポリシーが担う。
   // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は
@@ -28,6 +36,10 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
   const isManager = user?.employee_id
     ? isTaskGroupManager(board.managerEmployeeIds, user.employee_id)
     : false
+  const isMember = user?.employee_id
+    ? isTaskGroupMember(board.memberEmployeeIds, user.employee_id)
+    : false
+  const canMemberLogWork = canLogWork(isOwner, isManager, isMember)
   const canManageMembers = canAssignMember(isOwner, isManager)
   const canOperateAllTasks = isOwner || isManager
 
@@ -57,6 +69,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
         tasks={board.tasks}
         myEmployeeId={user?.employee_id ?? null}
         canOperateAllTasks={canOperateAllTasks}
+        canLogWork={canMemberLogWork}
       />
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -76,6 +89,14 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
             />
           </div>
         )}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="text-xs font-semibold text-slate-900 mb-2">メンバー別工数分布</h2>
+        <WorkDistributionChart
+          data={workLogSummary.map(s => ({ label: s.employeeName, hours: s.totalHours }))}
+          emptyMessage="工数記録はまだありません。"
+        />
       </section>
 
       <section className="rounded-lg border border-slate-200 p-3">

@@ -1,8 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import { getObjectiveDetail } from '@/features/task-management/queries'
+import {
+  getObjectiveDetail,
+  getWorkLogSummaryByObjective,
+} from '@/features/task-management/queries'
 import { MilestoneList } from '@/features/task-management/components/MilestoneList'
 import { MilestoneForm } from '@/features/task-management/components/MilestoneForm'
+import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
 
 export default async function ObjectiveDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +14,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const user = await getServerUser()
   const supabase = await createClient()
   const { objective, milestones, taskGroupsByMilestoneId } = await getObjectiveDetail(supabase, id)
+  const workLogSummary = await getWorkLogSummaryByObjective(supabase, id)
   // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は task_milestones の RLS INSERT ポリシーが担う。
   // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は責任者ではない扱いにする。
   const isOwner = user?.employee_id
@@ -29,6 +34,14 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
           canCreateTaskGroup={isOwner}
         />
         {isOwner && <MilestoneForm objectiveId={objective.id} />}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="text-xs font-semibold text-slate-900 mb-2">タスクグループ別工数分布</h2>
+        <WorkDistributionChart
+          data={workLogSummary.map(s => ({ label: s.taskGroupName, hours: s.totalHours }))}
+          emptyMessage="工数記録はまだありません。"
+        />
       </section>
     </div>
   )

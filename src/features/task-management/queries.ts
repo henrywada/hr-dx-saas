@@ -16,6 +16,15 @@ import {
   type EmployeeHoursSummary,
   type GroupHoursSummary,
 } from './work-log-summary'
+import {
+  buildOrgTreeGraph,
+  layoutOrgTree,
+  ORG_TREE_ROOT_ID,
+  type OrgTreeGroupInput,
+  type OrgTreeEmployeeRef,
+  type OrgTreeTaskRow,
+  type OrgTree,
+} from './org-tree'
 
 /** PostgREST（ローカル・本番とも）のデフォルト1リクエストあたり最大行数。`supabase/config.toml` の `max_rows` と一致させる */
 const POSTGREST_MAX_ROWS = 1000
@@ -599,4 +608,139 @@ export async function getMyObjectivesWithProgress(
     objective,
     progress: progressByObjectiveId[objective.id],
   }))
+}
+
+interface OrgTreeGroupPersonRow {
+  task_group_id: string
+  employee_id: string
+  employee: { name: string | null } | null
+}
+
+/**
+ * 目標（task_objectives）配下の組織ツリー（責任者 → タスクグループ → {マネージャー・メンバー}）を、
+ * 座標計算済みのノード・エッジとして取得する（要求10）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getObjectiveOrgTree(
+  supabase: SupabaseClient<Database>,
+  objectiveId: string
+): Promise<OrgTree> {
+  const { data: objectiveRow, error: objectiveError } = await supabase
+    .from('task_objectives')
+    .select('owner_employee_id')
+    .eq('id', objectiveId)
+    .single()
+
+  if (objectiveError) throw objectiveError
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id')
+    .eq('objective_id', objectiveId)
+
+  if (milestoneError) throw milestoneError
+
+  const milestoneIds = (milestoneRows ?? []).map(m => m.id)
+
+  let groupRows: { id: string; name: string }[] = []
+  if (milestoneIds.length > 0) {
+    const { data, error } = await supabase
+      .from('task_groups')
+      .select('id, name')
+      .in('milestone_id', milestoneIds)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+    groupRows = data ?? []
+  }
+
+  const groupIds = groupRows.map(g => g.id)
+
+  let managerRows: OrgTreeGroupPersonRow[] = []
+  let memberRows: OrgTreeGroupPersonRow[] = []
+  let taskRows: {
+    task_group_id: string
+    assignee_employee_id: string | null
+    progress_percent: number
+  }[] = []
+
+  if (groupIds.length > 0) {
+    const [managerResult, memberResult] = await Promise.all([
+      supabase
+        .from('task_group_managers')
+        .select('task_group_id, employee_id, employee:employee_id(name)')
+        .in('task_group_id', groupIds),
+      supabase
+        .from('task_group_members')
+        .select('task_group_id, employee_id, employee:employee_id(name)')
+        .in('task_group_id', groupIds),
+    ])
+
+    if (managerResult.error) throw managerResult.error
+    if (memberResult.error) throw memberResult.error
+    managerRows = (managerResult.data ?? []) as unknown as OrgTreeGroupPersonRow[]
+    memberRows = (memberResult.data ?? []) as unknown as OrgTreeGroupPersonRow[]
+
+    taskRows = await fetchAllRows(async (from, to) => {
+      const result = await supabase
+        .from('tasks')
+        .select('task_group_id, assignee_employee_id, progress_percent')
+        .in('task_group_id', groupIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: result.data, error: result.error }
+    })
+  }
+
+  // マネージャー・メンバーは埋め込みで氏名を取得済みのため、責任者のみ別途取得する
+  const { data: ownerRow, error: ownerError } = await supabase
+    .from('employees')
+    .select('name')
+    .eq('id', objectiveRow.owner_employee_id)
+    .single()
+
+  if (ownerError) throw ownerError
+
+  const managersByGroupId = new Map<string, OrgTreeEmployeeRef[]>()
+  for (const row of managerRows) {
+    const list = managersByGroupId.get(row.task_group_id) ?? []
+    list.push({ employeeId: row.employee_id, employeeName: row.employee?.name ?? '（名前未設定）' })
+    managersByGroupId.set(row.task_group_id, list)
+  }
+
+  const membersByGroupId = new Map<string, OrgTreeEmployeeRef[]>()
+  for (const row of memberRows) {
+    const list = membersByGroupId.get(row.task_group_id) ?? []
+    list.push({ employeeId: row.employee_id, employeeName: row.employee?.name ?? '（名前未設定）' })
+    membersByGroupId.set(row.task_group_id, list)
+  }
+
+  const sortByName = (a: OrgTreeEmployeeRef, b: OrgTreeEmployeeRef) =>
+    a.employeeName.localeCompare(b.employeeName, 'ja')
+
+  const groups: OrgTreeGroupInput[] = groupRows.map(g => ({
+    taskGroupId: g.id,
+    taskGroupName: g.name,
+    managers: (managersByGroupId.get(g.id) ?? []).sort(sortByName),
+    members: (membersByGroupId.get(g.id) ?? []).sort(sortByName),
+  }))
+
+  const tasks: OrgTreeTaskRow[] = taskRows.map(row => ({
+    taskGroupId: row.task_group_id,
+    assigneeEmployeeId: row.assignee_employee_id,
+    progressPercent: row.progress_percent,
+  }))
+
+  const { nodes, edges } = buildOrgTreeGraph({
+    ownerEmployeeId: objectiveRow.owner_employee_id,
+    ownerEmployeeName: ownerRow.name ?? '（名前未設定）',
+    groups,
+    tasks,
+  })
+
+  return {
+    nodes: layoutOrgTree(nodes, edges, ORG_TREE_ROOT_ID),
+    edges,
+  }
 }

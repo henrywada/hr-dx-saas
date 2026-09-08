@@ -81,6 +81,10 @@ export interface ObjectiveDetail {
   objective: TaskObjective
   milestones: TaskMilestone[]
   taskGroupsByMilestoneId: Record<string, TaskGroup[]>
+  /** マイルストーンID → そのマイルストーン配下全タスクのprogress_percentの単純平均（0-100） */
+  milestoneProgressById: Record<string, number>
+  /** 目標配下全タスクのprogress_percentの単純平均（0-100） */
+  objectiveProgress: number
 }
 
 /**
@@ -129,10 +133,57 @@ export async function getObjectiveDetail(
     }
   }
 
+  // マイルストーン別・目標全体の進捗率を計算する（要求11）。
+  // 全タスクの progress_percent をフラットに平均する（階層ごとの平均のさらに平均は取らない）。
+  const groupIdToMilestoneId = new Map<string, string>()
+  for (const [milestoneId, groups] of Object.entries(taskGroupsByMilestoneId)) {
+    for (const group of groups) {
+      groupIdToMilestoneId.set(group.id, milestoneId)
+    }
+  }
+
+  const allGroupIds = Array.from(groupIdToMilestoneId.keys())
+  const milestoneProgressById: Record<string, number> = {}
+  let objectiveProgress = 0
+
+  if (allGroupIds.length > 0) {
+    const { data: taskRows, error: taskError } = await supabase
+      .from('tasks')
+      .select('progress_percent, task_group_id')
+      .in('task_group_id', allGroupIds)
+
+    if (taskError) throw taskError
+
+    const progressByMilestoneId: Record<string, number[]> = {}
+    const allProgress: number[] = []
+
+    for (const row of taskRows ?? []) {
+      const milestoneId = groupIdToMilestoneId.get(row.task_group_id)
+      if (!milestoneId) continue
+      progressByMilestoneId[milestoneId] ??= []
+      progressByMilestoneId[milestoneId].push(row.progress_percent)
+      allProgress.push(row.progress_percent)
+    }
+
+    for (const milestoneId of milestoneIds) {
+      milestoneProgressById[milestoneId] = calculateAverageProgress(
+        progressByMilestoneId[milestoneId] ?? []
+      )
+    }
+
+    objectiveProgress = calculateAverageProgress(allProgress)
+  } else {
+    for (const milestoneId of milestoneIds) {
+      milestoneProgressById[milestoneId] = 0
+    }
+  }
+
   return {
     objective: mapObjective(objectiveRow),
     milestones,
     taskGroupsByMilestoneId,
+    milestoneProgressById,
+    objectiveProgress,
   }
 }
 
@@ -445,4 +496,69 @@ export async function getWorkLogSummaryByObjective(
       }
     })
   )
+}
+
+export interface ObjectiveWithProgress {
+  objective: TaskObjective
+  progress: number
+}
+
+/** `task_group:task_group_id!inner(milestone_id)` 埋め込みフィルタで返る行の型 */
+interface TaskWithMilestoneRow {
+  progress_percent: number
+  task_group: { milestone_id: string }
+}
+
+/**
+ * 自分が閲覧可能な目標一覧を、それぞれの進捗率（配下全タスクのprogress_percentの単純平均）付きで取得する（要求11）。
+ *
+ * 目標ごとに個別クエリを発行するとN+1になるため、可視な全目標→全マイルストーン→
+ * （埋め込みフィルタで）全タスクの3クエリに抑える。タスクグループIDの配列を経由せず
+ * `task_group:task_group_id!inner(milestone_id)` + `.in('task_group.milestone_id', milestoneIds)`
+ * で直接タスクグループを介したフィルタを掛けることで、`.in()` に渡す配列サイズを
+ * 目標配下のタスクグループ総数ではなくマイルストーン総数に抑える
+ * （`getWorkLogSummaryByObjective` と同じ設計意図。詳細はそちらのコメント参照）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getMyObjectivesWithProgress(
+  supabase: SupabaseClient<Database>
+): Promise<ObjectiveWithProgress[]> {
+  const objectives = await getMyObjectives(supabase)
+  if (objectives.length === 0) return []
+
+  const objectiveIds = objectives.map(o => o.id)
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id, objective_id')
+    .in('objective_id', objectiveIds)
+
+  if (milestoneError) throw milestoneError
+
+  const objectiveIdByMilestoneId = new Map((milestoneRows ?? []).map(m => [m.id, m.objective_id]))
+  const milestoneIds = Array.from(objectiveIdByMilestoneId.keys())
+
+  const progressByObjectiveId = new Map<string, number[]>()
+
+  if (milestoneIds.length > 0) {
+    const { data: taskRows, error: taskError } = await supabase
+      .from('tasks')
+      .select('progress_percent, task_group:task_group_id!inner(milestone_id)')
+      .in('task_group.milestone_id', milestoneIds)
+
+    if (taskError) throw taskError
+
+    for (const row of (taskRows ?? []) as unknown as TaskWithMilestoneRow[]) {
+      const objectiveId = objectiveIdByMilestoneId.get(row.task_group.milestone_id)
+      if (!objectiveId) continue
+      const list = progressByObjectiveId.get(objectiveId) ?? []
+      list.push(row.progress_percent)
+      progressByObjectiveId.set(objectiveId, list)
+    }
+  }
+
+  return objectives.map(objective => ({
+    objective,
+    progress: calculateAverageProgress(progressByObjectiveId.get(objective.id) ?? []),
+  }))
 }

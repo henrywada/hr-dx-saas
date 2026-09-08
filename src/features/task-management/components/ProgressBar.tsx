@@ -16,7 +16,10 @@ export function ProgressBar({ progress }: ProgressBarProps) {
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="h-1.5 rounded-full bg-[#FD7601]" style={{ width: `${clamped}%` }} />
+        <div
+          className="h-1.5 rounded-full bg-[#FD7601] transition-[width] duration-(--duration-normal) ease-(--ease-out-quart)"
+          style={{ width: `${clamped}%` }}
+        />
       </div>
       <span className="w-8 shrink-0 text-right text-[10px] text-slate-500">{clamped}%</span>
     </div>

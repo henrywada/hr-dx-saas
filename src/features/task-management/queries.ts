@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type {
   TaskObjective,
@@ -9,13 +9,48 @@ import type {
   TaskWorkLog,
 } from './types'
 import type { EmployeeOption } from './employee-filter'
-import { calculateAverageProgress } from './progress'
+import { calculateAverageProgress, groupProgressByParent } from './progress'
 import {
   aggregateHoursByEmployee,
   aggregateHoursByGroup,
   type EmployeeHoursSummary,
   type GroupHoursSummary,
 } from './work-log-summary'
+
+/** PostgREST（ローカル・本番とも）のデフォルト1リクエストあたり最大行数。`supabase/config.toml` の `max_rows` と一致させる */
+const POSTGREST_MAX_ROWS = 1000
+
+/**
+ * PostgRESTの1000行上限（{@link POSTGREST_MAX_ROWS}）を超える結果セットを、
+ * `.range()` によるページネーションで全件取得するヘルパー。
+ *
+ * `.range()` によるページ分割は行の並び順が安定していないと正しく全件を
+ * 網羅できない（同じ行が複数ページに重複したり、逆に漏れたりしうる）ため、
+ * `fetchPage` 側で必ず決定的な `.order()`（例：`.order('id')`）を指定すること。
+ */
+async function fetchAllRows<T>(
+  fetchPage: (
+    from: number,
+    to: number
+  ) => Promise<{ data: T[] | null; error: PostgrestError | null }>
+): Promise<T[]> {
+  const allRows: T[] = []
+  let from = 0
+
+  for (;;) {
+    const to = from + POSTGREST_MAX_ROWS - 1
+    const { data, error } = await fetchPage(from, to)
+    if (error) throw error
+
+    const rows = data ?? []
+    allRows.push(...rows)
+
+    if (rows.length < POSTGREST_MAX_ROWS) break
+    from += POSTGREST_MAX_ROWS
+  }
+
+  return allRows
+}
 
 /** DB行（snake_case）を TaskObjective（camelCase）に変換する */
 function mapObjective(row: Database['public']['Tables']['task_objectives']['Row']): TaskObjective {
@@ -147,30 +182,27 @@ export async function getObjectiveDetail(
   let objectiveProgress = 0
 
   if (allGroupIds.length > 0) {
-    const { data: taskRows, error: taskError } = await supabase
-      .from('tasks')
-      .select('progress_percent, task_group_id')
-      .in('task_group_id', allGroupIds)
+    const taskRows = await fetchAllRows(async (from, to) => {
+      const result = await supabase
+        .from('tasks')
+        .select('progress_percent, task_group_id')
+        .in('task_group_id', allGroupIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: result.data, error: result.error }
+    })
 
-    if (taskError) throw taskError
-
-    const progressByMilestoneId: Record<string, number[]> = {}
+    const progressRows: { value: number; parentId: string }[] = []
     const allProgress: number[] = []
 
-    for (const row of taskRows ?? []) {
+    for (const row of taskRows) {
       const milestoneId = groupIdToMilestoneId.get(row.task_group_id)
       if (!milestoneId) continue
-      progressByMilestoneId[milestoneId] ??= []
-      progressByMilestoneId[milestoneId].push(row.progress_percent)
+      progressRows.push({ value: row.progress_percent, parentId: milestoneId })
       allProgress.push(row.progress_percent)
     }
 
-    for (const milestoneId of milestoneIds) {
-      milestoneProgressById[milestoneId] = calculateAverageProgress(
-        progressByMilestoneId[milestoneId] ?? []
-      )
-    }
-
+    Object.assign(milestoneProgressById, groupProgressByParent(progressRows, milestoneIds))
     objectiveProgress = calculateAverageProgress(allProgress)
   } else {
     for (const milestoneId of milestoneIds) {
@@ -538,27 +570,33 @@ export async function getMyObjectivesWithProgress(
   const objectiveIdByMilestoneId = new Map((milestoneRows ?? []).map(m => [m.id, m.objective_id]))
   const milestoneIds = Array.from(objectiveIdByMilestoneId.keys())
 
-  const progressByObjectiveId = new Map<string, number[]>()
+  const progressRows: { value: number; parentId: string }[] = []
 
   if (milestoneIds.length > 0) {
-    const { data: taskRows, error: taskError } = await supabase
-      .from('tasks')
-      .select('progress_percent, task_group:task_group_id!inner(milestone_id)')
-      .in('task_group.milestone_id', milestoneIds)
+    const taskRows = await fetchAllRows(async (from, to) => {
+      const result = await supabase
+        .from('tasks')
+        .select('progress_percent, task_group:task_group_id!inner(milestone_id)')
+        .in('task_group.milestone_id', milestoneIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: result.data as unknown as TaskWithMilestoneRow[] | null, error: result.error }
+    })
 
-    if (taskError) throw taskError
-
-    for (const row of (taskRows ?? []) as unknown as TaskWithMilestoneRow[]) {
+    for (const row of taskRows) {
       const objectiveId = objectiveIdByMilestoneId.get(row.task_group.milestone_id)
       if (!objectiveId) continue
-      const list = progressByObjectiveId.get(objectiveId) ?? []
-      list.push(row.progress_percent)
-      progressByObjectiveId.set(objectiveId, list)
+      progressRows.push({ value: row.progress_percent, parentId: objectiveId })
     }
   }
 
+  const progressByObjectiveId = groupProgressByParent(
+    progressRows,
+    objectives.map(o => o.id)
+  )
+
   return objectives.map(objective => ({
     objective,
-    progress: calculateAverageProgress(progressByObjectiveId.get(objective.id) ?? []),
+    progress: progressByObjectiveId[objective.id],
   }))
 }

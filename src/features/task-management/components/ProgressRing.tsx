@@ -14,7 +14,14 @@ export function ProgressRing({ progress, size = 56 }: ProgressRingProps) {
   const offset = circumference * (1 - clamped / 100)
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="shrink-0"
+      role="img"
+      aria-label={`進捗率 ${clamped}%`}
+    >
       <circle
         cx={size / 2}
         cy={size / 2}

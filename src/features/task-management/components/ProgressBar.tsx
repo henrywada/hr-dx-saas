@@ -9,7 +9,13 @@ export function ProgressBar({ progress }: ProgressBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 rounded-full bg-slate-200">
+      <div
+        className="h-1.5 flex-1 rounded-full bg-slate-200"
+        role="progressbar"
+        aria-valuenow={clamped}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div className="h-1.5 rounded-full bg-[#FD7601]" style={{ width: `${clamped}%` }} />
       </div>
       <span className="w-8 shrink-0 text-right text-[10px] text-slate-500">{clamped}%</span>

@@ -170,7 +170,7 @@ src/features/task-management/
 | ------- | ------------------------------------------------ | --------------------------------- |
 | Phase 1 | 組織化・割当・進捗・カンバン可視化               | 完了（公開済み）                  |
 | Phase 2 | 工数入力・工数分布・コメントスレッド             | 実装完了（デプロイ・E2E検証待ち） |
-| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 未着手                            |
+| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 一部着手（進捗サマリ実装中）      |
 
 ## 13. Phase 2 詳細設計（コメントスレッド機能）
 
@@ -260,3 +260,41 @@ RLS は `task_comments` 自身への自己参照を作らない設計とする�
 | 7   | 手動 E2E 確認                                             | 完了 |
 
 **手動E2E確認（#7）の「完了」の中身について**：ローカルDBに `tasks`/`task_group_members`/`task_work_logs` のフィクスチャデータが無く、かつ検証実施時のサンドボックス環境でPlaywrightのブラウザ（Chrome実行ファイル）が起動できなかったため、ブラウザを実際に操作するライブE2E確認は実施できていない。ここでの「完了」の根拠は、Task 1〜7それぞれの独立したタスクレビューでCritical/Important指摘がゼロだったこと、および `isOwnLog` ロジック（`WorkLogSection.tsx`）・`task_work_logs` のRLSポリシー（`can_log_work_on_task` 等）を実装コードと突き合わせて確認したこと、`permissions.test.ts` の既存テストケース（責任者/マネージャー/メンバーの記録可否、非参加者の拒否）がすべてPASSしていることの3点である。ライブブラウザでの動作確認は、フィクスチャデータとブラウザが利用可能な環境で後日改めて実施することが望ましい。
+
+## 15. Phase 3 詳細設計（進捗サマリ）
+
+Phase 3（組織ツリー可視化・進捗サマリ・ダッシュボードフィード連携・状態変化アニメーションの4項目）は互いに独立したサブ機能に分解し、まず進捗サマリ（要求11）から着手する。
+
+### 15.1 スコープ
+
+- 目標一覧ページ（`/tasks`）の各目標カードに、目標配下全タスクの進捗率（%）を円形の進捗リング（`ProgressRing`）で表示する
+- 目標詳細ページ（`/tasks/objectives/[id]`）のヘッダーにも同じ`ProgressRing`を表示し、各マイルストーン行には横長の進捗バー（`ProgressBar`）でマイルストーン単位の進捗率を表示する
+- 新規テーブル・マイグレーションは無い。既存の `tasks.progress_percent` を集計するのみ
+
+### 15.2 集計方式
+
+- 目標単位・マイルストーン単位いずれも、配下の全タスクの `progress_percent` をフラットに平均する（既存のタスクグループ単位の平均計算 `calculateAverageProgress`（`progress.ts`）と同じ考え方——マイルストーン間・グループ間でタスク数に偏りがあっても、階層ごとに平均のさらに平均を取る「重み付け」はしない。全タスクを同じ重みで扱う）
+- `calculateAverageProgress` はそのまま再利用し、新規の集計用純粋関数は追加しない
+
+### 15.3 データ取得方式
+
+- **目標一覧ページ**：N+1回避のため、`getMyObjectives` が返す目標一覧に対して個別にクエリを発行しない。新設する `getMyObjectivesWithProgress(supabase)` で、可視な全目標→全マイルストーン→全タスクグループ→全タスクを一括取得し、JS側で `objective_id` ごとに `progress_percent` をグループ化して `calculateAverageProgress` にかける（`getObjectiveDetail` が採用している「複数テーブルを段階的に一括取得してJSで組み立てる」既存パターンを踏襲する）
+- **目標詳細ページ**：既存の `getObjectiveDetail` の戻り値に、目標全体の進捗率とマイルストーンID単位の進捗率マップ（`milestoneProgressById: Record<string, number>`）を追加する。この関数は既にマイルストーン→タスクグループの一括取得を行っているため、タスク一覧の取得を追加するだけで済む
+
+### 15.4 画面構成の追加
+
+- **`ProgressRing`**（新規、`src/features/task-management/components/ProgressRing.tsx`）：SVGの`<circle>`を2枚重ね、`stroke-dashoffset`で進捗率を表現する円形リング。中央に「XX%」のテキストを表示。Rechartsには依存せず自作する（円形リング単体の表現にRechartsを使うのはオーバースペックであり、この機能はバーチャート用途中心の既存Recharts利用箇所とは性質が異なるため）。ブランドカラー（`#FD7601`）をリングの色に使う
+- **`ProgressBar`**（新規、`src/features/task-management/components/ProgressBar.tsx`）：横長の`<div>`2枚重ねによるシンプルな進捗バー。ブランドカラーを使う
+- **`ObjectiveCard`**：`ProgressRing`を追加表示（目標全体の進捗率）
+- **目標詳細ページ（`objectives/[id]/page.tsx`）**：見出し部分に`ProgressRing`（目標全体）を追加
+- **`MilestoneList`**：各マイルストーン行に`ProgressBar`（そのマイルストーンの進捗率）を追加
+
+### 15.5 実装ステータス（サブタスク単位）
+
+| #   | 内容                                                                  | 状態   |
+| --- | --------------------------------------------------------------------- | ------ |
+| 1   | `ProgressRing`/`ProgressBar` コンポーネント                           | 未着手 |
+| 2   | `queries.ts`：`getMyObjectivesWithProgress`・`getObjectiveDetail`拡張 | 未着手 |
+| 3   | `ObjectiveCard`・目標一覧ページへの組み込み                           | 未着手 |
+| 4   | 目標詳細ページ・`MilestoneList`への組み込み                           | 未着手 |
+| 5   | 手動 E2E 確認                                                         | 未着手 |

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, Mail, Lock, Zap, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Mail, Lock, Zap, ArrowRight, LogIn } from 'lucide-react'
 import { signInAction } from '@/lib/auth/actions'
 
 export default function LoginPage() {
@@ -46,7 +46,10 @@ export default function LoginPage() {
     <div className="space-y-8">
       {/* ヘッダー */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">ログイン</h1>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <LogIn className="h-6 w-6 shrink-0" aria-hidden />
+          ログイン
+        </h1>
         <p className="mt-2 text-sm text-slate-500">
           システムをご利用いただくにはアカウント情報が必要です。
         </p>
@@ -125,7 +128,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-
         {/* ログインボタン */}
         <button
           type="submit"
@@ -157,7 +159,6 @@ export default function LoginPage() {
           共有端末でのご利用後は必ずログアウトしてください。パスワードを忘れた場合は「パスワードをお忘れですか？」から再設定できます。
         </p>
       </div>
-
     </div>
   )
 }

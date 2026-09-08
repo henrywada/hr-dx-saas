@@ -10561,6 +10561,64 @@ export type Database = {
           },
         ]
       }
+      task_work_logs: {
+        Row: {
+          created_at: string
+          employee_id: string
+          hours: number
+          id: string
+          note: string | null
+          task_id: string
+          tenant_id: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          hours: number
+          id?: string
+          note?: string | null
+          task_id: string
+          tenant_id: string
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          note?: string | null
+          task_id?: string
+          tenant_id?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_work_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_work_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_employee_id: string | null
@@ -12288,6 +12346,11 @@ export type Database = {
       can_comment_on_task: { Args: { p_task_id: string }; Returns: boolean }
       can_comment_on_task_group: {
         Args: { p_task_group_id: string }
+        Returns: boolean
+      }
+      can_log_work_on_task: { Args: { p_task_id: string }; Returns: boolean }
+      can_moderate_task_comment: {
+        Args: { p_task_id: string }
         Returns: boolean
       }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }

@@ -8,7 +8,13 @@ import {
   createCommentSchema,
   updateCommentSchema,
   deleteCommentSchema,
+  createWorkLogSchema,
+  updateWorkLogSchema,
+  deleteWorkLogSchema,
+  getTaskWorkLogsTargetSchema,
 } from './types'
+
+const VALID_UUID = '11111111-1111-4111-8111-111111111111'
 
 test('目標作成: titleのみで成功する', () => {
   const result = createObjectiveSchema.safeParse({ title: '2026年下期の採用強化' })
@@ -152,4 +158,152 @@ test('コメント更新: bodyが空文字は拒否される', () => {
 test('コメント削除: commentIdがUUID形式でなければ拒否される', () => {
   const result = deleteCommentSchema.safeParse({ commentId: 'not-a-uuid' })
   assert.equal(result.success, false)
+})
+
+test('工数記録作成: hoursが0は拒否される（positive制約）', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 0,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録作成: hoursが負の値は拒否される', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: -1,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録作成: hoursが妥当な中間値なら成功する', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 7.5,
+  })
+  assert.equal(result.success, true)
+})
+
+test('工数記録作成: hoursがちょうど24なら成功する', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 24,
+  })
+  assert.equal(result.success, true)
+})
+
+test('工数記録作成: hoursが24.5はmax(24)を超えるため拒否される', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 24.5,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録作成: workDateがYYYY-MM-DD形式でなければ拒否される', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026/09/07',
+    hours: 1,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録作成: noteが1000文字を超えると拒否される', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 1,
+    note: 'a'.repeat(1001),
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録作成: noteがちょうど1000文字なら成功する', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 1,
+    note: 'a'.repeat(1000),
+  })
+  assert.equal(result.success, true)
+})
+
+test('工数記録作成: noteは省略可能', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 1,
+  })
+  assert.equal(result.success, true)
+})
+
+test('工数記録作成: taskIdがUUID形式でなければ拒否される', () => {
+  const result = createWorkLogSchema.safeParse({
+    taskId: 'not-a-uuid',
+    workDate: '2026-09-07',
+    hours: 1,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録更新: hoursが0は拒否される（positive制約）', () => {
+  const result = updateWorkLogSchema.safeParse({
+    workLogId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 0,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録更新: hoursが妥当な中間値なら成功する', () => {
+  const result = updateWorkLogSchema.safeParse({
+    workLogId: VALID_UUID,
+    workDate: '2026-09-07',
+    hours: 3,
+  })
+  assert.equal(result.success, true)
+})
+
+test('工数記録更新: workDateがYYYY-MM-DD形式でなければ拒否される', () => {
+  const result = updateWorkLogSchema.safeParse({
+    workLogId: VALID_UUID,
+    workDate: '07-09-2026',
+    hours: 1,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録更新: workLogIdがUUID形式でなければ拒否される', () => {
+  const result = updateWorkLogSchema.safeParse({
+    workLogId: 'not-a-uuid',
+    workDate: '2026-09-07',
+    hours: 1,
+  })
+  assert.equal(result.success, false)
+})
+
+test('工数記録削除: workLogIdがUUID形式でなければ拒否される', () => {
+  const result = deleteWorkLogSchema.safeParse({ workLogId: 'not-a-uuid' })
+  assert.equal(result.success, false)
+})
+
+test('工数記録削除: workLogIdがUUID形式なら成功する', () => {
+  const result = deleteWorkLogSchema.safeParse({ workLogId: VALID_UUID })
+  assert.equal(result.success, true)
+})
+
+test('工数記録一覧取得: taskIdがUUID形式でなければ拒否される', () => {
+  const result = getTaskWorkLogsTargetSchema.safeParse({ taskId: 'not-a-uuid' })
+  assert.equal(result.success, false)
+})
+
+test('工数記録一覧取得: taskIdがUUID形式なら成功する', () => {
+  const result = getTaskWorkLogsTargetSchema.safeParse({ taskId: VALID_UUID })
+  assert.equal(result.success, true)
 })

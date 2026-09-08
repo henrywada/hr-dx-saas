@@ -6,7 +6,9 @@ export type TaskStatus = (typeof TASK_STATUSES)[number]
 export const TASK_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
-const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日付はYYYY-MM-DD形式で指定する')
+export const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, '日付はYYYY-MM-DD形式で指定する')
 
 export const createObjectiveSchema = z.object({
   title: z.string().min(1).max(200),
@@ -163,6 +165,46 @@ export interface TaskComment {
   parentCommentId: string | null
   commentType: CommentType
   body: string
+  createdAt: string
+  updatedAt: string
+}
+
+export const createWorkLogSchema = z.object({
+  taskId: z.string().uuid(),
+  workDate: dateStringSchema,
+  hours: z.number().positive().max(24),
+  note: z.string().max(1000).optional(),
+})
+export type CreateWorkLogInput = z.infer<typeof createWorkLogSchema>
+
+export const updateWorkLogSchema = z.object({
+  workLogId: z.string().uuid(),
+  workDate: dateStringSchema,
+  hours: z.number().positive().max(24),
+  note: z.string().max(1000).optional(),
+})
+export type UpdateWorkLogInput = z.infer<typeof updateWorkLogSchema>
+
+export const deleteWorkLogSchema = z.object({
+  workLogId: z.string().uuid(),
+})
+export type DeleteWorkLogInput = z.infer<typeof deleteWorkLogSchema>
+
+export const getTaskWorkLogsTargetSchema = z.object({
+  taskId: z.string().uuid(),
+})
+export type GetTaskWorkLogsTarget = z.infer<typeof getTaskWorkLogsTargetSchema>
+
+export interface TaskWorkLog {
+  id: string
+  tenantId: string
+  taskId: string
+  employeeId: string
+  /** 記録者の氏名（employees.name が null の場合のフォールバック済み） */
+  employeeName: string
+  workDate: string
+  hours: number
+  note: string | null
   createdAt: string
   updatedAt: string
 }

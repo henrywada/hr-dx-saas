@@ -19,6 +19,8 @@ interface KanbanBoardProps {
   myEmployeeId: string | null
   /** 閲覧者がこのタスクグループの責任者またはマネージャーか（全タスクを操作可能） */
   canOperateAllTasks: boolean
+  /** 閲覧者が自分の工数を記録できるか（責任者/マネージャー/メンバーのいずれか） */
+  canLogWork: boolean
 }
 
 /**
@@ -30,7 +32,12 @@ interface KanbanBoardProps {
  * KanbanBoard はどのタスクがどのステータス列に属するかに関わらず存在し続ける
  * ため、ここに状態を置けばステータス変更後も生存する。
  */
-export function KanbanBoard({ tasks, myEmployeeId, canOperateAllTasks }: KanbanBoardProps) {
+export function KanbanBoard({
+  tasks,
+  myEmployeeId,
+  canOperateAllTasks,
+  canLogWork,
+}: KanbanBoardProps) {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const openTask = openTaskId ? (tasks.find(t => t.id === openTaskId) ?? null) : null
   const canOperateOpenTask = openTask
@@ -59,6 +66,7 @@ export function KanbanBoard({ tasks, myEmployeeId, canOperateAllTasks }: KanbanB
           canOperate={canOperateOpenTask}
           currentEmployeeId={myEmployeeId}
           canModerateComments={canOperateAllTasks}
+          canLogWork={canLogWork}
         />
       )}
     </div>

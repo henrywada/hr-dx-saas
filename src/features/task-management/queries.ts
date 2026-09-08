@@ -1,8 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import type { TaskObjective, TaskMilestone, TaskGroup, Task, TaskComment } from './types'
+import type {
+  TaskObjective,
+  TaskMilestone,
+  TaskGroup,
+  Task,
+  TaskComment,
+  TaskWorkLog,
+} from './types'
 import type { EmployeeOption } from './employee-filter'
 import { calculateAverageProgress } from './progress'
+import {
+  aggregateHoursByEmployee,
+  aggregateHoursByGroup,
+  type EmployeeHoursSummary,
+  type GroupHoursSummary,
+} from './work-log-summary'
 
 /** DB行（snake_case）を TaskObjective（camelCase）に変換する */
 function mapObjective(row: Database['public']['Tables']['task_objectives']['Row']): TaskObjective {
@@ -303,4 +316,133 @@ export async function getTaskComments(
   if (error) throw error
 
   return (data ?? []).map(mapComment)
+}
+
+/** DB行（snake_case、employees とのJOIN込み）を TaskWorkLog（camelCase）に変換する */
+function mapWorkLog(
+  row: Database['public']['Tables']['task_work_logs']['Row'] & {
+    employee: { name: string | null } | null
+  }
+): TaskWorkLog {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    taskId: row.task_id,
+    employeeId: row.employee_id,
+    employeeName: row.employee?.name ?? '（名前未設定）',
+    workDate: row.work_date,
+    hours: Number(row.hours),
+    note: row.note,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
+ * タスク1件に紐づく工数記録一覧を作業日の降順で取得する（タスク詳細モーダル用）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getTaskWorkLogs(
+  supabase: SupabaseClient<Database>,
+  taskId: string
+): Promise<TaskWorkLog[]> {
+  const { data, error } = await supabase
+    .from('task_work_logs')
+    .select('*, employee:employee_id(name)')
+    .eq('task_id', taskId)
+    .order('work_date', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? []).map(mapWorkLog)
+}
+
+/** `task:task_id!inner(task_group_id)` 埋め込みフィルタで返る行の型（tasksとのFK関係は多対一のため単一オブジェクト） */
+interface WorkLogWithTaskGroupRow {
+  hours: number
+  task: { task_group_id: string }
+}
+
+/**
+ * タスクグループ1件配下の全タスクの工数を、メンバー別に合計して取得する（工数分布グラフ用）。
+ * タスクID一覧を集めて `.in('task_id', taskIds)` する代わりに、埋め込みフィルタ
+ * （`task:task_id!inner(...)` + `.eq('task.task_group_id', ...)`）で1クエリに統合している
+ * （`src/features/hr-kpi/queries.ts` の `app_role:app_role_id!inner(...)` と同じ手法）。
+ * これによりURL長がタスク件数ではなくクエリ自体の固定長で済み、大量タスクでもスケールする。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getWorkLogSummaryByGroup(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<EmployeeHoursSummary[]> {
+  const { data, error } = await supabase
+    .from('task_work_logs')
+    .select('hours, employee_id, employee:employee_id(name), task:task_id!inner(task_group_id)')
+    .eq('task.task_group_id', taskGroupId)
+
+  if (error) throw error
+
+  return aggregateHoursByEmployee(
+    (data ?? []).map(row => ({
+      employeeId: row.employee_id,
+      employeeName: row.employee?.name ?? '（名前未設定）',
+      hours: Number(row.hours),
+    }))
+  )
+}
+
+/**
+ * 目標1件配下の全タスクグループの工数を、タスクグループ別に合計して取得する（工数分布グラフ用）。
+ *
+ * タスクグループ配下のタスクID一覧を収集してから `.in('task_id', taskIds)` する方式は、
+ * マイルストーン・タスクグループ数が多い目標では taskIds 配列が肥大化し、
+ * PostgREST／リバースプロキシのURL長上限に抵触して目標詳細ページ全体がクラッシュしうる。
+ * 埋め込みフィルタ（`task:task_id!inner(task_group_id)` + `.in('task.task_group_id', groupIds)`）
+ * に置き換えることで、配列サイズをタスク件数ではなくタスクグループ件数（はるかに小さい）に抑える
+ * （`src/features/hr-kpi/queries.ts` の `app_role:app_role_id!inner(...)` と同じ手法）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getWorkLogSummaryByObjective(
+  supabase: SupabaseClient<Database>,
+  objectiveId: string
+): Promise<GroupHoursSummary[]> {
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id')
+    .eq('objective_id', objectiveId)
+
+  if (milestoneError) throw milestoneError
+
+  const milestoneIds = (milestoneRows ?? []).map(m => m.id)
+  if (milestoneIds.length === 0) return []
+
+  const { data: groupRows, error: groupError } = await supabase
+    .from('task_groups')
+    .select('id, name')
+    .in('milestone_id', milestoneIds)
+
+  if (groupError) throw groupError
+  if ((groupRows ?? []).length === 0) return []
+
+  const groupIds = groupRows!.map(g => g.id)
+  const groupNameById = new Map(groupRows!.map(g => [g.id, g.name]))
+
+  const { data: logRows, error: logError } = await supabase
+    .from('task_work_logs')
+    .select('hours, task:task_id!inner(task_group_id)')
+    .in('task.task_group_id', groupIds)
+
+  if (logError) throw logError
+
+  return aggregateHoursByGroup(
+    ((logRows ?? []) as unknown as WorkLogWithTaskGroupRow[]).map(row => {
+      const groupId = row.task.task_group_id
+      return {
+        taskGroupId: groupId,
+        taskGroupName: groupNameById.get(groupId) ?? '（不明なグループ）',
+        hours: Number(row.hours),
+      }
+    })
+  )
 }

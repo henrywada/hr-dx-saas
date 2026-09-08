@@ -31,8 +31,16 @@ import {
   type DeleteCommentInput,
   getTaskCommentsTargetSchema,
   type TaskComment,
+  createWorkLogSchema,
+  type CreateWorkLogInput,
+  updateWorkLogSchema,
+  type UpdateWorkLogInput,
+  deleteWorkLogSchema,
+  type DeleteWorkLogInput,
+  getTaskWorkLogsTargetSchema,
+  type TaskWorkLog,
 } from './types'
-import { getTaskComments } from './queries'
+import { getTaskComments, getTaskWorkLogs } from './queries'
 
 /**
  * 目標（task_objectives）を新規作成する。
@@ -514,4 +522,157 @@ export async function getTaskCommentsAction(
   const parsed = getTaskCommentsTargetSchema.parse(target)
   const supabase = await createClient()
   return getTaskComments(supabase, parsed)
+}
+
+/**
+ * 工数記録（task_work_logs）を新規作成する。
+ *
+ * 注意: AppUser.tenant_id / employee_id は共に optional のため早期に弾く。
+ * 記録可否（対象タスクへの記録権限）は RLS の INSERT ポリシーが強制する
+ * （`can_log_work_on_task`）。revalidatePath 用に対象タスクの task_group_id を先に引く。
+ */
+export async function createWorkLog(input: CreateWorkLogInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id || !user.employee_id) {
+    throw new Error('テナントまたは従業員情報が取得できませんでした')
+  }
+
+  const parsed = createWorkLogSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', parsed.taskId)
+    .single()
+
+  if (taskError) throw taskError
+
+  const { data, error } = await supabase
+    .from('task_work_logs')
+    .insert({
+      tenant_id: user.tenant_id,
+      task_id: parsed.taskId,
+      employee_id: user.employee_id,
+      work_date: parsed.workDate,
+      hours: parsed.hours,
+      note: parsed.note ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+
+  return { id: data.id }
+}
+
+/**
+ * 工数記録（task_work_logs）を更新する（作業日・時間・メモのみ）。
+ *
+ * カラム制限: `.update()` には `work_date`/`hours`/`note`/`updated_at` のみを渡す
+ * （`task_id`/`employee_id` は変更させない）。
+ * 更新可否（投稿者本人のみ）は RLS の UPDATE ポリシーが強制する。
+ * 0件更新時はエラーを投げる（`updateTaskStatus` と同じパターン）。
+ */
+export async function updateWorkLog(input: UpdateWorkLogInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateWorkLogSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: log, error: fetchError } = await supabase
+    .from('task_work_logs')
+    .select('task_id')
+    .eq('id', parsed.workLogId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', log.task_id)
+    .single()
+
+  if (taskError) throw taskError
+
+  const { data, error } = await supabase
+    .from('task_work_logs')
+    .update({
+      work_date: parsed.workDate,
+      hours: parsed.hours,
+      note: parsed.note ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.workLogId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('この工数記録を編集する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * 工数記録（task_work_logs）を削除する。
+ * 削除可否（投稿者本人のみ）は RLS の DELETE ポリシーが強制する。
+ * 0件削除時はエラーを投げる。
+ */
+export async function deleteWorkLog(input: DeleteWorkLogInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = deleteWorkLogSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: log, error: fetchError } = await supabase
+    .from('task_work_logs')
+    .select('task_id')
+    .eq('id', parsed.workLogId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', log.task_id)
+    .single()
+
+  if (taskError) throw taskError
+
+  const { data, error } = await supabase
+    .from('task_work_logs')
+    .delete()
+    .eq('id', parsed.workLogId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('この工数記録を削除する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスク1件の工数記録一覧を取得する読み取り専用 Server Action。
+ * タスク詳細モーダルが開いたタイミングで動的に取得する必要があり、
+ * Client Component が呼べるのは Server Action のみのため、薄いラッパーとして置く
+ * （`docs/implementation-plan-task-management.md` セクション14.4。コメントの
+ * `getTaskCommentsAction` と同じ意図的逸脱）。
+ */
+export async function getTaskWorkLogsAction(target: { taskId: string }): Promise<TaskWorkLog[]> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = getTaskWorkLogsTargetSchema.parse(target)
+  const supabase = await createClient()
+  return getTaskWorkLogs(supabase, parsed.taskId)
 }

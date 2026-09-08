@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getMyObjectives } from '@/features/task-management/queries'
+import { getMyObjectivesWithProgress } from '@/features/task-management/queries'
 import { ObjectiveCard } from '@/features/task-management/components/ObjectiveCard'
 import { APP_ROUTES } from '@/config/routes'
 
 export default async function TasksPage() {
   const supabase = await createClient()
-  const objectives = await getMyObjectives(supabase)
+  const objectivesWithProgress = await getMyObjectivesWithProgress(supabase)
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-5 mx-auto max-w-[1200px]">
@@ -19,12 +19,12 @@ export default async function TasksPage() {
           新しい目標を作成
         </Link>
       </div>
-      {objectives.length === 0 ? (
+      {objectivesWithProgress.length === 0 ? (
         <p className="text-xs text-slate-500">関与している目標がまだありません。</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {objectives.map(objective => (
-            <ObjectiveCard key={objective.id} objective={objective} />
+          {objectivesWithProgress.map(({ objective, progress }) => (
+            <ObjectiveCard key={objective.id} objective={objective} progress={progress} />
           ))}
         </div>
       )}

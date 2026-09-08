@@ -41,6 +41,7 @@ export function ProgressRing({ progress, size = 56 }: ProgressRingProps) {
         strokeDashoffset={offset}
         strokeLinecap="round"
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        className="transition-[stroke-dashoffset] duration-(--duration-normal) ease-(--ease-out-quart)"
       />
       <text
         x="50%"

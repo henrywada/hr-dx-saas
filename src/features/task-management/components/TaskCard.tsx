@@ -33,7 +33,7 @@ export function TaskCard({ task, onOpen }: TaskCardProps) {
       <p className="mt-1 text-[10px] text-slate-400">優先度: {PRIORITY_LABEL[task.priority]}</p>
       <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
         <div
-          className="h-1.5 rounded-full bg-[#FD7601]"
+          className="h-1.5 rounded-full bg-[#FD7601] transition-[width] duration-(--duration-normal) ease-(--ease-out-quart)"
           style={{ width: `${task.progressPercent}%` }}
         />
       </div>

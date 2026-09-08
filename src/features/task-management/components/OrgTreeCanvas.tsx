@@ -52,6 +52,7 @@ export function OrgTreeCanvas({ nodes, edges }: OrgTreeCanvasProps) {
         edgesFocusable={false}
         elementsSelectable={false}
         zoomOnScroll={false}
+        preventScrolling={false}
         proOptions={{ hideAttribution: true }}
       >
         <Background />

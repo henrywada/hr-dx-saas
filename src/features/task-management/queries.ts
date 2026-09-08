@@ -666,21 +666,28 @@ export async function getObjectiveOrgTree(
   }[] = []
 
   if (groupIds.length > 0) {
-    const [managerResult, memberResult] = await Promise.all([
-      supabase
-        .from('task_group_managers')
-        .select('task_group_id, employee_id, employee:employee_id(name)')
-        .in('task_group_id', groupIds),
-      supabase
-        .from('task_group_members')
-        .select('task_group_id, employee_id, employee:employee_id(name)')
-        .in('task_group_id', groupIds),
+    const [managerResultRows, memberResultRows] = await Promise.all([
+      fetchAllRows(async (from, to) => {
+        const result = await supabase
+          .from('task_group_managers')
+          .select('task_group_id, employee_id, employee:employee_id(name)')
+          .in('task_group_id', groupIds)
+          .order('employee_id', { ascending: true })
+          .range(from, to)
+        return { data: result.data, error: result.error }
+      }),
+      fetchAllRows(async (from, to) => {
+        const result = await supabase
+          .from('task_group_members')
+          .select('task_group_id, employee_id, employee:employee_id(name)')
+          .in('task_group_id', groupIds)
+          .order('employee_id', { ascending: true })
+          .range(from, to)
+        return { data: result.data, error: result.error }
+      }),
     ])
-
-    if (managerResult.error) throw managerResult.error
-    if (memberResult.error) throw memberResult.error
-    managerRows = (managerResult.data ?? []) as unknown as OrgTreeGroupPersonRow[]
-    memberRows = (memberResult.data ?? []) as unknown as OrgTreeGroupPersonRow[]
+    managerRows = managerResultRows as unknown as OrgTreeGroupPersonRow[]
+    memberRows = memberResultRows as unknown as OrgTreeGroupPersonRow[]
 
     taskRows = await fetchAllRows(async (from, to) => {
       const result = await supabase

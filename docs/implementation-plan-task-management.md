@@ -163,6 +163,9 @@ src/features/task-management/
   担当者の氏名を画面に表示していない。表示するには `queries.ts` 側で `tasks` と `employees` の JOIN を追加し、
   `Task` 型・`mapTask`・`getTaskGroupBoard` など複数ファイルにまたがる変更が必要になるため、
   今回の最終レビュー修正パスでは対応せず、フォローアップ課題として記録する（後日対応）。
+- **目標詳細ページのデータ取得の直列化**：目標詳細ページで`getObjectiveDetail`・`getWorkLogSummaryByObjective`・`getObjectiveOrgTree`が直列awaitされており、かつ`getObjectiveOrgTree`は`getObjectiveDetail`が既に取得済みのマイルストーン・タスクグループを再取得している（相互依存はないため`Promise.all`での並行化余地がある。今回のブランチのスコープ〔組織ツリー追加〕を超える横断的最適化のため見送り、将来のパフォーマンス改善課題として記録する）。
+- **組織ツリーの大規模データでの描画コスト**：大規模な組織ツリー（1グループあたり多数のマネージャー・メンバー）では`@xyflow/react`の`onlyRenderVisibleElements`が未設定のため描画コストが線形に増加する。現状のデータ規模では問題化しないが、将来的にノード数が多くなった場合は仮想化またはグループ単位の折り畳み表示を検討する。
+- **`queries.ts`のファイル分割**：`src/features/task-management/queries.ts`が746行に達しており（規約上限800行に接近）、次回このファイルに機能追加する際は組織ツリー関連クエリ（`getObjectiveOrgTree`）を専用ファイル（例：`org-tree-queries.ts`）へ切り出す分割を検討する。
 
 ## 12. 実装ステータス
 
@@ -373,6 +376,7 @@ Phase 3の3番目のサブ機能として、要求10（組織ツリー可視化�
 - `src/features/task-management/queries.ts`に`getObjectiveOrgTree(supabase, objectiveId)`（新規）を追加する
 - 取得内容：目標（`owner_employee_id`・タイトル）、配下の全マイルストーン・タスクグループ（`id`・`name`・`milestone_id`）、対象タスクグループ群の`task_group_managers`・`task_group_members`（`employee:employee_id(name)`埋め込み）、対象タスクグループ群の`tasks`（`id`・`assignee_employee_id`・`progress_percent`・`task_group_id`、既存の`fetchAllRows`ページングヘルパーを使用）
 - 可視範囲は新たに実装せず、`task_objectives_select`・`task_group_managers_select`・`task_group_members_select`の既存RLSポリシーにそのまま委ねる（追加のテナント・権限フィルタは行わない、既存の規約と同じ）
+- **既知の特性（RLS可視範囲との連動）**：`app_role = 'employee'`のユーザーは、`is_task_group_participant()`を満たす（自分が参加する）タスクグループのみRLSで可視である。そのため、複数タスクグループを持つ目標を1グループのメンバーが開くと、兄弟タスクグループとそのマネージャー・メンバーノードがツリーから消え、ルートの責任者ノードのタスク数・平均進捗率も「自分に見える範囲だけ」の集計値になる。これは進捗サマリ機能（15.2）と同種の性質だが、組織ツリーは数値だけでなく構造そのものが変わる点がより目立つ。情報漏洩方向には閉じている（見える範囲が狭まるだけで、他人に見えないはずのものが見えることはない）ため機能上の欠陥ではない。
 
 ### 17.5 ツリー構築・レイアウト（純粋関数、新規ライブラリはUIレンダリングのみに限定）
 

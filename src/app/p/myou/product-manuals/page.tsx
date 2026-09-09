@@ -16,8 +16,8 @@ export default async function MyouProductManualsPage() {
   const manuals = await getPublicProductManuals()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-slate-50 flex items-start justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md mt-8 rounded-2xl overflow-hidden bg-white shadow-xl shadow-emerald-900/10 ring-1 ring-emerald-900/5">
+    <div className="min-h-screen bg-black flex items-start justify-center p-4 sm:p-6">
+      <div className="w-full max-w-md mt-8 rounded-2xl overflow-hidden bg-white shadow-xl shadow-black/40 ring-1 ring-white/10">
         {/* ヘッダー：光沢のある緑（グラデーション＋ハイライト） */}
         <header className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 px-6 py-7">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />

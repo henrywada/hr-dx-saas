@@ -2,6 +2,9 @@ import { BookOpen, ChevronRight } from 'lucide-react'
 import { PRODUCT_MANUALS } from './manuals'
 import { getPublicProductManuals } from '@/features/myou/queries'
 
+/** アップロード後も最新を返す（ビルド時の空状態キャッシュを防ぐ） */
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: '取扱説明書' }
 
 /**

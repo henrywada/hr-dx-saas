@@ -21,9 +21,8 @@ export default async function MyouProductManualsUploadPage() {
             取扱説明書画像の取り込み
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            画像をアップロードし、エアコン用または浴室用として保存します。公開 QR
-            ページに反映されます（Supabase Storage
-            保存のため、ローカル検証画像は本番に同期されません）。
+            画像をアップロードし、エアコン用または浴室用として保存します。公開 QR（テナント不要）に反映されます。保存先は
+            Supabase Storage（環境別）のため、ローカル検証画像は本番に同期されません。
           </p>
         </div>
         <MyouBackLink />

@@ -37,7 +37,7 @@ function extFromFile(file: File): string {
 }
 
 /**
- * 取扱説明書画像をアップロードし、選択ラベル名で Storage / DB に保存する。
+ * 取扱説明書画像をアップロードする（環境ごとに種別1件・テナント非依存）。
  * Git や public/ には保存しない（ローカル検証画像が本番へ同期されない）。
  */
 export async function uploadProductManual(formData: FormData): Promise<UploadProductManualResult> {
@@ -71,14 +71,13 @@ export async function uploadProductManual(formData: FormData): Promise<UploadPro
 
   const supabase = await createClient()
   const ext = extFromFile(file)
-  const storagePath = buildProductManualStoragePath(user.tenant_id, manualType, ext)
+  const storagePath = buildProductManualStoragePath(manualType, ext)
   const buf = Buffer.from(await file.arrayBuffer())
 
-  // 既存メタデータを取得（拡張子変更時の旧ファイル削除用）
+  // 既存メタデータ（拡張子変更時の旧ファイル削除用）
   const { data: existing } = await supabase
     .from('myou_product_manuals')
     .select('id, storage_path')
-    .eq('tenant_id', user.tenant_id)
     .eq('manual_type', manualType)
     .maybeSingle()
 
@@ -96,7 +95,7 @@ export async function uploadProductManual(formData: FormData): Promise<UploadPro
   const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`
 
   const row = {
-    tenant_id: user.tenant_id,
+    tenant_id: user.tenant_id, // 監査用（最終アップロード元）
     manual_type: manualType,
     label,
     storage_path: storagePath,
@@ -108,7 +107,7 @@ export async function uploadProductManual(formData: FormData): Promise<UploadPro
 
   const { data: saved, error: dbErr } = await supabase
     .from('myou_product_manuals')
-    .upsert(row, { onConflict: 'tenant_id,manual_type' })
+    .upsert(row, { onConflict: 'manual_type' })
     .select(
       'id, tenant_id, manual_type, label, storage_path, public_url, content_type, file_name, updated_at'
     )
@@ -121,13 +120,13 @@ export async function uploadProductManual(formData: FormData): Promise<UploadPro
     }
   }
 
-  // 拡張子が変わった場合は旧オブジェクトを削除
   if (existing?.storage_path && existing.storage_path !== storagePath) {
     await supabase.storage.from(MYOU_PRODUCT_MANUALS_BUCKET).remove([existing.storage_path])
   }
 
   revalidatePath(APP_ROUTES.MYOU.PRODUCT_MANUALS)
   revalidatePath(APP_ROUTES.PUBLIC.MYOU_PRODUCT_MANUALS)
+  revalidatePath(APP_ROUTES.PUBLIC.MYOU_PRODUCT_MANUAL(manualType))
 
   return {
     success: true,

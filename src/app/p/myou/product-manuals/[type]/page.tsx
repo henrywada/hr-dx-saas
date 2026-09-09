@@ -6,6 +6,9 @@ import type { ProductManualType } from '@/features/myou/types'
 import { PRODUCT_MANUAL_LABELS } from '@/features/myou/types'
 import { APP_ROUTES } from '@/config/routes'
 
+/** アップロード後も最新を返す（ビルド時の空状態キャッシュを防ぐ） */
+export const dynamic = 'force-dynamic'
+
 type Props = {
   params: Promise<{ type: string }>
 }

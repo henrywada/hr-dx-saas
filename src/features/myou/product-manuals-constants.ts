@@ -1,6 +1,7 @@
 /**
  * mYou 製品取扱説明書（画像）の定数
- * 実体は Supabase Storage（Git / public/ には置かない → ローカル検証が本番に混入しない）
+ * 公開 QR 向けのためテナント非依存。実体は Supabase Storage（環境別）。
+ * Git / public/ には置かない → ローカル検証画像は本番に混入しない。
  */
 import type { ProductManualType } from './types'
 import { PRODUCT_MANUAL_LABELS } from './types'
@@ -24,20 +25,13 @@ export function getProductManualLabel(type: ProductManualType): string {
 }
 
 /**
- * Storage パス: {tenant_id}/{manual_type}.{ext}
- * 表示名・DB の label / file_name は日本語名称を使用する
+ * Storage パス（テナント非依存）: {manual_type}.{ext}
+ * DB の label / file_name は日本語名称を使用する
  */
 export function buildProductManualStoragePath(
-  tenantId: string,
   manualType: ProductManualType,
   ext: string
 ): string {
   const safeExt = ext.replace(/^\./, '').toLowerCase() || 'png'
-  return `${tenantId}/${manualType}.${safeExt}`
-}
-
-/** 公開ページ用テナントID（未設定時はローカル検証向けに最新1件フォールバック） */
-export function getMyouPublicTenantId(): string | null {
-  const raw = (process.env.MYOU_PUBLIC_TENANT_ID ?? '').trim()
-  return raw.length > 0 ? raw : null
+  return `${manualType}.${safeExt}`
 }

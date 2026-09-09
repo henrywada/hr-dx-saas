@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getMyouPublicTenantId } from './product-manuals-constants'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
 import type {
@@ -406,11 +405,12 @@ export async function getPublicTraceInfo(traceLabelId: string): Promise<PublicTr
 
 
 /**
- * 自テナントの製品取扱説明書（画像メタデータ）一覧を取得する
+ * 製品取扱説明書（画像メタデータ）一覧を取得する。
+ * 公開 QR 向けのため環境ごとに種別1件（テナント非依存）。
  */
 export async function getProductManuals(): Promise<ProductManual[]> {
   const user = await getServerUser()
-  if (!user?.tenant_id) return []
+  if (!user) return []
 
   const supabase = await getSupabase()
   const { data, error } = await supabase
@@ -418,7 +418,6 @@ export async function getProductManuals(): Promise<ProductManual[]> {
     .select(
       'id, tenant_id, manual_type, label, storage_path, public_url, content_type, file_name, updated_at'
     )
-    .eq('tenant_id', user.tenant_id)
     .order('manual_type', { ascending: true })
 
   if (error) {
@@ -429,35 +428,33 @@ export async function getProductManuals(): Promise<ProductManual[]> {
 }
 
 /**
- * 公開ページ用：種別ごとの取扱説明書画像を取得する。
- * QR URL にテナントIDが無いため、管理クライアントで種別の最新1件を返す
- * （ローカルDBと本番DBは別のため、ローカル検証画像は本番に出ない）。
+ * 公開ページ用：種別の取扱説明書画像を取得する（テナント非依存・認証不要）。
+ * ローカルDBと本番DBは別のため、ローカル検証画像は本番に出ない。
  */
 export async function getPublicProductManual(
   manualType: ProductManualType
 ): Promise<ProductManual | null> {
   if (manualType !== 'aircon' && manualType !== 'bathroom') return null
 
-  const publicTenantId = getMyouPublicTenantId()
-
+  // 公開 QR 向け。anon SELECT ポリシーがあるが、未ログインでも確実に読むため admin を使用
   const supabase = createAdminClient()
-  let query = supabase
+  const { data, error } = await supabase
     .from('myou_product_manuals')
     .select(
       'id, tenant_id, manual_type, label, storage_path, public_url, content_type, file_name, updated_at'
     )
     .eq('manual_type', manualType)
-    .order('updated_at', { ascending: false })
-    .limit(1)
+    .maybeSingle()
 
-  // 本番は MYOU_PUBLIC_TENANT_ID でテナント固定（未設定時はローカル検証向けフォールバック）
-  if (publicTenantId) {
-    query = query.eq('tenant_id', publicTenantId)
+  if (error) {
+    console.error('getPublicProductManual:', {
+      manualType,
+      message: error.message,
+      code: error.code,
+    })
+    return null
   }
-
-  const { data, error } = await query.maybeSingle()
-
-  if (error || !data) return null
+  if (!data) return null
   return data as ProductManual
 }
 

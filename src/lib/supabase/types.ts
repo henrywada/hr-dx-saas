@@ -6187,6 +6187,63 @@ export type Database = {
           },
         ]
       }
+      myou_product_manuals: {
+        Row: {
+          content_type: string
+          created_at: string
+          file_name: string
+          id: string
+          label: string
+          manual_type: string
+          public_url: string
+          storage_path: string
+          tenant_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          file_name: string
+          id?: string
+          label: string
+          manual_type: string
+          public_url: string
+          storage_path: string
+          tenant_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          label?: string
+          manual_type?: string
+          public_url?: string
+          storage_path?: string
+          tenant_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myou_product_manuals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myou_product_manuals_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       myou_trace_labels: {
         Row: {
           company_id: string

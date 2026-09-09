@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getMyouPublicTenantId } from './product-manuals-constants'
 import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTDateString } from '@/lib/datetime'
 import type {
@@ -9,6 +10,8 @@ import type {
   LotInventoryItem,
   MyouCompany,
   ProcessStatus,
+  ProductManual,
+  ProductManualType,
   PublicTraceInfo,
 } from './types'
 
@@ -399,4 +402,77 @@ export async function getPublicTraceInfo(traceLabelId: string): Promise<PublicTr
     company_no: row.myou_companies?.company_no ?? null,
     expiration_date: row.expiration_date,
   }
+}
+
+
+/**
+ * 自テナントの製品取扱説明書（画像メタデータ）一覧を取得する
+ */
+export async function getProductManuals(): Promise<ProductManual[]> {
+  const user = await getServerUser()
+  if (!user?.tenant_id) return []
+
+  const supabase = await getSupabase()
+  const { data, error } = await supabase
+    .from('myou_product_manuals')
+    .select(
+      'id, tenant_id, manual_type, label, storage_path, public_url, content_type, file_name, updated_at'
+    )
+    .eq('tenant_id', user.tenant_id)
+    .order('manual_type', { ascending: true })
+
+  if (error) {
+    console.error('getProductManuals:', error.message)
+    return []
+  }
+  return (data ?? []) as ProductManual[]
+}
+
+/**
+ * 公開ページ用：種別ごとの取扱説明書画像を取得する。
+ * QR URL にテナントIDが無いため、管理クライアントで種別の最新1件を返す
+ * （ローカルDBと本番DBは別のため、ローカル検証画像は本番に出ない）。
+ */
+export async function getPublicProductManual(
+  manualType: ProductManualType
+): Promise<ProductManual | null> {
+  if (manualType !== 'aircon' && manualType !== 'bathroom') return null
+
+  const publicTenantId = getMyouPublicTenantId()
+
+  const supabase = createAdminClient()
+  let query = supabase
+    .from('myou_product_manuals')
+    .select(
+      'id, tenant_id, manual_type, label, storage_path, public_url, content_type, file_name, updated_at'
+    )
+    .eq('manual_type', manualType)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  // 本番は MYOU_PUBLIC_TENANT_ID でテナント固定（未設定時はローカル検証向けフォールバック）
+  if (publicTenantId) {
+    query = query.eq('tenant_id', publicTenantId)
+  }
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error || !data) return null
+  return data as ProductManual
+}
+
+/**
+ * 公開メニュー用：エアコン・浴室の取扱説明書をまとめて取得する
+ */
+export async function getPublicProductManuals(): Promise<
+  Partial<Record<ProductManualType, ProductManual>>
+> {
+  const [aircon, bathroom] = await Promise.all([
+    getPublicProductManual('aircon'),
+    getPublicProductManual('bathroom'),
+  ])
+  const result: Partial<Record<ProductManualType, ProductManual>> = {}
+  if (aircon) result.aircon = aircon
+  if (bathroom) result.bathroom = bathroom
+  return result
 }

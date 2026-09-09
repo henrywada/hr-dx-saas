@@ -4,6 +4,8 @@ export const APP_ROUTES = {
     CONSULTATION_STATUS: '/p/consultation/status',
     /** 製品ラベル QR 向け取扱説明書メニュー（購入客・認証不要） */
     MYOU_PRODUCT_MANUALS: '/p/myou/product-manuals',
+    /** 製品取扱説明書画像表示（購入客・認証不要） */
+    MYOU_PRODUCT_MANUAL: (type: string) => `/p/myou/product-manuals/${type}`,
     /** 助成金情報配信メールからの配信停止（署名付きトークン・認証不要） */
     GRANT_NOTIFIER_UNSUBSCRIBE: '/p/grant-notifier/unsubscribe',
     /** プライバシーポリシー（認証不要） */
@@ -271,6 +273,8 @@ export const APP_ROUTES = {
     MANUAL: '/myou/manual',
     /** 資料一覧（目次：全体像・簡単操作マニュアル・システム仕様書） */
     DOC_INDEX: '/myou/doc-index',
+    /** 製品取扱説明書画像の取り込み（エアコン用 / 浴室用） */
+    PRODUCT_MANUALS: '/myou/product-manuals',
   },
   /** タスク管理（OKR・マイルストーン・チェックイン） */
   tasks: {

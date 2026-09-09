@@ -213,3 +213,25 @@ export interface PublicTraceInfo {
   company_no: number | null
   expiration_date: string
 }
+
+/** 製品取扱説明書の種別 */
+export type ProductManualType = 'aircon' | 'bathroom'
+
+/** 製品取扱説明書の保存名称（ラジオ選択・Storage ファイル名に使用） */
+export const PRODUCT_MANUAL_LABELS: Record<ProductManualType, string> = {
+  aircon: 'エアコン用取扱説明書',
+  bathroom: '浴室用取扱説明書',
+}
+
+/** 製品取扱説明書メタデータ */
+export interface ProductManual {
+  id: string
+  tenant_id: string
+  manual_type: ProductManualType
+  label: string
+  storage_path: string
+  public_url: string
+  content_type: string
+  file_name: string
+  updated_at: string
+}

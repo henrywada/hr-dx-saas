@@ -5,7 +5,7 @@ import MyouBackLink from '../components/MyouBackLink'
 import ProductManualUploadForm from '../components/ProductManualUploadForm'
 
 export const metadata: Metadata = {
-  title: '取扱説明書画像の取り込み',
+  title: '取扱説明書画像のアップロード',
   description: 'エアコン用・浴室用の取扱説明書画像をアップロードして公開ページに反映します。',
 }
 
@@ -18,11 +18,11 @@ export default async function MyouProductManualsUploadPage() {
         <div>
           <h1 className="text-2xl font-bold text-blue-700 flex items-center">
             <BookOpen className="h-6 w-6 mr-2" />
-            取扱説明書画像の取り込み
+            取扱説明書画像のアップロード
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            画像をアップロードし、エアコン用または浴室用として保存します。公開 QR（テナント不要）に反映されます。保存先は
-            Supabase Storage（環境別）のため、ローカル検証画像は本番に同期されません。
+            画像をアップロードし、エアコン用または浴室用として保存します。公開
+            QR（テナント不要）に反映されます。
           </p>
         </div>
         <MyouBackLink />

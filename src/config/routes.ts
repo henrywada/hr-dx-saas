@@ -273,7 +273,7 @@ export const APP_ROUTES = {
     MANUAL: '/myou/manual',
     /** 資料一覧（目次：全体像・簡単操作マニュアル・システム仕様書） */
     DOC_INDEX: '/myou/doc-index',
-    /** 製品取扱説明書画像の取り込み（エアコン用 / 浴室用） */
+    /** 製品取扱説明書画像のアップロード（エアコン用 / 浴室用） */
     PRODUCT_MANUALS: '/myou/product-manuals',
   },
   /** タスク管理（OKR・マイルストーン・チェックイン） */

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bath, Upload, Wind } from 'lucide-react'
+import { Bath, CheckCircle2, Upload, Wind, XCircle } from 'lucide-react'
 import { uploadProductManual } from '@/features/myou/product-manuals-upload'
 import type { ProductManual, ProductManualType } from '@/features/myou/types'
 import { PRODUCT_MANUAL_LABELS } from '@/features/myou/types'
@@ -17,9 +17,12 @@ type Props = {
 
 export default function ProductManualUploadForm({ initialManuals }: Props) {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [manualType, setManualType] = useState<ProductManualType>('aircon')
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  /** 保存直後はプレビューを隠す。種別クリックで再表示 */
+  const [showSavedPreview, setShowSavedPreview] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -33,6 +36,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
   }, [initialManuals])
 
   const currentSaved = manualsByType.get(manualType)
+  const showPreview = Boolean(previewUrl || (showSavedPreview && currentSaved))
 
   useEffect(() => {
     return () => {
@@ -44,8 +48,16 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setFile(next)
     setPreviewUrl(next ? URL.createObjectURL(next) : null)
+    if (next) setShowSavedPreview(true)
     setMessage(null)
     setError(null)
+  }
+
+  function clearFileSelection() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    setFile(null)
+    setPreviewUrl(null)
   }
 
   function onSubmit(e: FormEvent) {
@@ -64,11 +76,15 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
       setMessage(null)
       const result = await uploadProductManual(formData)
       if (result.success === false) {
-        setError(result.error)
+        setError(`保存に失敗しました：${result.error}`)
         return
       }
-      setMessage(`${result.manual.label} を保存しました。`)
-      onFileChange(null)
+      // 保存後はプレビュー・ファイル選択をクリア（成功メッセージは残す）
+      setShowSavedPreview(false)
+      clearFileSelection()
+      setMessage(
+        `「${result.manual.label}」の保存が完了しました。公開ページ（QR）に反映されています。`
+      )
       router.refresh()
     })
   }
@@ -77,7 +93,9 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
     <div className="space-y-4">
       <form onSubmit={onSubmit} className="space-y-4">
         <fieldset className="space-y-2">
-          <legend className="text-xs font-semibold text-slate-700">取扱説明書の種別</legend>
+          <legend className="text-xs font-semibold text-slate-700">
+            取扱説明書の種別：クリックで現在の画像を表示します。
+          </legend>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PRODUCT_MANUAL_TYPES.map(type => {
               const selected = manualType === type
@@ -98,6 +116,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
                     checked={selected}
                     onChange={() => {
                       setManualType(type)
+                      setShowSavedPreview(true)
                       setMessage(null)
                       setError(null)
                     }}
@@ -120,6 +139,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
             画像ファイル（JPEG / PNG / GIF / WebP、最大 {MYOU_PRODUCT_MANUAL_MAX_MB}MB）
           </label>
           <input
+            ref={fileInputRef}
             id="manual-image"
             type="file"
             accept="image/jpeg,image/png,image/gif,image/webp"
@@ -128,7 +148,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
           />
         </div>
 
-        {(previewUrl || currentSaved) && (
+        {showPreview && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="mb-2 text-xs font-semibold text-slate-700">
               {previewUrl ? '選択中プレビュー' : '保存済み画像'}
@@ -143,14 +163,22 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
         )}
 
         {error && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          >
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden />
+            <p className="font-medium leading-snug">{error}</p>
+          </div>
         )}
         {message && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-            {message}
-          </p>
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900"
+          >
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+            <p className="font-medium leading-snug">{message}</p>
+          </div>
         )}
 
         <button

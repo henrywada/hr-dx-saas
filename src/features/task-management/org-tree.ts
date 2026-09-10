@@ -30,7 +30,7 @@ export interface OrgTreeGroupInput {
 
 export interface OrgTreeTaskRow {
   taskGroupId: string
-  assigneeEmployeeId: string | null
+  assigneeEmployeeIds: string[]
   progressPercent: number
 }
 
@@ -111,20 +111,21 @@ export function buildOrgTreeGraph(input: BuildOrgTreeInput): {
     }
   }
   const personProgressByKey = groupProgressByParent(
-    input.tasks
-      .filter(t => t.assigneeEmployeeId !== null)
-      .map(t => ({
+    input.tasks.flatMap(t =>
+      t.assigneeEmployeeIds.map(employeeId => ({
         value: t.progressPercent,
-        parentId: `${t.taskGroupId}:${t.assigneeEmployeeId}`,
-      })),
+        parentId: `${t.taskGroupId}:${employeeId}`,
+      }))
+    ),
     personKeys
   )
 
   const personTaskCountByKey = new Map<string, number>()
   for (const task of input.tasks) {
-    if (!task.assigneeEmployeeId) continue
-    const key = `${task.taskGroupId}:${task.assigneeEmployeeId}`
-    personTaskCountByKey.set(key, (personTaskCountByKey.get(key) ?? 0) + 1)
+    for (const employeeId of task.assigneeEmployeeIds) {
+      const key = `${task.taskGroupId}:${employeeId}`
+      personTaskCountByKey.set(key, (personTaskCountByKey.get(key) ?? 0) + 1)
+    }
   }
 
   for (const group of input.groups) {

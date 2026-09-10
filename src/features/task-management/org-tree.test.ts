@@ -60,8 +60,8 @@ test('buildOrgTreeGraph: タスクグループ・メンバーごとにタスク�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeId: 'e1', progressPercent: 20 },
-      { taskGroupId: 'g1', assigneeEmployeeId: 'e1', progressPercent: 60 },
+      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 20 },
+      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 60 },
     ],
   })
 
@@ -101,8 +101,8 @@ test('buildOrgTreeGraph: 同一人物が複数グループに所属する場合�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeId: 'e1', progressPercent: 100 },
-      { taskGroupId: 'g2', assigneeEmployeeId: 'e1', progressPercent: 0 },
+      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 100 },
+      { taskGroupId: 'g2', assigneeEmployeeIds: ['e1'], progressPercent: 0 },
     ],
   })
 
@@ -127,8 +127,8 @@ test('buildOrgTreeGraph: 未割当タスクはグループ集計に含むが人�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeId: 'e1', progressPercent: 100 },
-      { taskGroupId: 'g1', assigneeEmployeeId: null, progressPercent: 0 },
+      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 100 },
+      { taskGroupId: 'g1', assigneeEmployeeIds: [], progressPercent: 0 },
     ],
   })
 
@@ -139,6 +139,36 @@ test('buildOrgTreeGraph: 未割当タスクはグループ集計に含むが人�
   assert.equal(groupNode?.progressPercent, 50)
   assert.equal(memberNode?.taskCount, 1)
   assert.equal(memberNode?.progressPercent, 100)
+})
+
+test('buildOrgTreeGraph: 1タスクに複数担当者がいる場合、進捗が両方の担当者に計上される', () => {
+  const { nodes } = buildOrgTreeGraph({
+    ownerEmployeeId: 'owner-1',
+    ownerEmployeeName: '田中',
+    groups: [
+      {
+        taskGroupId: 'g1',
+        taskGroupName: 'A',
+        managers: [],
+        members: [
+          { employeeId: 'e1', employeeName: '鈴木' },
+          { employeeId: 'e2', employeeName: '高橋' },
+        ],
+      },
+    ],
+    tasks: [{ taskGroupId: 'g1', assigneeEmployeeIds: ['e1', 'e2'], progressPercent: 80 }],
+  })
+
+  const groupNode = nodes.find(n => n.id === 'group:g1')
+  const member1 = nodes.find(n => n.id === 'member:g1:e1')
+  const member2 = nodes.find(n => n.id === 'member:g1:e2')
+
+  assert.equal(groupNode?.taskCount, 1)
+  assert.equal(groupNode?.progressPercent, 80)
+  assert.equal(member1?.taskCount, 1)
+  assert.equal(member1?.progressPercent, 80)
+  assert.equal(member2?.taskCount, 1)
+  assert.equal(member2?.progressPercent, 80)
 })
 
 test('layoutOrgTree: ルートのみ（子なし）はx=0, y=0になる', () => {

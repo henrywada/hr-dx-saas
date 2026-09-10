@@ -665,8 +665,8 @@ export async function getObjectiveOrgTree(
   let memberRows: OrgTreeGroupPersonRow[] = []
   let taskRows: {
     task_group_id: string
-    assignee_employee_id: string | null
     progress_percent: number
+    task_assignees: { employee_id: string }[] | null
   }[] = []
 
   if (groupIds.length > 0) {
@@ -696,7 +696,7 @@ export async function getObjectiveOrgTree(
     taskRows = await fetchAllRows(async (from, to) => {
       const result = await supabase
         .from('tasks')
-        .select('task_group_id, assignee_employee_id, progress_percent')
+        .select('task_group_id, progress_percent, task_assignees(employee_id)')
         .in('task_group_id', groupIds)
         .order('id', { ascending: true })
         .range(from, to)
@@ -739,7 +739,7 @@ export async function getObjectiveOrgTree(
 
   const tasks: OrgTreeTaskRow[] = taskRows.map(row => ({
     taskGroupId: row.task_group_id,
-    assigneeEmployeeId: row.assignee_employee_id,
+    assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
     progressPercent: row.progress_percent,
   }))
 

@@ -293,15 +293,19 @@ export async function getTaskGroupSummary(
   }
 }
 
-/** DB行（snake_case）を Task（camelCase）に変換する */
-function mapTask(row: Database['public']['Tables']['tasks']['Row']): Task {
+/** DB行（snake_case、task_assigneesとのJOIN込み）を Task（camelCase）に変換する */
+function mapTask(
+  row: Database['public']['Tables']['tasks']['Row'] & {
+    task_assignees: { employee_id: string }[] | null
+  }
+): Task {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     taskGroupId: row.task_group_id,
     title: row.title,
     description: row.description,
-    assigneeEmployeeId: row.assignee_employee_id,
+    assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
     status: row.status as Task['status'],
     progressPercent: row.progress_percent,
     priority: row.priority as Task['priority'],
@@ -348,7 +352,7 @@ export async function getTaskGroupBoard(
 
   const { data: taskRows, error: taskError } = await supabase
     .from('tasks')
-    .select('*')
+    .select('*, task_assignees(employee_id)')
     .eq('task_group_id', taskGroupId)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })

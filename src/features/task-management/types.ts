@@ -54,7 +54,7 @@ export const createTaskSchema = z.object({
   taskGroupId: z.string().uuid(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  assigneeEmployeeId: z.string().uuid().optional(),
+  assigneeEmployeeIds: z.array(z.string().uuid()).max(20).optional().default([]),
   priority: z.enum(TASK_PRIORITIES).default('normal'),
   dueDate: dateStringSchema.optional(),
 })
@@ -71,6 +71,18 @@ export const updateTaskProgressSchema = z.object({
   progressPercent: z.number().int().min(0).max(100),
 })
 export type UpdateTaskProgressInput = z.infer<typeof updateTaskProgressSchema>
+
+export const addTaskAssigneeSchema = z.object({
+  taskId: z.string().uuid(),
+  employeeId: z.string().uuid(),
+})
+export type AddTaskAssigneeInput = z.infer<typeof addTaskAssigneeSchema>
+
+export const removeTaskAssigneeSchema = z.object({
+  taskId: z.string().uuid(),
+  employeeId: z.string().uuid(),
+})
+export type RemoveTaskAssigneeInput = z.infer<typeof removeTaskAssigneeSchema>
 
 export type TaskLifecycleStatus = 'active' | 'completed' | 'archived'
 
@@ -113,7 +125,7 @@ export interface Task {
   taskGroupId: string
   title: string
   description: string | null
-  assigneeEmployeeId: string | null
+  assigneeEmployeeIds: string[]
   status: TaskStatus
   progressPercent: number
   priority: TaskPriority

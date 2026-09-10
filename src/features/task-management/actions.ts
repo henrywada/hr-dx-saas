@@ -23,6 +23,10 @@ import {
   type UpdateTaskStatusInput,
   updateTaskProgressSchema,
   type UpdateTaskProgressInput,
+  addTaskAssigneeSchema,
+  type AddTaskAssigneeInput,
+  removeTaskAssigneeSchema,
+  type RemoveTaskAssigneeInput,
   createCommentSchema,
   type CreateCommentInput,
   updateCommentSchema,
@@ -274,7 +278,6 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
       task_group_id: parsed.taskGroupId,
       title: parsed.title,
       description: parsed.description ?? null,
-      assignee_employee_id: parsed.assigneeEmployeeId ?? null,
       priority: parsed.priority,
       due_date: parsed.dueDate ?? null,
       created_by_employee_id: user.employee_id,
@@ -283,6 +286,17 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
     .single()
 
   if (error) throw error
+
+  if (parsed.assigneeEmployeeIds.length > 0) {
+    const { error: assigneeError } = await supabase.from('task_assignees').insert(
+      parsed.assigneeEmployeeIds.map(employeeId => ({
+        tenant_id: user.tenant_id!,
+        task_id: data.id,
+        employee_id: employeeId,
+      }))
+    )
+    if (assigneeError) throw assigneeError
+  }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
 
@@ -362,6 +376,69 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
   if (data === null || data.length === 0) {
     throw new Error('このタスクを更新する権限がありません')
   }
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスク（tasks）に担当者を1名追加する。
+ * 追加可否（責任者・マネージャー）は RLS の task_assignees INSERT ポリシーが強制する。
+ */
+export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id) {
+    throw new Error('テナント情報が取得できませんでした')
+  }
+
+  const parsed = addTaskAssigneeSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', parsed.taskId)
+    .single()
+
+  if (taskError) throw taskError
+
+  const { error } = await supabase.from('task_assignees').insert({
+    tenant_id: user.tenant_id,
+    task_id: parsed.taskId,
+    employee_id: parsed.employeeId,
+  })
+
+  if (error) throw error
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスク（tasks）から担当者を1名解除する。
+ * 解除可否（責任者・マネージャー）は RLS の task_assignees DELETE ポリシーが強制する。
+ */
+export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = removeTaskAssigneeSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('task_group_id')
+    .eq('id', parsed.taskId)
+    .single()
+
+  if (taskError) throw taskError
+
+  const { error } = await supabase
+    .from('task_assignees')
+    .delete()
+    .eq('task_id', parsed.taskId)
+    .eq('employee_id', parsed.employeeId)
+
+  if (error) throw error
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }

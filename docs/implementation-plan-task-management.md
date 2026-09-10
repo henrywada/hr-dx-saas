@@ -49,6 +49,7 @@
 15. 個人宛てアドバイス機能（コメントの`advice`種別に宛先・送信権限を追加。責任者→タスク責任者、タスク責任者→タスクメンバーの一方向。詳細はセクション19.2参照）
 16. タスク／タスクグループ単位の「目標（達成基準）」フィールド（詳細はセクション19.3参照）
 17. 組織ツリー可視化へのタスクノード・未読アドバイスバッジ追加（詳細はセクション19.4参照）
+18. タスクグループの目標・名前・説明をタスクマネージャーが編集できるようにする（現状は責任者が作成時に入力するのみで更新手段が無い。詳細はセクション19.6参照）
 
 **Won't（今回スコープ外）**
 
@@ -454,6 +455,8 @@ CSSクラスの追加のみでロジックを含まないため、既存の`Prog
 
 Phase 1〜3のデータモデル（`task_objectives`→`task_milestones`→`task_groups`→`tasks`の5階層、責任者/マネージャー/メンバーの役割）自体は変更せず、上記4点を追加・拡張する形で対応する。
 
+**追加の精査（2026-09-10、2枚目の図）**：ユーザーから「プロジェクトの開始」「プロジェクトの運営」を整理した2枚目の運用フロー図が追加で提示された。この図の「タスク」は1枚目の図（詳細な担当者内訳）とは抽象度が異なり、`task_groups`（責任者が作成しマネージャーを割り当てる単位）に対応する。突き合わせの結果、助言の一方向フロー（責任者→タスクマネージャー→メンバー）は19.2の設計と完全に一致することが確認でき、進捗の可視化・直感的入力（進捗リング/バー・スライダー入力）も既存実装で充足済みだった。一方で1点、実装との齟齬が見つかった：図は「タスクマネージャーがタスクの目標を設定する」としているが、`task_groups_update`のRLSポリシーは責任者（`is_task_group_owner`）のみを許可しており、かつ`task_groups`を更新するServer Action自体が存在しない（作成時に責任者が入力するのみ）。この齟齬への対応を要求18（19.5）として追加する。
+
 ### 19.1 要求14：タスクの複数担当者化
 
 **スキーマ**：新規中間テーブル`task_assignees`を追加し、`tasks.assignee_employee_id`（単一・nullable）を置き換える。
@@ -562,7 +565,28 @@ GROUP BY c.task_id
 
 `queries.ts`に集計関数（例：`getUnreadAdviceCountsByTask`）を1つ追加するのみ。
 
-### 19.5 実装ステータス（サブタスク単位）
+### 19.5 要求18：タスクグループの目標・名前・説明編集機能（マネージャーへの権限拡張）
+
+**RLS変更**：`task_groups_update`ポリシーに`is_task_group_manager(id)`を追加し、責任者だけでなくマネージャーも更新できるようにする（責任者の権限は維持したまま拡張するのみ、狭める変更ではない）。
+
+```sql
+DROP POLICY IF EXISTS "task_groups_update" ON public.task_groups;
+CREATE POLICY "task_groups_update" ON public.task_groups
+  FOR UPDATE USING (
+    tenant_id = public.current_tenant_id()
+    AND (
+      public.is_task_group_owner(id)
+      OR public.is_task_group_manager(id)
+      OR public.current_employee_app_role() <> 'employee'
+    )
+  );
+```
+
+**Server Action新設**：`updateTaskGroup({ taskGroupId, name, description?, goalSummary? })`。`name`/`description`/`goal_summary`をまとめて更新する（今回まとめて編集可能にする方針、ユーザー合意済み）。0件更新時はエラーを投げる既存パターン（`updateTaskStatus`等）を踏襲する。
+
+**UI**：新規`TaskGroupEditForm.tsx`（インライン編集フォーム、責任者・マネージャーのみ表示）をタスクグループ詳細ページに追加する。図の「マネージャーがアサインされたタスクの目標を設定する」という運用を実現する。
+
+### 19.6 実装ステータス（サブタスク単位）
 
 | #   | 内容                                                                             | 状態   |
 | --- | -------------------------------------------------------------------------------- | ------ |
@@ -570,5 +594,6 @@ GROUP BY c.task_id
 | 2   | `task_comments.target_employee_id`・`can_send_advice`権限関数・RLS・UI（要求15） | 未着手 |
 | 3   | `goal_summary`列・Zodスキーマ・UI（要求16）                                      | 未着手 |
 | 4   | 組織ツリーへの`task`/`task_assignee`ノード・未読バッジ（要求17）                 | 未着手 |
+| 5   | `task_groups_update`RLS拡張・`updateTaskGroup`・`TaskGroupEditForm`（要求18）    | 未着手 |
 
 本セクションはbrainstormingスキルによる設計合意の記録であり、実装は別途、規模に応じてSDD（Subagent-Driven Development）またはBoundedパスで着手する。

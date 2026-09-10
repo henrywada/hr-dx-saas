@@ -78,6 +78,21 @@ COMMENT ON POLICY "task_assignees_select" ON public.task_assignees IS 'タスク
 COMMENT ON POLICY "task_assignees_insert" ON public.task_assignees IS '責任者・マネージャーのみが担当者を追加できる（tasks_insert/tasks_updateと同じ権限方針）';
 COMMENT ON POLICY "task_assignees_delete" ON public.task_assignees IS '責任者・マネージャーのみが担当者を解除できる';
 
+-- ログインユーザーが指定タスクのtask_assignees経由の担当者かどうかを判定する関数
+-- SECURITY DEFINERで tasks ⇔ task_assignees のRLS相互再帰を回避
+CREATE OR REPLACE FUNCTION public.is_task_assignee(p_task_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.task_assignees a
+    WHERE a.task_id = p_task_id AND a.employee_id = public.current_employee_id()
+  );
+$$;
+
+COMMENT ON FUNCTION public.is_task_assignee(UUID) IS 'ログインユーザーが指定タスクのtask_assignees経由の担当者かどうか（SECURITY DEFINERでtasks⇔task_assigneesのRLS相互再帰を回避）';
+
 -- ここから: assignee_employee_id を参照していた既存のRLSポリシー・関数を task_assignees ベースに更新する。
 -- バックフィルが完了しているため、以降は task_assignees を正として扱う。
 
@@ -87,7 +102,7 @@ CREATE POLICY "tasks_select" ON public.tasks
     tenant_id = public.current_tenant_id()
     AND (
       public.is_task_group_participant(task_group_id)
-      OR EXISTS (SELECT 1 FROM public.task_assignees a WHERE a.task_id = tasks.id AND a.employee_id = public.current_employee_id())
+      OR public.is_task_assignee(tasks.id)
       OR public.current_employee_app_role() <> 'employee'
     )
   );
@@ -97,7 +112,7 @@ CREATE POLICY "tasks_update" ON public.tasks
   FOR UPDATE USING (
     tenant_id = public.current_tenant_id()
     AND (
-      EXISTS (SELECT 1 FROM public.task_assignees a WHERE a.task_id = tasks.id AND a.employee_id = public.current_employee_id())
+      public.is_task_assignee(tasks.id)
       OR public.is_task_group_owner(task_group_id)
       OR public.is_task_group_manager(task_group_id)
       OR public.current_employee_app_role() <> 'employee'
@@ -115,7 +130,7 @@ AS $$
       AND (
         public.is_task_group_owner(t.task_group_id)
         OR public.is_task_group_manager(t.task_group_id)
-        OR EXISTS (SELECT 1 FROM public.task_assignees a WHERE a.task_id = t.id AND a.employee_id = public.current_employee_id())
+        OR public.is_task_assignee(t.id)
       )
   );
 $$;
@@ -130,7 +145,7 @@ AS $$
     WHERE t.id = p_task_id
       AND (
         public.is_task_group_participant(t.task_group_id)
-        OR EXISTS (SELECT 1 FROM public.task_assignees a WHERE a.task_id = t.id AND a.employee_id = public.current_employee_id())
+        OR public.is_task_assignee(t.id)
       )
   );
 $$;
@@ -145,7 +160,7 @@ AS $$
     WHERE t.id = p_task_id
       AND (
         public.is_task_group_participant(t.task_group_id)
-        OR EXISTS (SELECT 1 FROM public.task_assignees a WHERE a.task_id = t.id AND a.employee_id = public.current_employee_id())
+        OR public.is_task_assignee(t.id)
       )
   );
 $$;

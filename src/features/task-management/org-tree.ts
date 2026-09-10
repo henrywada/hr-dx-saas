@@ -1,6 +1,12 @@
 import { calculateAverageProgress, groupProgressByParent } from './progress'
 
-export type OrgTreeNodeRole = 'owner' | 'task_group' | 'manager' | 'member'
+export type OrgTreeNodeRole =
+  | 'owner'
+  | 'task_group'
+  | 'manager'
+  | 'member'
+  | 'task'
+  | 'task_assignee'
 
 export interface OrgTreeNodeData {
   id: string
@@ -8,6 +14,8 @@ export interface OrgTreeNodeData {
   role: OrgTreeNodeRole
   taskCount: number
   progressPercent: number
+  /** role='task'のときのみ設定される達成基準（要求16のgoal_summary） */
+  goalSummary?: string | null
 }
 
 export interface OrgTreeEdge {
@@ -29,8 +37,11 @@ export interface OrgTreeGroupInput {
 }
 
 export interface OrgTreeTaskRow {
+  id: string
   taskGroupId: string
-  assigneeEmployeeIds: string[]
+  title: string
+  goalSummary: string | null
+  assignees: OrgTreeEmployeeRef[]
   progressPercent: number
 }
 
@@ -64,6 +75,14 @@ function managerNodeId(taskGroupId: string, employeeId: string): string {
 
 function memberNodeId(taskGroupId: string, employeeId: string): string {
   return `member:${taskGroupId}:${employeeId}`
+}
+
+function taskNodeId(taskId: string): string {
+  return `task:${taskId}`
+}
+
+function taskAssigneeNodeId(taskId: string, employeeId: string): string {
+  return `task-assignee:${taskId}:${employeeId}`
 }
 
 /**
@@ -112,9 +131,9 @@ export function buildOrgTreeGraph(input: BuildOrgTreeInput): {
   }
   const personProgressByKey = groupProgressByParent(
     input.tasks.flatMap(t =>
-      t.assigneeEmployeeIds.map(employeeId => ({
+      t.assignees.map(assignee => ({
         value: t.progressPercent,
-        parentId: `${t.taskGroupId}:${employeeId}`,
+        parentId: `${t.taskGroupId}:${assignee.employeeId}`,
       }))
     ),
     personKeys
@@ -122,10 +141,17 @@ export function buildOrgTreeGraph(input: BuildOrgTreeInput): {
 
   const personTaskCountByKey = new Map<string, number>()
   for (const task of input.tasks) {
-    for (const employeeId of task.assigneeEmployeeIds) {
-      const key = `${task.taskGroupId}:${employeeId}`
+    for (const assignee of task.assignees) {
+      const key = `${task.taskGroupId}:${assignee.employeeId}`
       personTaskCountByKey.set(key, (personTaskCountByKey.get(key) ?? 0) + 1)
     }
+  }
+
+  const tasksByGroupId = new Map<string, OrgTreeTaskRow[]>()
+  for (const task of input.tasks) {
+    const list = tasksByGroupId.get(task.taskGroupId) ?? []
+    list.push(task)
+    tasksByGroupId.set(task.taskGroupId, list)
   }
 
   for (const group of input.groups) {
@@ -167,6 +193,33 @@ export function buildOrgTreeGraph(input: BuildOrgTreeInput): {
         progressPercent: personProgressByKey[key] ?? 0,
       })
       edges.push({ id: `${groupNodeId}->${nodeId}`, source: groupNodeId, target: nodeId })
+    }
+
+    // タスクグループの子として task ノードを並列追加し、
+    // その子に task_assignee ノードを配置する（既存のmanager/member並列構造は維持）
+    for (const task of tasksByGroupId.get(group.taskGroupId) ?? []) {
+      const taskNode = taskNodeId(task.id)
+      nodes.push({
+        id: taskNode,
+        label: task.title,
+        role: 'task',
+        taskCount: 1,
+        progressPercent: task.progressPercent,
+        goalSummary: task.goalSummary,
+      })
+      edges.push({ id: `${groupNodeId}->${taskNode}`, source: groupNodeId, target: taskNode })
+
+      for (const assignee of task.assignees) {
+        const assigneeNode = taskAssigneeNodeId(task.id, assignee.employeeId)
+        nodes.push({
+          id: assigneeNode,
+          label: assignee.employeeName,
+          role: 'task_assignee',
+          taskCount: 1,
+          progressPercent: task.progressPercent,
+        })
+        edges.push({ id: `${taskNode}->${assigneeNode}`, source: taskNode, target: assigneeNode })
+      }
     }
   }
 

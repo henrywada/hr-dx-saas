@@ -673,9 +673,12 @@ export async function getObjectiveOrgTree(
   let managerRows: OrgTreeGroupPersonRow[] = []
   let memberRows: OrgTreeGroupPersonRow[] = []
   let taskRows: {
+    id: string
     task_group_id: string
+    title: string
+    goal_summary: string | null
     progress_percent: number
-    task_assignees: { employee_id: string }[] | null
+    task_assignees: { employee_id: string; employee: { name: string | null } | null }[] | null
   }[] = []
 
   if (groupIds.length > 0) {
@@ -705,7 +708,9 @@ export async function getObjectiveOrgTree(
     taskRows = await fetchAllRows(async (from, to) => {
       const result = await supabase
         .from('tasks')
-        .select('task_group_id, progress_percent, task_assignees(employee_id)')
+        .select(
+          'id, task_group_id, title, goal_summary, progress_percent, task_assignees(employee_id, employee:employee_id(name))'
+        )
         .in('task_group_id', groupIds)
         .order('id', { ascending: true })
         .range(from, to)
@@ -747,8 +752,14 @@ export async function getObjectiveOrgTree(
   }))
 
   const tasks: OrgTreeTaskRow[] = taskRows.map(row => ({
+    id: row.id,
     taskGroupId: row.task_group_id,
-    assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
+    title: row.title,
+    goalSummary: row.goal_summary,
+    assignees: (row.task_assignees ?? []).map(a => ({
+      employeeId: a.employee_id,
+      employeeName: a.employee?.name ?? '（名前未設定）',
+    })),
     progressPercent: row.progress_percent,
   }))
 

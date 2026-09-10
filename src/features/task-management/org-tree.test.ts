@@ -7,6 +7,10 @@ import {
   type OrgTreeEdge,
 } from './org-tree'
 
+function edgePairs(edges: { source: string; target: string }[]): [string, string][] {
+  return edges.map(e => [e.source, e.target])
+}
+
 test('buildOrgTreeGraph: タスクグループが無ければ責任者ノードのみを返す', () => {
   const { nodes, edges } = buildOrgTreeGraph({
     ownerEmployeeId: 'owner-1',
@@ -60,8 +64,22 @@ test('buildOrgTreeGraph: タスクグループ・メンバーごとにタスク�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 20 },
-      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 60 },
+      {
+        id: 't1',
+        taskGroupId: 'g1',
+        title: 'タスク1',
+        goalSummary: null,
+        assignees: [{ employeeId: 'e1', employeeName: '鈴木' }],
+        progressPercent: 20,
+      },
+      {
+        id: 't2',
+        taskGroupId: 'g1',
+        title: 'タスク2',
+        goalSummary: null,
+        assignees: [{ employeeId: 'e1', employeeName: '鈴木' }],
+        progressPercent: 60,
+      },
     ],
   })
 
@@ -101,8 +119,22 @@ test('buildOrgTreeGraph: 同一人物が複数グループに所属する場合�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 100 },
-      { taskGroupId: 'g2', assigneeEmployeeIds: ['e1'], progressPercent: 0 },
+      {
+        id: 't1',
+        taskGroupId: 'g1',
+        title: 'タスク1',
+        goalSummary: null,
+        assignees: [{ employeeId: 'e1', employeeName: '鈴木' }],
+        progressPercent: 100,
+      },
+      {
+        id: 't2',
+        taskGroupId: 'g2',
+        title: 'タスク2',
+        goalSummary: null,
+        assignees: [{ employeeId: 'e1', employeeName: '鈴木' }],
+        progressPercent: 0,
+      },
     ],
   })
 
@@ -127,8 +159,22 @@ test('buildOrgTreeGraph: 未割当タスクはグループ集計に含むが人�
       },
     ],
     tasks: [
-      { taskGroupId: 'g1', assigneeEmployeeIds: ['e1'], progressPercent: 100 },
-      { taskGroupId: 'g1', assigneeEmployeeIds: [], progressPercent: 0 },
+      {
+        id: 't1',
+        taskGroupId: 'g1',
+        title: 'タスク1',
+        goalSummary: null,
+        assignees: [{ employeeId: 'e1', employeeName: '鈴木' }],
+        progressPercent: 100,
+      },
+      {
+        id: 't2',
+        taskGroupId: 'g1',
+        title: 'タスク2',
+        goalSummary: null,
+        assignees: [],
+        progressPercent: 0,
+      },
     ],
   })
 
@@ -156,7 +202,19 @@ test('buildOrgTreeGraph: 1タスクに複数担当者がいる場合、進捗が
         ],
       },
     ],
-    tasks: [{ taskGroupId: 'g1', assigneeEmployeeIds: ['e1', 'e2'], progressPercent: 80 }],
+    tasks: [
+      {
+        id: 't1',
+        taskGroupId: 'g1',
+        title: 'タスク1',
+        goalSummary: null,
+        assignees: [
+          { employeeId: 'e1', employeeName: '鈴木' },
+          { employeeId: 'e2', employeeName: '高橋' },
+        ],
+        progressPercent: 80,
+      },
+    ],
   })
 
   const groupNode = nodes.find(n => n.id === 'group:g1')
@@ -169,6 +227,58 @@ test('buildOrgTreeGraph: 1タスクに複数担当者がいる場合、進捗が
   assert.equal(member1?.progressPercent, 80)
   assert.equal(member2?.taskCount, 1)
   assert.equal(member2?.progressPercent, 80)
+})
+
+test('buildOrgTreeGraph: タスクグループの子にtaskノードを並列追加し、その子にtask_assigneeノードを配置する', () => {
+  const { nodes, edges } = buildOrgTreeGraph({
+    ownerEmployeeId: 'owner-1',
+    ownerEmployeeName: '田中',
+    groups: [
+      {
+        taskGroupId: 'g1',
+        taskGroupName: '設計チーム',
+        managers: [{ employeeId: 'm1', employeeName: '佐藤' }],
+        members: [{ employeeId: 'e1', employeeName: '鈴木' }],
+      },
+    ],
+    tasks: [
+      {
+        id: 't1',
+        taskGroupId: 'g1',
+        title: '改善立案',
+        goalSummary: '改善案の3案を立案',
+        assignees: [
+          { employeeId: 'e1', employeeName: '鈴木' },
+          { employeeId: 'm1', employeeName: '佐藤' },
+        ],
+        progressPercent: 40,
+      },
+    ],
+  })
+
+  const pairs = edgePairs(edges)
+
+  // 既存の group→manager/member エッジは維持されたまま（並列追加）
+  assert.ok(pairs.some(([s, t]) => s === 'group:g1' && t === 'manager:g1:m1'))
+
+  const taskNode = nodes.find(n => n.id === 'task:t1')
+  assert.deepEqual(taskNode, {
+    id: 'task:t1',
+    label: '改善立案',
+    role: 'task',
+    taskCount: 1,
+    progressPercent: 40,
+    goalSummary: '改善案の3案を立案',
+  })
+  assert.ok(pairs.some(([s, t]) => s === 'group:g1' && t === 'task:t1'))
+
+  const assignee1 = nodes.find(n => n.id === 'task-assignee:t1:e1')
+  const assignee2 = nodes.find(n => n.id === 'task-assignee:t1:m1')
+  assert.equal(assignee1?.label, '鈴木')
+  assert.equal(assignee1?.role, 'task_assignee')
+  assert.equal(assignee2?.label, '佐藤')
+  assert.ok(pairs.some(([s, t]) => s === 'task:t1' && t === 'task-assignee:t1:e1'))
+  assert.ok(pairs.some(([s, t]) => s === 'task:t1' && t === 'task-assignee:t1:m1'))
 })
 
 test('layoutOrgTree: ルートのみ（子なし）はx=0, y=0になる', () => {

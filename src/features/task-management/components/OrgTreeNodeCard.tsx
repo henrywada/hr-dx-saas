@@ -16,6 +16,8 @@ const ROLE_LABEL: Record<OrgTreeNodeRole, string> = {
   task_group: 'タスクグループ',
   manager: 'マネージャー',
   member: 'メンバー',
+  task: 'タスク',
+  task_assignee: '担当者',
 }
 
 const ROLE_BADGE_VARIANT: Record<OrgTreeNodeRole, 'primary' | 'teal' | 'orange' | 'neutral'> = {
@@ -23,6 +25,8 @@ const ROLE_BADGE_VARIANT: Record<OrgTreeNodeRole, 'primary' | 'teal' | 'orange' 
   task_group: 'neutral',
   manager: 'teal',
   member: 'primary',
+  task: 'neutral',
+  task_assignee: 'primary',
 }
 
 /** 組織ツリーの1ノード（責任者・タスクグループ・マネージャー・メンバー）を表すカード */

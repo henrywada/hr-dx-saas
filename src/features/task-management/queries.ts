@@ -399,7 +399,9 @@ export async function getTaskComments(
 ): Promise<TaskComment[]> {
   let query = supabase
     .from('task_comments')
-    .select('*, employee:employee_id(name)')
+    // task_comments は employees への FK を employee_id / target_employee_id の
+    // 2本持つため、型推論の曖昧さを避けるために FK 制約名で明示的に指定する
+    .select('*, employee:employees!task_comments_employee_id_fkey(name)')
     .order('created_at', { ascending: true })
 
   query =

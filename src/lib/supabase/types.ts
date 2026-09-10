@@ -10349,6 +10349,7 @@ export type Database = {
           employee_id: string
           id: string
           parent_comment_id: string | null
+          target_employee_id: string | null
           task_group_id: string | null
           task_id: string | null
           tenant_id: string
@@ -10361,6 +10362,7 @@ export type Database = {
           employee_id: string
           id?: string
           parent_comment_id?: string | null
+          target_employee_id?: string | null
           task_group_id?: string | null
           task_id?: string | null
           tenant_id: string
@@ -10373,6 +10375,7 @@ export type Database = {
           employee_id?: string
           id?: string
           parent_comment_id?: string | null
+          target_employee_id?: string | null
           task_group_id?: string | null
           task_id?: string | null
           tenant_id?: string
@@ -10391,6 +10394,13 @@ export type Database = {
             columns: ["parent_comment_id"]
             isOneToOne: false
             referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
@@ -12456,6 +12466,10 @@ export type Database = {
         Args: { p_task_id: string }
         Returns: boolean
       }
+      can_send_advice: {
+        Args: { p_target_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       check_employee_condition_drop_alert: {
         Args: { p_employee_id: string }
@@ -12665,6 +12679,14 @@ export type Database = {
       increment_hr_template_usage: {
         Args: { p_template_id: string }
         Returns: undefined
+      }
+      is_employee_task_group_manager: {
+        Args: { p_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
+      is_employee_task_group_member: {
+        Args: { p_employee_id: string; p_task_group_id: string }
+        Returns: boolean
       }
       is_health_check_hr: { Args: never; Returns: boolean }
       is_health_check_medical: { Args: never; Returns: boolean }

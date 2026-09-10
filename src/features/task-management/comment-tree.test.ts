@@ -13,6 +13,8 @@ function comment(overrides: Partial<TaskComment>): TaskComment {
     employeeName: '山田太郎',
     parentCommentId: null,
     commentType: 'general',
+    targetEmployeeId: null,
+    targetEmployeeName: null,
     body: 'コメント本文',
     createdAt: '2026-09-07T00:00:00.000Z',
     updatedAt: '2026-09-07T00:00:00.000Z',

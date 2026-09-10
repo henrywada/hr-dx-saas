@@ -372,6 +372,7 @@ export async function getTaskGroupBoard(
 function mapComment(
   row: Database['public']['Tables']['task_comments']['Row'] & {
     employee: { name: string | null } | null
+    target: { name: string | null } | null
   }
 ): TaskComment {
   return {
@@ -383,6 +384,8 @@ function mapComment(
     employeeName: row.employee?.name ?? '（名前未設定）',
     parentCommentId: row.parent_comment_id,
     commentType: row.comment_type as TaskComment['commentType'],
+    targetEmployeeId: row.target_employee_id,
+    targetEmployeeName: row.target?.name ?? null,
     body: row.body,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -401,7 +404,9 @@ export async function getTaskComments(
     .from('task_comments')
     // task_comments は employees への FK を employee_id / target_employee_id の
     // 2本持つため、型推論の曖昧さを避けるために FK 制約名で明示的に指定する
-    .select('*, employee:employees!task_comments_employee_id_fkey(name)')
+    .select(
+      '*, employee:employees!task_comments_employee_id_fkey(name), target:employees!task_comments_target_employee_id_fkey(name)'
+    )
     .order('created_at', { ascending: true })
 
   query =

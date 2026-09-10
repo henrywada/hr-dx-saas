@@ -142,10 +142,17 @@ export const createCommentSchema = z
     taskGroupId: z.string().uuid().optional(),
     parentCommentId: z.string().uuid().optional(),
     commentType: z.enum(COMMENT_TYPES),
+    targetEmployeeId: z.string().uuid().optional(),
     body: z.string().min(1).max(2000),
   })
   .refine(data => (data.taskId ? 1 : 0) + (data.taskGroupId ? 1 : 0) === 1, {
     message: 'taskId と taskGroupId はどちらか一方のみ指定する',
+  })
+  .refine(data => (data.commentType === 'advice' ? Boolean(data.targetEmployeeId) : true), {
+    message: 'adviceコメントには宛先（targetEmployeeId）が必須です',
+  })
+  .refine(data => (data.commentType !== 'advice' ? !data.targetEmployeeId : true), {
+    message: 'advice以外のコメントにtargetEmployeeIdは指定できません',
   })
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
 
@@ -176,6 +183,10 @@ export interface TaskComment {
   employeeName: string
   parentCommentId: string | null
   commentType: CommentType
+  /** アドバイスの宛先従業員ID（comment_type='advice'のときのみ非null） */
+  targetEmployeeId: string | null
+  /** アドバイスの宛先氏名（employees.name が null の場合のフォールバック済み） */
+  targetEmployeeName: string | null
   body: string
   createdAt: string
   updatedAt: string

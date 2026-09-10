@@ -490,6 +490,7 @@ export async function createComment(input: CreateCommentInput): Promise<{ id: st
       employee_id: user.employee_id,
       parent_comment_id: parsed.parentCommentId ?? null,
       comment_type: parsed.commentType,
+      target_employee_id: parsed.targetEmployeeId ?? null,
       body: parsed.body,
     })
     .select('id')

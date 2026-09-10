@@ -33,6 +33,14 @@ export const createTaskGroupSchema = z.object({
 })
 export type CreateTaskGroupInput = z.infer<typeof createTaskGroupSchema>
 
+export const updateTaskGroupSchema = z.object({
+  taskGroupId: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  goalSummary: z.string().max(200).optional(),
+})
+export type UpdateTaskGroupInput = z.infer<typeof updateTaskGroupSchema>
+
 export const assignManagerSchema = z.object({
   taskGroupId: z.string().uuid(),
   employeeId: z.string().uuid(),

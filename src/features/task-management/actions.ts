@@ -11,6 +11,8 @@ import {
   type CreateMilestoneInput,
   createTaskGroupSchema,
   type CreateTaskGroupInput,
+  updateTaskGroupSchema,
+  type UpdateTaskGroupInput,
   assignManagerSchema,
   type AssignManagerInput,
   assignMemberSchema,
@@ -166,6 +168,37 @@ export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id
   revalidatePath(APP_ROUTES.tasks.objectiveDetail(milestone.objective_id))
 
   return { id: data.id }
+}
+
+/**
+ * タスクグループ（task_groups）の名前・説明・目標（達成基準）を更新する。
+ * 更新可否（責任者・マネージャー）は RLS の task_groups UPDATE ポリシーが強制する
+ * （Phase4要求18でマネージャーにも拡張済み）。0件更新時はエラーを投げる（updateTaskStatus等と同じパターン）。
+ */
+export async function updateTaskGroup(input: UpdateTaskGroupInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateTaskGroupSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('task_groups')
+    .update({
+      name: parsed.name,
+      description: parsed.description ?? null,
+      goal_summary: parsed.goalSummary ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.taskGroupId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このタスクグループを編集する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
 }
 
 /**

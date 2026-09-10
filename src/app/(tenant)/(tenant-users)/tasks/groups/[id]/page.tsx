@@ -7,6 +7,7 @@ import {
 } from '@/features/task-management/queries'
 import { KanbanBoard } from '@/features/task-management/components/KanbanBoard'
 import { TaskForm } from '@/features/task-management/components/TaskForm'
+import { TaskGroupEditForm } from '@/features/task-management/components/TaskGroupEditForm'
 import { ManagerAssignForm } from '@/features/task-management/components/ManagerAssignForm'
 import { MemberAssignForm } from '@/features/task-management/components/MemberAssignForm'
 import { CommentThread } from '@/features/task-management/components/CommentThread'
@@ -63,6 +64,8 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
         <h1 className="text-lg font-semibold text-slate-900">{board.group.name}</h1>
         <p className="text-xs text-slate-500">平均進捗: {board.averageProgress}%</p>
       </div>
+
+      {(isOwner || isManager) && <TaskGroupEditForm group={board.group} />}
 
       {(isOwner || isManager) && (
         <section className="space-y-2">

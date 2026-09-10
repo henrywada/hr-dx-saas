@@ -35,6 +35,11 @@ export function TaskCard({ task, employeeNameById, onOpen }: TaskCardProps) {
     >
       <p className="text-xs font-medium text-slate-900">{task.title}</p>
       <p className="mt-1 text-[10px] text-slate-400">優先度: {PRIORITY_LABEL[task.priority]}</p>
+      {task.goalSummary && (
+        <p className="mt-1 truncate text-[10px] text-slate-500" title={task.goalSummary}>
+          目標: {task.goalSummary}
+        </p>
+      )}
       <p className="mt-1 truncate text-[10px] text-slate-500">
         担当: {assigneeNames.length > 0 ? assigneeNames.join('、') : '未割当'}
       </p>

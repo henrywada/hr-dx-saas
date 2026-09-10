@@ -10522,6 +10522,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          goal_summary: string | null
           id: string
           milestone_id: string
           name: string
@@ -10533,6 +10534,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          goal_summary?: string | null
           id?: string
           milestone_id: string
           name: string
@@ -10544,6 +10546,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          goal_summary?: string | null
           id?: string
           milestone_id?: string
           name?: string
@@ -10739,6 +10742,7 @@ export type Database = {
           created_by_employee_id: string
           description: string | null
           due_date: string | null
+          goal_summary: string | null
           id: string
           priority: string
           progress_percent: number
@@ -10755,6 +10759,7 @@ export type Database = {
           created_by_employee_id: string
           description?: string | null
           due_date?: string | null
+          goal_summary?: string | null
           id?: string
           priority?: string
           progress_percent?: number
@@ -10771,6 +10776,7 @@ export type Database = {
           created_by_employee_id?: string
           description?: string | null
           due_date?: string | null
+          goal_summary?: string | null
           id?: string
           priority?: string
           progress_percent?: number

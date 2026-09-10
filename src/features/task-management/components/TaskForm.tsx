@@ -16,6 +16,7 @@ interface TaskFormProps {
 export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
   const router = useRouter()
   const [title, setTitle] = useState('')
+  const [goalSummary, setGoalSummary] = useState('')
   const [assigneeEmployeeIds, setAssigneeEmployeeIds] = useState<string[]>([])
   const [priority, setPriority] = useState<TaskPriority>('normal')
   const [error, setError] = useState<string | null>(null)
@@ -30,9 +31,11 @@ export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
           taskGroupId,
           title,
           assigneeEmployeeIds,
+          goalSummary: goalSummary || undefined,
           priority,
         })
         setTitle('')
+        setGoalSummary('')
         setAssigneeEmployeeIds([])
         router.refresh()
       } catch (err) {
@@ -50,6 +53,16 @@ export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
           onChange={e => setTitle(e.target.value)}
           required
           className="mt-1 block rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+        />
+      </label>
+      <label className="text-xs font-medium text-slate-700">
+        目標（達成基準）
+        <input
+          value={goalSummary}
+          onChange={e => setGoalSummary(e.target.value)}
+          maxLength={200}
+          placeholder="例: 改善案の3案を立案"
+          className="mt-1 block w-56 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
         />
       </label>
       <label className="text-xs font-medium text-slate-700">

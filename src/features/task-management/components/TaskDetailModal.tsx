@@ -153,6 +153,13 @@ export function TaskDetailModal({
           </div>
         </dl>
 
+        {task.goalSummary && (
+          <p className="mt-2 text-xs text-slate-600">
+            <span className="text-[10px] text-slate-400">目標: </span>
+            {task.goalSummary}
+          </p>
+        )}
+
         <div className="mt-3">
           <p className="text-xs font-medium text-slate-700">担当者</p>
           <ul className="mt-1 flex flex-wrap gap-1.5">

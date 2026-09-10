@@ -116,6 +116,7 @@ function mapTaskGroup(row: Database['public']['Tables']['task_groups']['Row']): 
     milestoneId: row.milestone_id,
     name: row.name,
     description: row.description,
+    goalSummary: row.goal_summary,
     status: row.status as TaskGroup['status'],
     sortOrder: row.sort_order,
   }
@@ -305,6 +306,7 @@ function mapTask(
     taskGroupId: row.task_group_id,
     title: row.title,
     description: row.description,
+    goalSummary: row.goal_summary,
     assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
     status: row.status as Task['status'],
     progressPercent: row.progress_percent,

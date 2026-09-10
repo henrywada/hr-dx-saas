@@ -29,6 +29,7 @@ export const createTaskGroupSchema = z.object({
   milestoneId: z.string().uuid(),
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
+  goalSummary: z.string().max(200).optional(),
 })
 export type CreateTaskGroupInput = z.infer<typeof createTaskGroupSchema>
 
@@ -55,6 +56,7 @@ export const createTaskSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   assigneeEmployeeIds: z.array(z.string().uuid()).max(20).optional().default([]),
+  goalSummary: z.string().max(200).optional(),
   priority: z.enum(TASK_PRIORITIES).default('normal'),
   dueDate: dateStringSchema.optional(),
 })
@@ -115,6 +117,7 @@ export interface TaskGroup {
   milestoneId: string
   name: string
   description: string | null
+  goalSummary: string | null
   status: TaskLifecycleStatus
   sortOrder: number
 }
@@ -125,6 +128,7 @@ export interface Task {
   taskGroupId: string
   title: string
   description: string | null
+  goalSummary: string | null
   assigneeEmployeeIds: string[]
   status: TaskStatus
   progressPercent: number

@@ -11,6 +11,7 @@ interface TaskGroupFormProps {
 export function TaskGroupForm({ milestoneId }: TaskGroupFormProps) {
   const router = useRouter()
   const [name, setName] = useState('')
+  const [goalSummary, setGoalSummary] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -19,8 +20,9 @@ export function TaskGroupForm({ milestoneId }: TaskGroupFormProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await createTaskGroup({ milestoneId, name })
+        await createTaskGroup({ milestoneId, name, goalSummary: goalSummary || undefined })
         setName('')
+        setGoalSummary('')
         router.refresh()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'タスクグループの作成に失敗しました')
@@ -37,6 +39,16 @@ export function TaskGroupForm({ milestoneId }: TaskGroupFormProps) {
           onChange={e => setName(e.target.value)}
           required
           className="mt-1 block rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+        />
+      </label>
+      <label className="text-xs font-medium text-slate-700">
+        目標（達成基準）
+        <input
+          value={goalSummary}
+          onChange={e => setGoalSummary(e.target.value)}
+          maxLength={200}
+          placeholder="例: 改善案の3案を立案"
+          className="mt-1 block w-56 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
         />
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}

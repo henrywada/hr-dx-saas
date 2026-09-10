@@ -156,6 +156,7 @@ export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id
       milestone_id: parsed.milestoneId,
       name: parsed.name,
       description: parsed.description ?? null,
+      goal_summary: parsed.goalSummary ?? null,
     })
     .select('id')
     .single()
@@ -278,6 +279,7 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
       task_group_id: parsed.taskGroupId,
       title: parsed.title,
       description: parsed.description ?? null,
+      goal_summary: parsed.goalSummary ?? null,
       priority: parsed.priority,
       due_date: parsed.dueDate ?? null,
       created_by_employee_id: user.employee_id,

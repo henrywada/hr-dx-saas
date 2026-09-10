@@ -416,6 +416,7 @@ export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void
 /**
  * タスク（tasks）から担当者を1名解除する。
  * 解除可否（責任者・マネージャー）は RLS の task_assignees DELETE ポリシーが強制する。
+ * 0件削除時はエラーを投げる（`updateTaskStatus` と同じパターン）。
  */
 export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promise<void> {
   const user = await getServerUser()
@@ -432,13 +433,17 @@ export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promis
 
   if (taskError) throw taskError
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('task_assignees')
     .delete()
     .eq('task_id', parsed.taskId)
     .eq('employee_id', parsed.employeeId)
+    .select('id')
 
   if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('この担当者を解除する権限がありません')
+  }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }

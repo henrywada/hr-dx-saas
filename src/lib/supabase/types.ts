@@ -12830,6 +12830,7 @@ export type Database = {
           inserted_count: number
         }[]
       }
+      task_group_id_for_task: { Args: { p_task_id: string }; Returns: string }
       try_consume_ai_usage: {
         Args: {
           p_feature_name: string

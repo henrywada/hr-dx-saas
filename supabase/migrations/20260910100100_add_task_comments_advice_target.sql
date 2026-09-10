@@ -6,8 +6,12 @@
 -- can_comment_on_task() / can_comment_on_task_group()
 -- 背景: docs/implementation-plan-task-management.md セクション19.2（Phase 4・要求15）
 
+-- ON DELETE CASCADE: employee_id 列（投稿者）と同じ挙動に揃える。SET NULL にすると、
+-- 対象従業員の退職・削除時に advice コメントの target_employee_id が NULL 化されて
+-- CHECK制約 task_comments_advice_requires_target（advice は target_employee_id 必須）
+-- に違反し、deleteEmployee() が失敗する事故があったため CASCADE に修正（レビュー指摘）
 ALTER TABLE public.task_comments
-  ADD COLUMN IF NOT EXISTS target_employee_id UUID REFERENCES public.employees(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS target_employee_id UUID REFERENCES public.employees(id) ON DELETE CASCADE;
 
 COMMENT ON COLUMN public.task_comments.target_employee_id IS
   '宛先従業員（comment_type=adviceのときのみ必須）。運用概念図の「責任者/タスク責任者→個人」への一方向アドバイスを表す';
@@ -69,6 +73,18 @@ $$;
 
 COMMENT ON FUNCTION public.can_send_advice(UUID, UUID) IS 'ログインユーザーが指定した従業員にアドバイスを送信できるか（責任者→タスク責任者、タスク責任者→メンバーの一方向のみ）';
 
+-- task_id からタスクグループIDを取得する（SECURITY DEFINERでtasks_selectへの暗黙依存を排除）。
+-- 20260908001606_fix_task_comments_update_authorization_bypass.sql と同じ意図の抽出（レビュー指摘）
+CREATE OR REPLACE FUNCTION public.task_group_id_for_task(p_task_id UUID)
+RETURNS UUID
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT t.task_group_id FROM public.tasks t WHERE t.id = p_task_id;
+$$;
+
+COMMENT ON FUNCTION public.task_group_id_for_task(UUID) IS 'タスクIDからタスクグループIDを取得する（SECURITY DEFINERでtasks_selectへの暗黙依存を排除、20260908001606と同じ意図）';
+
 -- task_comments_insert ポリシーを、advice種別のときのみ can_send_advice を追加適用する形に置き換える
 DROP POLICY IF EXISTS "task_comments_insert" ON public.task_comments;
 CREATE POLICY "task_comments_insert" ON public.task_comments
@@ -86,7 +102,7 @@ CREATE POLICY "task_comments_insert" ON public.task_comments
         AND public.can_send_advice(
           COALESCE(
             task_group_id,
-            (SELECT t.task_group_id FROM public.tasks t WHERE t.id = task_id)
+            public.task_group_id_for_task(task_id)
           ),
           target_employee_id
         )

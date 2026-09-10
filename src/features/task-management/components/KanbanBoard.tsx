@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { TASK_STATUSES, type Task } from '../types'
 import { TaskCard } from './TaskCard'
 import { TaskDetailModal } from './TaskDetailModal'
+import type { EmployeeOption } from '../employee-filter'
 
 const STATUS_LABEL: Record<Task['status'], string> = {
   todo: '未着手',
@@ -21,6 +22,10 @@ interface KanbanBoardProps {
   canOperateAllTasks: boolean
   /** 閲覧者が自分の工数を記録できるか（責任者/マネージャー/メンバーのいずれか） */
   canLogWork: boolean
+  /** 従業員ID→氏名のマップ（TaskCard/TaskDetailModalの担当者名表示に使う） */
+  employeeNameById: Record<string, string>
+  /** 担当者候補（そのタスクグループのマネージャー・メンバー。TaskDetailModalの担当者追加に使う） */
+  assignableEmployees: EmployeeOption[]
 }
 
 /**
@@ -37,11 +42,14 @@ export function KanbanBoard({
   myEmployeeId,
   canOperateAllTasks,
   canLogWork,
+  employeeNameById,
+  assignableEmployees,
 }: KanbanBoardProps) {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const openTask = openTaskId ? (tasks.find(t => t.id === openTaskId) ?? null) : null
   const canOperateOpenTask = openTask
-    ? canOperateAllTasks || openTask.assigneeEmployeeId === myEmployeeId
+    ? canOperateAllTasks ||
+      (myEmployeeId !== null && openTask.assigneeEmployeeIds.includes(myEmployeeId))
     : false
 
   return (
@@ -53,7 +61,12 @@ export function KanbanBoard({
             {tasks
               .filter(task => task.status === status)
               .map(task => (
-                <TaskCard key={task.id} task={task} onOpen={() => setOpenTaskId(task.id)} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  employeeNameById={employeeNameById}
+                  onOpen={() => setOpenTaskId(task.id)}
+                />
               ))}
           </div>
         </div>
@@ -67,6 +80,8 @@ export function KanbanBoard({
           currentEmployeeId={myEmployeeId}
           canModerateComments={canOperateAllTasks}
           canLogWork={canLogWork}
+          canManageAssignees={canOperateAllTasks}
+          assignableEmployees={assignableEmployees}
         />
       )}
     </div>

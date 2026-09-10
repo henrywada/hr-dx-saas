@@ -2,10 +2,17 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateTaskStatus, updateTaskProgress } from '../actions'
+import {
+  updateTaskStatus,
+  updateTaskProgress,
+  addTaskAssignee,
+  removeTaskAssignee,
+} from '../actions'
 import { TASK_STATUSES, type Task } from '../types'
 import { CommentThread } from './CommentThread'
 import { WorkLogSection } from './WorkLogSection'
+import { EmployeePicker } from './EmployeePicker'
+import type { EmployeeOption } from '../employee-filter'
 
 const PRIORITY_LABEL: Record<Task['priority'], string> = {
   low: '低',
@@ -34,6 +41,10 @@ interface TaskDetailModalProps {
   canModerateComments: boolean
   /** 閲覧者が自分の工数を記録できるか（グループ参加者または担当者本人。RLSが最終防衛） */
   canLogWork: boolean
+  /** 担当者の追加・解除を行えるか（責任者/マネージャー。task_assigneesのRLSが最終防衛） */
+  canManageAssignees: boolean
+  /** 担当者候補（そのタスクグループのマネージャー・メンバー） */
+  assignableEmployees: EmployeeOption[]
 }
 
 export function TaskDetailModal({
@@ -44,10 +55,13 @@ export function TaskDetailModal({
   currentEmployeeId,
   canModerateComments,
   canLogWork,
+  canManageAssignees,
+  assignableEmployees,
 }: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [pendingAssigneeId, setPendingAssigneeId] = useState('')
 
   if (!isOpen) return null
 
@@ -75,6 +89,36 @@ export function TaskDetailModal({
         setError(err instanceof Error ? err.message : '進捗率の更新に失敗しました')
       }
     })
+  }
+
+  function handleAddAssignee() {
+    if (!pendingAssigneeId) return
+    setError(null)
+    startTransition(async () => {
+      try {
+        await addTaskAssignee({ taskId: task.id, employeeId: pendingAssigneeId })
+        setPendingAssigneeId('')
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '担当者の追加に失敗しました')
+      }
+    })
+  }
+
+  function handleRemoveAssignee(employeeId: string) {
+    setError(null)
+    startTransition(async () => {
+      try {
+        await removeTaskAssignee({ taskId: task.id, employeeId })
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '担当者の解除に失敗しました')
+      }
+    })
+  }
+
+  function assigneeName(id: string): string {
+    return assignableEmployees.find(e => e.id === id)?.name ?? id
   }
 
   return (
@@ -105,6 +149,55 @@ export function TaskDetailModal({
             <dd>{task.dueDate ?? '未設定'}</dd>
           </div>
         </dl>
+
+        <div className="mt-3">
+          <p className="text-xs font-medium text-slate-700">担当者</p>
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {task.assigneeEmployeeIds.length === 0 && (
+              <li className="text-[10px] text-slate-400">未割当</li>
+            )}
+            {task.assigneeEmployeeIds.map(id => (
+              <li
+                key={id}
+                className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs"
+              >
+                {assigneeName(id)}
+                {canManageAssignees && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAssignee(id)}
+                    disabled={isPending}
+                    className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                  >
+                    ×
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {canManageAssignees && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <div className="w-48">
+                <EmployeePicker
+                  employees={assignableEmployees.filter(
+                    e => !task.assigneeEmployeeIds.includes(e.id)
+                  )}
+                  value={pendingAssigneeId}
+                  onChange={setPendingAssigneeId}
+                  placeholder="担当者を追加"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAddAssignee}
+                disabled={isPending || !pendingAssigneeId}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+              >
+                追加
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="mt-3">
           <label className="text-xs font-medium text-slate-700">

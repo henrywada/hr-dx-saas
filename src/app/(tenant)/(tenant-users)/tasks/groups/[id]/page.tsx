@@ -43,14 +43,13 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
   const canManageMembers = canAssignMember(isOwner, isManager)
   const canOperateAllTasks = isOwner || isManager
 
-  // 従業員選択フォーム（TaskForm/ManagerAssignForm/MemberAssignForm）はいずれも
-  // 責任者・マネージャーにしか表示されないため、それ以外の一般メンバーには
-  // テナント全従業員一覧の取得自体を行わない（無駄なクエリ・データ転送を避ける）。
-  const needsEmployees = isOwner || isManager || canManageMembers
-  const employees = needsEmployees ? await getTenantEmployees(supabase) : []
+  // 担当者名の解決（TaskCard/TaskDetailModalでの表示）に全閲覧者が使うため、
+  // 従業員一覧は権限に関わらず取得する。
+  const employees = await getTenantEmployees(supabase)
   const assignableEmployees = employees.filter(
     e => board.managerEmployeeIds.includes(e.id) || board.memberEmployeeIds.includes(e.id)
   )
+  const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 lg:px-8 py-5 mx-auto max-w-[1920px]">
@@ -70,6 +69,8 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
         myEmployeeId={user?.employee_id ?? null}
         canOperateAllTasks={canOperateAllTasks}
         canLogWork={canMemberLogWork}
+        employeeNameById={employeeNameById}
+        assignableEmployees={assignableEmployees}
       />
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">

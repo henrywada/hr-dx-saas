@@ -85,6 +85,7 @@ export function KanbanBoard({
           canManageAssignees={canOperateAllTasks}
           assignableEmployees={assignableEmployees}
           adviceTargets={adviceTargets}
+          employeeNameById={employeeNameById}
         />
       )}
     </div>

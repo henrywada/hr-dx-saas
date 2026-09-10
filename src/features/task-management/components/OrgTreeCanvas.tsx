@@ -25,12 +25,7 @@ export function OrgTreeCanvas({ nodes, edges }: OrgTreeCanvasProps) {
         id: node.id,
         type: 'orgTreeNode',
         position: { x: node.x, y: node.y },
-        data: {
-          label: node.label,
-          role: node.role,
-          taskCount: node.taskCount,
-          progressPercent: node.progressPercent,
-        },
+        data: { ...node },
       })),
     [nodes]
   )

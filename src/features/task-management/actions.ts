@@ -342,7 +342,7 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
  * タスク（tasks）のステータスのみを更新する。
  *
  * カラム制限: `.update()` には `status` と `updated_at` のみを渡す。
- * `title` / `assignee_employee_id` 等の他カラムは絶対に含めない
+ * `title` 等の他カラムは絶対に含めない
  * （RLS の `tasks_update` ポリシーは担当者本人の更新を許可するが、行レベルの制御しかできず
  * カラム単位の制限はできないため、「どのカラムを書き込むか」はこのアクションのコードが担保する）。
  *

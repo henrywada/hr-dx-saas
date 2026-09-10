@@ -47,6 +47,13 @@ interface TaskDetailModalProps {
   assignableEmployees: EmployeeOption[]
   /** 閲覧者が助言を送信できる相手（KanbanBoard経由でページから配線） */
   adviceTargets: EmployeeOption[]
+  /**
+   * 従業員ID→氏名のテナント全体マップ（TaskCard.tsxと同じ用途）。
+   * assignableEmployeesはグループの現マネージャー・メンバーに限定されるため、
+   * 既にグループを離脱した担当者の名前解決に使えない（生のUUIDが表示されてしまう）。
+   * 最終ブランチレビュー M1 対応。
+   */
+  employeeNameById: Record<string, string>
 }
 
 export function TaskDetailModal({
@@ -60,6 +67,7 @@ export function TaskDetailModal({
   canManageAssignees,
   assignableEmployees,
   adviceTargets,
+  employeeNameById,
 }: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -121,7 +129,7 @@ export function TaskDetailModal({
   }
 
   function assigneeName(id: string): string {
-    return assignableEmployees.find(e => e.id === id)?.name ?? id
+    return employeeNameById[id] ?? id
   }
 
   return (

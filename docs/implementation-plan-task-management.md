@@ -182,7 +182,7 @@ src/features/task-management/
 | Phase 1 | 組織化・割当・進捗・カンバン可視化                                                               | 完了（公開済み）                         |
 | Phase 2 | 工数入力・工数分布・コメントスレッド                                                             | 実装完了（デプロイ・E2E検証待ち）        |
 | Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション                                                 | 完了                                     |
-| Phase 4 | 運用概念図との整合性調整（複数担当者・個人宛てアドバイス・タスク目標フィールド・組織ツリー拡張） | 設計完了（実装未着手、セクション19参照） |
+| Phase 4 | 運用概念図との整合性調整（複数担当者・個人宛てアドバイス・タスク目標フィールド・組織ツリー拡張） | 完了（セクション19参照）                 |
 
 ## 13. Phase 2 詳細設計（コメントスレッド機能）
 
@@ -590,10 +590,10 @@ CREATE POLICY "task_groups_update" ON public.task_groups
 
 | #   | 内容                                                                             | 状態   |
 | --- | -------------------------------------------------------------------------------- | ------ |
-| 1   | `task_assignees`テーブル・RLS変更・関連コンポーネント改修（要求14）              | 未着手 |
-| 2   | `task_comments.target_employee_id`・`can_send_advice`権限関数・RLS・UI（要求15） | 未着手 |
-| 3   | `goal_summary`列・Zodスキーマ・UI（要求16）                                      | 未着手 |
-| 4   | 組織ツリーへの`task`/`task_assignee`ノード・未読バッジ（要求17）                 | 未着手 |
-| 5   | `task_groups_update`RLS拡張・`updateTaskGroup`・`TaskGroupEditForm`（要求18）    | 未着手 |
+| 1   | `task_assignees`テーブル・RLS変更・関連コンポーネント改修（要求14）              | 完了   |
+| 2   | `task_comments.target_employee_id`・`can_send_advice`権限関数・RLS・UI（要求15） | 完了   |
+| 3   | `goal_summary`列・Zodスキーマ・UI（要求16）                                      | 完了   |
+| 4   | 組織ツリーへの`task`/`task_assignee`ノード・未読バッジ（要求17）                 | 完了   |
+| 5   | `task_groups_update`RLS拡張・`updateTaskGroup`・`TaskGroupEditForm`（要求18）    | 完了   |
 
 本セクションはbrainstormingスキルによる設計合意の記録であり、実装は別途、規模に応じてSDD（Subagent-Driven Development）またはBoundedパスで着手する。

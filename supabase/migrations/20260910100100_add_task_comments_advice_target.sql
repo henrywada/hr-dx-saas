@@ -16,6 +16,12 @@ ALTER TABLE public.task_comments
 COMMENT ON COLUMN public.task_comments.target_employee_id IS
   '宛先従業員（comment_type=adviceのときのみ必須）。運用概念図の「責任者/タスク責任者→個人」への一方向アドバイスを表す';
 
+-- comment_type='advice' が選択肢として存在していた過去分（宛先の概念が無かった頃の行）は
+-- 新設のCHECK制約に抵触するため、制約追加前にgeneralへ降格する（宛先不明のため復元不可）
+UPDATE public.task_comments
+SET comment_type = 'general'
+WHERE comment_type = 'advice' AND target_employee_id IS NULL;
+
 ALTER TABLE public.task_comments
   ADD CONSTRAINT task_comments_advice_requires_target
   CHECK (

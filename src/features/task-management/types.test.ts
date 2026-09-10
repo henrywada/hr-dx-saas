@@ -88,10 +88,39 @@ test('コメント作成: taskIdのみ指定で成功する', () => {
 test('コメント作成: taskGroupIdのみ指定で成功する', () => {
   const result = createCommentSchema.safeParse({
     taskGroupId: '11111111-1111-4111-8111-111111111111',
-    commentType: 'advice',
+    commentType: 'general',
     body: '助言です',
   })
   assert.equal(result.success, true)
+})
+
+test('コメント作成: advice種別は宛先(targetEmployeeId)が無いと拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskGroupId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'advice',
+    body: '助言です',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: advice種別かつtargetEmployeeIdありなら成功する', () => {
+  const result = createCommentSchema.safeParse({
+    taskGroupId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'advice',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
+    body: '助言です',
+  })
+  assert.equal(result.success, true)
+})
+
+test('コメント作成: advice以外の種別にtargetEmployeeIdを付けると拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskGroupId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'general',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
+    body: '一般コメントです',
+  })
+  assert.equal(result.success, false)
 })
 
 test('コメント作成: taskIdとtaskGroupIdを両方指定すると拒否される', () => {

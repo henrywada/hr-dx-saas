@@ -33,16 +33,39 @@ ON CONFLICT (task_id, employee_id) DO NOTHING;
 
 ALTER TABLE public.task_assignees ENABLE ROW LEVEL SECURITY;
 
+-- ログインユーザーが指定タスクのtask_assignees経由の担当者かどうかを判定する関数
+-- SECURITY DEFINERで tasks ⇔ task_assignees のRLS相互再帰を回避
+-- task_assignees_select ポリシーが参照するため、ポリシー定義より前に作成する必要がある
+CREATE OR REPLACE FUNCTION public.is_task_assignee(p_task_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.task_assignees a
+    WHERE a.task_id = p_task_id AND a.employee_id = public.current_employee_id()
+  );
+$$;
+
+COMMENT ON FUNCTION public.is_task_assignee(UUID) IS 'ログインユーザーが指定タスクのtask_assignees経由の担当者かどうか（SECURITY DEFINERでtasks⇔task_assigneesのRLS相互再帰を回避）';
+
+-- tasks_select（20260907140520_grant_task_assignee_select_visibility.sql）と同様、
+-- グループ参加者でなくても自分がtask_assigneesの担当者本人であれば自分の行を閲覧できるようにする
+-- （担当者はグループの task_group_members/task_group_managers に必ずしも含まれないため）。
+-- 背景: Phase 4最終ブランチレビュー Important指摘 I3
 CREATE POLICY "task_assignees_select" ON public.task_assignees
   FOR SELECT USING (
     tenant_id = public.current_tenant_id()
-    AND EXISTS (
-      SELECT 1 FROM public.tasks t
-      WHERE t.id = task_assignees.task_id
-        AND (
-          public.is_task_group_participant(t.task_group_id)
-          OR public.current_employee_app_role() <> 'employee'
-        )
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.tasks t
+        WHERE t.id = task_assignees.task_id
+          AND (
+            public.is_task_group_participant(t.task_group_id)
+            OR public.current_employee_app_role() <> 'employee'
+          )
+      )
+      OR public.is_task_assignee(task_assignees.task_id)
     )
   );
 
@@ -77,21 +100,6 @@ CREATE POLICY "task_assignees_delete" ON public.task_assignees
 COMMENT ON POLICY "task_assignees_select" ON public.task_assignees IS 'タスクを閲覧できる人（グループ参加者）全員、またはテナント管理者が担当者一覧を閲覧できる';
 COMMENT ON POLICY "task_assignees_insert" ON public.task_assignees IS '責任者・マネージャーのみが担当者を追加できる（tasks_insert/tasks_updateと同じ権限方針）';
 COMMENT ON POLICY "task_assignees_delete" ON public.task_assignees IS '責任者・マネージャーのみが担当者を解除できる';
-
--- ログインユーザーが指定タスクのtask_assignees経由の担当者かどうかを判定する関数
--- SECURITY DEFINERで tasks ⇔ task_assignees のRLS相互再帰を回避
-CREATE OR REPLACE FUNCTION public.is_task_assignee(p_task_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.task_assignees a
-    WHERE a.task_id = p_task_id AND a.employee_id = public.current_employee_id()
-  );
-$$;
-
-COMMENT ON FUNCTION public.is_task_assignee(UUID) IS 'ログインユーザーが指定タスクのtask_assignees経由の担当者かどうか（SECURITY DEFINERでtasks⇔task_assigneesのRLS相互再帰を回避）';
 
 -- ここから: assignee_employee_id を参照していた既存のRLSポリシー・関数を task_assignees ベースに更新する。
 -- バックフィルが完了しているため、以降は task_assignees を正として扱う。

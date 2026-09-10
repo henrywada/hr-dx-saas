@@ -1,4 +1,3 @@
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -12669,6 +12668,7 @@ export type Database = {
       }
       is_health_check_hr: { Args: never; Returns: boolean }
       is_health_check_medical: { Args: never; Returns: boolean }
+      is_task_assignee: { Args: { p_task_id: string }; Returns: boolean }
       is_task_group_manager: {
         Args: { p_task_group_id: string }
         Returns: boolean
@@ -12988,5 +12988,3 @@ export const Constants = {
   },
 } as const
 
-A new version of Supabase CLI is available: v2.117.0 (currently installed v2.90.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

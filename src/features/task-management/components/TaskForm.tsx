@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createTask } from '../actions'
 import { TASK_PRIORITIES, type TaskPriority } from '../types'
-import { EmployeePicker } from './EmployeePicker'
+import { MultiEmployeePicker } from './MultiEmployeePicker'
 import type { EmployeeOption } from '../employee-filter'
 
 interface TaskFormProps {
@@ -16,7 +16,7 @@ interface TaskFormProps {
 export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
   const router = useRouter()
   const [title, setTitle] = useState('')
-  const [assigneeEmployeeId, setAssigneeEmployeeId] = useState('')
+  const [assigneeEmployeeIds, setAssigneeEmployeeIds] = useState<string[]>([])
   const [priority, setPriority] = useState<TaskPriority>('normal')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -29,11 +29,11 @@ export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
         await createTask({
           taskGroupId,
           title,
-          assigneeEmployeeId: assigneeEmployeeId || undefined,
+          assigneeEmployeeIds,
           priority,
         })
         setTitle('')
-        setAssigneeEmployeeId('')
+        setAssigneeEmployeeIds([])
         router.refresh()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'タスクの作成に失敗しました')
@@ -55,11 +55,10 @@ export function TaskForm({ taskGroupId, assignableEmployees }: TaskFormProps) {
       <label className="text-xs font-medium text-slate-700">
         担当者
         <div className="mt-1 w-56">
-          <EmployeePicker
+          <MultiEmployeePicker
             employees={assignableEmployees}
-            value={assigneeEmployeeId}
-            onChange={setAssigneeEmployeeId}
-            placeholder="未割当"
+            value={assigneeEmployeeIds}
+            onChange={setAssigneeEmployeeIds}
           />
         </div>
       </label>

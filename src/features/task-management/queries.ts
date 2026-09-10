@@ -828,7 +828,10 @@ export async function getObjectiveOrgTree(
 
   const nodesWithUnread = nodes.map(node =>
     node.role === 'task'
-      ? { ...node, unreadAdviceCount: unreadAdviceCountsByTaskId[node.id.replace('task:', '')] ?? 0 }
+      ? {
+          ...node,
+          unreadAdviceCount: unreadAdviceCountsByTaskId[node.id.replace('task:', '')] ?? 0,
+        }
       : node
   )
 

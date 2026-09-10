@@ -43,6 +43,13 @@
 12. ダッシュボードフィード連携（既存 `dashboard/feed` 基盤へのイベント配信：割当通知・期限接近・コメント通知等）
 13. 状態変化時のアニメーション演出
 
+**Should（Phase 4 — 運用概念図との整合性調整）**
+
+14. タスクの複数担当者化（`tasks` を1タスク=1担当者から1タスク=複数担当者に変更。詳細はセクション19.1参照）
+15. 個人宛てアドバイス機能（コメントの`advice`種別に宛先・送信権限を追加。責任者→タスク責任者、タスク責任者→タスクメンバーの一方向。詳細はセクション19.2参照）
+16. タスク／タスクグループ単位の「目標（達成基準）」フィールド（詳細はセクション19.3参照）
+17. 組織ツリー可視化へのタスクノード・未読アドバイスバッジ追加（詳細はセクション19.4参照）
+
 **Won't（今回スコープ外）**
 
 - 勤怠管理との自動連動（工数の自動取得）— 後日開発
@@ -169,11 +176,12 @@ src/features/task-management/
 
 ## 12. 実装ステータス
 
-| Phase   | 内容                                             | 状態                              |
-| ------- | ------------------------------------------------ | --------------------------------- |
-| Phase 1 | 組織化・割当・進捗・カンバン可視化               | 完了（公開済み）                  |
-| Phase 2 | 工数入力・工数分布・コメントスレッド             | 実装完了（デプロイ・E2E検証待ち） |
-| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション | 完了                              |
+| Phase   | 内容                                                                                             | 状態                                     |
+| ------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| Phase 1 | 組織化・割当・進捗・カンバン可視化                                                               | 完了（公開済み）                         |
+| Phase 2 | 工数入力・工数分布・コメントスレッド                                                             | 実装完了（デプロイ・E2E検証待ち）        |
+| Phase 3 | 組織ツリー・進捗サマリ・通知連携・アニメーション                                                 | 完了                                     |
+| Phase 4 | 運用概念図との整合性調整（複数担当者・個人宛てアドバイス・タスク目標フィールド・組織ツリー拡張） | 設計完了（実装未着手、セクション19参照） |
 
 ## 13. Phase 2 詳細設計（コメントスレッド機能）
 
@@ -432,3 +440,135 @@ CSSクラスの追加のみでロジックを含まないため、既存の`Prog
 - 型チェック：エラーなし
 - ESLint：問題なし
 - 手動E2E確認：サンドボックス環境でPlaywrightのブラウザ実行ファイルが見つからず（`"chrome" executable not found`）、工数管理・進捗サマリ・フィード連携・組織ツリー機能と同じ制約でライブブラウザ確認は未実施。開発サーバー起動＋curlでのHTTP 200応答確認、および型チェック・ESLintの静的検証で代替した。ブラウザが利用可能な環境での視覚確認（進捗値が変化した際にバー・リングがなめらかに動くこと）は後日改めて実施することが望ましい。
+
+## 19. Phase 4 詳細設計（運用概念図との整合性調整）
+
+### 19.0 背景・経緯
+
+ユーザーから提示された「タスク管理の運用概念図」（責任者(部門長)が目標を持ち、複数タスク（改善立案／AI業務改善／導入・普及／残業時間監視）に分解、各タスクに複数担当者（Aさん〜Dさん）、各タスクにも個別の目標、責任者・タスク責任者から特定個人への「アドバイス」の矢印、という構造）と、Phase 1〜3で実装済みのデータモデル・UIを突き合わせ、以下4点のギャップを特定した（brainstormingスキルの対話を通じてユーザーと個別に方針を確定）。
+
+1. `tasks.assignee_employee_id`が単一人のみであり、図の「1タスクに複数担当者」を表現できない
+2. `task_comments`の`advice`種別コメントに宛先・送信権限の概念がなく、図の「責任者/タスク責任者→特定個人」という一方向の個別フィードバックを表現できない
+3. `tasks`/`task_groups`に構造化された「目標（達成基準）」フィールドがなく、図の「タスクごとの個別目標」を自由記述の`description`でしか表現できない
+4. 組織ツリー可視化（セクション17）に個別タスクのノードがなく、図のような「タスク単位で担当者・アドバイスを一望する」ビューが存在しない
+
+Phase 1〜3のデータモデル（`task_objectives`→`task_milestones`→`task_groups`→`tasks`の5階層、責任者/マネージャー/メンバーの役割）自体は変更せず、上記4点を追加・拡張する形で対応する。
+
+### 19.1 要求14：タスクの複数担当者化
+
+**スキーマ**：新規中間テーブル`task_assignees`を追加し、`tasks.assignee_employee_id`（単一・nullable）を置き換える。
+
+```sql
+CREATE TABLE IF NOT EXISTS public.task_assignees (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (task_id, employee_id)
+);
+```
+
+**移行方針（2段階、データ保護ルールに従う）**：
+
+1. `task_assignees`作成＋`INSERT INTO task_assignees SELECT ... FROM tasks WHERE assignee_employee_id IS NOT NULL`で既存データを複製する読み取り専用バックフィル（`tasks.assignee_employee_id`列は維持したまま）
+2. 動作確認後、別マイグレーションで`tasks.assignee_employee_id`列を削除する（実行前に`SELECT COUNT(*)`で影響件数を提示しユーザー承認を得てから実行する）
+
+**影響範囲**：
+
+| 箇所                                                                     | 変更内容                                                                                                                                                          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RLS `tasks_update`（`20260907032410_create_task_management_tables.sql`） | `assignee_employee_id = current_employee_id()`を`EXISTS(SELECT 1 FROM task_assignees WHERE task_id = tasks.id AND employee_id = current_employee_id())`に置き換え |
+| `TaskForm.tsx` / `EmployeePicker.tsx`                                    | 単一選択→複数選択に変更                                                                                                                                           |
+| `TaskCard.tsx` / `TaskDetailModal.tsx`                                   | 担当者を複数名表示（既知の残課題「担当者名未表示」もここで同時解消）                                                                                              |
+| `org-tree.ts`の`personProgressByKey`集計                                 | 1タスク→1人前提のfilter/mapを、1タスク→複数人へのfan-outに変更（`progress.ts`の関数シグネチャ自体は変更不要）                                                     |
+| `feed-provider.ts`の割当通知クエリ                                       | `assignee_employee_id = 自分`のフィルタを`task_assignees`とのJOINに変更                                                                                           |
+| `employee-filter.ts`                                                     | 同様に`task_assignees`経由の判定に変更                                                                                                                            |
+
+`task_work_logs`（工数記録）は元々従業員ごとに記録する設計のため変更不要。
+
+### 19.2 要求15：個人宛てアドバイス機能
+
+**スキーマ**：`task_comments`に宛先列を追加し、`advice`種別でのみ必須とする。
+
+```sql
+ALTER TABLE public.task_comments
+  ADD COLUMN IF NOT EXISTS target_employee_id UUID REFERENCES public.employees(id) ON DELETE SET NULL;
+
+ALTER TABLE public.task_comments
+  ADD CONSTRAINT task_comments_advice_requires_target
+  CHECK (
+    (comment_type = 'advice' AND target_employee_id IS NOT NULL)
+    OR (comment_type <> 'advice' AND target_employee_id IS NULL)
+  );
+```
+
+**送信権限**：図の運用（責任者→タスク責任者、タスク責任者→タスクメンバーの一方向）に合わせ、汎用ヘルパー`is_employee_task_group_manager(group_id, employee_id)`／`is_employee_task_group_member(group_id, employee_id)`（既存の`is_task_group_manager`等は暗黙に`current_employee_id()`を対象とするため、任意の従業員を検査できる版を新設）を用いて次を定義する。
+
+```sql
+can_send_advice(group_id, target_employee_id) :=
+  (is_task_group_owner(group_id) AND is_employee_task_group_manager(group_id, target_employee_id))
+  OR
+  (is_task_group_manager(group_id) AND is_employee_task_group_member(group_id, target_employee_id))
+```
+
+これを`task_comments_insert`ポリシーの`comment_type = 'advice'`時のみ追加適用する（`report`/`suggestion`/`general`は現行どおり参加者なら誰でも投稿可）。
+
+**既知のトレードオフ**：マネージャー未割当のタスクグループでは、責任者がメンバーへ直接adviceを送れない（一段飛ばし不可）。図の運用に忠実にするための意図的な制約であり、ユーザー合意済み。運用上不便であれば、後日「マネージャー不在時は責任者が直接送信可」という分岐を`can_send_advice`に追加できる。
+
+**可視範囲**：advice投稿は宛先個人専用の非公開スレッドにはせず、既存どおりタスク／タスクグループ全体のコメントスレッドに公開する（チーム内の透明性を優先する方針、ユーザー合意済み）。ただし宛先を明示するバッジ（例:「→ Aさんへ」）を表示し、誰が誰に指導したかが一覧できるようにする。
+
+**UI**：`CommentThread.tsx`の種別選択で`advice`を選ぶと宛先ピッカーが出現し、自分が送信可能な相手（`can_send_advice`を満たす相手）のみを選択肢として表示する。
+
+### 19.3 要求16：タスク／タスクグループ単位の「目標（達成基準）」フィールド
+
+`description`（自由記述のメモ欄）とは別に、図の「目標：改善案の3案を立案」のような短い達成基準を独立フィールドとして両階層に追加する。
+
+```sql
+ALTER TABLE public.task_groups ADD COLUMN IF NOT EXISTS goal_summary TEXT;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS goal_summary TEXT;
+```
+
+`createTaskSchema`/`createTaskGroupSchema`（Zod）に`goalSummary: z.string().max(200).optional()`を追加する（短い一文の達成基準を想定した文字数上限）。UIは`TaskForm.tsx`・`TaskGroupForm.tsx`に入力欄を追加し、`TaskCard.tsx`・`TaskDetailModal.tsx`・`OrgTreeNodeCard.tsx`（ツールチップ）に表示する。新規テーブルなし、既存の進捗計算ロジックへの影響なし。
+
+### 19.4 要求17：組織ツリーへのタスクノード・未読アドバイスバッジ追加
+
+**構造（並列追加方式）**：セクション17で確立した「責任者→タスクグループ→{マネージャー,メンバー}」構造はそのまま維持し、`task_group`の子として新たに`task`ノードを並列に追加、その子に`task_assignee`ノード（`task_assignees`由来、要求14で新設したテーブルを参照、複数）を配置する。
+
+```
+owner
+└─ task_group（既存）
+   ├─ manager（既存、維持）
+   ├─ member（既存、維持）
+   └─ task「改善立案」（新規）── goal_summaryをツールチップ表示、進捗%は自身のprogress_percentをそのまま使用（集計不要）
+      ├─ task_assignee: Aさん（新規）
+      └─ task_assignee: Dさん（新規）
+```
+
+既存の`manager`/`member`ノードとの間で同一人物が重複して現れうるが、前者は「グループの構成員」、後者は「実際の作業割当」という異なる情報を示すため許容する（ユーザー合意済み）。`layoutOrgTree`は純粋にedges構造のみを見るDFSアルゴリズムのため、ノード種別が増えても変更不要（セクション17.5の設計方針どおり）。
+
+**未読アドバイスバッジ**：`task`ノードに、閲覧者（`current_employee_id()`）宛ての未読adviceコメント件数を表示する。既読管理は`/top`通知フィードで使用中の`dashboard_feed_read_state`（`20260821090000_create_dashboard_feed_read_state.sql`）をそのまま再利用し、新規テーブルは追加しない。
+
+```sql
+SELECT c.task_id, COUNT(*) FROM task_comments c
+LEFT JOIN dashboard_feed_read_state r
+  ON r.dedupe_key = 'task_management:comment:' || c.id
+  AND r.employee_id = current_employee_id()
+WHERE c.comment_type = 'advice'
+  AND c.target_employee_id = current_employee_id()
+  AND r.id IS NULL
+GROUP BY c.task_id
+```
+
+`queries.ts`に集計関数（例：`getUnreadAdviceCountsByTask`）を1つ追加するのみ。
+
+### 19.5 実装ステータス（サブタスク単位）
+
+| #   | 内容                                                                             | 状態   |
+| --- | -------------------------------------------------------------------------------- | ------ |
+| 1   | `task_assignees`テーブル・RLS変更・関連コンポーネント改修（要求14）              | 未着手 |
+| 2   | `task_comments.target_employee_id`・`can_send_advice`権限関数・RLS・UI（要求15） | 未着手 |
+| 3   | `goal_summary`列・Zodスキーマ・UI（要求16）                                      | 未着手 |
+| 4   | 組織ツリーへの`task`/`task_assignee`ノード・未読バッジ（要求17）                 | 未着手 |
+
+本セクションはbrainstormingスキルによる設計合意の記録であり、実装は別途、規模に応じてSDD（Subagent-Driven Development）またはBoundedパスで着手する。

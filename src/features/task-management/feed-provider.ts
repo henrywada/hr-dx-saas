@@ -153,8 +153,8 @@ export const taskManagementFeedProvider: FeedProvider = {
     const [assignedResult, commentResult] = await Promise.all([
       supabase
         .from('tasks')
-        .select('id, title, task_group_id, due_date, created_at')
-        .eq('assignee_employee_id', ctx.employeeId)
+        .select('id, title, task_group_id, due_date, created_at, task_assignees!inner(employee_id)')
+        .eq('task_assignees.employee_id', ctx.employeeId)
         .neq('status', 'done')
         .order('due_date', { ascending: true, nullsFirst: false })
         .limit(MAX_ASSIGNMENT_ITEMS),
@@ -172,7 +172,9 @@ export const taskManagementFeedProvider: FeedProvider = {
     if (assignedResult.error) throw assignedResult.error
     if (commentResult.error) throw commentResult.error
 
-    const assignmentItems = toTaskAssignmentFeedItems(assignedResult.data ?? [])
+    const assignmentItems = toTaskAssignmentFeedItems(
+      (assignedResult.data ?? []) as unknown as AssignedTaskRow[]
+    )
 
     const commentRows = ((commentResult.data ?? []) as unknown as RawTaskCommentRow[])
       .map(resolveTaskCommentContext)

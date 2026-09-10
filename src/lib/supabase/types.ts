@@ -10737,7 +10737,6 @@ export type Database = {
       }
       tasks: {
         Row: {
-          assignee_employee_id: string | null
           created_at: string
           created_by_employee_id: string
           description: string | null
@@ -10754,7 +10753,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          assignee_employee_id?: string | null
           created_at?: string
           created_by_employee_id: string
           description?: string | null
@@ -10771,7 +10769,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          assignee_employee_id?: string | null
           created_at?: string
           created_by_employee_id?: string
           description?: string | null
@@ -10788,13 +10785,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "tasks_assignee_employee_id_fkey"
-            columns: ["assignee_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "tasks_created_by_employee_id_fkey"
             columns: ["created_by_employee_id"]

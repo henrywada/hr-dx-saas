@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { EmployeePicker } from './EmployeePicker'
 import type { EmployeeOption } from '../employee-filter'
 
@@ -17,6 +17,13 @@ interface MultiEmployeePickerProps {
  */
 export function MultiEmployeePicker({ employees, value, onChange }: MultiEmployeePickerProps) {
   const [pendingId, setPendingId] = useState('')
+
+  useEffect(() => {
+    if (value.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPendingId('')
+    }
+  }, [value])
 
   const selectable = employees.filter(e => !value.includes(e.id))
 

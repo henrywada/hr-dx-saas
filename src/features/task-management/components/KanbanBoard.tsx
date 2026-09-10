@@ -26,6 +26,7 @@ interface KanbanBoardProps {
   employeeNameById: Record<string, string>
   /** 担当者候補（そのタスクグループのマネージャー・メンバー。TaskDetailModalの担当者追加に使う） */
   assignableEmployees: EmployeeOption[]
+  adviceTargets: EmployeeOption[]
 }
 
 /**
@@ -44,6 +45,7 @@ export function KanbanBoard({
   canLogWork,
   employeeNameById,
   assignableEmployees,
+  adviceTargets,
 }: KanbanBoardProps) {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const openTask = openTaskId ? (tasks.find(t => t.id === openTaskId) ?? null) : null
@@ -82,6 +84,7 @@ export function KanbanBoard({
           canLogWork={canLogWork}
           canManageAssignees={canOperateAllTasks}
           assignableEmployees={assignableEmployees}
+          adviceTargets={adviceTargets}
         />
       )}
     </div>

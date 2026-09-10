@@ -51,6 +51,12 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
   )
   const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
 
+  // アドバイス送信権限（責任者→タスク責任者、タスク責任者→メンバーの一方向。
+  // can_send_advice の判定条件と一致させる。セクション19.2参照）
+  const managerOptions = employees.filter(e => board.managerEmployeeIds.includes(e.id))
+  const memberOptions = employees.filter(e => board.memberEmployeeIds.includes(e.id))
+  const adviceTargets = isOwner ? managerOptions : isManager ? memberOptions : []
+
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 lg:px-8 py-5 mx-auto max-w-[1920px]">
       <div className="flex items-center justify-between">
@@ -71,6 +77,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
         canLogWork={canMemberLogWork}
         employeeNameById={employeeNameById}
         assignableEmployees={assignableEmployees}
+        adviceTargets={adviceTargets}
       />
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -111,6 +118,7 @@ export default async function TaskGroupDetailPage({ params }: { params: Promise<
           canPost={isOwner || isManager}
           currentEmployeeId={user?.employee_id ?? null}
           canModerate={isOwner || isManager}
+          adviceTargets={adviceTargets}
         />
       </section>
     </div>

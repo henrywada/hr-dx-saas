@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from 'react'
 import { getTaskCommentsAction, createComment, updateComment, deleteComment } from '../actions'
 import { buildCommentTree, type CommentNode } from '../comment-tree'
 import { COMMENT_TYPES, type CommentType, type TaskComment } from '../types'
+import { EmployeePicker } from './EmployeePicker'
+import type { EmployeeOption } from '../employee-filter'
 
 const COMMENT_TYPE_LABEL: Record<CommentType, string> = {
   report: '報告',
@@ -20,6 +22,9 @@ interface CommentThreadProps {
   currentEmployeeId: string | null
   /** 閲覧者が責任者・マネージャーとして他人のコメントも削除できるか */
   canModerate: boolean
+  /** 閲覧者が「助言」コメントを送信できる相手（責任者ならグループのマネージャー、
+   * マネージャーならグループのメンバー）。空配列なら助言の選択肢自体を表示しない */
+  adviceTargets: EmployeeOption[]
 }
 
 export function CommentThread({
@@ -27,6 +32,7 @@ export function CommentThread({
   canPost,
   currentEmployeeId,
   canModerate,
+  adviceTargets,
 }: CommentThreadProps) {
   const [comments, setComments] = useState<TaskComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -76,6 +82,7 @@ export function CommentThread({
             currentEmployeeId={currentEmployeeId}
             canModerate={canModerate}
             canPost={canPost}
+            adviceTargets={adviceTargets}
           />
         ))}
       </ul>
@@ -85,6 +92,7 @@ export function CommentThread({
           parentCommentId={null}
           onPosted={reload}
           submitLabel="投稿する"
+          adviceTargets={adviceTargets}
         />
       )}
     </div>
@@ -103,6 +111,7 @@ interface CommentItemProps {
   canModerate: boolean
   /** このユーザーが返信を投稿できるか（対象への投稿権限。RLSが最終防衛） */
   canPost: boolean
+  adviceTargets: EmployeeOption[]
 }
 
 function CommentItem({
@@ -114,6 +123,7 @@ function CommentItem({
   currentEmployeeId,
   canModerate,
   canPost,
+  adviceTargets,
 }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editBody, setEditBody] = useState(node.body)
@@ -162,6 +172,12 @@ function CommentItem({
           {COMMENT_TYPE_LABEL[node.commentType]}
         </span>
       </div>
+
+      {node.commentType === 'advice' && node.targetEmployeeName && (
+        <p className="mt-0.5 text-[10px] font-medium text-[#FD7601]">
+          → {node.targetEmployeeName}さんへ
+        </p>
+      )}
 
       {isEditing ? (
         <form onSubmit={handleSaveEdit} className="mt-1 space-y-1">
@@ -239,6 +255,7 @@ function CommentItem({
               onPosted()
             }}
             submitLabel="返信する"
+            adviceTargets={adviceTargets}
           />
         </div>
       )}
@@ -255,6 +272,7 @@ function CommentItem({
               currentEmployeeId={currentEmployeeId}
               canModerate={canModerate}
               canPost={canPost}
+              adviceTargets={adviceTargets}
             />
           ))}
         </ul>
@@ -268,13 +286,25 @@ interface CommentFormProps {
   parentCommentId: string | null
   onPosted: () => void
   submitLabel: string
+  adviceTargets: EmployeeOption[]
 }
 
-function CommentForm({ target, parentCommentId, onPosted, submitLabel }: CommentFormProps) {
+function CommentForm({
+  target,
+  parentCommentId,
+  onPosted,
+  submitLabel,
+  adviceTargets,
+}: CommentFormProps) {
   const [commentType, setCommentType] = useState<CommentType>('general')
+  const [targetEmployeeId, setTargetEmployeeId] = useState('')
   const [body, setBody] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // 宛先が1人もいない閲覧者には「助言」の選択肢自体を出さない
+  const availableTypes =
+    adviceTargets.length > 0 ? COMMENT_TYPES : COMMENT_TYPES.filter(t => t !== 'advice')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -285,9 +315,12 @@ function CommentForm({ target, parentCommentId, onPosted, submitLabel }: Comment
           ...('taskId' in target ? { taskId: target.taskId } : { taskGroupId: target.taskGroupId }),
           parentCommentId: parentCommentId ?? undefined,
           commentType,
+          targetEmployeeId: commentType === 'advice' ? targetEmployeeId : undefined,
           body,
         })
         setBody('')
+        setTargetEmployeeId('')
+        setCommentType('general')
         onPosted()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'コメントの投稿に失敗しました')
@@ -300,15 +333,28 @@ function CommentForm({ target, parentCommentId, onPosted, submitLabel }: Comment
       <div className="flex items-center gap-2">
         <select
           value={commentType}
-          onChange={e => setCommentType(e.target.value as CommentType)}
+          onChange={e => {
+            setCommentType(e.target.value as CommentType)
+            setTargetEmployeeId('')
+          }}
           className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
         >
-          {COMMENT_TYPES.map(type => (
+          {availableTypes.map(type => (
             <option key={type} value={type}>
               {COMMENT_TYPE_LABEL[type]}
             </option>
           ))}
         </select>
+        {commentType === 'advice' && (
+          <div className="w-40">
+            <EmployeePicker
+              employees={adviceTargets}
+              value={targetEmployeeId}
+              onChange={setTargetEmployeeId}
+              placeholder="宛先を選択"
+            />
+          </div>
+        )}
       </div>
       <textarea
         value={body}
@@ -321,7 +367,7 @@ function CommentForm({ target, parentCommentId, onPosted, submitLabel }: Comment
       {error && <p className="text-xs text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={isPending || !body}
+        disabled={isPending || !body || (commentType === 'advice' && !targetEmployeeId)}
         className="rounded-lg bg-[#FD7601] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
       >
         {submitLabel}

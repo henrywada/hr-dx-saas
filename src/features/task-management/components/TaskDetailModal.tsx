@@ -45,6 +45,8 @@ interface TaskDetailModalProps {
   canManageAssignees: boolean
   /** 担当者候補（そのタスクグループのマネージャー・メンバー） */
   assignableEmployees: EmployeeOption[]
+  /** 閲覧者が助言を送信できる相手（KanbanBoard経由でページから配線） */
+  adviceTargets: EmployeeOption[]
 }
 
 export function TaskDetailModal({
@@ -57,6 +59,7 @@ export function TaskDetailModal({
   canLogWork,
   canManageAssignees,
   assignableEmployees,
+  adviceTargets,
 }: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -237,6 +240,7 @@ export function TaskDetailModal({
             canPost={canOperate}
             currentEmployeeId={currentEmployeeId}
             canModerate={canModerateComments}
+            adviceTargets={adviceTargets}
           />
         </div>
 

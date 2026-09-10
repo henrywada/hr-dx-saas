@@ -16,6 +16,8 @@ export interface OrgTreeNodeData {
   progressPercent: number
   /** role='task'のときのみ設定される達成基準（要求16のgoal_summary） */
   goalSummary?: string | null
+  /** role='task'のときのみ設定される、閲覧者宛ての未読adviceコメント件数 */
+  unreadAdviceCount?: number
 }
 
 export interface OrgTreeEdge {

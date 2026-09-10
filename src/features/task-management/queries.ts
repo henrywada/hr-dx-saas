@@ -630,13 +630,61 @@ interface OrgTreeGroupPersonRow {
 }
 
 /**
+ * 指定したタスクID群のうち、閲覧者（currentEmployeeId）宛ての未読adviceコメント件数を
+ * タスクID単位で集計する。既存の `/top` 通知フィードで使っている
+ * `dashboard_feed_read_state`（従業員×dedupe_key単位の既読管理）をそのまま再利用し、
+ * 新規テーブルは追加しない。task_comments と dashboard_feed_read_state は
+ * FK関係を持たない（dedupe_keyは導出キーのため）ため、埋め込みJOINは使えず、
+ * 2回のクエリをJS側で突き合わせる。
+ */
+export async function getUnreadAdviceCountsByTask(
+  supabase: SupabaseClient<Database>,
+  taskIds: string[],
+  currentEmployeeId: string
+): Promise<Record<string, number>> {
+  if (taskIds.length === 0) return {}
+
+  const { data: adviceRows, error: adviceError } = await supabase
+    .from('task_comments')
+    .select('id, task_id')
+    .in('task_id', taskIds)
+    .eq('comment_type', 'advice')
+    .eq('target_employee_id', currentEmployeeId)
+
+  if (adviceError) throw adviceError
+  if (!adviceRows || adviceRows.length === 0) return {}
+
+  const dedupeKeys = adviceRows.map(row => `task_management:comment:${row.id}`)
+
+  const { data: readRows, error: readError } = await supabase
+    .from('dashboard_feed_read_state')
+    .select('dedupe_key')
+    .eq('employee_id', currentEmployeeId)
+    .in('dedupe_key', dedupeKeys)
+
+  if (readError) throw readError
+
+  const readKeySet = new Set((readRows ?? []).map(r => r.dedupe_key))
+
+  const counts: Record<string, number> = {}
+  for (const row of adviceRows) {
+    if (!row.task_id) continue
+    if (readKeySet.has(`task_management:comment:${row.id}`)) continue
+    counts[row.task_id] = (counts[row.task_id] ?? 0) + 1
+  }
+
+  return counts
+}
+
+/**
  * 目標（task_objectives）配下の組織ツリー（責任者 → タスクグループ → {マネージャー・メンバー}）を、
  * 座標計算済みのノード・エッジとして取得する（要求10）。
  * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
  */
 export async function getObjectiveOrgTree(
   supabase: SupabaseClient<Database>,
-  objectiveId: string
+  objectiveId: string,
+  currentEmployeeId: string | null
 ): Promise<OrgTree> {
   const { data: objectiveRow, error: objectiveError } = await supabase
     .from('task_objectives')
@@ -770,8 +818,22 @@ export async function getObjectiveOrgTree(
     tasks,
   })
 
+  const unreadAdviceCountsByTaskId = currentEmployeeId
+    ? await getUnreadAdviceCountsByTask(
+        supabase,
+        tasks.map(t => t.id),
+        currentEmployeeId
+      )
+    : {}
+
+  const nodesWithUnread = nodes.map(node =>
+    node.role === 'task'
+      ? { ...node, unreadAdviceCount: unreadAdviceCountsByTaskId[node.id.replace('task:', '')] ?? 0 }
+      : node
+  )
+
   return {
-    nodes: layoutOrgTree(nodes, edges, ORG_TREE_ROOT_ID),
+    nodes: layoutOrgTree(nodesWithUnread, edges, ORG_TREE_ROOT_ID),
     edges,
   }
 }

@@ -24,7 +24,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
     objectiveProgress,
   } = await getObjectiveDetail(supabase, id)
   const workLogSummary = await getWorkLogSummaryByObjective(supabase, id)
-  const orgTree = await getObjectiveOrgTree(supabase, id)
+  const orgTree = await getObjectiveOrgTree(supabase, id, user?.employee_id ?? null)
   // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は task_milestones の RLS INSERT ポリシーが担う。
   // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は責任者ではない扱いにする。
   const isOwner = user?.employee_id

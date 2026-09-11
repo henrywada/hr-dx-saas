@@ -12469,6 +12469,14 @@ export type Database = {
         Args: { p_target_employee_id: string; p_task_group_id: string }
         Returns: boolean
       }
+      can_send_report: {
+        Args: { p_target_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
+      can_send_suggestion: {
+        Args: { p_target_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       check_employee_condition_drop_alert: {
         Args: { p_employee_id: string }
@@ -12684,6 +12692,10 @@ export type Database = {
         Returns: boolean
       }
       is_employee_task_group_member: {
+        Args: { p_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
+      is_employee_task_group_owner: {
         Args: { p_employee_id: string; p_task_group_id: string }
         Returns: boolean
       }

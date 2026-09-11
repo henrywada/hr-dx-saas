@@ -21,7 +21,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
   const divisions = await getTenantDivisions(supabase)
   const employeeDivisionById = await getEmployeeDivisionMap(supabase)
-  const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId)
+  const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId, employees)
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false

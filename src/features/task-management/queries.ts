@@ -365,13 +365,17 @@ export interface TaskGroupParticipants {
   members: EmployeeOption[]
 }
 
-/** 目標責任者・タスクグループのマネージャー・メンバー一覧をまとめて取得する（宛先候補の算出用） */
+/**
+ * 目標責任者・タスクグループのマネージャー・メンバー一覧をまとめて取得する（宛先候補の算出用）。
+ * `employees` は呼び出し元が既に取得済みの `getTenantEmployees()` の結果を渡す
+ * （呼び出し元と重複してテナント従業員一覧を再取得しないため）。
+ */
 export async function getTaskGroupParticipants(
   supabase: SupabaseClient<Database>,
-  taskGroupId: string
+  taskGroupId: string,
+  employees: EmployeeOption[]
 ): Promise<TaskGroupParticipants> {
   const summary = await getTaskGroupSummary(supabase, taskGroupId)
-  const employees = await getTenantEmployees(supabase)
   const byId = new Map(employees.map(e => [e.id, e]))
 
   return {

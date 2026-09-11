@@ -68,7 +68,7 @@ export async function createObjective(input: CreateObjectiveInput): Promise<{ id
   const parsed = createObjectiveSchema.parse(input)
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  const { data: objective, error: objectiveError } = await supabase
     .from('task_objectives')
     .insert({
       tenant_id: user.tenant_id,
@@ -80,11 +80,32 @@ export async function createObjective(input: CreateObjectiveInput): Promise<{ id
     .select('id')
     .single()
 
-  if (error) throw error
+  if (objectiveError) throw objectiveError
+
+  // Phase5: UIには表示しない既定のマイルストーン・タスクグループを自動生成する
+  const { data: milestone, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .insert({
+      tenant_id: user.tenant_id,
+      objective_id: objective.id,
+      title: '既定マイルストーン',
+    })
+    .select('id')
+    .single()
+
+  if (milestoneError) throw milestoneError
+
+  const { error: groupError } = await supabase.from('task_groups').insert({
+    tenant_id: user.tenant_id,
+    milestone_id: milestone.id,
+    name: '既定タスクグループ',
+  })
+
+  if (groupError) throw groupError
 
   revalidatePath(APP_ROUTES.tasks.root)
 
-  return { id: data.id }
+  return { id: objective.id }
 }
 
 /**

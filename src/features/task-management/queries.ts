@@ -359,6 +359,32 @@ export async function getTaskGroupSummary(
   }
 }
 
+export interface TaskGroupParticipants {
+  objectiveOwner: EmployeeOption | null
+  managers: EmployeeOption[]
+  members: EmployeeOption[]
+}
+
+/** 目標責任者・タスクグループのマネージャー・メンバー一覧をまとめて取得する（宛先候補の算出用） */
+export async function getTaskGroupParticipants(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<TaskGroupParticipants> {
+  const summary = await getTaskGroupSummary(supabase, taskGroupId)
+  const employees = await getTenantEmployees(supabase)
+  const byId = new Map(employees.map(e => [e.id, e]))
+
+  return {
+    objectiveOwner: byId.get(summary.objectiveOwnerEmployeeId) ?? null,
+    managers: summary.managerEmployeeIds
+      .map(id => byId.get(id))
+      .filter((e): e is EmployeeOption => Boolean(e)),
+    members: summary.memberEmployeeIds
+      .map(id => byId.get(id))
+      .filter((e): e is EmployeeOption => Boolean(e)),
+  }
+}
+
 /** DB行（snake_case、task_assigneesとのJOIN込み）を Task（camelCase）に変換する */
 function mapTask(
   row: Database['public']['Tables']['tasks']['Row'] & {

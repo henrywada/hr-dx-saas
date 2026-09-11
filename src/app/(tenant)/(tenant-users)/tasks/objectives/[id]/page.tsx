@@ -6,6 +6,7 @@ import {
   getTenantEmployees,
   getTenantDivisions,
   getEmployeeDivisionMap,
+  getTaskGroupParticipants,
 } from '@/features/task-management/queries'
 import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
 import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
@@ -20,6 +21,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
   const divisions = await getTenantDivisions(supabase)
   const employeeDivisionById = await getEmployeeDivisionMap(supabase)
+  const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId)
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
@@ -51,6 +53,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
         employeeDivisionById={employeeDivisionById}
         currentEmployeeId={user?.employee_id ?? null}
         isObjectiveOwner={isOwner}
+        participants={participants}
       />
     </div>
   )

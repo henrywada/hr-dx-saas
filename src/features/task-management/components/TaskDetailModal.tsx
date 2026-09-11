@@ -50,6 +50,16 @@ interface TaskDetailModalProps {
   /** 閲覧者が助言を送信できる相手（KanbanBoard経由でページから配線） */
   adviceTargets: EmployeeOption[]
   /**
+   * 閲覧者が提案を送信できる相手（ObjectiveTaskBoard経由でページから配線）。
+   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可（既定は空配列）。
+   */
+  suggestionTargets?: EmployeeOption[]
+  /**
+   * 閲覧者が報告を送信できる相手（ObjectiveTaskBoard経由でページから配線）。
+   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可（既定は空配列）。
+   */
+  reportTargets?: EmployeeOption[]
+  /**
    * 従業員ID→氏名のテナント全体マップ（TaskCard.tsxと同じ用途）。
    * assignableEmployeesはグループの現マネージャー・メンバーに限定されるため、
    * 既にグループを離脱した担当者の名前解決に使えない（生のUUIDが表示されてしまう）。
@@ -78,6 +88,8 @@ export function TaskDetailModal({
   canManageAssignees,
   assignableEmployees,
   adviceTargets,
+  suggestionTargets = [],
+  reportTargets = [],
   employeeNameById,
   divisions = [],
   employeeDivisionById = {},
@@ -277,6 +289,8 @@ export function TaskDetailModal({
             currentEmployeeId={currentEmployeeId}
             canModerate={canModerateComments}
             adviceTargets={adviceTargets}
+            suggestionTargets={suggestionTargets}
+            reportTargets={reportTargets}
           />
         </div>
 

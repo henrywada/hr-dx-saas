@@ -25,6 +25,18 @@ interface CommentThreadProps {
   /** 閲覧者が「助言」コメントを送信できる相手（責任者ならグループのマネージャー、
    * マネージャーならグループのメンバー）。空配列なら助言の選択肢自体を表示しない */
   adviceTargets: EmployeeOption[]
+  /**
+   * 閲覧者が「提案」を送信できる相手（メンバーなら責任者、責任者ならオーナー）。
+   * 空配列（または省略）なら提案の選択肢自体を表示しない。
+   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可。
+   */
+  suggestionTargets?: EmployeeOption[]
+  /**
+   * 閲覧者が「報告」を送信できる相手（責任者ならオーナーのみ）。
+   * 空配列（または省略）なら報告の選択肢自体を表示しない。
+   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可。
+   */
+  reportTargets?: EmployeeOption[]
 }
 
 export function CommentThread({
@@ -33,6 +45,8 @@ export function CommentThread({
   currentEmployeeId,
   canModerate,
   adviceTargets,
+  suggestionTargets = [],
+  reportTargets = [],
 }: CommentThreadProps) {
   const [comments, setComments] = useState<TaskComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -83,6 +97,8 @@ export function CommentThread({
             canModerate={canModerate}
             canPost={canPost}
             adviceTargets={adviceTargets}
+            suggestionTargets={suggestionTargets}
+            reportTargets={reportTargets}
           />
         ))}
       </ul>
@@ -93,6 +109,8 @@ export function CommentThread({
           onPosted={reload}
           submitLabel="投稿する"
           adviceTargets={adviceTargets}
+          suggestionTargets={suggestionTargets}
+          reportTargets={reportTargets}
         />
       )}
     </div>
@@ -112,6 +130,8 @@ interface CommentItemProps {
   /** このユーザーが返信を投稿できるか（対象への投稿権限。RLSが最終防衛） */
   canPost: boolean
   adviceTargets: EmployeeOption[]
+  suggestionTargets: EmployeeOption[]
+  reportTargets: EmployeeOption[]
 }
 
 function CommentItem({
@@ -124,6 +144,8 @@ function CommentItem({
   canModerate,
   canPost,
   adviceTargets,
+  suggestionTargets,
+  reportTargets,
 }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editBody, setEditBody] = useState(node.body)
@@ -173,7 +195,7 @@ function CommentItem({
         </span>
       </div>
 
-      {node.commentType === 'advice' && node.targetEmployeeName && (
+      {node.commentType !== 'general' && node.targetEmployeeName && (
         <p className="mt-0.5 text-[10px] font-medium text-[#FD7601]">
           → {node.targetEmployeeName}さんへ
         </p>
@@ -256,6 +278,8 @@ function CommentItem({
             }}
             submitLabel="返信する"
             adviceTargets={adviceTargets}
+            suggestionTargets={suggestionTargets}
+            reportTargets={reportTargets}
           />
         </div>
       )}
@@ -273,6 +297,8 @@ function CommentItem({
               canModerate={canModerate}
               canPost={canPost}
               adviceTargets={adviceTargets}
+              suggestionTargets={suggestionTargets}
+              reportTargets={reportTargets}
             />
           ))}
         </ul>
@@ -287,6 +313,8 @@ interface CommentFormProps {
   onPosted: () => void
   submitLabel: string
   adviceTargets: EmployeeOption[]
+  suggestionTargets: EmployeeOption[]
+  reportTargets: EmployeeOption[]
 }
 
 function CommentForm({
@@ -295,6 +323,8 @@ function CommentForm({
   onPosted,
   submitLabel,
   adviceTargets,
+  suggestionTargets,
+  reportTargets,
 }: CommentFormProps) {
   const [commentType, setCommentType] = useState<CommentType>('general')
   const [targetEmployeeId, setTargetEmployeeId] = useState('')
@@ -302,9 +332,18 @@ function CommentForm({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  // 宛先が1人もいない閲覧者には「助言」の選択肢自体を出さない
-  const availableTypes =
-    adviceTargets.length > 0 ? COMMENT_TYPES : COMMENT_TYPES.filter(t => t !== 'advice')
+  // コメント種別ごとの宛先候補（宛先が1人もいない種別は選択肢自体を出さない）
+  const targetsByType: Record<string, EmployeeOption[]> = {
+    advice: adviceTargets,
+    suggestion: suggestionTargets,
+    report: reportTargets,
+    general: [],
+  }
+  const availableTypes = COMMENT_TYPES.filter(
+    type => type === 'general' || targetsByType[type].length > 0
+  )
+  const targets = targetsByType[commentType] ?? []
+  const needsTarget = commentType !== 'general'
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -315,7 +354,7 @@ function CommentForm({
           ...('taskId' in target ? { taskId: target.taskId } : { taskGroupId: target.taskGroupId }),
           parentCommentId: parentCommentId ?? undefined,
           commentType,
-          targetEmployeeId: commentType === 'advice' ? targetEmployeeId : undefined,
+          targetEmployeeId: needsTarget ? targetEmployeeId : undefined,
           body,
         })
         setBody('')
@@ -345,10 +384,10 @@ function CommentForm({
             </option>
           ))}
         </select>
-        {commentType === 'advice' && (
+        {needsTarget && (
           <div className="w-40">
             <EmployeePicker
-              employees={adviceTargets}
+              employees={targets}
               value={targetEmployeeId}
               onChange={setTargetEmployeeId}
               placeholder="宛先を選択"
@@ -367,7 +406,7 @@ function CommentForm({
       {error && <p className="text-xs text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={isPending || !body || (commentType === 'advice' && !targetEmployeeId)}
+        disabled={isPending || !body || (needsTarget && !targetEmployeeId)}
         className="rounded-lg bg-[#FD7601] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
       >
         {submitLabel}

@@ -8,7 +8,7 @@ import { deleteTask } from '../actions'
 import { isTaskResponsible, canEditTask } from '../permissions'
 import type { Task } from '../types'
 import type { EmployeeOption } from '../employee-filter'
-import type { DivisionOption } from '../queries'
+import type { DivisionOption, TaskGroupParticipants } from '../queries'
 
 interface ObjectiveTaskBoardProps {
   objectiveId: string
@@ -22,13 +22,12 @@ interface ObjectiveTaskBoardProps {
   employeeDivisionById: Record<string, string | null>
   currentEmployeeId: string | null
   isObjectiveOwner: boolean
+  /** 目標責任者・タスクグループのマネージャー・メンバー一覧（コメントの宛先候補算出用） */
+  participants: TaskGroupParticipants
 }
 
 /** タスクカードのグリッド表示 + カードクリックで開く詳細モーダルの管理。 */
 export function ObjectiveTaskBoard({
-  // Task13でsuggestionTargets/reportTargetsの算出に使用予定（現時点では未使用）
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  taskGroupId: _taskGroupId,
   tasks,
   employees,
   employeeNameById,
@@ -36,6 +35,7 @@ export function ObjectiveTaskBoard({
   employeeDivisionById,
   currentEmployeeId,
   isObjectiveOwner: isOwner,
+  participants,
 }: ObjectiveTaskBoardProps) {
   const router = useRouter()
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
@@ -50,6 +50,29 @@ export function ObjectiveTaskBoard({
   }
 
   const openTask = tasks.find(t => t.id === openTaskId) ?? null
+
+  const isResponsibleOfOpenTask =
+    currentEmployeeId && openTask
+      ? isTaskResponsible(openTask.responsibleEmployeeId, currentEmployeeId)
+      : false
+  const isMemberOfOpenTask =
+    currentEmployeeId && openTask ? openTask.memberEmployeeIds.includes(currentEmployeeId) : false
+
+  // advice: オーナー→責任者、責任者→メンバー
+  const adviceTargets = isOwner
+    ? participants.managers
+    : isResponsibleOfOpenTask
+      ? participants.members
+      : []
+  // suggestion: メンバー→責任者、責任者→オーナー
+  const suggestionTargets = isMemberOfOpenTask
+    ? participants.managers
+    : isResponsibleOfOpenTask && participants.objectiveOwner
+      ? [participants.objectiveOwner]
+      : []
+  // report: 責任者→オーナーのみ
+  const reportTargets =
+    isResponsibleOfOpenTask && participants.objectiveOwner ? [participants.objectiveOwner] : []
 
   return (
     <section className="space-y-3">
@@ -117,7 +140,9 @@ export function ObjectiveTaskBoard({
               : false)
           }
           assignableEmployees={employees}
-          adviceTargets={[]}
+          adviceTargets={adviceTargets}
+          suggestionTargets={suggestionTargets}
+          reportTargets={reportTargets}
           employeeNameById={employeeNameById}
           divisions={divisions}
           employeeDivisionById={employeeDivisionById}

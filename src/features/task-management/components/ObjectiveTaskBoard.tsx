@@ -57,7 +57,18 @@ export function ObjectiveTaskBoard({
               : false
             const canEdit = canEditTask(isOwner, isResponsible)
             return (
-              <div key={task.id} onClick={() => setOpenTaskId(task.id)} className="cursor-pointer">
+              <div
+                key={task.id}
+                onClick={e => {
+                  // 削除・編集ボタン（SimpleTaskCard内）のクリックはカードの詳細モーダルを開かない。
+                  // ボタンのクリックハンドラ内で非同期処理（削除・確認ダイアログ等）が走っている最中に
+                  // イベントがバブリングして親divのonClickも発火すると、削除処理中のタスクに対して
+                  // 詳細モーダルが操作可能な状態で開いてしまう不整合が起きるため。
+                  if ((e.target as HTMLElement).closest('button')) return
+                  setOpenTaskId(task.id)
+                }}
+                className="cursor-pointer"
+              >
                 <SimpleTaskCard
                   task={task}
                   employeeNameById={employeeNameById}

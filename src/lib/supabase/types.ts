@@ -10300,6 +10300,7 @@ export type Database = {
           assigned_at: string
           employee_id: string
           id: string
+          role: string
           task_id: string
           tenant_id: string
         }
@@ -10307,6 +10308,7 @@ export type Database = {
           assigned_at?: string
           employee_id: string
           id?: string
+          role?: string
           task_id: string
           tenant_id: string
         }
@@ -10314,6 +10316,7 @@ export type Database = {
           assigned_at?: string
           employee_id?: string
           id?: string
+          role?: string
           task_id?: string
           tenant_id?: string
         }

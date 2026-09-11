@@ -520,9 +520,32 @@ export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void
     tenant_id: user.tenant_id,
     task_id: parsed.taskId,
     employee_id: parsed.employeeId,
+    role: parsed.role,
   })
 
   if (error) throw error
+
+  if (parsed.role === 'member') {
+    const { error: memberError } = await supabase.from('task_group_members').upsert(
+      {
+        tenant_id: user.tenant_id,
+        task_group_id: task.task_group_id,
+        employee_id: parsed.employeeId,
+      },
+      { onConflict: 'task_group_id,employee_id', ignoreDuplicates: true }
+    )
+    if (memberError) throw memberError
+  } else {
+    const { error: managerError } = await supabase.from('task_group_managers').upsert(
+      {
+        tenant_id: user.tenant_id,
+        task_group_id: task.task_group_id,
+        employee_id: parsed.employeeId,
+      },
+      { onConflict: 'task_group_id,employee_id', ignoreDuplicates: true }
+    )
+    if (managerError) throw managerError
+  }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }

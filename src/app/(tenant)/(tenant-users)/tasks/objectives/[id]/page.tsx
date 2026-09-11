@@ -8,10 +8,12 @@ import {
   getEmployeeDivisionMap,
   getTaskGroupParticipants,
   getWorkLogSummaryByAssigneeRole,
+  getObjectiveOrgTree,
 } from '@/features/task-management/queries'
 import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
 import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
+import { OrgTreeSection } from '@/features/task-management/components/OrgTreeSection'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
 
 export default async function ObjectiveDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const employeeDivisionById = await getEmployeeDivisionMap(supabase)
   const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId, employees)
   const workLogSummary = await getWorkLogSummaryByAssigneeRole(supabase, defaultTaskGroupId)
+  const orgTree = await getObjectiveOrgTree(supabase, id, user?.employee_id ?? null)
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
@@ -56,6 +59,11 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
           }))}
           emptyMessage="工数記録はまだありません。"
         />
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="mb-2 text-xs font-semibold text-slate-900">組織ツリー</h2>
+        <OrgTreeSection data={orgTree} />
       </section>
 
       <ObjectiveTaskBoard

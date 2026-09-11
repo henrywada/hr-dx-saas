@@ -229,6 +229,71 @@ export async function getObjectiveDetail(
   }
 }
 
+export interface ObjectiveSimpleView {
+  objective: TaskObjective
+  defaultTaskGroupId: string
+  tasks: Task[]
+}
+
+/**
+ * Phase5のシンプルUI用に、目標本体・デフォルトタスクグループID・配下タスク一覧をまとめて取得する。
+ * 目標が複数タスクグループを持つ場合でも、作成日時が最も古いものを「デフォルト」として扱う。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getObjectiveSimpleView(
+  supabase: SupabaseClient<Database>,
+  objectiveId: string
+): Promise<ObjectiveSimpleView> {
+  const { data: objectiveRow, error: objectiveError } = await supabase
+    .from('task_objectives')
+    .select('*')
+    .eq('id', objectiveId)
+    .single()
+
+  if (objectiveError) throw objectiveError
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id')
+    .eq('objective_id', objectiveId)
+    .order('created_at', { ascending: true })
+
+  if (milestoneError) throw milestoneError
+  if (!milestoneRows || milestoneRows.length === 0) {
+    throw new Error('この目標にはマイルストーンが存在しません')
+  }
+
+  const milestoneIds = milestoneRows.map(m => m.id)
+
+  const { data: groupRows, error: groupError } = await supabase
+    .from('task_groups')
+    .select('id')
+    .in('milestone_id', milestoneIds)
+    .order('created_at', { ascending: true })
+
+  if (groupError) throw groupError
+  if (!groupRows || groupRows.length === 0) {
+    throw new Error('この目標にはタスクグループが存在しません')
+  }
+
+  const defaultTaskGroupId = groupRows[0].id
+  const groupIds = groupRows.map(g => g.id)
+
+  const { data: taskRows, error: taskError } = await supabase
+    .from('tasks')
+    .select('*, task_assignees(employee_id, role)')
+    .in('task_group_id', groupIds)
+    .order('created_at', { ascending: true })
+
+  if (taskError) throw taskError
+
+  return {
+    objective: mapObjective(objectiveRow),
+    defaultTaskGroupId,
+    tasks: (taskRows ?? []).map(mapTask),
+  }
+}
+
 export interface TaskGroupSummary {
   group: TaskGroup
   managerEmployeeIds: string[]
@@ -333,7 +398,7 @@ export async function getTenantEmployees(
 ): Promise<EmployeeOption[]> {
   const { data, error } = await supabase
     .from('employees')
-    .select('id, name')
+    .select('id, name, is_manager')
     .order('name', { ascending: true })
 
   if (error) throw error
@@ -341,7 +406,16 @@ export async function getTenantEmployees(
   return (data ?? []).map(row => ({
     id: row.id,
     name: row.name ?? '（名前未設定）',
+    isManager: row.is_manager ?? false,
   }))
+}
+
+/** タスク責任者候補（is_manager=trueの従業員）のみを取得する */
+export async function getManagerEmployees(
+  supabase: SupabaseClient<Database>
+): Promise<EmployeeOption[]> {
+  const employees = await getTenantEmployees(supabase)
+  return employees.filter(e => e.isManager)
 }
 
 export interface TaskGroupBoard extends TaskGroupSummary {

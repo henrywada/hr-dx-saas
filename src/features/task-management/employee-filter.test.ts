@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { filterEmployeesByName } from './employee-filter'
 
-function employee(id: string, name: string) {
-  return { id, name }
+function employee(id: string, name: string, isManager = false) {
+  return { id, name, isManager }
 }
 
 test('空文字クエリなら全件を返す', () => {

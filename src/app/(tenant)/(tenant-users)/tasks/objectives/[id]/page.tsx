@@ -7,8 +7,10 @@ import {
   getTenantDivisions,
   getEmployeeDivisionMap,
   getTaskGroupParticipants,
+  getWorkLogSummaryByAssigneeRole,
 } from '@/features/task-management/queries'
 import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
+import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
 
@@ -22,6 +24,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const divisions = await getTenantDivisions(supabase)
   const employeeDivisionById = await getEmployeeDivisionMap(supabase)
   const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId, employees)
+  const workLogSummary = await getWorkLogSummaryByAssigneeRole(supabase, defaultTaskGroupId)
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
@@ -41,6 +44,18 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
       <section className="rounded-lg border border-slate-200 p-3">
         <h2 className="mb-2 text-xs font-semibold text-slate-900">ステータス分布</h2>
         <TaskStatusDonutChart tasks={tasks} />
+      </section>
+
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="mb-2 text-xs font-semibold text-slate-900">責任者・メンバー別工数分布</h2>
+        <WorkDistributionChart
+          data={workLogSummary.map(s => ({
+            id: s.employeeId,
+            label: `${s.employeeName}（${s.role === 'responsible' ? '責任者' : 'メンバー'}）`,
+            hours: s.totalHours,
+          }))}
+          emptyMessage="工数記録はまだありません。"
+        />
       </section>
 
       <ObjectiveTaskBoard

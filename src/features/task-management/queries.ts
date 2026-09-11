@@ -706,6 +706,68 @@ export async function getWorkLogSummaryByObjective(
   )
 }
 
+export interface AssigneeHoursSummary {
+  employeeId: string
+  employeeName: string
+  role: 'responsible' | 'member'
+  totalHours: number
+}
+
+/** タスクグループ配下の工数記録を、担当者の役割（責任者/メンバー）別に集計する */
+export async function getWorkLogSummaryByAssigneeRole(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<AssigneeHoursSummary[]> {
+  const { data: taskRows, error: taskError } = await supabase
+    .from('tasks')
+    .select('id')
+    .eq('task_group_id', taskGroupId)
+
+  if (taskError) throw taskError
+
+  const taskIds = (taskRows ?? []).map(t => t.id)
+  if (taskIds.length === 0) return []
+
+  const { data: logRows, error: logError } = await supabase
+    .from('task_work_logs')
+    .select('employee_id, hours, employee:employee_id(name)')
+    .in('task_id', taskIds)
+
+  if (logError) throw logError
+
+  const { data: assigneeRows, error: assigneeError } = await supabase
+    .from('task_assignees')
+    .select('employee_id, role')
+    .in('task_id', taskIds)
+
+  if (assigneeError) throw assigneeError
+
+  const roleByEmployeeId = new Map<string, 'responsible' | 'member'>()
+  for (const row of assigneeRows ?? []) {
+    if (row.role === 'responsible' || roleByEmployeeId.get(row.employee_id) !== 'responsible') {
+      roleByEmployeeId.set(row.employee_id, row.role as 'responsible' | 'member')
+    }
+  }
+
+  // hoursはDB上NUMERIC型のため、PostgRESTから文字列で返る（mapWorkLog等、既存の他関数と同じ変換）
+  const hoursByEmployeeId = new Map<string, { name: string; hours: number }>()
+  for (const row of logRows ?? []) {
+    const current = hoursByEmployeeId.get(row.employee_id) ?? {
+      name: row.employee?.name ?? '（名前未設定）',
+      hours: 0,
+    }
+    current.hours += Number(row.hours)
+    hoursByEmployeeId.set(row.employee_id, current)
+  }
+
+  return Array.from(hoursByEmployeeId.entries()).map(([employeeId, v]) => ({
+    employeeId,
+    employeeName: v.name,
+    role: roleByEmployeeId.get(employeeId) ?? 'member',
+    totalHours: v.hours,
+  }))
+}
+
 export interface ObjectiveWithProgress {
   objective: TaskObjective
   progress: number

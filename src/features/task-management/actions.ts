@@ -21,6 +21,8 @@ import {
   type RemoveMemberInput,
   createTaskSchema,
   type CreateTaskInput,
+  createSimpleTaskSchema,
+  type CreateSimpleTaskInput,
   updateTaskStatusSchema,
   type UpdateTaskStatusInput,
   updateTaskProgressSchema,
@@ -357,6 +359,62 @@ export async function createTask(input: CreateTaskInput): Promise<{ id: string }
   revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
 
   return { id: data.id }
+}
+
+/**
+ * Phase5のシンプルUI専用: タスクを作成し、同時にタスク責任者を task_assignees（role='responsible'）
+ * および task_group_managers に登録する。
+ * task_group_managers への同期登録は、責任者・メンバーが既存RLS（task_objectives_select等の
+ * 「タスクグループ参加者」条件）の可視範囲に入るようにするため（design.mdセクション2.3）。
+ */
+export async function createSimpleTask(input: CreateSimpleTaskInput): Promise<{ id: string }> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+  if (!user.tenant_id || !user.employee_id) {
+    throw new Error('テナントまたは従業員情報が取得できませんでした')
+  }
+
+  const parsed = createSimpleTaskSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .insert({
+      tenant_id: user.tenant_id,
+      task_group_id: parsed.taskGroupId,
+      title: parsed.title,
+      goal_summary: parsed.goalSummary ?? null,
+      due_date: parsed.dueDate ?? null,
+      created_by_employee_id: user.employee_id,
+    })
+    .select('id')
+    .single()
+
+  if (taskError) throw taskError
+
+  const { error: assigneeError } = await supabase.from('task_assignees').insert({
+    tenant_id: user.tenant_id,
+    task_id: task.id,
+    employee_id: parsed.responsibleEmployeeId,
+    role: 'responsible',
+  })
+
+  if (assigneeError) throw assigneeError
+
+  const { error: managerError } = await supabase.from('task_group_managers').upsert(
+    {
+      tenant_id: user.tenant_id,
+      task_group_id: parsed.taskGroupId,
+      employee_id: parsed.responsibleEmployeeId,
+    },
+    { onConflict: 'task_group_id,employee_id', ignoreDuplicates: true }
+  )
+
+  if (managerError) throw managerError
+
+  revalidatePath(APP_ROUTES.tasks.root)
+
+  return { id: task.id }
 }
 
 /**

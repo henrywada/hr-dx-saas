@@ -60,7 +60,9 @@ import { getTaskComments, getTaskWorkLogs } from './queries'
  * owner_employee_id = current_employee_id() を要求するため、
  * employee_id が無いユーザーはそもそも作成できない）。
  */
-export async function createObjective(input: CreateObjectiveInput): Promise<{ id: string }> {
+export async function createObjective(
+  input: CreateObjectiveInput
+): Promise<{ id: string; defaultTaskGroupId: string }> {
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
   if (!user.tenant_id || !user.employee_id) {
@@ -97,17 +99,21 @@ export async function createObjective(input: CreateObjectiveInput): Promise<{ id
 
   if (milestoneError) throw milestoneError
 
-  const { error: groupError } = await supabase.from('task_groups').insert({
-    tenant_id: user.tenant_id,
-    milestone_id: milestone.id,
-    name: '既定タスクグループ',
-  })
+  const { data: group, error: groupError } = await supabase
+    .from('task_groups')
+    .insert({
+      tenant_id: user.tenant_id,
+      milestone_id: milestone.id,
+      name: '既定タスクグループ',
+    })
+    .select('id')
+    .single()
 
   if (groupError) throw groupError
 
   revalidatePath(APP_ROUTES.tasks.root)
 
-  return { id: objective.id }
+  return { id: objective.id, defaultTaskGroupId: group.id }
 }
 
 /**

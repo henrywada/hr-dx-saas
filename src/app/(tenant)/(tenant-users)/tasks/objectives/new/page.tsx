@@ -1,10 +1,14 @@
-import { ObjectiveForm } from '@/features/task-management/components/ObjectiveForm'
+import { createClient } from '@/lib/supabase/server'
+import { getManagerEmployees } from '@/features/task-management/queries'
+import { ObjectiveCreationFlow } from '@/features/task-management/components/ObjectiveCreationFlow'
 
-export default function NewObjectivePage() {
+export default async function NewObjectivePage() {
+  const supabase = await createClient()
+  const managers = await getManagerEmployees(supabase)
+
   return (
     <div className="w-full px-4 sm:px-6 py-5 mx-auto max-w-[1200px]">
-      <h1 className="text-lg font-semibold text-slate-900 mb-4">新しい目標を作成</h1>
-      <ObjectiveForm />
+      <ObjectiveCreationFlow managers={managers} />
     </div>
   )
 }

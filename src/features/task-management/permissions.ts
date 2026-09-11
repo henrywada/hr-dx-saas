@@ -32,3 +32,18 @@ export function canAssignMember(isOwner: boolean, isManager: boolean): boolean {
 export function canLogWork(isOwner: boolean, isManager: boolean, isMember: boolean): boolean {
   return isOwner || isManager || isMember
 }
+
+export function isTaskResponsible(
+  responsibleEmployeeId: string | null,
+  currentEmployeeId: string
+): boolean {
+  return responsibleEmployeeId === currentEmployeeId
+}
+
+export function isTaskMember(memberEmployeeIds: string[], currentEmployeeId: string): boolean {
+  return memberEmployeeIds.includes(currentEmployeeId)
+}
+
+export function canEditTask(isObjectiveOwner: boolean, isTaskResponsible: boolean): boolean {
+  return isObjectiveOwner || isTaskResponsible
+}

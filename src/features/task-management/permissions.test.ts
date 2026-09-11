@@ -7,6 +7,9 @@ import {
   canAssignManager,
   canAssignMember,
   canLogWork,
+  isTaskResponsible,
+  isTaskMember,
+  canEditTask,
 } from './permissions'
 
 test('責任者本人ならtrue', () => {
@@ -54,4 +57,32 @@ test('メンバーは工数を記録できる', () => {
 
 test('参加者でなければ工数を記録できない', () => {
   assert.equal(canLogWork(false, false, false), false)
+})
+
+test('タスク責任者本人ならtrue', () => {
+  assert.equal(isTaskResponsible('emp-1', 'emp-1'), true)
+})
+
+test('責任者が未設定(null)ならfalse', () => {
+  assert.equal(isTaskResponsible(null, 'emp-1'), false)
+})
+
+test('メンバーに含まれていればtrue', () => {
+  assert.equal(isTaskMember(['emp-1', 'emp-2'], 'emp-1'), true)
+})
+
+test('メンバーに含まれていなければfalse', () => {
+  assert.equal(isTaskMember(['emp-2'], 'emp-1'), false)
+})
+
+test('目標責任者は編集可', () => {
+  assert.equal(canEditTask(true, false), true)
+})
+
+test('タスク責任者は編集可', () => {
+  assert.equal(canEditTask(false, true), true)
+})
+
+test('どちらでもなければ編集不可', () => {
+  assert.equal(canEditTask(false, false), false)
 })

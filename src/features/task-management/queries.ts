@@ -905,7 +905,7 @@ export async function getObjectiveOrgTree(
 ): Promise<OrgTree> {
   const { data: objectiveRow, error: objectiveError } = await supabase
     .from('task_objectives')
-    .select('owner_employee_id')
+    .select('owner_employee_id, title')
     .eq('id', objectiveId)
     .single()
 
@@ -1009,9 +1009,13 @@ export async function getObjectiveOrgTree(
   const sortByName = (a: OrgTreeEmployeeRef, b: OrgTreeEmployeeRef) =>
     a.employeeName.localeCompare(b.employeeName, 'ja')
 
+  // 最終レビュー Finding 2: 「既定タスクグループ」等の内部実装名はUIに一切出さない
+  // 方針（design.md セクション2.1）のため、DB上の task_groups.name をそのまま
+  // ノードラベルに使わず、目標のタイトルを流用する（1目標=1タスクグループのPhase5構成では
+  // 「タスクグループ」という概念自体がユーザーに見えるべきではない）。
   const groups: OrgTreeGroupInput[] = groupRows.map(g => ({
     taskGroupId: g.id,
-    taskGroupName: g.name,
+    taskGroupName: objectiveRow.title,
     managers: (managersByGroupId.get(g.id) ?? []).sort(sortByName),
     members: (membersByGroupId.get(g.id) ?? []).sort(sortByName),
   }))

@@ -101,7 +101,13 @@ export async function createObjective(
     .select('id')
     .single()
 
-  if (milestoneError) throw milestoneError
+  if (milestoneError) {
+    // 最終レビュー Finding 3: マイルストーン作成が失敗すると、目標行だけが残った
+    // 「開けない目標」（getObjectiveSimpleViewが必ずエラーになる）が生じてしまうため、
+    // 直前に作成した目標行を補償削除してから再スローする。id指定の絞り込みのみ行う。
+    await supabase.from('task_objectives').delete().eq('id', objective.id)
+    throw milestoneError
+  }
 
   const { data: group, error: groupError } = await supabase
     .from('task_groups')
@@ -113,7 +119,13 @@ export async function createObjective(
     .select('id')
     .single()
 
-  if (groupError) throw groupError
+  if (groupError) {
+    // 同上。マイルストーンまで作成済みの状態で失敗した場合は、マイルストーン・目標の両方を
+    // id指定で補償削除する（作成順と逆順）。
+    await supabase.from('task_milestones').delete().eq('id', milestone.id)
+    await supabase.from('task_objectives').delete().eq('id', objective.id)
+    throw groupError
+  }
 
   revalidatePath(APP_ROUTES.tasks.root)
 
@@ -595,6 +607,12 @@ export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void
  * タスク（tasks）から担当者を1名解除する。
  * 解除可否（責任者・マネージャー）は RLS の task_assignees DELETE ポリシーが強制する。
  * 0件削除時はエラーを投げる（`updateTaskStatus` と同じパターン）。
+ *
+ * 最終レビュー Finding 1: `addTaskAssignee`/`createSimpleTask` が行う
+ * task_group_managers/task_group_members への同期登録と対になる後片付けとして、
+ * 解除したロールで同一タスクグループ内の他タスクに割当が残っていなければ、
+ * そのグループの task_group_managers/task_group_members からも解除する
+ * （`removeMember` と同じ「削除して終わり」のスタイルに合わせ、行数チェックは行わない）。
  */
 export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promise<void> {
   const user = await getServerUser()
@@ -616,11 +634,44 @@ export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promis
     .delete()
     .eq('task_id', parsed.taskId)
     .eq('employee_id', parsed.employeeId)
-    .select('id')
+    .select('id, role')
 
   if (error) throw error
   if (data === null || data.length === 0) {
     throw new Error('この担当者を解除する権限がありません')
+  }
+
+  const deletedRole = data[0].role as 'responsible' | 'member'
+
+  // task_assignees は (task_id, employee_id) がUNIQUEのため、同一タスクグループ内の
+  // 他タスクへの割当有無は「同じロールで残っている行があるか」で判定できる。
+  // task_assignees には task_group_id が無いため、tasks への埋め込みフィルタで絞り込む
+  // （queries.ts の getWorkLogSummaryByGroup 等と同じ手法）。
+  const { data: remainingAssignments, error: remainingError } = await supabase
+    .from('task_assignees')
+    .select('id, task:task_id!inner(task_group_id)')
+    .eq('employee_id', parsed.employeeId)
+    .eq('role', deletedRole)
+    .eq('task.task_group_id', task.task_group_id)
+
+  if (remainingError) throw remainingError
+
+  if (!remainingAssignments || remainingAssignments.length === 0) {
+    if (deletedRole === 'responsible') {
+      const { error: managerCleanupError } = await supabase
+        .from('task_group_managers')
+        .delete()
+        .eq('task_group_id', task.task_group_id)
+        .eq('employee_id', parsed.employeeId)
+      if (managerCleanupError) throw managerCleanupError
+    } else {
+      const { error: memberCleanupError } = await supabase
+        .from('task_group_members')
+        .delete()
+        .eq('task_group_id', task.task_group_id)
+        .eq('employee_id', parsed.employeeId)
+      if (memberCleanupError) throw memberCleanupError
+    }
   }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))

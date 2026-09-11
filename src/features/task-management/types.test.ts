@@ -5,6 +5,7 @@ import {
   createTaskSchema,
   updateTaskStatusSchema,
   updateTaskProgressSchema,
+  updateTaskBasicInfoSchema,
   addTaskAssigneeSchema,
   createCommentSchema,
   updateCommentSchema,
@@ -76,6 +77,41 @@ test('進捗率更新: 0と100は許容される', () => {
   })
   assert.equal(min.success, true)
   assert.equal(max.success, true)
+})
+
+test('基本情報更新: title・goalSummary・dueDateを指定して成功する', () => {
+  const result = updateTaskBasicInfoSchema.safeParse({
+    taskId: VALID_UUID,
+    title: '要件定義書の作成',
+    goalSummary: '関係者合意を得る',
+    dueDate: '2026-10-01',
+  })
+  assert.equal(result.success, true)
+})
+
+test('基本情報更新: titleのみ（goalSummary/dueDate省略）でも成功する', () => {
+  const result = updateTaskBasicInfoSchema.safeParse({
+    taskId: VALID_UUID,
+    title: '要件定義書の作成',
+  })
+  assert.equal(result.success, true)
+})
+
+test('基本情報更新: titleが空文字は拒否される', () => {
+  const result = updateTaskBasicInfoSchema.safeParse({
+    taskId: VALID_UUID,
+    title: '',
+  })
+  assert.equal(result.success, false)
+})
+
+test('基本情報更新: dueDateの形式が不正なら拒否される', () => {
+  const result = updateTaskBasicInfoSchema.safeParse({
+    taskId: VALID_UUID,
+    title: '要件定義書の作成',
+    dueDate: '2026/10/01',
+  })
+  assert.equal(result.success, false)
 })
 
 test('コメント作成: taskIdのみ指定で成功する', () => {

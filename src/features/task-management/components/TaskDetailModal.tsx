@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation'
 import {
   updateTaskStatus,
   updateTaskProgress,
+  updateTaskBasicInfo,
   addTaskAssignee,
   removeTaskAssignee,
 } from '../actions'
 import { TASK_STATUSES, type Task } from '../types'
 import { CommentThread } from './CommentThread'
 import { WorkLogSection } from './WorkLogSection'
-import { EmployeePicker } from './EmployeePicker'
+import { DivisionFilteredEmployeePicker } from './DivisionFilteredEmployeePicker'
 import type { EmployeeOption } from '../employee-filter'
+import type { DivisionOption } from '../queries'
 
 const PRIORITY_LABEL: Record<Task['priority'], string> = {
   low: '低',
@@ -54,6 +56,15 @@ interface TaskDetailModalProps {
    * 最終ブランチレビュー M1 対応。
    */
   employeeNameById: Record<string, string>
+  /**
+   * 担当者追加を組織階層で絞り込むための組織一覧（DivisionFilteredEmployeePicker用）。
+   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可（既定は絞り込みなし）。
+   */
+  divisions?: DivisionOption[]
+  /** 担当者追加を組織階層で絞り込むための従業員ID→所属division_idマップ（同上、省略可） */
+  employeeDivisionById?: Record<string, string | null>
+  /** タスクの基本情報（タスク名・タスク目標・期限）を編集できるか（責任者/マネージャー、省略時false） */
+  canEditBasicInfo?: boolean
 }
 
 export function TaskDetailModal({
@@ -68,6 +79,9 @@ export function TaskDetailModal({
   assignableEmployees,
   adviceTargets,
   employeeNameById,
+  divisions = [],
+  employeeDivisionById = {},
+  canEditBasicInfo = false,
 }: TaskDetailModalProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -148,6 +162,8 @@ export function TaskDetailModal({
           </button>
         </div>
 
+        {canEditBasicInfo && <BasicInfoEditForm task={task} />}
+
         {task.description && <p className="mt-2 text-xs text-slate-600">{task.description}</p>}
 
         <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
@@ -199,14 +215,15 @@ export function TaskDetailModal({
           </ul>
           {canManageAssignees && (
             <div className="mt-1.5 flex items-center gap-1.5">
-              <div className="w-48">
-                <EmployeePicker
+              <div className="w-56">
+                <DivisionFilteredEmployeePicker
                   employees={assignableEmployees.filter(
                     e => !task.assigneeEmployeeIds.includes(e.id)
                   )}
+                  employeeDivisionById={employeeDivisionById}
+                  divisions={divisions}
                   value={pendingAssigneeId}
                   onChange={setPendingAssigneeId}
-                  placeholder="担当者を追加"
                 />
               </div>
               <button
@@ -273,5 +290,62 @@ export function TaskDetailModal({
         </div>
       </div>
     </div>
+  )
+}
+
+function BasicInfoEditForm({ task }: { task: Task }) {
+  const router = useRouter()
+  const [title, setTitle] = useState(task.title)
+  const [goalSummary, setGoalSummary] = useState(task.goalSummary ?? '')
+  const [dueDate, setDueDate] = useState(task.dueDate ?? '')
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    startTransition(async () => {
+      try {
+        await updateTaskBasicInfo({
+          taskId: task.id,
+          title,
+          goalSummary: goalSummary || undefined,
+          dueDate: dueDate || undefined,
+        })
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '更新に失敗しました')
+      }
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2 space-y-2 rounded-lg border border-slate-200 p-2">
+      <input
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        className="block w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+      />
+      <input
+        value={goalSummary}
+        onChange={e => setGoalSummary(e.target.value)}
+        placeholder="タスク目標"
+        className="block w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+      />
+      <input
+        type="date"
+        value={dueDate}
+        onChange={e => setDueDate(e.target.value)}
+        className="block w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+      />
+      {error && <p className="text-[10px] text-red-600">{error}</p>}
+      <button
+        type="submit"
+        disabled={isPending}
+        className="rounded-lg bg-[#FD7601] px-2 py-1 text-[10px] font-medium text-white disabled:opacity-50"
+      >
+        保存
+      </button>
+    </form>
   )
 }

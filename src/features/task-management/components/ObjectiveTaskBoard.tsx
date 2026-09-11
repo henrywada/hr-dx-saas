@@ -8,6 +8,7 @@ import { deleteTask } from '../actions'
 import { isTaskResponsible, canEditTask } from '../permissions'
 import type { Task } from '../types'
 import type { EmployeeOption } from '../employee-filter'
+import type { DivisionOption } from '../queries'
 
 interface ObjectiveTaskBoardProps {
   objectiveId: string
@@ -15,6 +16,10 @@ interface ObjectiveTaskBoardProps {
   tasks: Task[]
   employees: EmployeeOption[]
   employeeNameById: Record<string, string>
+  /** 組織階層絞り込み担当者選択（DivisionFilteredEmployeePicker）用の組織一覧 */
+  divisions: DivisionOption[]
+  /** 組織階層絞り込み担当者選択用の従業員ID→所属division_idマップ */
+  employeeDivisionById: Record<string, string | null>
   currentEmployeeId: string | null
   isObjectiveOwner: boolean
 }
@@ -27,6 +32,8 @@ export function ObjectiveTaskBoard({
   tasks,
   employees,
   employeeNameById,
+  divisions,
+  employeeDivisionById,
   currentEmployeeId,
   isObjectiveOwner: isOwner,
 }: ObjectiveTaskBoardProps) {
@@ -112,6 +119,14 @@ export function ObjectiveTaskBoard({
           assignableEmployees={employees}
           adviceTargets={[]}
           employeeNameById={employeeNameById}
+          divisions={divisions}
+          employeeDivisionById={employeeDivisionById}
+          canEditBasicInfo={canEditTask(
+            isOwner,
+            currentEmployeeId
+              ? isTaskResponsible(openTask.responsibleEmployeeId, currentEmployeeId)
+              : false
+          )}
         />
       )}
       {isPending && <p className="text-xs text-slate-400">処理中...</p>}

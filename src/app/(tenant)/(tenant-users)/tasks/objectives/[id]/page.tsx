@@ -1,7 +1,12 @@
 import { Target } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import { getObjectiveSimpleView, getTenantEmployees } from '@/features/task-management/queries'
+import {
+  getObjectiveSimpleView,
+  getTenantEmployees,
+  getTenantDivisions,
+  getEmployeeDivisionMap,
+} from '@/features/task-management/queries'
 import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
 import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
@@ -13,6 +18,8 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const { objective, defaultTaskGroupId, tasks } = await getObjectiveSimpleView(supabase, id)
   const employees = await getTenantEmployees(supabase)
   const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
+  const divisions = await getTenantDivisions(supabase)
+  const employeeDivisionById = await getEmployeeDivisionMap(supabase)
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
@@ -40,6 +47,8 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
         tasks={tasks}
         employees={employees}
         employeeNameById={employeeNameById}
+        divisions={divisions}
+        employeeDivisionById={employeeDivisionById}
         currentEmployeeId={user?.employee_id ?? null}
         isObjectiveOwner={isOwner}
       />

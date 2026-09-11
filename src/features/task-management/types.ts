@@ -94,6 +94,14 @@ export const updateTaskProgressSchema = z.object({
 })
 export type UpdateTaskProgressInput = z.infer<typeof updateTaskProgressSchema>
 
+export const updateTaskBasicInfoSchema = z.object({
+  taskId: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  goalSummary: z.string().max(200).optional(),
+  dueDate: dateStringSchema.optional(),
+})
+export type UpdateTaskBasicInfoInput = z.infer<typeof updateTaskBasicInfoSchema>
+
 export const addTaskAssigneeSchema = z.object({
   taskId: z.string().uuid(),
   employeeId: z.string().uuid(),

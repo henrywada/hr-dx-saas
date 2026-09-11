@@ -418,6 +418,49 @@ export async function getManagerEmployees(
   return employees.filter(e => e.isManager)
 }
 
+export interface DivisionOption {
+  id: string
+  name: string
+  parentId: string | null
+  layer: number
+}
+
+/**
+ * `DivisionFilteredEmployeePicker` 用に、テナント内の組織階層（divisions）一覧を取得する。
+ * RLS の SELECT ポリシーが可視範囲（自テナント内）を絞り込むため、追加のテナントフィルタは行わない。
+ */
+export async function getTenantDivisions(
+  supabase: SupabaseClient<Database>
+): Promise<DivisionOption[]> {
+  const { data, error } = await supabase
+    .from('divisions')
+    .select('id, name, parent_id, layer')
+    .order('layer', { ascending: true })
+
+  if (error) throw error
+
+  return (data ?? []).map(row => ({
+    id: row.id,
+    name: row.name ?? '（組織名未設定）',
+    parentId: row.parent_id,
+    layer: row.layer ?? 1,
+  }))
+}
+
+/**
+ * `DivisionFilteredEmployeePicker` 用に、従業員ID→所属division_idのマップを取得する。
+ * 未配属の従業員は値が null になる。
+ */
+export async function getEmployeeDivisionMap(
+  supabase: SupabaseClient<Database>
+): Promise<Record<string, string | null>> {
+  const { data, error } = await supabase.from('employees').select('id, division_id')
+
+  if (error) throw error
+
+  return Object.fromEntries((data ?? []).map(row => [row.id, row.division_id]))
+}
+
 export interface TaskGroupBoard extends TaskGroupSummary {
   tasks: Task[]
   averageProgress: number

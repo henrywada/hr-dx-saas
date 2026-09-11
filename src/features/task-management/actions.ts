@@ -27,6 +27,8 @@ import {
   type UpdateTaskStatusInput,
   updateTaskProgressSchema,
   type UpdateTaskProgressInput,
+  updateTaskBasicInfoSchema,
+  type UpdateTaskBasicInfoInput,
   addTaskAssigneeSchema,
   type AddTaskAssigneeInput,
   removeTaskAssigneeSchema,
@@ -500,6 +502,37 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
   }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスクの基本情報（タスク名・タスク目標・期限）を更新する。
+ * カラム制限: title/goal_summary/due_date/updated_at のみ更新する。
+ * 更新可否（責任者・マネージャー）は RLS の tasks UPDATE ポリシーが強制する。
+ */
+export async function updateTaskBasicInfo(input: UpdateTaskBasicInfoInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateTaskBasicInfoSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({
+      title: parsed.title,
+      goal_summary: parsed.goalSummary ?? null,
+      due_date: parsed.dueDate ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.taskId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このタスクを更新する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.root)
 }
 
 /**

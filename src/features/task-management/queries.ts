@@ -307,6 +307,7 @@ function mapTask(
     title: row.title,
     description: row.description,
     goalSummary: row.goal_summary,
+    createdByEmployeeId: row.created_by_employee_id,
     assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
     status: row.status as Task['status'],
     progressPercent: row.progress_percent,

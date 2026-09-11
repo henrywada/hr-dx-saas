@@ -137,6 +137,7 @@ export interface Task {
   title: string
   description: string | null
   goalSummary: string | null
+  createdByEmployeeId: string
   assigneeEmployeeIds: string[]
   status: TaskStatus
   progressPercent: number

@@ -1,5 +1,6 @@
 'use client'
 
+import { ListTodo } from 'lucide-react'
 import type { Task } from '../types'
 
 const PRIORITY_LABEL: Record<Task['priority'], string> = {
@@ -31,25 +32,30 @@ export function TaskCard({ task, employeeNameById, onOpen }: TaskCardProps) {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left shadow-xs hover:bg-[#f6f8fa]"
+      className="w-full rounded-lg border border-slate-200 bg-white text-left shadow-xs hover:bg-[#f6f8fa]"
     >
-      <p className="text-xs font-medium text-slate-900">{task.title}</p>
-      <p className="mt-1 text-[10px] text-slate-400">優先度: {PRIORITY_LABEL[task.priority]}</p>
-      {task.goalSummary && (
-        <p className="mt-1 truncate text-[10px] text-slate-500" title={task.goalSummary}>
-          目標: {task.goalSummary}
-        </p>
-      )}
-      <p className="mt-1 truncate text-[10px] text-slate-500">
-        担当: {assigneeNames.length > 0 ? assigneeNames.join('、') : '未割当'}
+      <p className="flex items-center gap-1.5 truncate border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-900">
+        <ListTodo className="h-3.5 w-3.5 shrink-0 text-[#FD7601]" strokeWidth={2} />
+        <span className="truncate">{task.title}</span>
       </p>
-      <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-        <div
-          className="h-1.5 rounded-full bg-[#FD7601] transition-[width] duration-(--duration-normal) ease-(--ease-out-quart)"
-          style={{ width: `${task.progressPercent}%` }}
-        />
+      <div className="p-3">
+        <p className="text-[10px] text-slate-400">優先度: {PRIORITY_LABEL[task.priority]}</p>
+        {task.goalSummary && (
+          <p className="mt-1 truncate text-[10px] text-slate-500" title={task.goalSummary}>
+            目標: {task.goalSummary}
+          </p>
+        )}
+        <p className="mt-1 truncate text-[10px] text-slate-500">
+          担当: {assigneeNames.length > 0 ? assigneeNames.join('、') : '未割当'}
+        </p>
+        <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+          <div
+            className="h-1.5 rounded-full bg-[#FD7601] transition-[width] duration-(--duration-normal) ease-(--ease-out-quart)"
+            style={{ width: `${task.progressPercent}%` }}
+          />
+        </div>
+        <p className="mt-1 text-[10px] text-slate-400">{task.progressPercent}%</p>
       </div>
-      <p className="mt-1 text-[10px] text-slate-400">{task.progressPercent}%</p>
     </button>
   )
 }

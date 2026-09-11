@@ -159,6 +159,10 @@ export function TaskDetailModal({
             <dt className="text-[10px] text-slate-400">期限</dt>
             <dd>{task.dueDate ?? '未設定'}</dd>
           </div>
+          <div>
+            <dt className="text-[10px] text-slate-400">作成者</dt>
+            <dd>{assigneeName(task.createdByEmployeeId)}</dd>
+          </div>
         </dl>
 
         {task.goalSummary && (

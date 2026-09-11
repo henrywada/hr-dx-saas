@@ -1,6 +1,7 @@
 'use client'
 
 import { ListTodo } from 'lucide-react'
+import { toJSTDateString } from '@/lib/datetime'
 import type { Task } from '../types'
 
 interface SimpleTaskCardProps {
@@ -19,7 +20,10 @@ export function SimpleTaskCard({
   onEdit,
   onDelete,
 }: SimpleTaskCardProps) {
-  const isOverdue = task.dueDate !== null && task.dueDate < new Date().toISOString().slice(0, 10)
+  // 最終レビュー Finding 6: toISOString()はUTC基準になるため、JST 0:00〜8:59台は
+  // 前日の日付で比較してしまい、期限超過の反映が最大9時間遅れる。JST基準の「今日」で比較する
+  // （CLAUDE.mdの「Supabaseへの日時書き込みはAsia/Tokyoで行う」規約、WorkLogSection.tsxと同じ意図）。
+  const isOverdue = task.dueDate !== null && task.dueDate < toJSTDateString()
   const responsibleName = task.responsibleEmployeeId
     ? (employeeNameById[task.responsibleEmployeeId] ?? task.responsibleEmployeeId)
     : '未設定'

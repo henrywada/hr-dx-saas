@@ -750,21 +750,22 @@ export async function getWorkLogSummaryByAssigneeRole(
   }
 
   // hoursはDB上NUMERIC型のため、PostgRESTから文字列で返る（mapWorkLog等、既存の他関数と同じ変換）
-  const hoursByEmployeeId = new Map<string, { name: string; hours: number }>()
-  for (const row of logRows ?? []) {
-    const current = hoursByEmployeeId.get(row.employee_id) ?? {
-      name: row.employee?.name ?? '（名前未設定）',
-      hours: 0,
-    }
-    current.hours += Number(row.hours)
-    hoursByEmployeeId.set(row.employee_id, current)
-  }
+  // 工数集計は共有ヘルパー（aggregateHoursByEmployee）に委譲する。totalHours降順ソート済みの配列が返るため、
+  // 他のWorkDistributionChart系（getWorkLogSummaryByGroup等）と同じ並び順を維持できる
+  const hoursSummary = aggregateHoursByEmployee(
+    (logRows ?? []).map(row => ({
+      employeeId: row.employee_id,
+      employeeName: row.employee?.name ?? '（名前未設定）',
+      hours: Number(row.hours),
+    }))
+  )
 
-  return Array.from(hoursByEmployeeId.entries()).map(([employeeId, v]) => ({
+  // aggregateHoursByEmployeeの降順ソート順を維持したままroleを付与する
+  return hoursSummary.map(({ employeeId, employeeName, totalHours }) => ({
     employeeId,
-    employeeName: v.name,
+    employeeName,
     role: roleByEmployeeId.get(employeeId) ?? 'member',
-    totalHours: v.hours,
+    totalHours,
   }))
 }
 

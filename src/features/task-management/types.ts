@@ -152,8 +152,8 @@ export interface Task {
   goalSummary: string | null
   createdByEmployeeId: string
   assigneeEmployeeIds: string[]
-  responsibleEmployeeId?: string | null
-  memberEmployeeIds?: string[]
+  responsibleEmployeeId: string | null
+  memberEmployeeIds: string[]
   status: TaskStatus
   progressPercent: number
   priority: TaskPriority

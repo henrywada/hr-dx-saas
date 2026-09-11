@@ -297,9 +297,13 @@ export async function getTaskGroupSummary(
 /** DB行（snake_case、task_assigneesとのJOIN込み）を Task（camelCase）に変換する */
 function mapTask(
   row: Database['public']['Tables']['tasks']['Row'] & {
-    task_assignees: { employee_id: string }[] | null
+    task_assignees: { employee_id: string; role: string }[] | null
   }
 ): Task {
+  const assignees = row.task_assignees ?? []
+  const responsibleAssignee = assignees.find(a => a.role === 'responsible')
+  const memberAssignees = assignees.filter(a => a.role === 'member')
+
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -308,7 +312,9 @@ function mapTask(
     description: row.description,
     goalSummary: row.goal_summary,
     createdByEmployeeId: row.created_by_employee_id,
-    assigneeEmployeeIds: (row.task_assignees ?? []).map(a => a.employee_id),
+    assigneeEmployeeIds: assignees.map(a => a.employee_id),
+    responsibleEmployeeId: responsibleAssignee?.employee_id ?? null,
+    memberEmployeeIds: memberAssignees.map(a => a.employee_id),
     status: row.status as Task['status'],
     progressPercent: row.progress_percent,
     priority: row.priority as Task['priority'],

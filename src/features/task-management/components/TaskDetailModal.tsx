@@ -107,7 +107,7 @@ export function TaskDetailModal({
     setError(null)
     startTransition(async () => {
       try {
-        await addTaskAssignee({ taskId: task.id, employeeId: pendingAssigneeId })
+        await addTaskAssignee({ taskId: task.id, employeeId: pendingAssigneeId, role: 'member' })
         setPendingAssigneeId('')
         router.refresh()
       } catch (err) {

@@ -5,6 +5,7 @@ import {
   createTaskSchema,
   updateTaskStatusSchema,
   updateTaskProgressSchema,
+  addTaskAssigneeSchema,
   createCommentSchema,
   updateCommentSchema,
   deleteCommentSchema,
@@ -12,6 +13,7 @@ import {
   updateWorkLogSchema,
   deleteWorkLogSchema,
   getTaskWorkLogsTargetSchema,
+  createSimpleTaskSchema,
 } from './types'
 
 const VALID_UUID = '11111111-1111-4111-8111-111111111111'
@@ -79,7 +81,7 @@ test('進捗率更新: 0と100は許容される', () => {
 test('コメント作成: taskIdのみ指定で成功する', () => {
   const result = createCommentSchema.safeParse({
     taskId: '11111111-1111-4111-8111-111111111111',
-    commentType: 'report',
+    commentType: 'general',
     body: '進捗を報告します',
   })
   assert.equal(result.success, true)
@@ -113,7 +115,7 @@ test('コメント作成: advice種別かつtargetEmployeeIdありなら成功�
   assert.equal(result.success, true)
 })
 
-test('コメント作成: advice以外の種別にtargetEmployeeIdを付けると拒否される', () => {
+test('コメント作成: generalにtargetEmployeeIdを付けると拒否される', () => {
   const result = createCommentSchema.safeParse({
     taskGroupId: '11111111-1111-4111-8111-111111111111',
     commentType: 'general',
@@ -335,4 +337,41 @@ test('工数記録一覧取得: taskIdがUUID形式でなければ拒否され�
 test('工数記録一覧取得: taskIdがUUID形式なら成功する', () => {
   const result = getTaskWorkLogsTargetSchema.safeParse({ taskId: VALID_UUID })
   assert.equal(result.success, true)
+})
+
+test('addTaskAssigneeSchemaはroleを省略するとmemberになる', () => {
+  const parsed = addTaskAssigneeSchema.parse({
+    taskId: VALID_UUID,
+    employeeId: '22222222-2222-4222-8222-222222222222',
+  })
+  assert.equal(parsed.role, 'member')
+})
+
+test('createCommentSchemaはsuggestionにtargetEmployeeIdが無いと失敗する', () => {
+  assert.throws(() =>
+    createCommentSchema.parse({
+      taskGroupId: VALID_UUID,
+      commentType: 'suggestion',
+      body: 'テスト',
+    })
+  )
+})
+
+test('createCommentSchemaはreportにtargetEmployeeIdがあれば成功する', () => {
+  const parsed = createCommentSchema.parse({
+    taskGroupId: VALID_UUID,
+    commentType: 'report',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
+    body: 'テスト',
+  })
+  assert.equal(parsed.commentType, 'report')
+})
+
+test('createSimpleTaskSchemaはresponsibleEmployeeId必須', () => {
+  assert.throws(() =>
+    createSimpleTaskSchema.parse({
+      taskGroupId: VALID_UUID,
+      title: 'タスク',
+    })
+  )
 })

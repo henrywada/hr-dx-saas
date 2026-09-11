@@ -6,6 +6,9 @@ export type TaskStatus = (typeof TASK_STATUSES)[number]
 export const TASK_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
+export const ASSIGNEE_ROLES = ['responsible', 'member'] as const
+export type AssigneeRole = (typeof ASSIGNEE_ROLES)[number]
+
 export const dateStringSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, '日付はYYYY-MM-DD形式で指定する')
@@ -70,6 +73,15 @@ export const createTaskSchema = z.object({
 })
 export type CreateTaskInput = z.infer<typeof createTaskSchema>
 
+export const createSimpleTaskSchema = z.object({
+  taskGroupId: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  goalSummary: z.string().max(200).optional(),
+  dueDate: dateStringSchema.optional(),
+  responsibleEmployeeId: z.string().uuid(),
+})
+export type CreateSimpleTaskInput = z.infer<typeof createSimpleTaskSchema>
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().uuid(),
   status: z.enum(TASK_STATUSES),
@@ -85,6 +97,7 @@ export type UpdateTaskProgressInput = z.infer<typeof updateTaskProgressSchema>
 export const addTaskAssigneeSchema = z.object({
   taskId: z.string().uuid(),
   employeeId: z.string().uuid(),
+  role: z.enum(ASSIGNEE_ROLES).default('member'),
 })
 export type AddTaskAssigneeInput = z.infer<typeof addTaskAssigneeSchema>
 
@@ -139,6 +152,8 @@ export interface Task {
   goalSummary: string | null
   createdByEmployeeId: string
   assigneeEmployeeIds: string[]
+  responsibleEmployeeId?: string | null
+  memberEmployeeIds?: string[]
   status: TaskStatus
   progressPercent: number
   priority: TaskPriority
@@ -161,11 +176,15 @@ export const createCommentSchema = z
   .refine(data => (data.taskId ? 1 : 0) + (data.taskGroupId ? 1 : 0) === 1, {
     message: 'taskId と taskGroupId はどちらか一方のみ指定する',
   })
-  .refine(data => (data.commentType === 'advice' ? Boolean(data.targetEmployeeId) : true), {
-    message: 'adviceコメントには宛先（targetEmployeeId）が必須です',
-  })
-  .refine(data => (data.commentType !== 'advice' ? !data.targetEmployeeId : true), {
-    message: 'advice以外のコメントにtargetEmployeeIdは指定できません',
+  .refine(
+    data =>
+      !(['advice', 'suggestion', 'report'] as const).includes(
+        data.commentType as 'advice' | 'suggestion' | 'report'
+      ) || Boolean(data.targetEmployeeId),
+    { message: 'advice/suggestion/report には targetEmployeeId が必須' }
+  )
+  .refine(data => data.commentType !== 'general' || !data.targetEmployeeId, {
+    message: 'general には targetEmployeeId を指定できない',
   })
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
 

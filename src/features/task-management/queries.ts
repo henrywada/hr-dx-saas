@@ -361,7 +361,7 @@ export async function getTaskGroupBoard(
 
   const { data: taskRows, error: taskError } = await supabase
     .from('tasks')
-    .select('*, task_assignees(employee_id)')
+    .select('*, task_assignees(employee_id, role)')
     .eq('task_group_id', taskGroupId)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })

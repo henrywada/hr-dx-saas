@@ -107,6 +107,9 @@ export const removeTaskAssigneeSchema = z.object({
 })
 export type RemoveTaskAssigneeInput = z.infer<typeof removeTaskAssigneeSchema>
 
+export const deleteTaskSchema = z.object({ taskId: z.string().uuid() })
+export type DeleteTaskInput = z.infer<typeof deleteTaskSchema>
+
 export type TaskLifecycleStatus = 'active' | 'completed' | 'archived'
 
 export interface TaskObjective {

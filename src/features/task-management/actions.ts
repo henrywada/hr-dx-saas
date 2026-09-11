@@ -31,6 +31,8 @@ import {
   type AddTaskAssigneeInput,
   removeTaskAssigneeSchema,
   type RemoveTaskAssigneeInput,
+  deleteTaskSchema,
+  type DeleteTaskInput,
   createCommentSchema,
   type CreateCommentInput,
   updateCommentSchema,
@@ -589,6 +591,27 @@ export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promis
   }
 
   revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
+}
+
+/**
+ * タスク（tasks）を削除する。削除可否（責任者・マネージャー）は RLS の tasks DELETE ポリシーが強制する。
+ * 0件削除時はエラーを投げる（`updateTaskStatus` と同じパターン）。
+ */
+export async function deleteTask(input: DeleteTaskInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = deleteTaskSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.from('tasks').delete().eq('id', parsed.taskId).select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('このタスクを削除する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.root)
 }
 
 /**

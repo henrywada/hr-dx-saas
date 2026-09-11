@@ -1,75 +1,48 @@
+import { Target } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import {
-  getObjectiveDetail,
-  getWorkLogSummaryByObjective,
-  getObjectiveOrgTree,
-} from '@/features/task-management/queries'
-import { MilestoneList } from '@/features/task-management/components/MilestoneList'
-import { MilestoneForm } from '@/features/task-management/components/MilestoneForm'
-import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
-import { ProgressRing } from '@/features/task-management/components/ProgressRing'
-import { OrgTreeSection } from '@/features/task-management/components/OrgTreeSection'
+import { getObjectiveSimpleView, getTenantEmployees } from '@/features/task-management/queries'
+import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
+import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
 
 export default async function ObjectiveDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const user = await getServerUser()
   const supabase = await createClient()
-  const {
-    objective,
-    milestones,
-    taskGroupsByMilestoneId,
-    milestoneProgressById,
-    objectiveProgress,
-  } = await getObjectiveDetail(supabase, id)
-  const workLogSummary = await getWorkLogSummaryByObjective(supabase, id)
-  const orgTree = await getObjectiveOrgTree(supabase, id, user?.employee_id ?? null)
-  // 表示制御のみの判定（UIの出し分け）。実際のアクセス制御は task_milestones の RLS INSERT ポリシーが担う。
-  // user が null、または employee_id が未設定（従業員レコード無しユーザー）の場合は責任者ではない扱いにする。
+  const { objective, defaultTaskGroupId, tasks } = await getObjectiveSimpleView(supabase, id)
+  const employees = await getTenantEmployees(supabase)
+  const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-5 mx-auto max-w-[1200px]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-semibold text-slate-900">{objective.title}</h1>
-          {objective.description && (
-            <p className="mt-1 text-xs text-slate-500">{objective.description}</p>
-          )}
-        </div>
-        <ProgressRing progress={objectiveProgress} />
+      <div className="flex items-center justify-between">
+        <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <Target className="h-5 w-5 text-[#FD7601]" strokeWidth={2} />
+          {objective.title}
+        </h1>
+        <p className="text-xs text-slate-500">
+          作成者: {employeeNameById[objective.ownerEmployeeId] ?? objective.ownerEmployeeId}
+        </p>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">マイルストーン</h2>
-        <MilestoneList
-          milestones={milestones}
-          taskGroupsByMilestoneId={taskGroupsByMilestoneId}
-          milestoneProgressById={milestoneProgressById}
-          canCreateTaskGroup={isOwner}
-        />
-        {isOwner && <MilestoneForm objectiveId={objective.id} />}
+      <section className="rounded-lg border border-slate-200 p-3">
+        <h2 className="mb-2 text-xs font-semibold text-slate-900">ステータス分布</h2>
+        <TaskStatusDonutChart tasks={tasks} />
       </section>
 
-      <section className="rounded-lg border border-slate-200 p-3">
-        <h2 className="text-xs font-semibold text-slate-900 mb-2">タスクグループ別工数分布</h2>
-        <WorkDistributionChart
-          data={workLogSummary.map(s => ({
-            id: s.taskGroupId,
-            label: s.taskGroupName,
-            hours: s.totalHours,
-          }))}
-          emptyMessage="工数記録はまだありません。"
-        />
-      </section>
-
-      <section className="rounded-lg border border-slate-200 p-3">
-        <h2 className="text-xs font-semibold text-slate-900 mb-2">組織ツリー</h2>
-        <OrgTreeSection data={orgTree} />
-      </section>
+      <ObjectiveTaskBoard
+        objectiveId={objective.id}
+        taskGroupId={defaultTaskGroupId}
+        tasks={tasks}
+        employees={employees}
+        employeeNameById={employeeNameById}
+        currentEmployeeId={user?.employee_id ?? null}
+        isObjectiveOwner={isOwner}
+      />
     </div>
   )
 }

@@ -100,9 +100,17 @@ export function CommentThread({
 
   // 返信フォーカス表示: 該当メッセージ＋返信フォームのみ
   if (focusReplyCommentId) {
-    const replyTargets =
+    const replyTargets: EmployeeOption[] =
       focusedComment && !generalTargets.some(t => t.id === focusedComment.employeeId)
-        ? [{ id: focusedComment.employeeId, name: focusedComment.employeeName }, ...generalTargets]
+        ? [
+            {
+              id: focusedComment.employeeId,
+              name: focusedComment.employeeName,
+              // 返信先表示専用。isManager は宛先候補の型合わせ用（返信フォームでは未使用）
+              isManager: false,
+            },
+            ...generalTargets,
+          ]
         : generalTargets
 
     return (

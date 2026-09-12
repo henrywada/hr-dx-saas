@@ -710,13 +710,13 @@ UIコンポーネントは`src/features/task-management/components/admin/`に新
 
 ### 21.5 マスタ登録
 
-既存`(okr)`ページ（`service_category`「目標管理（OKR / MBO）」→`service`route_path `/adm/okr`）と同構造で、マイグレーションSQLにより登録する。
+既存`(okr)`ページ（`service_category`「目標管理（OKR / MBO）」→`service`route_path `/adm/okr`）と同構造で、マイグレーションSQLにより登録する。実装計画（`docs/superpowers/plans/2026-09-12-task-health-dashboard.md`）作成時に`grant_notifier`マイグレーション（`supabase/migrations/20260807022514_grant_notifier.sql`）の実装知見を確認し、以下のように更新した。
 
-1. `service_category`に新規カテゴリ「タスク健康度」
-2. `service`に新規サービス（`route_path: /adm/task-health`）
-3. `service_class_index`でサイドメニュー大分類に紐付け
-4. `app_role_service`でテナント管理者相当のロールに割当
-5. `tenant_service`で既存全テナントに機能を有効化（`INSERT ... ON CONFLICT DO NOTHING`、絶対禁止の「範囲指定のないUPDATE/DELETE」には該当しないINSERTのみの操作）
+1. `service_category`に新規カテゴリ「タスク健康度」（固定UUID定数、`ON CONFLICT (id) DO NOTHING`で冪等化）
+2. `service`に新規サービス（`route_path: /adm/task-health`、同様に固定UUID定数）
+3. `service_class_index`で既存のサイドメニュー大分類「評価・成長」（`(okr)`と同じ大分類）に紐付け
+4. `app_role_service`には**登録しない**（登録が無い＝役割による制限なし＝テナント管理者の全役割で表示される。`grant_notifier`マイグレーションの実装コメントで確認したパターン）
+5. `tenant_service`で既存全テナントに機能を有効化（`tenant_id`/`service_id`のみINSERT。`start_date`/`status`カラムはローカルDB実データを調査した結果、既存269行すべてNULLでコード側でも参照されていない未使用カラムだったため、値を入れず実データパターンに合わせる。絶対禁止の「範囲指定のないUPDATE/DELETE」には該当しないINSERTのみの操作）
 
 ### 21.6 テスト方針
 

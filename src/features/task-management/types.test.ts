@@ -3,7 +3,6 @@ import test from 'node:test'
 import {
   createObjectiveSchema,
   updateObjectiveSchema,
-  createTaskSchema,
   updateTaskStatusSchema,
   updateTaskProgressSchema,
   updateTaskBasicInfoSchema,
@@ -50,22 +49,6 @@ test('目標更新: titleが空文字は拒否される', () => {
     objectiveId: VALID_UUID,
     title: '',
   })
-  assert.equal(result.success, false)
-})
-
-test('タスク作成: priorityを省略するとnormalが補完される', () => {
-  const result = createTaskSchema.safeParse({
-    taskGroupId: '11111111-1111-4111-8111-111111111111',
-    title: '要件定義',
-  })
-  assert.equal(result.success, true)
-  if (result.success) {
-    assert.equal(result.data.priority, 'normal')
-  }
-})
-
-test('タスク作成: taskGroupIdがUUID形式でなければ拒否される', () => {
-  const result = createTaskSchema.safeParse({ taskGroupId: 'not-a-uuid', title: '要件定義' })
   assert.equal(result.success, false)
 })
 

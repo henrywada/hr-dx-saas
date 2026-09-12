@@ -12,9 +12,9 @@ function assignedTaskRow(overrides: Partial<AssignedTaskRow>): AssignedTaskRow {
   return {
     id: 't-1',
     title: '設計書レビュー',
-    task_group_id: 'g-1',
     due_date: null,
     created_at: '2026-08-01T00:00:00.000Z',
+    task_group: { milestone: { objective_id: 'o-1' } },
     ...overrides,
   }
 }
@@ -25,11 +25,19 @@ test('空配列なら空配列を返す（割当通知）', () => {
 
 test('id をキーにdedupeKeyとリンクを生成する（割当通知）', () => {
   const items = toTaskAssignmentFeedItems(
-    [assignedTaskRow({ id: 'xyz', task_group_id: 'g-9' })],
+    [assignedTaskRow({ id: 'xyz', task_group: { milestone: { objective_id: 'o-9' } } })],
     '2026-08-20'
   )
   assert.equal(items[0].dedupeKey, 'task_management:assignment:xyz')
-  assert.equal(items[0].href, '/tasks/groups/g-9')
+  assert.equal(items[0].href, '/tasks/objectives/o-9')
+})
+
+test('objective_idが解決できない行は除外する', () => {
+  const items = toTaskAssignmentFeedItems(
+    [assignedTaskRow({ task_group: null }), assignedTaskRow({ task_group: { milestone: null } })],
+    '2026-08-20'
+  )
+  assert.deepEqual(items, [])
 })
 
 test('期限超過ならcritical', () => {
@@ -92,11 +100,14 @@ test('タスク単位のコメント行からコンテキストを解決する',
     employee: { name: '山田太郎' },
     task_id: 't-1',
     task_group_id: null,
-    task: { title: '設計書レビュー', task_group_id: 'g-1' },
+    task: {
+      title: '設計書レビュー',
+      task_group: { milestone: { objective_id: 'o-1' } },
+    },
     taskGroup: null,
   }
   const resolved = resolveTaskCommentContext(row)
-  assert.equal(resolved?.href, '/tasks/groups/g-1')
+  assert.equal(resolved?.href, '/tasks/objectives/o-1')
   assert.equal(resolved?.contextLabel, 'タスク「設計書レビュー」')
   assert.equal(resolved?.employeeName, '山田太郎')
 })
@@ -110,10 +121,10 @@ test('タスクグループ単位のコメント行からコンテキストを�
     task_id: null,
     task_group_id: 'g-2',
     task: null,
-    taskGroup: { name: 'フロントエンド開発' },
+    taskGroup: { name: 'フロントエンド開発', milestone: { objective_id: 'o-2' } },
   }
   const resolved = resolveTaskCommentContext(row)
-  assert.equal(resolved?.href, '/tasks/groups/g-2')
+  assert.equal(resolved?.href, '/tasks/objectives/o-2')
   assert.equal(resolved?.contextLabel, 'タスクグループ「フロントエンド開発」')
 })
 
@@ -126,7 +137,7 @@ test('名前未設定の投稿者はフォールバック表示になる', () =>
     task_id: null,
     task_group_id: 'g-1',
     task: null,
-    taskGroup: { name: 'グループA' },
+    taskGroup: { name: 'グループA', milestone: { objective_id: 'o-1' } },
   }
   const resolved = resolveTaskCommentContext(row)
   assert.equal(resolved?.employeeName, '（名前未設定）')
@@ -146,6 +157,32 @@ test('task/taskGroup の埋め込みが両方欠落している行はnullを返�
   assert.equal(resolveTaskCommentContext(row), null)
 })
 
+test('objective_idが解決できないコメント行はnullを返す', () => {
+  const rowViaTask: RawTaskCommentRow = {
+    id: 'c-5',
+    body: 'test',
+    created_at: '2026-08-20T01:00:00.000Z',
+    employee: { name: '山田太郎' },
+    task_id: 't-1',
+    task_group_id: null,
+    task: { title: '設計書レビュー', task_group: null },
+    taskGroup: null,
+  }
+  assert.equal(resolveTaskCommentContext(rowViaTask), null)
+
+  const rowViaGroup: RawTaskCommentRow = {
+    id: 'c-6',
+    body: 'test',
+    created_at: '2026-08-20T01:00:00.000Z',
+    employee: { name: '佐藤花子' },
+    task_id: null,
+    task_group_id: 'g-1',
+    task: null,
+    taskGroup: { name: 'グループA', milestone: null },
+  }
+  assert.equal(resolveTaskCommentContext(rowViaGroup), null)
+})
+
 test('空配列なら空配列を返す（コメント通知）', () => {
   assert.deepEqual(toTaskCommentFeedItems([]), [])
 })
@@ -156,7 +193,7 @@ test('kindはsystem_notice、dismissibleはtrue、severityはinfo', () => {
       id: 'c-1',
       body: 'x',
       employeeName: '山田太郎',
-      href: '/tasks/groups/g-1',
+      href: '/tasks/objectives/o-1',
       contextLabel: 'タスク「A」',
       createdAt: '2026-08-20T01:00:00.000Z',
     },

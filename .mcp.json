@@ -1,5 +1,17 @@
 {
   "mcpServers": {
+    "playwright-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp",
+        "--executable-path",
+        "/home/hr-dx/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "--no-sandbox",
+        "--headless"
+      ],
+      "description": "システムChrome不在のサンドボックス環境用: Playwright専用Chromiumバイナリを直接指定"
+    },
     "notebooklm": {
       "command": "node",
       "args": [

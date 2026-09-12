@@ -47,3 +47,12 @@ export function isTaskMember(memberEmployeeIds: string[], currentEmployeeId: str
 export function canEditTask(isObjectiveOwner: boolean, isTaskResponsible: boolean): boolean {
   return isObjectiveOwner || isTaskResponsible
 }
+
+/**
+ * テナント管理者相当か（`app_role.app_role !== 'employee'`）。
+ * CLAUDE.mdの権限モデル定義に準拠。RLS側も同条件で最終防衛済み
+ * （PRDセクション21.2）。
+ */
+export function isTenantAdmin(appRole: string | undefined): boolean {
+  return appRole !== undefined && appRole !== 'employee'
+}

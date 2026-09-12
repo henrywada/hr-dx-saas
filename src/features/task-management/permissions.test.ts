@@ -10,6 +10,7 @@ import {
   isTaskResponsible,
   isTaskMember,
   canEditTask,
+  isTenantAdmin,
 } from './permissions'
 
 test('責任者本人ならtrue', () => {
@@ -85,4 +86,18 @@ test('タスク責任者は編集可', () => {
 
 test('どちらでもなければ編集不可', () => {
   assert.equal(canEditTask(false, false), false)
+})
+
+test('isTenantAdmin: employee以外はtrue', () => {
+  assert.equal(isTenantAdmin('hr'), true)
+  assert.equal(isTenantAdmin('tenant_admin'), true)
+  assert.equal(isTenantAdmin('developer'), true)
+})
+
+test('isTenantAdmin: employeeはfalse', () => {
+  assert.equal(isTenantAdmin('employee'), false)
+})
+
+test('isTenantAdmin: undefined（従業員レコード無し等）はfalse', () => {
+  assert.equal(isTenantAdmin(undefined), false)
 })

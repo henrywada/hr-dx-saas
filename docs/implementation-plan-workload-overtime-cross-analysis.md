@@ -24,7 +24,9 @@
 
 ### 3.1 継続的残業フラグ（sustained overtime）
 
-既存の`src/utils/overtimeThresholds.ts`の`calcMonthlyStatuses()`をそのまま再利用し、`monthly_employee_overtime`から算出した`OvertimeStatus`（safe/warning/danger/critical/violation）を月ごとに判定する。**直近3ヶ月のうち2ヶ月以上が`warning`以上**の場合、該当従業員に「継続的残業」フラグを立てる。しきい値・法定上限の算出ロジックは一切変更しない（既存関数をそのままインポートする）。
+既存の`src/utils/overtimeThresholds.ts`の`OvertimeStatus`判定ロジックをそのまま再利用し、`monthly_employee_overtime`から算出した月ごとのステータス（safe/warning/danger/critical/violation）を判定する。**直近3ヶ月のうち2ヶ月以上が`warning`以上**の場合、該当従業員に「継続的残業」フラグを立てる。しきい値・法定上限の算出ロジックは一切変更しない（既存関数をそのままインポートする）。
+
+**実装時の補足（2026-09-13追記）**：実装では単月判定の`getSingleMonthStatus()`を使用し、`calcMonthlyStatuses()`（年間累計・特別条項の年6回条件を含む複数月にまたがる判定）は使用していない。本機能の分析対象期間は6ヶ月（3.5参照）であり、`calcMonthlyStatuses()`が前提とする「年間を通じた特別条項の適用回数」等の判定は6ヶ月窓では意味を持たない（年度の途中からしかデータがない状態で年6回条件を評価すると誤判定になる）ため、単月ステータス判定のみを使う設計に変更した。最終ホールブランチレビューで確認済み。
 
 ### 3.2 申告乖離フラグ（under-reported gap）
 
@@ -37,7 +39,9 @@
 
 ### 3.3 タスク時間集中フラグ（workload concentration）
 
-部門（またはテナント全体）内で、従業員別の**分析対象期間のうち最新月（当月）**の申告工数合計を比較し、**その部門の平均申告工数の1.5倍を超え、かつ絶対値で20時間以上**の場合に「タスク集中」フラグを立てる（平均が小さい部門で些細な差が過検知にならないよう絶対値の下限を設ける）。比較対象は当該従業員が所属する部門（`employees.division_id`）の他メンバー全員（申告工数0の従業員も含む）とし、部門未配属者はテナント全体平均と比較する。
+部門（またはテナント全体）内で、従業員別の**分析対象期間のうち最新月（当月）**の申告工数合計を比較し、**その部門の平均申告工数の1.5倍を超え、かつ絶対値で20時間以上**の場合に「タスク集中」フラグを立てる（平均が小さい部門で些細な差が過検知にならないよう絶対値の下限を設ける）。比較対象は当該従業員が所属する部門（`employees.division_id`）の他メンバー全員（申告工数0の従業員も含む）とする。
+
+**実装時の補足（2026-09-13追記）**：部門未配属者（`division_id = null`）の比較対象は、実装では「他の未配属者のみ」（テナント全体平均ではない）としている。これは`division_id`で単純にグルーピングする実装（`null`同士も1グループとして扱う）を採用したためで、未配属者が少数のテナントでは平均が不安定になりやすい（未配属者が1〜2名しかいない場合、平均が0または少数のサンプルに引っ張られ、20時間以上で無条件にフラグが立ちやすくなる）。最終ホールブランチレビューで指摘済みだが、影響は小さく（未配属者が多いテナントではテナント全体平均に近似する）、マージ時点では修正を見送った。将来、未配属者比較の精度改善が必要になった場合はこの制約を踏まえて設計し直すこと。
 
 ### 3.4 要注意判定
 
@@ -83,6 +87,8 @@ export async function getWorkloadOvertimeCrossData(
 部門フィルタ（`divisionId`）は、タスク健康度ダッシュボードで実装済みの`resolveFilteredEmployeeIds`と同じ設計判断（子孫部門を含めた絞り込み、`division-tree.ts`の`collectDivisionAndDescendantIds`を再利用）を踏襲する。**`division-tree.ts`は`task-management`ドメインに属する汎用ユーティリティのため、`workload-analysis`から直接importして再利用し、重複実装しない**（過去のレビューで「同一ロジックの複数箇所への再実装」が問題視された経緯があるため、この方針を明記する）。
 
 集計はアプリケーション側（TypeScript）で行い、Postgres RPC化は見送る（テナント規模：従業員50〜1000名、既存`getWorkLogSummaryByGroup`等と同じ設計判断）。
+
+**実装時の補足（2026-09-13追記）**：`monthly_employee_overtime`・`task_work_logs`のクエリでは、当初`.in('employee_id', employeeIds)`で対象従業員を絞り込む設計だったが、ローカルDB（従業員461名、プロダクトの想定上限50〜1000名の範囲内）で実際に`URI too long`エラーが発生することを実装時に確認した。UUID配列をカンマ区切りでURLに埋め込むPostgREST/Kongの方式では、数百件規模で1リクエストのURL長上限を超えるため。対応として`.in()`を削除し、日付範囲（`gte(...)`）のみでテナント全体から取得した上で、部門フィルタ後の`employees`配列に対する`.map()`でのみ最終結果を組み立てる方式に変更した。RLS（`tenant_id = current_tenant_id()`ベース）がテナント分離を担保しているため安全性に問題はない（最終ホールブランチレビューでpg_policies実クエリとコードパス追跡により独立検証済み）。この結果、`divisionId`で絞り込んでも取得行数はテナント全体分のまま変わらない（効率上のトレードオフ、正確性には影響しない）。将来`task_work_logs`の利用が本格化しデータ量が増えた場合は、`.in()`をチャンク分割（例：100件ずつ）して復活させる対応を検討する。
 
 ### 5.3 判定ロジック（`cross-analysis.ts`）
 
@@ -168,6 +174,8 @@ UIコンポーネントは`src/features/workload-analysis/components/admin/`に�
 - 離職リスク機能（`src/features/turnover-risk/`）との統合・スコア連携は行わない。同機能は既に`overtime_hours_last_month`等を別経路（`work_time_records`から`calcOvertimeHours()`）で算出しており、データソースが異なる。統合は将来検討事項とする
 - ライブブラウザE2Eは、実行環境でシステムChromeが利用できない場合があるため実施可否を都度判断する（できない場合は静的検証・DB実クエリ確認で代替し、その旨を明記する）
 - **既知の制約**：`task_work_logs`はローカルDB調査時点で実質5件（本番でも利用が浅いテナントが多いと想定される）。タスク管理機能自体の普及が本機能の実効性の前提条件であり、データが薄いテナントでは3.2/3.3のフラグはほとんど発火しない見込み。これは機能の欠陥ではなく前提条件として明記する
+- **既知の制約（2026-09-13追記、最終ホールブランチレビュー）**：従業員一覧・比較チャートのペイロード規模。`page.tsx`はテナント全従業員分の`EmployeeCrossAnalysisResult`（1名あたり6ヶ月分の月次データ＋理由文字列）を丸ごとクライアントへ渡し、`OvertimeVsWorkloadChart`は全員分を`<select>`の選択肢として描画する。プロダクトの想定上限（従業員1000名）では、RSCペイロードが数MB規模になり、セレクトボックスも1000件の選択肢を持つことになる。MVPとしては許容範囲だが、将来的にはチャート用の従業員選択を検索可能なコンボボックスにする、またはサーバー側で「要注意メンバーのみ」に絞ったビューを別途用意するなどの改善余地がある
+- **既知の制約（2026-09-13追記）**：3.3のタスク集中フラグの判定式は「部門平均の1.5倍を**超え**」（厳密に超過）が仕様だが、実装（`cross-analysis.ts`）は`>=`（1.5倍以上）で判定している。ちょうど1.5倍ぴったりの境界値でのみ挙動が異なる（仕様では非該当、実装では該当）。実害は小さいため最終ホールブランチレビューでは修正を見送ったが、`cross-analysis.ts`の`workloadConcentration`判定を触る機会があれば`>`に修正すること
 
 ## 9. テスト方針
 
@@ -179,3 +187,22 @@ UIコンポーネントは`src/features/workload-analysis/components/admin/`に�
 - テナント管理者が部門横断で「要注意メンバー」を月次で確認できる
 - 36協定分析だけでは見えなかった「残業と工数記録の乖離」「タスク時間の偏り」が可視化される
 - 既存の残業判定ロジック（`overtimeThresholds.ts`）・部門ツリー絞り込みロジック（`division-tree.ts`）を重複実装せず再利用できている
+
+## 11. 実装ステータス
+
+実行計画（`docs/superpowers/plans/2026-09-12-workload-overtime-cross-analysis.md`）に基づき、Subagent-Driven Developmentで8タスクに分解して実施した。全タスク完了・`feature/workload-overtime-cross-analysis`ブランチにコミット済み。
+
+| #   | 内容                                           | 主な成果物                                                                           | 状態 |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------ | ---- |
+| 1   | 判定ロジック（`cross-analysis.ts`）            | `src/features/workload-analysis/cross-analysis.ts`、`cross-analysis.test.ts`（17件） | 完了 |
+| 2   | ルート定数の追加                               | `src/config/routes.ts`（`APP_ROUTES.TENANT.ADMIN_WORKLOAD_BURNOUT_ANALYSIS`）        | 完了 |
+| 3   | クエリ関数（`getWorkloadOvertimeCrossData`）   | `src/features/workload-analysis/queries.ts`                                          | 完了 |
+| 4   | 要注意サマリーカード・一覧テーブル             | `AttentionSummaryCards.tsx`、`EmployeeCrossAnalysisTable.tsx`                        | 完了 |
+| 5   | 個人比較チャート                               | `OvertimeVsWorkloadChart.tsx`                                                        | 完了 |
+| 6   | ダッシュボードコンテナ                         | `WorkloadOvertimeDashboard.tsx`                                                      | 完了 |
+| 7   | ページ（`page.tsx`/`loading.tsx`/`error.tsx`） | `src/app/(tenant)/(tenant-admin)/adm/(workload_analysis)/workload-burnout-analysis/` | 完了 |
+| 8   | メニュー登録マイグレーション                   | `supabase/migrations/20260912170000_workload_overtime_cross_analysis_menu.sql`       | 完了 |
+
+最終ホールブランチレビュー（opus）で、`reasons`・`isAttentionNeeded`がUIに未反映という横断的な欠落（Important 3件）を検出し、1回の修正で解消（`EmployeeCrossAnalysisTable.tsx`のみ、スコープ限定の再レビューで解消確認済み）。`.in()`削除による性能改善の妥当性・テナント分離の安全性も独立検証済み。残存するMinor指摘は本ドキュメント3.1・3.3・5.2・8章に既知の制約として反映済み。
+
+ライブブラウザE2Eは実行環境の制約により未実施（静的検証・型チェック・ビルド確認・ローカルDB実クエリ確認・全タスクレビューのCritical/Importantゼロで代替、8章に注記済み）。マージ前に実データでの動作確認が望ましい。

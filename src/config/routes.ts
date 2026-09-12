@@ -164,6 +164,8 @@ export const APP_ROUTES = {
     ADMIN_OKR_TREE: '/adm/okr/tree',
     /** OKR 目標詳細（NEW-2） */
     ADMIN_OKR_DETAIL: (objectiveId: string) => `/adm/okr/${objectiveId}`,
+    /** タスク健康度ダッシュボード（組織横断のタスク進捗・滞留・負荷偏在の可視化） */
+    ADMIN_TASK_HEALTH: '/adm/task-health',
     /** 採用ブランディング支援（NEW-3） */
     ADMIN_JOB_BRANDING: '/adm/job-branding',
     /** 採用ブランディング 求人票詳細（NEW-3） */

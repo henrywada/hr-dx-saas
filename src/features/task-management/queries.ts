@@ -36,6 +36,7 @@ import {
   type OrgTreeTaskRow,
   type OrgTree,
 } from './org-tree'
+import { collectDivisionAndDescendantIds } from './division-tree'
 
 /** PostgREST（ローカル・本番とも）のデフォルト1リクエストあたり最大行数。`supabase/config.toml` の `max_rows` と一致させる */
 const POSTGREST_MAX_ROWS = 1000
@@ -1195,45 +1196,60 @@ export async function getObjectiveOrgTree(
 }
 
 /**
- * 部門フィルタに該当するタスクIDの集合を解決する。
+ * 部門フィルタに該当する従業員IDの集合を解決する。
  * - divisionIdが未指定なら絞り込みなし（null を返す）
  * - 'unassigned' は部署未配属（division_id が null）の担当者を意味する
- * - 該当タスクが1件も無ければ空配列を返す（呼び出し側はその場で空の結果を返してよい）
+ * - 実在する組織IDを指定した場合はその子孫組織の所属者も含める
+ *   （`DivisionFilteredEmployeePicker` と同じ規約。共通ロジックは `division-tree.ts`）
+ * - 該当従業員が1人も居なければ空配列を返す（呼び出し側はその場で空の結果を返してよい）
  *
  * 絞り込みは「タスクの担当者（task_assignees.employee_id）の所属部署」基準
  * （タスク自体はどの部署にも属さないため。PRDセクション21.1）。
+ *
+ * 【重要】ここでタスクID配列を返してはならない。
+ * 「該当部門の誰かが関わる全タスク」のID配列は、テナント規模（従業員50〜1000名）では
+ * テナント全タスク件数に迫りうるため、`.in('id', taskIds)` が PostgREST／リバースプロキシの
+ * URL長上限に抵触してページ全体がクラッシュする（`getWorkLogSummaryByObjective` のコメント参照）。
+ * 従業員ID配列は部門の人数で上限が決まるためこの問題を持たず、
+ * 呼び出し側は `task_assignees!inner(employee_id)` の埋め込みフィルタで絞り込む。
  */
-async function resolveFilteredTaskIds(
+async function resolveFilteredEmployeeIds(
   supabase: SupabaseClient<Database>,
   divisionId: string | undefined
 ): Promise<string[] | null> {
   if (!divisionId) return null
 
-  const { data: employees, error: employeeError } = await supabase
-    .from('employees')
-    .select('id, division_id')
-
-  if (employeeError) throw employeeError
-
-  const targetEmployeeIds = (employees ?? [])
-    .filter(e =>
-      divisionId === 'unassigned' ? e.division_id === null : e.division_id === divisionId
-    )
-    .map(e => e.id)
-
-  if (targetEmployeeIds.length === 0) return []
-
-  const assigneeRows = await fetchAllRows(async (from, to) => {
+  const employees = await fetchAllRows(async (from, to) => {
     const result = await supabase
-      .from('task_assignees')
-      .select('task_id')
-      .in('employee_id', targetEmployeeIds)
+      .from('employees')
+      .select('id, division_id')
       .order('id', { ascending: true })
       .range(from, to)
     return { data: result.data, error: result.error }
   })
 
-  return Array.from(new Set(assigneeRows.map(r => r.task_id)))
+  if (divisionId === 'unassigned') {
+    return employees.filter(e => e.division_id === null).map(e => e.id)
+  }
+
+  const divisions = await getTenantDivisions(supabase)
+  const allowedDivisionIds = collectDivisionAndDescendantIds(divisionId, divisions)
+
+  return employees
+    .filter(e => e.division_id !== null && allowedDivisionIds.has(e.division_id))
+    .map(e => e.id)
+}
+
+/**
+ * 埋め込みフィルタ（1対多の join）は同一タスクが複数行に展開されうるため、
+ * 集計前にタスクIDで重複排除する。
+ */
+function dedupeRowsById<T extends { id: string }>(rows: T[]): T[] {
+  const byId = new Map<string, T>()
+  for (const row of rows) {
+    if (!byId.has(row.id)) byId.set(row.id, row)
+  }
+  return Array.from(byId.values())
 }
 
 export interface TaskHealthOverview {
@@ -1242,31 +1258,43 @@ export interface TaskHealthOverview {
   totalCount: number
 }
 
+interface OverviewTaskQueryRow {
+  id: string
+  status: string
+  progress_percent: number
+}
+
 /** テナント全体（部門絞り込み可）のタスクステータス別件数・平均進捗率を取得する */
 export async function getTaskHealthOverview(
   supabase: SupabaseClient<Database>,
   options: { divisionId?: string } = {}
 ): Promise<TaskHealthOverview> {
-  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
-  if (taskIds !== null && taskIds.length === 0) {
+  const employeeIds = await resolveFilteredEmployeeIds(supabase, options.divisionId)
+  if (employeeIds !== null && employeeIds.length === 0) {
     return { statusCounts: summarizeStatusCounts([]), averageProgress: 0, totalCount: 0 }
   }
 
   const rows = await fetchAllRows(async (from, to) => {
     let query = supabase
       .from('tasks')
-      .select('status, progress_percent')
+      .select(
+        employeeIds !== null
+          ? 'id, status, progress_percent, task_assignees!inner(employee_id)'
+          : 'id, status, progress_percent'
+      )
       .order('id', { ascending: true })
       .range(from, to)
-    if (taskIds !== null) query = query.in('id', taskIds)
+    if (employeeIds !== null) query = query.in('task_assignees.employee_id', employeeIds)
     const result = await query
-    return { data: result.data, error: result.error }
+    return { data: result.data as unknown as OverviewTaskQueryRow[] | null, error: result.error }
   })
 
+  const uniqueRows = dedupeRowsById(rows)
+
   return {
-    statusCounts: summarizeStatusCounts(rows.map(r => ({ status: r.status as TaskStatus }))),
-    averageProgress: calculateAverageProgress(rows.map(r => r.progress_percent)),
-    totalCount: rows.length,
+    statusCounts: summarizeStatusCounts(uniqueRows.map(r => ({ status: r.status as TaskStatus }))),
+    averageProgress: calculateAverageProgress(uniqueRows.map(r => r.progress_percent)),
+    totalCount: uniqueRows.length,
   }
 }
 
@@ -1289,30 +1317,40 @@ interface StalledTaskQueryRow {
   task_assignees: { role: string; employee: { name: string | null } | null }[] | null
 }
 
-/** テナント全体（部門絞り込み可）の滞留タスク一覧を取得する（該当理由付き、非該当は除外） */
+/**
+ * テナント全体（部門絞り込み可）の滞留タスク一覧を取得する（該当理由付き、非該当は除外）
+ *
+ * 部門絞り込み時は `task_assignees!inner` の埋め込みフィルタが効くため、
+ * 埋め込み配列には「絞り込み対象部門に所属する担当者」の行しか残らない。
+ * そのため責任者（role='responsible'）が対象部門外の場合、
+ * 実際には責任者が居ても `responsibleName` は null（UI上は「未設定」）になる。
+ * 追加の往復クエリを避けるための許容仕様。
+ */
 export async function getStalledTasks(
   supabase: SupabaseClient<Database>,
   options: { divisionId?: string } = {}
 ): Promise<StalledTaskRow[]> {
-  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
-  if (taskIds !== null && taskIds.length === 0) return []
+  const employeeIds = await resolveFilteredEmployeeIds(supabase, options.divisionId)
+  if (employeeIds !== null && employeeIds.length === 0) return []
 
   const rows = await fetchAllRows(async (from, to) => {
     let query = supabase
       .from('tasks')
       .select(
-        'id, title, status, due_date, updated_at, task_assignees(role, employee:employee_id(name))'
+        employeeIds !== null
+          ? 'id, title, status, due_date, updated_at, task_assignees!inner(role, employee:employee_id(name))'
+          : 'id, title, status, due_date, updated_at, task_assignees(role, employee:employee_id(name))'
       )
       .order('id', { ascending: true })
       .range(from, to)
-    if (taskIds !== null) query = query.in('id', taskIds)
+    if (employeeIds !== null) query = query.in('task_assignees.employee_id', employeeIds)
     const result = await query
     return { data: result.data as unknown as StalledTaskQueryRow[] | null, error: result.error }
   })
 
   const todayYmd = toJSTDateString()
 
-  return rows
+  return dedupeRowsById(rows)
     .map((row): StalledTaskRow | null => {
       const reasons = classifyStalledReasons(
         { status: row.status as TaskStatus, dueDate: row.due_date, updatedAt: row.updated_at },
@@ -1353,16 +1391,18 @@ export async function getWorkloadDistribution(
   supabase: SupabaseClient<Database>,
   options: { divisionId?: string } = {}
 ): Promise<WorkloadRow[]> {
-  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
-  if (taskIds !== null && taskIds.length === 0) return []
+  const employeeIds = await resolveFilteredEmployeeIds(supabase, options.divisionId)
+  if (employeeIds !== null && employeeIds.length === 0) return []
 
   const rows = await fetchAllRows(async (from, to) => {
+    // 基底テーブルが task_assignees のため、埋め込みを介さず直接 employee_id で絞り込める。
+    // 対象部門の担当行だけを集計するので、他部門の担当者が結果に混ざらない。
     let query = supabase
       .from('task_assignees')
       .select('employee_id, employee:employee_id(name), task:task_id!inner(status)')
       .order('id', { ascending: true })
       .range(from, to)
-    if (taskIds !== null) query = query.in('task_id', taskIds)
+    if (employeeIds !== null) query = query.in('employee_id', employeeIds)
     const result = await query
     return { data: result.data as unknown as WorkloadQueryRow[] | null, error: result.error }
   })
@@ -1389,6 +1429,7 @@ export interface ObjectiveAchievementRow {
 }
 
 interface ObjectiveTaskQueryRow {
+  id: string
   progress_percent: number
   due_date: string | null
   status: string
@@ -1400,24 +1441,31 @@ export async function getObjectiveAchievementStatus(
   supabase: SupabaseClient<Database>,
   options: { divisionId?: string } = {}
 ): Promise<ObjectiveAchievementRow[]> {
-  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
-  if (taskIds !== null && taskIds.length === 0) return []
+  const employeeIds = await resolveFilteredEmployeeIds(supabase, options.divisionId)
+  if (employeeIds !== null && employeeIds.length === 0) return []
 
-  const { data: milestoneRows, error: milestoneError } = await supabase
-    .from('task_milestones')
-    .select('id, objective_id')
+  const milestoneRows = await fetchAllRows(async (from, to) => {
+    const result = await supabase
+      .from('task_milestones')
+      .select('id, objective_id')
+      .order('id', { ascending: true })
+      .range(from, to)
+    return { data: result.data, error: result.error }
+  })
 
-  if (milestoneError) throw milestoneError
-
-  const objectiveIdByMilestoneId = new Map((milestoneRows ?? []).map(m => [m.id, m.objective_id]))
+  const objectiveIdByMilestoneId = new Map(milestoneRows.map(m => [m.id, m.objective_id]))
 
   const taskRows = await fetchAllRows(async (from, to) => {
     let query = supabase
       .from('tasks')
-      .select('progress_percent, due_date, status, task_group:task_group_id!inner(milestone_id)')
+      .select(
+        employeeIds !== null
+          ? 'id, progress_percent, due_date, status, task_group:task_group_id!inner(milestone_id), task_assignees!inner(employee_id)'
+          : 'id, progress_percent, due_date, status, task_group:task_group_id!inner(milestone_id)'
+      )
       .order('id', { ascending: true })
       .range(from, to)
-    if (taskIds !== null) query = query.in('id', taskIds)
+    if (employeeIds !== null) query = query.in('task_assignees.employee_id', employeeIds)
     const result = await query
     return { data: result.data as unknown as ObjectiveTaskQueryRow[] | null, error: result.error }
   })
@@ -1426,13 +1474,16 @@ export async function getObjectiveAchievementStatus(
   const progressRows: { value: number; parentId: string }[] = []
   const delayedCountByObjectiveId = new Map<string, number>()
 
-  for (const row of taskRows) {
+  for (const row of dedupeRowsById(taskRows)) {
     const milestoneId = row.task_group?.milestone_id
     const objectiveId = milestoneId ? objectiveIdByMilestoneId.get(milestoneId) : undefined
     if (!objectiveId) continue
 
     progressRows.push({ value: row.progress_percent, parentId: objectiveId })
 
+    // updatedAt に「本日」を渡すのは意図的。ここで必要なのは overdue（期限超過）判定のみで、
+    // 更新日を本日にしておくと stale（長期未更新）・blocked_long が成立しなくなるため、
+    // classifyStalledReasons の結果を overdue 判定だけに限定できる。
     const reasons = classifyStalledReasons(
       { status: row.status as TaskStatus, dueDate: row.due_date, updatedAt: todayYmd },
       todayYmd

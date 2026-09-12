@@ -726,12 +726,19 @@ UIコンポーネントは`src/features/task-management/components/admin/`に新
 
 ### 21.7 実装ステータス
 
-| #   | 内容                                                             | 状態   |
-| --- | ---------------------------------------------------------------- | ------ |
-| 1   | `task-health.ts`（判定・集計純粋関数）+ユニットテスト            | 未着手 |
-| 2   | `queries.ts`拡張（4関数）                                        | 未着手 |
-| 3   | `routes.ts`に`APP_ROUTES.TENANT.ADMIN_TASK_HEALTH`追加           | 未着手 |
-| 4   | `/adm/task-health`ページ骨組み（page.tsx/loading.tsx/error.tsx） | 未着手 |
-| 5   | UIコンポーネント5点                                              | 未着手 |
-| 6   | マスタ登録マイグレーション                                       | 未着手 |
-| 7   | 統合確認・レビュー                                               | 未着手 |
+実行計画（`docs/superpowers/plans/2026-09-12-task-health-dashboard.md`）に基づき、Subagent-Driven Developmentで12タスクに分解して実施した。全タスク完了・`feature/task-health-dashboard`ブランチにコミット済み。
+
+| #   | 内容                                                    | 主な成果物                                                                                              | 状態 |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---- |
+| 1   | 判定・集計純粋関数（`task-health.ts`）                  | `src/features/task-management/task-health.ts`、`task-health.test.ts`                                    | 完了 |
+| 2   | 権限判定関数（`isTenantAdmin`）                         | `src/features/task-management/permissions.ts`、`permissions.test.ts`                                    | 完了 |
+| 3   | ルート定数の追加                                        | `src/config/routes.ts`（`APP_ROUTES.TENANT.ADMIN_TASK_HEALTH`）                                         | 完了 |
+| 4   | クエリ関数（`queries.ts`拡張、4関数）                   | `src/features/task-management/queries.ts`                                                               | 完了 |
+| 5   | 進捗概要カード（`ProgressOverviewCard`）                | `src/features/task-management/components/admin/ProgressOverviewCard.tsx`                                | 完了 |
+| 6   | 滞留タスク一覧カード（`StalledTaskListCard`）           | `src/features/task-management/components/admin/StalledTaskListCard.tsx`                                 | 完了 |
+| 7   | 担当者別負荷偏在カード（`WorkloadDistributionCard`）    | `src/features/task-management/components/admin/WorkloadDistributionCard.tsx`                            | 完了 |
+| 8   | 目標別達成状況カード（`ObjectiveAchievementCard`）      | `src/features/task-management/components/admin/ObjectiveAchievementCard.tsx`                            | 完了 |
+| 9   | 親コンポーネント・部門フィルタ（`TaskHealthDashboard`） | `src/features/task-management/components/admin/TaskHealthDashboard.tsx`                                 | 完了 |
+| 10  | ページ本体（page.tsx / loading.tsx / error.tsx）        | `src/app/(tenant)/(tenant-admin)/adm/(task_health)/task-health/{page,loading,error}.tsx`                | 完了 |
+| 11  | マスタ登録マイグレーション                              | `supabase/migrations/20260912162500_task_health_dashboard_menu.sql`                                     | 完了 |
+| 12  | 統合確認・レビュー                                      | `npm run test`（640/641 PASS、既知の無関係な1件のみ失敗）・`type-check`/`lint`エラー0件・実DBクエリ確認 | 完了 |

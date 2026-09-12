@@ -656,3 +656,82 @@ SDD（Subagent-Driven Development）で全15タスクを実装、各タスク完
 4. **組織ツリーのtask単位組み替えは未実施**：既存の`getObjectiveOrgTree`ロジックをそのまま流用したため、ツリーのノードラベルの露出は修正したが、真の意味での「タスクグループ単位→タスク単位」への構造組み替え（design.mdセクション5.6originally想定）は行っていない。
 5. **`/tasks/objectives/new`のStep2カードが簡素**：design.mdでは責任者名・編集削除ボタンを含む想定だったが、実装はタイトル・目標のみ（plan段階での簡略化）。作成した目標詳細ページへの遷移導線もない。
 6. **`ObjectiveForm.tsx`のデッドコード化**：新フローがインラインフォームを再実装したため、既存の`ObjectiveForm.tsx`は参照ゼロになった。削除または再利用への統合を検討する。
+
+## 21. Phase 6 詳細設計（テナント管理者向け組織横断タスク健康度ダッシュボード）
+
+### 21.0 背景・経緯
+
+2026-09-12のレビューで「`adm/`（テナント管理者向け）にタスク管理関連ページが一件も存在せず、経営者・人事責任者が全社のタスク進捗・滞留・負荷偏在を俯瞰する手段がない」ことが判明した（本ドキュメントには記載していなかった既知の残課題）。brainstormingスキルの対話を通じて、プロダクトの2大ゴールのうち「組織健康度の可視化」に対応する新規機能として設計を合意した。既存の`adm/(okr)/okr`は`src/features/okr/`という完全に別のデータモデル（`objectives`/`key_results`/`checkins`、伝統的OKRフレームワーク）であり、本機能（`task_objectives`/`task_groups`/`tasks`/`task_assignees`）とは無関係。混同しないよう新規カテゴリ`(task_health)`を新設する。
+
+### 21.1 スコープ（4指標）
+
+工数×残業管理のクロス分析・advice放置検知・1on1連携等、同日セッションで検討した他の改善案は別機能として明確に切り離す。本フェーズは以下4指標に限定する。
+
+1. **進捗概要** — テナント全体のタスクステータス別件数（todo/in_progress/review/done/blocked）、平均進捗率
+2. **滞留タスク** — 以下いずれかに該当するタスクの一覧（複数該当時は理由を併記）
+   - 期限超過：`due_date`が過ぎており、かつ`status`が`done`/`blocked`以外
+   - 長期未更新：`updated_at`が14日以上前、かつ`status`が`done`以外
+   - blocked長期滞在：`status = 'blocked'`かつ`updated_at`が14日以上前
+3. **担当者別負荷偏在** — 従業員ごとの担当タスク件数（`task_assignees`、`role`問わず）・うち進行中（`todo`/`in_progress`/`review`）件数
+4. **目標別達成状況** — 目標（`task_objectives`）ごとの配下タスク平均進捗率・遅延タスク件数・責任者名
+
+滞留タスク一覧・担当者別集計から個別タスク／目標詳細ページへのドリルダウンは行わない（集計表示のみ、MVPスコープ外）。部門（`divisions`）による絞り込みは必須（URLクエリパラメータ`?division=<id>`で状態を持つ）。絞り込みはタスクの**担当者（`task_assignees.employee_id`）の所属部署**を基準にする（タスク自体はどの部署にも属さないため）。`employees.division_id`が`null`（未配属）の担当者を含めるかどうかは、フィルタ選択肢に「未配属」を含めることで対応する。
+
+### 21.2 権限モデル（追加分）
+
+既存の役割モデル（責任者・タスクマネージャー・メンバー）とは独立に、`getServerUser().appRole !== 'employee'`（CLAUDE.mdの「テナント管理者」定義）でページアクセスを制御する。既存`(okr)`ページの固定ロールリスト（`['hr','hr_manager','tenant_admin','developer']`）は踏襲しない（ロール追加時に追従できないため）。RLS側は既存の`tasks_select`/`task_objectives_select`等が全テーブルで`current_employee_app_role() <> 'employee'`の場合にテナント全件を許可する設計に既になっており、`createClient()`（RLS有効）をそのまま使えば追加のRLS変更は不要（`createAdminClient()`は使わない）。
+
+### 21.3 データレイヤー設計
+
+`src/features/task-management/queries.ts`に以下4関数を追加する。いずれも引数`divisionId?: string`で部門絞り込みに対応し、テナント全体（RLS任せ）を対象にする。
+
+- `getTaskHealthOverview(supabase, { divisionId? })` — ステータス別件数・平均進捗率
+- `getStalledTasks(supabase, { divisionId? })` — 滞留タスク一覧（理由付き）
+- `getWorkloadDistribution(supabase, { divisionId? })` — 担当者別タスク件数
+- `getObjectiveAchievementStatus(supabase, { divisionId? })` — 目標別進捗・遅延状況
+
+判定・集計ロジック（期限超過/長期未更新/blocked滞在の判定、担当者別集計）は`kanban.ts`と同様に`src/features/task-management/task-health.ts`へ純粋関数として切り出し、TDDでユニットテストする。集計はアプリケーション側（TypeScript）で行い、Postgres RPC化は見送る（テナント規模：従業員50〜1000名でタスク件数は現実的な範囲に収まるため。既存`getWorkLogSummaryByGroup`等と同じ設計判断）。
+
+目標とタスクは「目標(`task_objectives`)→マイルストーン(`task_milestones`)→タスクグループ(`task_groups`)→タスク(`tasks`)」の4階層で、Phase5でUI上は中間2階層を隠蔽しているだけでデータモデルは変わっていない（本ドキュメント20章参照）。`getObjectiveAchievementStatus`は`tasks.task_group_id → task_groups.milestone_id → task_milestones.objective_id`の2段階JOINで目標に集約する（`feed-provider.ts`の`objective_id`解決と同じ経路、Phase6着手前のクリーンアップで実装済み）。
+
+### 21.4 画面構成の追加
+
+`src/app/(tenant)/(tenant-admin)/adm/(task_health)/task-health/page.tsx`（+`loading.tsx`/`error.tsx`）を新設する。ルート定数は既存`APP_ROUTES.TENANT.ADMIN_OKR_DASHBOARD`等と同じフラットな命名パターンに合わせ、`APP_ROUTES.TENANT.ADMIN_TASK_HEALTH: '/adm/task-health'`として追加する（`APP_ROUTES.tasks.*`のようなネスト構造は使わない）。
+
+UIコンポーネントは`src/features/task-management/components/admin/`に新設する。
+
+- `TaskHealthDashboard.tsx` — 部門フィルタの状態管理を持つコンテナ
+- `ProgressOverviewCard.tsx` — ステータス別件数・平均進捗率（Recharts）
+- `StalledTaskListCard.tsx` — 滞留タスク一覧（`DataTable`、理由バッジ表示）
+- `WorkloadDistributionCard.tsx` — 担当者別負荷（バーチャート）
+- `ObjectiveAchievementCard.tsx` — 目標別達成状況一覧
+
+レイアウトはCLAUDE.mdの「パターンB: フル幅型」＋カード間隔標準（`space-y-4`/`gap-3`/`rounded-lg`/`shadow-xs`）に準拠する。
+
+### 21.5 マスタ登録
+
+既存`(okr)`ページ（`service_category`「目標管理（OKR / MBO）」→`service`route_path `/adm/okr`）と同構造で、マイグレーションSQLにより登録する。
+
+1. `service_category`に新規カテゴリ「タスク健康度」
+2. `service`に新規サービス（`route_path: /adm/task-health`）
+3. `service_class_index`でサイドメニュー大分類に紐付け
+4. `app_role_service`でテナント管理者相当のロールに割当
+5. `tenant_service`で既存全テナントに機能を有効化（`INSERT ... ON CONFLICT DO NOTHING`、絶対禁止の「範囲指定のないUPDATE/DELETE」には該当しないINSERTのみの操作）
+
+### 21.6 テスト方針
+
+- `task-health.ts`の判定・集計純粋関数をTDDでユニットテスト（期限超過/長期未更新/blocked滞在の境界値、担当者別集計の合算等）
+- `queries.ts`の新規関数はローカルSupabase実DBに対する動作確認で代替（既存パターンと同様、Server Component統合テストは行わない）
+- ライブブラウザE2Eは、実行環境でシステムChromeが利用できない場合があるため実施可否を都度判断する（できない場合は静的検証・DB実クエリ確認で代替し、その旨を明記する）
+
+### 21.7 実装ステータス
+
+| #   | 内容                                                             | 状態   |
+| --- | ---------------------------------------------------------------- | ------ |
+| 1   | `task-health.ts`（判定・集計純粋関数）+ユニットテスト            | 未着手 |
+| 2   | `queries.ts`拡張（4関数）                                        | 未着手 |
+| 3   | `routes.ts`に`APP_ROUTES.TENANT.ADMIN_TASK_HEALTH`追加           | 未着手 |
+| 4   | `/adm/task-health`ページ骨組み（page.tsx/loading.tsx/error.tsx） | 未着手 |
+| 5   | UIコンポーネント5点                                              | 未着手 |
+| 6   | マスタ登録マイグレーション                                       | 未着手 |
+| 7   | 統合確認・レビュー                                               | 未着手 |

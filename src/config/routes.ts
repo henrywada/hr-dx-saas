@@ -286,7 +286,5 @@ export const APP_ROUTES = {
     objectiveEdit: (id: string) => `/tasks/objectives/${id}/edit`,
     /** 目標詳細 */
     objectiveDetail: (id: string) => `/tasks/objectives/${id}`,
-    /** タスクグループ詳細 */
-    groupDetail: (id: string) => `/tasks/groups/${id}`,
   },
 } as const

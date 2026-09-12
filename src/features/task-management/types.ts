@@ -54,43 +54,6 @@ export const createTaskGroupSchema = z.object({
 })
 export type CreateTaskGroupInput = z.infer<typeof createTaskGroupSchema>
 
-export const updateTaskGroupSchema = z.object({
-  taskGroupId: dbUuidSchema,
-  name: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
-  goalSummary: z.string().max(200).optional(),
-})
-export type UpdateTaskGroupInput = z.infer<typeof updateTaskGroupSchema>
-
-export const assignManagerSchema = z.object({
-  taskGroupId: dbUuidSchema,
-  employeeId: dbUuidSchema,
-})
-export type AssignManagerInput = z.infer<typeof assignManagerSchema>
-
-export const assignMemberSchema = z.object({
-  taskGroupId: dbUuidSchema,
-  employeeId: dbUuidSchema,
-})
-export type AssignMemberInput = z.infer<typeof assignMemberSchema>
-
-export const removeMemberSchema = z.object({
-  taskGroupId: dbUuidSchema,
-  employeeId: dbUuidSchema,
-})
-export type RemoveMemberInput = z.infer<typeof removeMemberSchema>
-
-export const createTaskSchema = z.object({
-  taskGroupId: dbUuidSchema,
-  title: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
-  assigneeEmployeeIds: z.array(dbUuidSchema).max(20).optional().default([]),
-  goalSummary: z.string().max(200).optional(),
-  priority: z.enum(TASK_PRIORITIES).default('normal'),
-  dueDate: dateStringSchema.optional(),
-})
-export type CreateTaskInput = z.infer<typeof createTaskSchema>
-
 export const createSimpleTaskSchema = z.object({
   taskGroupId: dbUuidSchema,
   title: z.string().min(1).max(200),

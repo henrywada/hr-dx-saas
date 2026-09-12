@@ -53,3 +53,31 @@ export function aggregateHoursByGroup(
 
   return Array.from(totals.values()).sort((a, b) => b.totalHours - a.totalHours)
 }
+
+export interface TaskHoursSummary {
+  taskId: string
+  taskTitle: string
+  totalHours: number
+}
+
+/** 目標詳細ページ用：タスク別の工数合計を降順で返す */
+export function aggregateHoursByTask(
+  rows: { taskId: string; taskTitle: string; hours: number }[]
+): TaskHoursSummary[] {
+  const totals = new Map<string, TaskHoursSummary>()
+
+  for (const row of rows) {
+    const existing = totals.get(row.taskId)
+    if (existing) {
+      existing.totalHours += row.hours
+    } else {
+      totals.set(row.taskId, {
+        taskId: row.taskId,
+        taskTitle: row.taskTitle,
+        totalHours: row.hours,
+      })
+    }
+  }
+
+  return Array.from(totals.values()).sort((a, b) => b.totalHours - a.totalHours)
+}

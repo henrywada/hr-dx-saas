@@ -7,6 +7,8 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   createObjectiveSchema,
   type CreateObjectiveInput,
+  updateObjectiveSchema,
+  type UpdateObjectiveInput,
   createMilestoneSchema,
   type CreateMilestoneInput,
   createTaskGroupSchema,
@@ -35,6 +37,8 @@ import {
   type RemoveTaskAssigneeInput,
   deleteTaskSchema,
   type DeleteTaskInput,
+  deleteObjectiveSchema,
+  type DeleteObjectiveInput,
   createCommentSchema,
   type CreateCommentInput,
   updateCommentSchema,
@@ -130,6 +134,39 @@ export async function createObjective(
   revalidatePath(APP_ROUTES.tasks.root)
 
   return { id: objective.id, defaultTaskGroupId: group.id }
+}
+
+/**
+ * 目標（task_objectives）の目標名・説明・期限を更新する。
+ * 更新可否（目標作成者、または employee 以外の役割）は RLS の task_objectives_update が強制する。
+ * 0件更新時はエラーを投げる。
+ */
+export async function updateObjective(input: UpdateObjectiveInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = updateObjectiveSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('task_objectives')
+    .update({
+      title: parsed.title,
+      description: parsed.description ?? null,
+      due_date: parsed.dueDate ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.objectiveId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('この目標を更新する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.root)
+  revalidatePath(APP_ROUTES.tasks.objectiveDetail(parsed.objectiveId))
+  revalidatePath(APP_ROUTES.tasks.objectiveEdit(parsed.objectiveId))
 }
 
 /**
@@ -407,6 +444,7 @@ export async function createSimpleTask(input: CreateSimpleTaskInput): Promise<{ 
       title: parsed.title,
       goal_summary: parsed.goalSummary ?? null,
       due_date: parsed.dueDate ?? null,
+      priority: parsed.priority,
       created_by_employee_id: user.employee_id,
     })
     .select('id')
@@ -517,8 +555,8 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
 }
 
 /**
- * タスクの基本情報（タスク名・タスク目標・期限）を更新する。
- * カラム制限: title/goal_summary/due_date/updated_at のみ更新する。
+ * タスクの基本情報（タスク名・タスク目標・期限・優先順）を更新する。
+ * カラム制限: title/goal_summary/due_date/priority/updated_at のみ更新する。
  * 更新可否（責任者・マネージャー）は RLS の tasks UPDATE ポリシーが強制する。
  */
 export async function updateTaskBasicInfo(input: UpdateTaskBasicInfoInput): Promise<void> {
@@ -534,6 +572,7 @@ export async function updateTaskBasicInfo(input: UpdateTaskBasicInfoInput): Prom
       title: parsed.title,
       goal_summary: parsed.goalSummary ?? null,
       due_date: parsed.dueDate ?? null,
+      ...(parsed.priority !== undefined ? { priority: parsed.priority } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', parsed.taskId)
@@ -693,6 +732,33 @@ export async function deleteTask(input: DeleteTaskInput): Promise<void> {
   if (error) throw error
   if (data === null || data.length === 0) {
     throw new Error('このタスクを削除する権限がありません')
+  }
+
+  revalidatePath(APP_ROUTES.tasks.root)
+}
+
+/**
+ * 目標（task_objectives）を削除する。配下のマイルストーン・タスクグループ・タスクは
+ * ON DELETE CASCADE で連鎖削除される。
+ * 削除可否（目標作成者、または employee 以外の役割）は RLS の task_objectives_delete が強制する。
+ * 0件削除時はエラーを投げる。
+ */
+export async function deleteObjective(input: DeleteObjectiveInput): Promise<void> {
+  const user = await getServerUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const parsed = deleteObjectiveSchema.parse(input)
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('task_objectives')
+    .delete()
+    .eq('id', parsed.objectiveId)
+    .select('id')
+
+  if (error) throw error
+  if (data === null || data.length === 0) {
+    throw new Error('この目標を削除する権限がありません')
   }
 
   revalidatePath(APP_ROUTES.tasks.root)

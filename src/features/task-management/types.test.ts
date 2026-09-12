@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createObjectiveSchema,
+  updateObjectiveSchema,
   createTaskSchema,
   updateTaskStatusSchema,
   updateTaskProgressSchema,
@@ -31,6 +32,24 @@ test('目標作成: titleが空文字は拒否される', () => {
 
 test('目標作成: dueDateの形式が不正なら拒否される', () => {
   const result = createObjectiveSchema.safeParse({ title: 'x', dueDate: '2026/09/07' })
+  assert.equal(result.success, false)
+})
+
+test('目標更新: objectiveIdとtitleで成功する', () => {
+  const result = updateObjectiveSchema.safeParse({
+    objectiveId: VALID_UUID,
+    title: '営業：売上１０％アップ',
+    description: '説明・・・\n説明・・・',
+    dueDate: '2026-12-31',
+  })
+  assert.equal(result.success, true)
+})
+
+test('目標更新: titleが空文字は拒否される', () => {
+  const result = updateObjectiveSchema.safeParse({
+    objectiveId: VALID_UUID,
+    title: '',
+  })
   assert.equal(result.success, false)
 })
 
@@ -118,6 +137,7 @@ test('コメント作成: taskIdのみ指定で成功する', () => {
   const result = createCommentSchema.safeParse({
     taskId: '11111111-1111-4111-8111-111111111111',
     commentType: 'general',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
     body: '進捗を報告します',
   })
   assert.equal(result.success, true)
@@ -127,6 +147,7 @@ test('コメント作成: taskGroupIdのみ指定で成功する', () => {
   const result = createCommentSchema.safeParse({
     taskGroupId: '11111111-1111-4111-8111-111111111111',
     commentType: 'general',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
     body: '助言です',
   })
   assert.equal(result.success, true)
@@ -151,14 +172,23 @@ test('コメント作成: advice種別かつtargetEmployeeIdありなら成功�
   assert.equal(result.success, true)
 })
 
-test('コメント作成: generalにtargetEmployeeIdを付けると拒否される', () => {
+test('コメント作成: general種別は宛先(targetEmployeeId)が無いと拒否される', () => {
+  const result = createCommentSchema.safeParse({
+    taskGroupId: '11111111-1111-4111-8111-111111111111',
+    commentType: 'general',
+    body: 'コメントです',
+  })
+  assert.equal(result.success, false)
+})
+
+test('コメント作成: general種別かつtargetEmployeeIdありなら成功する', () => {
   const result = createCommentSchema.safeParse({
     taskGroupId: '11111111-1111-4111-8111-111111111111',
     commentType: 'general',
     targetEmployeeId: '22222222-2222-4222-8222-222222222222',
-    body: '一般コメントです',
+    body: 'コメントです',
   })
-  assert.equal(result.success, false)
+  assert.equal(result.success, true)
 })
 
 test('コメント作成: taskIdとtaskGroupIdを両方指定すると拒否される', () => {
@@ -201,6 +231,7 @@ test('コメント作成: parentCommentIdは省略可能', () => {
   const result = createCommentSchema.safeParse({
     taskId: '11111111-1111-4111-8111-111111111111',
     commentType: 'general',
+    targetEmployeeId: '22222222-2222-4222-8222-222222222222',
     body: 'x',
   })
   assert.equal(result.success, true)
@@ -410,4 +441,13 @@ test('createSimpleTaskSchemaはresponsibleEmployeeId必須', () => {
       title: 'タスク',
     })
   )
+})
+
+test('createSimpleTaskSchemaはPGシード形式のUUID（version 0）も受け入れる', () => {
+  const result = createSimpleTaskSchema.safeParse({
+    taskGroupId: VALID_UUID,
+    title: 'タスク',
+    responsibleEmployeeId: 'bb000001-0000-0000-0000-000000000001',
+  })
+  assert.equal(result.success, true)
 })

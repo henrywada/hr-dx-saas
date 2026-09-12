@@ -7,14 +7,14 @@ import {
   getTenantDivisions,
   getEmployeeDivisionMap,
   getTaskGroupParticipants,
-  getWorkLogSummaryByAssigneeRole,
-  getObjectiveOrgTree,
+  getWorkLogSummaryByTask,
+  getCommentsAddressedToEmployee,
 } from '@/features/task-management/queries'
 import { TaskStatusDonutChart } from '@/features/task-management/components/TaskStatusDonutChart'
 import { WorkDistributionChart } from '@/features/task-management/components/WorkDistributionChart'
 import { ObjectiveTaskBoard } from '@/features/task-management/components/ObjectiveTaskBoard'
-import { OrgTreeSection } from '@/features/task-management/components/OrgTreeSection'
 import { isObjectiveOwner } from '@/features/task-management/permissions'
+import TenantBackLink from '@/components/common/TenantBackLink'
 
 export default async function ObjectiveDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -26,22 +26,32 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
   const divisions = await getTenantDivisions(supabase)
   const employeeDivisionById = await getEmployeeDivisionMap(supabase)
   const participants = await getTaskGroupParticipants(supabase, defaultTaskGroupId, employees)
-  const workLogSummary = await getWorkLogSummaryByAssigneeRole(supabase, defaultTaskGroupId)
-  const orgTree = await getObjectiveOrgTree(supabase, id, user?.employee_id ?? null)
+  const workLogSummary = await getWorkLogSummaryByTask(supabase, defaultTaskGroupId)
+  const addressedComments =
+    user?.employee_id != null
+      ? await getCommentsAddressedToEmployee(
+          supabase,
+          tasks.map(t => t.id),
+          user.employee_id
+        )
+      : []
   const isOwner = user?.employee_id
     ? isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
     : false
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-5 mx-auto max-w-[1200px]">
-      <div className="flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <Target className="h-5 w-5 text-[#FD7601]" strokeWidth={2} />
-          {objective.title}
-        </h1>
-        <p className="text-xs text-slate-500">
-          作成者: {employeeNameById[objective.ownerEmployeeId] ?? objective.ownerEmployeeId}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <Target className="h-5 w-5 text-[#FD7601]" strokeWidth={2} />
+            {objective.title}
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            作成者: {employeeNameById[objective.ownerEmployeeId] ?? objective.ownerEmployeeId}
+          </p>
+        </div>
+        <TenantBackLink />
       </div>
 
       <section className="rounded-lg border border-slate-200 p-3">
@@ -50,20 +60,15 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
       </section>
 
       <section className="rounded-lg border border-slate-200 p-3">
-        <h2 className="mb-2 text-xs font-semibold text-slate-900">責任者・メンバー別工数分布</h2>
+        <h2 className="mb-2 text-xs font-semibold text-slate-900">タスク別工数</h2>
         <WorkDistributionChart
           data={workLogSummary.map(s => ({
-            id: s.employeeId,
-            label: `${s.employeeName}（${s.role === 'responsible' ? '責任者' : 'メンバー'}）`,
+            id: s.taskId,
+            label: s.taskTitle,
             hours: s.totalHours,
           }))}
           emptyMessage="工数記録はまだありません。"
         />
-      </section>
-
-      <section className="rounded-lg border border-slate-200 p-3">
-        <h2 className="mb-2 text-xs font-semibold text-slate-900">組織ツリー</h2>
-        <OrgTreeSection data={orgTree} />
       </section>
 
       <ObjectiveTaskBoard
@@ -77,6 +82,7 @@ export default async function ObjectiveDetailPage({ params }: { params: Promise<
         currentEmployeeId={user?.employee_id ?? null}
         isObjectiveOwner={isOwner}
         participants={participants}
+        addressedComments={addressedComments}
       />
     </div>
   )

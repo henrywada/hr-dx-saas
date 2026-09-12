@@ -2,8 +2,13 @@ import Link from 'next/link'
 import { Target } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
-import { getMyObjectivesWithProgress, getTenantEmployees } from '@/features/task-management/queries'
+import {
+  getMyObjectivesWithProgress,
+  getObjectiveIdsWhereResponsible,
+  getTenantEmployees,
+} from '@/features/task-management/queries'
 import { ObjectiveCard } from '@/features/task-management/components/ObjectiveCard'
+import { isObjectiveOwner } from '@/features/task-management/permissions'
 import { APP_ROUTES } from '@/config/routes'
 
 export default async function TasksPage() {
@@ -12,6 +17,12 @@ export default async function TasksPage() {
   const objectivesWithProgress = await getMyObjectivesWithProgress(supabase)
   const employees = await getTenantEmployees(supabase)
   const employeeNameById = Object.fromEntries(employees.map(e => [e.id, e.name]))
+
+  const objectiveIds = objectivesWithProgress.map(({ objective }) => objective.id)
+  const responsibleObjectiveIds =
+    user?.employee_id != null
+      ? await getObjectiveIdsWhereResponsible(supabase, user.employee_id, objectiveIds)
+      : new Set<string>()
 
   return (
     <div className="space-y-4 w-full px-4 sm:px-6 py-5 mx-auto max-w-[1200px]">
@@ -33,14 +44,23 @@ export default async function TasksPage() {
         <p className="text-xs text-slate-500">関与している目標がまだありません。</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {objectivesWithProgress.map(({ objective, progress }) => (
-            <ObjectiveCard
-              key={objective.id}
-              objective={objective}
-              progress={progress}
-              employeeNameById={employeeNameById}
-            />
-          ))}
+          {objectivesWithProgress.map(({ objective, progress }) => {
+            const isOwner =
+              user?.employee_id != null &&
+              isObjectiveOwner(objective.ownerEmployeeId, user.employee_id)
+            const isResponsible = responsibleObjectiveIds.has(objective.id)
+            // 目標責任者 or タスク責任者のとき編集・削除ボタンを表示
+            const canManage = isOwner || isResponsible
+            return (
+              <ObjectiveCard
+                key={objective.id}
+                objective={objective}
+                progress={progress}
+                employeeNameById={employeeNameById}
+                canManage={canManage}
+              />
+            )
+          })}
         </div>
       )}
     </div>

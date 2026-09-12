@@ -13,6 +13,16 @@ export const dateStringSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, '日付はYYYY-MM-DD形式で指定する')
 
+/**
+ * PostgreSQL の uuid 型（8-4-4-4-12 の十六進）を受け入れる。
+ * Zod の `.uuid()` は RFC 版ビット（version/variant）を厳密に見るため、
+ * 開発用シードの `bb000001-0000-0000-0000-000000000001` のような合法な PG uuid を拒否する。
+ * DB 由来の ID はこのスキーマを使う。
+ */
+export const dbUuidSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'IDの形式が不正です')
+
 export const createObjectiveSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
@@ -20,8 +30,16 @@ export const createObjectiveSchema = z.object({
 })
 export type CreateObjectiveInput = z.infer<typeof createObjectiveSchema>
 
+export const updateObjectiveSchema = z.object({
+  objectiveId: dbUuidSchema,
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  dueDate: dateStringSchema.optional(),
+})
+export type UpdateObjectiveInput = z.infer<typeof updateObjectiveSchema>
+
 export const createMilestoneSchema = z.object({
-  objectiveId: z.string().uuid(),
+  objectiveId: dbUuidSchema,
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   dueDate: dateStringSchema.optional(),
@@ -29,7 +47,7 @@ export const createMilestoneSchema = z.object({
 export type CreateMilestoneInput = z.infer<typeof createMilestoneSchema>
 
 export const createTaskGroupSchema = z.object({
-  milestoneId: z.string().uuid(),
+  milestoneId: dbUuidSchema,
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   goalSummary: z.string().max(200).optional(),
@@ -37,7 +55,7 @@ export const createTaskGroupSchema = z.object({
 export type CreateTaskGroupInput = z.infer<typeof createTaskGroupSchema>
 
 export const updateTaskGroupSchema = z.object({
-  taskGroupId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   goalSummary: z.string().max(200).optional(),
@@ -45,28 +63,28 @@ export const updateTaskGroupSchema = z.object({
 export type UpdateTaskGroupInput = z.infer<typeof updateTaskGroupSchema>
 
 export const assignManagerSchema = z.object({
-  taskGroupId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
+  employeeId: dbUuidSchema,
 })
 export type AssignManagerInput = z.infer<typeof assignManagerSchema>
 
 export const assignMemberSchema = z.object({
-  taskGroupId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
+  employeeId: dbUuidSchema,
 })
 export type AssignMemberInput = z.infer<typeof assignMemberSchema>
 
 export const removeMemberSchema = z.object({
-  taskGroupId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
+  employeeId: dbUuidSchema,
 })
 export type RemoveMemberInput = z.infer<typeof removeMemberSchema>
 
 export const createTaskSchema = z.object({
-  taskGroupId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  assigneeEmployeeIds: z.array(z.string().uuid()).max(20).optional().default([]),
+  assigneeEmployeeIds: z.array(dbUuidSchema).max(20).optional().default([]),
   goalSummary: z.string().max(200).optional(),
   priority: z.enum(TASK_PRIORITIES).default('normal'),
   dueDate: dateStringSchema.optional(),
@@ -74,49 +92,54 @@ export const createTaskSchema = z.object({
 export type CreateTaskInput = z.infer<typeof createTaskSchema>
 
 export const createSimpleTaskSchema = z.object({
-  taskGroupId: z.string().uuid(),
+  taskGroupId: dbUuidSchema,
   title: z.string().min(1).max(200),
   goalSummary: z.string().max(200).optional(),
   dueDate: dateStringSchema.optional(),
-  responsibleEmployeeId: z.string().uuid(),
+  priority: z.enum(TASK_PRIORITIES).default('normal'),
+  responsibleEmployeeId: dbUuidSchema,
 })
 export type CreateSimpleTaskInput = z.infer<typeof createSimpleTaskSchema>
 
 export const updateTaskStatusSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: dbUuidSchema,
   status: z.enum(TASK_STATUSES),
 })
 export type UpdateTaskStatusInput = z.infer<typeof updateTaskStatusSchema>
 
 export const updateTaskProgressSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: dbUuidSchema,
   progressPercent: z.number().int().min(0).max(100),
 })
 export type UpdateTaskProgressInput = z.infer<typeof updateTaskProgressSchema>
 
 export const updateTaskBasicInfoSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: dbUuidSchema,
   title: z.string().min(1).max(200),
   goalSummary: z.string().max(200).optional(),
   dueDate: dateStringSchema.optional(),
+  priority: z.enum(TASK_PRIORITIES).optional(),
 })
 export type UpdateTaskBasicInfoInput = z.infer<typeof updateTaskBasicInfoSchema>
 
 export const addTaskAssigneeSchema = z.object({
-  taskId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  taskId: dbUuidSchema,
+  employeeId: dbUuidSchema,
   role: z.enum(ASSIGNEE_ROLES).default('member'),
 })
 export type AddTaskAssigneeInput = z.infer<typeof addTaskAssigneeSchema>
 
 export const removeTaskAssigneeSchema = z.object({
-  taskId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  taskId: dbUuidSchema,
+  employeeId: dbUuidSchema,
 })
 export type RemoveTaskAssigneeInput = z.infer<typeof removeTaskAssigneeSchema>
 
-export const deleteTaskSchema = z.object({ taskId: z.string().uuid() })
+export const deleteTaskSchema = z.object({ taskId: dbUuidSchema })
 export type DeleteTaskInput = z.infer<typeof deleteTaskSchema>
+
+export const deleteObjectiveSchema = z.object({ objectiveId: dbUuidSchema })
+export type DeleteObjectiveInput = z.infer<typeof deleteObjectiveSchema>
 
 export type TaskLifecycleStatus = 'active' | 'completed' | 'archived'
 
@@ -172,16 +195,16 @@ export interface Task {
   sortOrder: number
 }
 
-export const COMMENT_TYPES = ['report', 'advice', 'suggestion', 'general'] as const
+export const COMMENT_TYPES = ['report', 'advice', 'general', 'suggestion'] as const
 export type CommentType = (typeof COMMENT_TYPES)[number]
 
 export const createCommentSchema = z
   .object({
-    taskId: z.string().uuid().optional(),
-    taskGroupId: z.string().uuid().optional(),
-    parentCommentId: z.string().uuid().optional(),
+    taskId: dbUuidSchema.optional(),
+    taskGroupId: dbUuidSchema.optional(),
+    parentCommentId: dbUuidSchema.optional(),
     commentType: z.enum(COMMENT_TYPES),
-    targetEmployeeId: z.string().uuid().optional(),
+    targetEmployeeId: dbUuidSchema.optional(),
     body: z.string().min(1).max(2000),
   })
   .refine(data => (data.taskId ? 1 : 0) + (data.taskGroupId ? 1 : 0) === 1, {
@@ -189,30 +212,27 @@ export const createCommentSchema = z
   })
   .refine(
     data =>
-      !(['advice', 'suggestion', 'report'] as const).includes(
-        data.commentType as 'advice' | 'suggestion' | 'report'
+      !(['advice', 'suggestion', 'report', 'general'] as const).includes(
+        data.commentType as 'advice' | 'suggestion' | 'report' | 'general'
       ) || Boolean(data.targetEmployeeId),
-    { message: 'advice/suggestion/report には targetEmployeeId が必須' }
+    { message: 'advice/suggestion/report/general には targetEmployeeId が必須' }
   )
-  .refine(data => data.commentType !== 'general' || !data.targetEmployeeId, {
-    message: 'general には targetEmployeeId を指定できない',
-  })
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
 
 export const updateCommentSchema = z.object({
-  commentId: z.string().uuid(),
+  commentId: dbUuidSchema,
   body: z.string().min(1).max(2000),
 })
 export type UpdateCommentInput = z.infer<typeof updateCommentSchema>
 
 export const deleteCommentSchema = z.object({
-  commentId: z.string().uuid(),
+  commentId: dbUuidSchema,
 })
 export type DeleteCommentInput = z.infer<typeof deleteCommentSchema>
 
 export const getTaskCommentsTargetSchema = z.union([
-  z.object({ taskId: z.string().uuid() }),
-  z.object({ taskGroupId: z.string().uuid() }),
+  z.object({ taskId: dbUuidSchema }),
+  z.object({ taskGroupId: dbUuidSchema }),
 ])
 export type GetTaskCommentsTarget = z.infer<typeof getTaskCommentsTargetSchema>
 
@@ -236,7 +256,7 @@ export interface TaskComment {
 }
 
 export const createWorkLogSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: dbUuidSchema,
   workDate: dateStringSchema,
   hours: z.number().positive().max(24),
   note: z.string().max(1000).optional(),
@@ -244,7 +264,7 @@ export const createWorkLogSchema = z.object({
 export type CreateWorkLogInput = z.infer<typeof createWorkLogSchema>
 
 export const updateWorkLogSchema = z.object({
-  workLogId: z.string().uuid(),
+  workLogId: dbUuidSchema,
   workDate: dateStringSchema,
   hours: z.number().positive().max(24),
   note: z.string().max(1000).optional(),
@@ -252,12 +272,12 @@ export const updateWorkLogSchema = z.object({
 export type UpdateWorkLogInput = z.infer<typeof updateWorkLogSchema>
 
 export const deleteWorkLogSchema = z.object({
-  workLogId: z.string().uuid(),
+  workLogId: dbUuidSchema,
 })
 export type DeleteWorkLogInput = z.infer<typeof deleteWorkLogSchema>
 
 export const getTaskWorkLogsTargetSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: dbUuidSchema,
 })
 export type GetTaskWorkLogsTarget = z.infer<typeof getTaskWorkLogsTargetSchema>
 

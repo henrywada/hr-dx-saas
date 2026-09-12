@@ -13,8 +13,10 @@ import { calculateAverageProgress, groupProgressByParent } from './progress'
 import {
   aggregateHoursByEmployee,
   aggregateHoursByGroup,
+  aggregateHoursByTask,
   type EmployeeHoursSummary,
   type GroupHoursSummary,
+  type TaskHoursSummary,
 } from './work-log-summary'
 import {
   buildOrgTreeGraph,
@@ -577,6 +579,32 @@ export async function getTaskComments(
   return (data ?? []).map(mapComment)
 }
 
+/**
+ * 指定タスク群のうち、閲覧者宛てのコメント（target_employee_id 一致）を新しい順で取得する。
+ * 「あなたに投稿があります」ボタン／一覧用。comment_type は問わない（コメント・提案・助言・報告すべて）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getCommentsAddressedToEmployee(
+  supabase: SupabaseClient<Database>,
+  taskIds: string[],
+  currentEmployeeId: string
+): Promise<TaskComment[]> {
+  if (taskIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select(
+      '*, employee:employees!task_comments_employee_id_fkey(name), target:employees!task_comments_target_employee_id_fkey(name)'
+    )
+    .in('task_id', taskIds)
+    .eq('target_employee_id', currentEmployeeId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? []).map(mapComment)
+}
+
 /** DB行（snake_case、employees とのJOIN込み）を TaskWorkLog（camelCase）に変換する */
 function mapWorkLog(
   row: Database['public']['Tables']['task_work_logs']['Row'] & {
@@ -769,6 +797,59 @@ export async function getWorkLogSummaryByAssigneeRole(
   }))
 }
 
+/**
+ * タスクグループ配下の全タスクについて、工数合計を返す（タスク別工数グラフ用）。
+ * 工数記録が無いタスクも totalHours: 0 として含め、Y軸ラベルに表示する。
+ * 並びは工数降順（同値は sort_order 昇順）。
+ * RLS の SELECT ポリシーが可視範囲を絞り込むため、ここでは追加のテナント・権限フィルタは行わない。
+ */
+export async function getWorkLogSummaryByTask(
+  supabase: SupabaseClient<Database>,
+  taskGroupId: string
+): Promise<TaskHoursSummary[]> {
+  const { data: taskRows, error: taskError } = await supabase
+    .from('tasks')
+    .select('id, title, sort_order')
+    .eq('task_group_id', taskGroupId)
+    .order('sort_order', { ascending: true })
+
+  if (taskError) throw taskError
+  if ((taskRows ?? []).length === 0) return []
+
+  const { data: logRows, error: logError } = await supabase
+    .from('task_work_logs')
+    .select('hours, task:task_id!inner(id, task_group_id)')
+    .eq('task.task_group_id', taskGroupId)
+
+  if (logError) throw logError
+
+  const hoursByTaskId = new Map(
+    aggregateHoursByTask(
+      (logRows ?? []).map(row => {
+        const task = row.task as { id: string; task_group_id: string }
+        return {
+          taskId: task.id,
+          taskTitle: '',
+          hours: Number(row.hours),
+        }
+      })
+    ).map(s => [s.taskId, s.totalHours])
+  )
+
+  return [...taskRows!]
+    .map(t => ({
+      taskId: t.id,
+      taskTitle: t.title,
+      totalHours: hoursByTaskId.get(t.id) ?? 0,
+      sortOrder: t.sort_order,
+    }))
+    .sort((a, b) => {
+      if (b.totalHours !== a.totalHours) return b.totalHours - a.totalHours
+      return a.sortOrder - b.sortOrder
+    })
+    .map(({ taskId, taskTitle, totalHours }) => ({ taskId, taskTitle, totalHours }))
+}
+
 export interface ObjectiveWithProgress {
   objective: TaskObjective
   progress: number
@@ -838,6 +919,48 @@ export async function getMyObjectivesWithProgress(
     objective,
     progress: progressByObjectiveId[objective.id],
   }))
+}
+
+/**
+ * 指定従業員がタスク責任者（task_assignees.role = 'responsible'）である目標IDの集合を返す。
+ * 目標一覧カードの削除ボタン表示判定（目標作成者 or タスク責任者）に使う。
+ */
+export async function getObjectiveIdsWhereResponsible(
+  supabase: SupabaseClient<Database>,
+  employeeId: string,
+  objectiveIds: string[]
+): Promise<Set<string>> {
+  if (objectiveIds.length === 0) return new Set()
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id, objective_id')
+    .in('objective_id', objectiveIds)
+
+  if (milestoneError) throw milestoneError
+  if (!milestoneRows || milestoneRows.length === 0) return new Set()
+
+  const objectiveIdByMilestoneId = new Map(milestoneRows.map(m => [m.id, m.objective_id]))
+  const milestoneIds = milestoneRows.map(m => m.id)
+
+  const { data: taskRows, error: taskError } = await supabase
+    .from('tasks')
+    .select(
+      'id, task_group:task_group_id!inner(milestone_id), task_assignees!inner(employee_id, role)'
+    )
+    .in('task_group.milestone_id', milestoneIds)
+    .eq('task_assignees.employee_id', employeeId)
+    .eq('task_assignees.role', 'responsible')
+
+  if (taskError) throw taskError
+
+  const result = new Set<string>()
+  for (const row of taskRows ?? []) {
+    const milestoneId = (row.task_group as { milestone_id: string }).milestone_id
+    const objectiveId = objectiveIdByMilestoneId.get(milestoneId)
+    if (objectiveId) result.add(objectiveId)
+  }
+  return result
 }
 
 interface OrgTreeGroupPersonRow {

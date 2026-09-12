@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { aggregateHoursByEmployee, aggregateHoursByGroup } from './work-log-summary'
+import {
+  aggregateHoursByEmployee,
+  aggregateHoursByGroup,
+  aggregateHoursByTask,
+} from './work-log-summary'
 
 test('メンバー別に工数を合計する', () => {
   const rows = [
@@ -38,5 +42,17 @@ test('タスクグループ別に工数を合計する', () => {
   assert.deepEqual(aggregateHoursByGroup(rows), [
     { taskGroupId: 'g1', taskGroupName: 'グループA', totalHours: 5 },
     { taskGroupId: 'g2', taskGroupName: 'グループB', totalHours: 2 },
+  ])
+})
+
+test('タスク別に工数を合計する', () => {
+  const rows = [
+    { taskId: 't1', taskTitle: 'タスクA', hours: 3 },
+    { taskId: 't2', taskTitle: 'タスクB', hours: 2 },
+    { taskId: 't1', taskTitle: 'タスクA', hours: 4 },
+  ]
+  assert.deepEqual(aggregateHoursByTask(rows), [
+    { taskId: 't1', taskTitle: 'タスクA', totalHours: 7 },
+    { taskId: 't2', taskTitle: 'タスクB', totalHours: 2 },
   ])
 })

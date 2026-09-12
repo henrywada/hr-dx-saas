@@ -238,7 +238,7 @@ function WorkLogForm({ taskId, onPosted }: WorkLogFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form onSubmit={handleSubmit} className="mt-2 space-y-2 border-t border-slate-200 pt-3">
       <div className="flex gap-2">
         <input
           type="date"

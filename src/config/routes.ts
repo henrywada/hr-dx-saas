@@ -282,6 +282,8 @@ export const APP_ROUTES = {
     root: '/tasks',
     /** 新規目標作成 */
     objectiveNew: '/tasks/objectives/new',
+    /** 目標の編集（作成直後と同じワークスペース: 目標確認 + タスク管理） */
+    objectiveEdit: (id: string) => `/tasks/objectives/${id}/edit`,
     /** 目標詳細 */
     objectiveDetail: (id: string) => `/tasks/objectives/${id}`,
     /** タスクグループ詳細 */

@@ -12,8 +12,10 @@ interface TableRow {
   latestOvertimeStatus: OvertimeStatus
   latestLoggedHours: number
   latestGapRatio: number | null
+  hasAnyLog: boolean
   flags: EmployeeCrossAnalysisFlags
   isAttentionNeeded: boolean
+  reasons: string[]
 }
 
 function toTableRow(result: EmployeeCrossAnalysisResult): TableRow {
@@ -26,8 +28,10 @@ function toTableRow(result: EmployeeCrossAnalysisResult): TableRow {
     latestOvertimeStatus: latest?.overtimeStatus ?? 'safe',
     latestLoggedHours: latest?.loggedHours ?? 0,
     latestGapRatio: latest?.gapRatio ?? null,
+    hasAnyLog: latest?.hasAnyLog ?? false,
     flags: result.flags,
     isAttentionNeeded: result.isAttentionNeeded,
+    reasons: result.reasons,
   }
 }
 
@@ -56,9 +60,34 @@ function FlagBadges({ flags }: { flags: EmployeeCrossAnalysisFlags }) {
   )
 }
 
+function AttentionBadge({ isAttentionNeeded }: { isAttentionNeeded: boolean }) {
+  if (!isAttentionNeeded) return <span className="text-xs text-slate-400">-</span>
+  return (
+    <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
+      要注意
+    </span>
+  )
+}
+
+function ReasonList({ reasons }: { reasons: string[] }) {
+  if (reasons.length === 0) return <span className="text-xs text-slate-400">-</span>
+  return (
+    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-600">
+      {reasons.map((reason, i) => (
+        <li key={i}>{reason}</li>
+      ))}
+    </ul>
+  )
+}
+
 const columns: Column<TableRow>[] = [
   { key: 'employeeName', label: '氏名', sortable: true },
   { key: 'divisionName', label: '部門', sortable: true },
+  {
+    key: 'isAttentionNeeded',
+    label: '要注意',
+    render: (value: boolean) => <AttentionBadge isAttentionNeeded={value} />,
+  },
   {
     key: 'latestOvertimeStatus',
     label: '直近月残業',
@@ -78,13 +107,18 @@ const columns: Column<TableRow>[] = [
   {
     key: 'latestGapRatio',
     label: '乖離率',
-    render: (value: number | null) =>
-      value === null ? 'データ不足' : `${Math.round(value * 100)}%`,
+    render: (value: number | null, item: TableRow) =>
+      value === null ? (item.hasAnyLog ? '—' : 'データ不足') : `${Math.round(value * 100)}%`,
   },
   {
     key: 'flags',
     label: '該当フラグ',
     render: (value: EmployeeCrossAnalysisFlags) => <FlagBadges flags={value} />,
+  },
+  {
+    key: 'reasons',
+    label: '理由',
+    render: (value: string[]) => <ReasonList reasons={value} />,
   },
 ]
 

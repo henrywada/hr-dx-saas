@@ -742,3 +742,5 @@ UIコンポーネントは`src/features/task-management/components/admin/`に新
 | 10  | ページ本体（page.tsx / loading.tsx / error.tsx）        | `src/app/(tenant)/(tenant-admin)/adm/(task_health)/task-health/{page,loading,error}.tsx`                | 完了 |
 | 11  | マスタ登録マイグレーション                              | `supabase/migrations/20260912162500_task_health_dashboard_menu.sql`                                     | 完了 |
 | 12  | 統合確認・レビュー                                      | `npm run test`（640/641 PASS、既知の無関係な1件のみ失敗）・`type-check`/`lint`エラー0件・実DBクエリ確認 | 完了 |
+
+なお、ライブブラウザによるE2E検証は実行環境（サンドボックス）で動作するChromeが利用できなかったため実施していない。21.6の代替方針に従い、型チェック・Lint・ユニットテスト・ローカルSupabaseへの実クエリ確認による静的検証で代替した。

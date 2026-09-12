@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useTransition } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ProgressOverviewCard } from './ProgressOverviewCard'
 import { StalledTaskListCard } from './StalledTaskListCard'
 import { WorkloadDistributionCard } from './WorkloadDistributionCard'
@@ -32,7 +33,9 @@ export function TaskHealthDashboard({
   selectedDivisionId,
 }: TaskHealthDashboardProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
 
   function handleDivisionChange(value: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -41,7 +44,10 @@ export function TaskHealthDashboard({
     } else {
       params.set('division', value)
     }
-    router.push(`?${params.toString()}`)
+    // クエリが空になった場合は末尾の裸の「?」が残らないようパスのみに遷移する
+    const queryString = params.toString()
+    const href = queryString ? `${pathname}?${queryString}` : pathname
+    startTransition(() => router.push(href))
   }
 
   return (
@@ -53,7 +59,8 @@ export function TaskHealthDashboard({
           <select
             value={selectedDivisionId ?? ''}
             onChange={e => handleDivisionChange(e.target.value)}
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+            disabled={isPending}
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs disabled:opacity-60"
           >
             <option value="">全社</option>
             <option value="unassigned">未配属</option>
@@ -63,6 +70,7 @@ export function TaskHealthDashboard({
               </option>
             ))}
           </select>
+          {isPending && <span className="text-xs text-slate-400">更新中...</span>}
         </label>
       </div>
 

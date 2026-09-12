@@ -21,7 +21,9 @@ interface TaskHealthPageProps {
 export default async function TaskHealthPage({ searchParams }: TaskHealthPageProps) {
   const user = await getServerUser()
   if (!user?.tenant_id) redirect(APP_ROUTES.AUTH.LOGIN)
-  if (!isTenantAdmin(user.appRole)) redirect(APP_ROUTES.TENANT.ADMIN)
+  // 管理者以外は共通レイアウト（(tenant-admin)/layout.tsx）と同じ /top へ戻す。
+  // 管理者専用ルート（/adm）へ飛ばすと、そこで再度リダイレクトされ二重遷移になる。
+  if (!isTenantAdmin(user.appRole)) redirect(APP_ROUTES.TENANT.PORTAL)
 
   const { division } = await searchParams
   const divisionId = division && division.length > 0 ? division : undefined

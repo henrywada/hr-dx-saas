@@ -11,6 +11,15 @@ import type {
 import type { EmployeeOption } from './employee-filter'
 import { calculateAverageProgress, groupProgressByParent } from './progress'
 import {
+  classifyStalledReasons,
+  summarizeStatusCounts,
+  aggregateWorkloadByEmployee,
+  type StalledReason,
+  type StatusCounts,
+} from './task-health'
+import { toJSTDateString } from '@/lib/datetime'
+import type { TaskStatus } from './types'
+import {
   aggregateHoursByEmployee,
   aggregateHoursByGroup,
   aggregateHoursByTask,
@@ -1183,4 +1192,289 @@ export async function getObjectiveOrgTree(
     nodes: layoutOrgTree(nodesWithUnread, edges, ORG_TREE_ROOT_ID),
     edges,
   }
+}
+
+/**
+ * 部門フィルタに該当するタスクIDの集合を解決する。
+ * - divisionIdが未指定なら絞り込みなし（null を返す）
+ * - 'unassigned' は部署未配属（division_id が null）の担当者を意味する
+ * - 該当タスクが1件も無ければ空配列を返す（呼び出し側はその場で空の結果を返してよい）
+ *
+ * 絞り込みは「タスクの担当者（task_assignees.employee_id）の所属部署」基準
+ * （タスク自体はどの部署にも属さないため。PRDセクション21.1）。
+ */
+async function resolveFilteredTaskIds(
+  supabase: SupabaseClient<Database>,
+  divisionId: string | undefined
+): Promise<string[] | null> {
+  if (!divisionId) return null
+
+  const { data: employees, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, division_id')
+
+  if (employeeError) throw employeeError
+
+  const targetEmployeeIds = (employees ?? [])
+    .filter(e =>
+      divisionId === 'unassigned' ? e.division_id === null : e.division_id === divisionId
+    )
+    .map(e => e.id)
+
+  if (targetEmployeeIds.length === 0) return []
+
+  const assigneeRows = await fetchAllRows(async (from, to) => {
+    const result = await supabase
+      .from('task_assignees')
+      .select('task_id')
+      .in('employee_id', targetEmployeeIds)
+      .order('id', { ascending: true })
+      .range(from, to)
+    return { data: result.data, error: result.error }
+  })
+
+  return Array.from(new Set(assigneeRows.map(r => r.task_id)))
+}
+
+export interface TaskHealthOverview {
+  statusCounts: StatusCounts
+  averageProgress: number
+  totalCount: number
+}
+
+/** テナント全体（部門絞り込み可）のタスクステータス別件数・平均進捗率を取得する */
+export async function getTaskHealthOverview(
+  supabase: SupabaseClient<Database>,
+  options: { divisionId?: string } = {}
+): Promise<TaskHealthOverview> {
+  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
+  if (taskIds !== null && taskIds.length === 0) {
+    return { statusCounts: summarizeStatusCounts([]), averageProgress: 0, totalCount: 0 }
+  }
+
+  const rows = await fetchAllRows(async (from, to) => {
+    let query = supabase
+      .from('tasks')
+      .select('status, progress_percent')
+      .order('id', { ascending: true })
+      .range(from, to)
+    if (taskIds !== null) query = query.in('id', taskIds)
+    const result = await query
+    return { data: result.data, error: result.error }
+  })
+
+  return {
+    statusCounts: summarizeStatusCounts(rows.map(r => ({ status: r.status as TaskStatus }))),
+    averageProgress: calculateAverageProgress(rows.map(r => r.progress_percent)),
+    totalCount: rows.length,
+  }
+}
+
+export interface StalledTaskRow {
+  id: string
+  title: string
+  status: TaskStatus
+  dueDate: string | null
+  updatedAt: string
+  responsibleName: string | null
+  reasons: StalledReason[]
+}
+
+interface StalledTaskQueryRow {
+  id: string
+  title: string
+  status: string
+  due_date: string | null
+  updated_at: string
+  task_assignees: { role: string; employee: { name: string | null } | null }[] | null
+}
+
+/** テナント全体（部門絞り込み可）の滞留タスク一覧を取得する（該当理由付き、非該当は除外） */
+export async function getStalledTasks(
+  supabase: SupabaseClient<Database>,
+  options: { divisionId?: string } = {}
+): Promise<StalledTaskRow[]> {
+  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
+  if (taskIds !== null && taskIds.length === 0) return []
+
+  const rows = await fetchAllRows(async (from, to) => {
+    let query = supabase
+      .from('tasks')
+      .select(
+        'id, title, status, due_date, updated_at, task_assignees(role, employee:employee_id(name))'
+      )
+      .order('id', { ascending: true })
+      .range(from, to)
+    if (taskIds !== null) query = query.in('id', taskIds)
+    const result = await query
+    return { data: result.data as unknown as StalledTaskQueryRow[] | null, error: result.error }
+  })
+
+  const todayYmd = toJSTDateString()
+
+  return rows
+    .map((row): StalledTaskRow | null => {
+      const reasons = classifyStalledReasons(
+        { status: row.status as TaskStatus, dueDate: row.due_date, updatedAt: row.updated_at },
+        todayYmd
+      )
+      if (reasons.length === 0) return null
+
+      const responsible = (row.task_assignees ?? []).find(a => a.role === 'responsible')
+
+      return {
+        id: row.id,
+        title: row.title,
+        status: row.status as TaskStatus,
+        dueDate: row.due_date,
+        updatedAt: row.updated_at,
+        responsibleName: responsible?.employee?.name ?? null,
+        reasons,
+      }
+    })
+    .filter((r): r is StalledTaskRow => r !== null)
+}
+
+export interface WorkloadRow {
+  employeeId: string
+  employeeName: string
+  totalCount: number
+  inProgressCount: number
+}
+
+interface WorkloadQueryRow {
+  employee_id: string
+  employee: { name: string | null } | null
+  task: { status: string } | null
+}
+
+/** テナント全体（部門絞り込み可）の担当者別タスク件数・進行中件数を取得する */
+export async function getWorkloadDistribution(
+  supabase: SupabaseClient<Database>,
+  options: { divisionId?: string } = {}
+): Promise<WorkloadRow[]> {
+  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
+  if (taskIds !== null && taskIds.length === 0) return []
+
+  const rows = await fetchAllRows(async (from, to) => {
+    let query = supabase
+      .from('task_assignees')
+      .select('employee_id, employee:employee_id(name), task:task_id!inner(status)')
+      .order('id', { ascending: true })
+      .range(from, to)
+    if (taskIds !== null) query = query.in('task_id', taskIds)
+    const result = await query
+    return { data: result.data as unknown as WorkloadQueryRow[] | null, error: result.error }
+  })
+
+  const nameById = new Map(rows.map(r => [r.employee_id, r.employee?.name ?? '（名前未設定）']))
+
+  const aggregated = aggregateWorkloadByEmployee(
+    rows
+      .filter((r): r is WorkloadQueryRow & { task: { status: string } } => r.task !== null)
+      .map(r => ({ employeeId: r.employee_id, status: r.task.status as TaskStatus }))
+  )
+
+  return aggregated
+    .map(a => ({ ...a, employeeName: nameById.get(a.employeeId) ?? a.employeeId }))
+    .sort((a, b) => b.totalCount - a.totalCount)
+}
+
+export interface ObjectiveAchievementRow {
+  objectiveId: string
+  objectiveTitle: string
+  responsibleName: string
+  averageProgress: number
+  delayedTaskCount: number
+}
+
+interface ObjectiveTaskQueryRow {
+  progress_percent: number
+  due_date: string | null
+  status: string
+  task_group: { milestone_id: string } | null
+}
+
+/** テナント全体（部門絞り込み可）の目標別の配下タスク平均進捗率・遅延タスク件数を取得する */
+export async function getObjectiveAchievementStatus(
+  supabase: SupabaseClient<Database>,
+  options: { divisionId?: string } = {}
+): Promise<ObjectiveAchievementRow[]> {
+  const taskIds = await resolveFilteredTaskIds(supabase, options.divisionId)
+  if (taskIds !== null && taskIds.length === 0) return []
+
+  const { data: milestoneRows, error: milestoneError } = await supabase
+    .from('task_milestones')
+    .select('id, objective_id')
+
+  if (milestoneError) throw milestoneError
+
+  const objectiveIdByMilestoneId = new Map((milestoneRows ?? []).map(m => [m.id, m.objective_id]))
+
+  const taskRows = await fetchAllRows(async (from, to) => {
+    let query = supabase
+      .from('tasks')
+      .select('progress_percent, due_date, status, task_group:task_group_id!inner(milestone_id)')
+      .order('id', { ascending: true })
+      .range(from, to)
+    if (taskIds !== null) query = query.in('id', taskIds)
+    const result = await query
+    return { data: result.data as unknown as ObjectiveTaskQueryRow[] | null, error: result.error }
+  })
+
+  const todayYmd = toJSTDateString()
+  const progressRows: { value: number; parentId: string }[] = []
+  const delayedCountByObjectiveId = new Map<string, number>()
+
+  for (const row of taskRows) {
+    const milestoneId = row.task_group?.milestone_id
+    const objectiveId = milestoneId ? objectiveIdByMilestoneId.get(milestoneId) : undefined
+    if (!objectiveId) continue
+
+    progressRows.push({ value: row.progress_percent, parentId: objectiveId })
+
+    const reasons = classifyStalledReasons(
+      { status: row.status as TaskStatus, dueDate: row.due_date, updatedAt: todayYmd },
+      todayYmd
+    )
+    if (reasons.includes('overdue')) {
+      delayedCountByObjectiveId.set(
+        objectiveId,
+        (delayedCountByObjectiveId.get(objectiveId) ?? 0) + 1
+      )
+    }
+  }
+
+  const objectiveIds = Array.from(new Set(progressRows.map(r => r.parentId)))
+  if (objectiveIds.length === 0) return []
+
+  const averageProgressByObjectiveId = groupProgressByParent(progressRows, objectiveIds)
+
+  const { data: objectiveRows, error: objectiveError } = await supabase
+    .from('task_objectives')
+    .select('id, title, owner_employee_id, employee:owner_employee_id(name)')
+    .in('id', objectiveIds)
+
+  if (objectiveError) throw objectiveError
+
+  const metaById = new Map(
+    (objectiveRows ?? []).map(o => [
+      o.id,
+      {
+        title: o.title,
+        responsibleName: (o.employee as { name: string | null } | null)?.name ?? '（名前未設定）',
+      },
+    ])
+  )
+
+  return objectiveIds.map(objectiveId => {
+    const meta = metaById.get(objectiveId)
+    return {
+      objectiveId,
+      objectiveTitle: meta?.title ?? '（不明な目標）',
+      responsibleName: meta?.responsibleName ?? '（不明）',
+      averageProgress: averageProgressByObjectiveId[objectiveId] ?? 0,
+      delayedTaskCount: delayedCountByObjectiveId.get(objectiveId) ?? 0,
+    }
+  })
 }

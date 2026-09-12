@@ -1,7 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { updateTaskStatus } from '../actions'
+import { canOperateTask, resolveDropStatus } from '../kanban'
 import { TASK_STATUSES, type Task } from '../types'
+import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { TaskDetailModal } from './TaskDetailModal'
 import type { EmployeeOption } from '../employee-filter'
@@ -47,32 +59,56 @@ export function KanbanBoard({
   assignableEmployees,
   adviceTargets,
 }: KanbanBoardProps) {
+  const router = useRouter()
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [dragError, setDragError] = useState<string | null>(null)
   const openTask = openTaskId ? (tasks.find(t => t.id === openTaskId) ?? null) : null
   const canOperateOpenTask = openTask
-    ? canOperateAllTasks ||
-      (myEmployeeId !== null && openTask.assigneeEmployeeIds.includes(myEmployeeId))
+    ? canOperateTask(openTask, myEmployeeId, canOperateAllTasks)
     : false
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id)
+    const newStatus = resolveDropStatus(event.over?.id)
+    const task = tasks.find(t => t.id === activeId)
+    if (!task || !newStatus || task.status === newStatus) return
+
+    setDragError(null)
+    startTransition(async () => {
+      try {
+        await updateTaskStatus({ taskId: activeId, status: newStatus })
+        router.refresh()
+      } catch (err) {
+        setDragError(err instanceof Error ? err.message : 'ステータスの更新に失敗しました')
+      }
+    })
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-      {TASK_STATUSES.map(status => (
-        <div key={status} className="space-y-2">
-          <h3 className="text-xs font-semibold text-slate-700">{STATUS_LABEL[status]}</h3>
-          <div className="space-y-2">
-            {tasks
-              .filter(task => task.status === status)
-              .map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  employeeNameById={employeeNameById}
-                  onOpen={() => setOpenTaskId(task.id)}
-                />
-              ))}
-          </div>
+    <div className="space-y-2">
+      {dragError && <p className="text-xs text-red-600">{dragError}</p>}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          {TASK_STATUSES.map(status => (
+            <KanbanColumn key={status} status={status} label={STATUS_LABEL[status]}>
+              {tasks
+                .filter(task => task.status === status)
+                .map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    employeeNameById={employeeNameById}
+                    onOpen={() => setOpenTaskId(task.id)}
+                    canDrag={!isPending && canOperateTask(task, myEmployeeId, canOperateAllTasks)}
+                  />
+                ))}
+            </KanbanColumn>
+          ))}
         </div>
-      ))}
+      </DndContext>
       {openTask && (
         <TaskDetailModal
           task={openTask}

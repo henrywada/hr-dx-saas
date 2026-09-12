@@ -1,5 +1,7 @@
 'use client'
 
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { ListTodo } from 'lucide-react'
 import type { Task } from '../types'
 
@@ -19,20 +21,34 @@ interface TaskCardProps {
    * タスクが別のステータス列（別の親要素）に移動した際に TaskCard がアンマウント/再マウント
    * され、開いていたモーダルが理由不明に閉じてしまう不具合があった） */
   onOpen: () => void
+  /** ドラッグでのステータス変更を許可するか（責任者/マネージャー、または自分が担当者の場合のみ true） */
+  canDrag: boolean
 }
 
 /**
- * カンバン上のタスクカード。クリックすると TaskDetailModal を開く読み取り専用表示。
+ * カンバン上のタスクカード。クリックすると TaskDetailModal を開く。
  * ステータス・進捗率の編集操作、コメントはすべてモーダル内に集約する。
+ * ステータス変更はモーダル内のプルダウンに加え、カード自体のドラッグ&ドロップでも行える
+ * （`useDraggable` の activationConstraint により、クリックとドラッグ開始は区別される）。
  */
-export function TaskCard({ task, employeeNameById, onOpen }: TaskCardProps) {
+export function TaskCard({ task, employeeNameById, onOpen, canDrag }: TaskCardProps) {
   const assigneeNames = task.assigneeEmployeeIds.map(id => employeeNameById[id] ?? id)
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+    disabled: !canDrag,
+  })
 
   return (
     <button
+      ref={setNodeRef}
       type="button"
       onClick={onOpen}
-      className="w-full rounded-lg border border-slate-200 bg-white text-left shadow-xs hover:bg-[#f6f8fa]"
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={`w-full rounded-lg border border-slate-200 bg-white text-left shadow-xs hover:bg-[#f6f8fa] ${
+        isDragging ? 'opacity-40' : ''
+      } ${canDrag ? 'touch-none' : ''}`}
+      {...listeners}
+      {...attributes}
     >
       <p className="flex items-center gap-1.5 truncate border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-900">
         <ListTodo className="h-3.5 w-3.5 shrink-0 text-[#FD7601]" strokeWidth={2} />

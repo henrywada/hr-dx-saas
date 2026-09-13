@@ -81,3 +81,16 @@ test('rich_text の plain_text を連結する', () => {
     'あい'
   )
 })
+
+test('要約・ページの本文（詳細）プロパティから summary と body を取る', () => {
+  const item = mapNotionPage({
+    id: 'p6',
+    properties: {
+      名前: titleProp('助成金B'),
+      要約: textProp('概要テキスト'),
+      'ページの本文（詳細）': textProp('本文1<br/>本文2<p>段落</p>'),
+    },
+  })
+  assert.equal(item.summary, '概要テキスト')
+  assert.equal(item.body, '本文1\n本文2段落')
+})

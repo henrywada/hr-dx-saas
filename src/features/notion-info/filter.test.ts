@@ -31,6 +31,15 @@ test('募集期限が今日より前なら除外し、当日・未来・未設�
   assert.deepEqual(kept, ['today', 'future', 'none'])
 })
 
+test('募集期限が空文字列なら未設定として残す', () => {
+  const rows = [
+    item({ id: 'empty', deadline: '' }),
+    item({ id: 'past', deadline: '2026-09-12' }),
+  ]
+  const kept = filterExpiredGrants(rows, '2026-09-13').map(r => r.id)
+  assert.deepEqual(kept, ['empty'])
+})
+
 test('収集日時の降順。null は末尾', () => {
   const rows = [
     item({ id: 'b', collectedAt: '2026-08-02T00:00:00.000Z' }),

@@ -87,8 +87,8 @@ function resolveCategory(prop: unknown): string | null {
 export function mapNotionPage(page: NotionQueryPage): NotionInfoItem {
   const { id, properties } = page
 
-  const summaryRaw = readText(properties['概要'] ?? properties['サマリー'])
-  const bodyRaw = readText(properties['本文'] ?? properties['内容'])
+  const summaryRaw = readText(properties['要約'])
+  const bodyRaw = readText(properties['ページの本文（詳細）'])
 
   return {
     id,

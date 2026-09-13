@@ -2,14 +2,17 @@ import type { NotionInfoItem } from './types'
 
 /**
  * 募集期限が今日より前の助成金を除外する。
- * deadline が空、または deadline >= todayYmd の行を残す（YYYY-MM-DD 文字列比較）。
+ * deadline が null・空文字、または deadline >= todayYmd の行を残す（YYYY-MM-DD 文字列比較）。
  */
 export function filterExpiredGrants(
   items: NotionInfoItem[],
   todayYmd: string
 ): NotionInfoItem[] {
   return items.filter(
-    item => item.deadline == null || item.deadline >= todayYmd
+    item =>
+      item.deadline == null ||
+      item.deadline === '' ||
+      item.deadline >= todayYmd
   )
 }
 

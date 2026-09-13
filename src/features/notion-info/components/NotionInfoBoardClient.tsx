@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import TenantBackLink from '@/components/common/TenantBackLink'
@@ -41,6 +41,11 @@ export function NotionInfoBoardClient({
   const searchParams = useSearchParams()
   const tab = parseTab(searchParams.get('tab') ?? initialTab)
   const [active, setActive] = useState<NotionInfoItem | null>(null)
+
+  // タブ切替（ラジオ・戻る/進む）で前タブの本文モーダルが残らないようにする
+  useEffect(() => {
+    setActive(null)
+  }, [tab])
 
   const handleTabChange = (next: NotionInfoTab) => {
     router.replace(`${APP_ROUTES.TENANT.ADMIN_NOTION_INFO}?tab=${next}`, { scroll: false })

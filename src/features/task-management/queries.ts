@@ -37,6 +37,13 @@ import {
   type OrgTree,
 } from './org-tree'
 import { collectDivisionAndDescendantIds } from './division-tree'
+import {
+  computeStaleAdviceItems,
+  toAdviceDedupeKey,
+  type AdviceCommentInput,
+  type ReadStateInput,
+  type StaleAdviceItem,
+} from './advice-retention'
 
 /** PostgREST（ローカル・本番とも）のデフォルト1リクエストあたり最大行数。`supabase/config.toml` の `max_rows` と一致させる */
 const POSTGREST_MAX_ROWS = 1000
@@ -1528,4 +1535,97 @@ export async function getObjectiveAchievementStatus(
       delayedTaskCount: delayedCountByObjectiveId.get(objectiveId) ?? 0,
     }
   })
+}
+
+/**
+ * comment_type='advice' の未読コメントを取得し、放置判定ロジックに渡す共通ヘルパー。
+ * senderEmployeeId を指定すると、その従業員が送信したadviceのみに絞り込む
+ * （送信者本人向け表示・フィード通知用）。省略時はテナント全体が対象
+ * （テナント管理者ダッシュボード用、RLSにより自テナント分のみ返る）。
+ */
+async function fetchStaleAdviceItems(
+  supabase: SupabaseClient<Database>,
+  thresholdDays: number,
+  options: { senderEmployeeId?: string } = {}
+): Promise<StaleAdviceItem[]> {
+  let query = supabase
+    .from('task_comments')
+    .select('id, task_id, task_group_id, employee_id, target_employee_id, created_at')
+    .eq('comment_type', 'advice')
+
+  if (options.senderEmployeeId) {
+    query = query.eq('employee_id', options.senderEmployeeId)
+  }
+
+  const { data: adviceRows, error: adviceError } = await query
+  if (adviceError) throw adviceError
+  if (!adviceRows || adviceRows.length === 0) return []
+
+  const dedupeKeys = adviceRows.map(row => toAdviceDedupeKey(row.id))
+
+  const { data: readRows, error: readError } = await supabase
+    .from('dashboard_feed_read_state')
+    .select('dedupe_key')
+    .in('dedupe_key', dedupeKeys)
+
+  if (readError) throw readError
+
+  const comments: AdviceCommentInput[] = adviceRows
+    .filter(
+      (row): row is typeof row & { task_group_id: string; target_employee_id: string } =>
+        row.task_group_id !== null && row.target_employee_id !== null
+    )
+    .map(row => ({
+      commentId: row.id,
+      taskGroupId: row.task_group_id,
+      taskId: row.task_id,
+      senderEmployeeId: row.employee_id,
+      targetEmployeeId: row.target_employee_id,
+      createdAt: row.created_at,
+    }))
+
+  const readStates: ReadStateInput[] = (readRows ?? []).map(row => ({
+    dedupeKey: row.dedupe_key,
+  }))
+
+  return computeStaleAdviceItems(comments, readStates, thresholdDays, new Date())
+}
+
+/** テナント全体の未読advice一覧を取得する（テナント管理者ダッシュボード用） */
+export async function getStaleAdviceForTenant(
+  supabase: SupabaseClient<Database>,
+  thresholdDays: number
+): Promise<StaleAdviceItem[]> {
+  return fetchStaleAdviceItems(supabase, thresholdDays)
+}
+
+/** 指定した従業員が送信したadviceのうち未読のものを取得する（送信者本人向け表示・フィード通知用） */
+export async function getStaleAdviceSentByEmployee(
+  supabase: SupabaseClient<Database>,
+  senderEmployeeId: string,
+  thresholdDays: number
+): Promise<StaleAdviceItem[]> {
+  return fetchStaleAdviceItems(supabase, thresholdDays, { senderEmployeeId })
+}
+
+export interface TaskGroupNameRow {
+  id: string
+  name: string
+}
+
+/** 指定したタスクグループID群の名前を解決する（管理者ダッシュボードの表示名用） */
+export async function getTaskGroupNamesByIds(
+  supabase: SupabaseClient<Database>,
+  taskGroupIds: string[]
+): Promise<Record<string, string>> {
+  if (taskGroupIds.length === 0) return {}
+
+  const { data, error } = await supabase
+    .from('task_groups')
+    .select('id, name')
+    .in('id', taskGroupIds)
+
+  if (error) throw error
+
+  return Object.fromEntries((data ?? []).map(row => [row.id, row.name]))
 }

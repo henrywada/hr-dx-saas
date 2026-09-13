@@ -186,6 +186,8 @@ export const APP_ROUTES = {
     REFERRAL_MY: '/referral/my',
     /** 助成金情報配信 ホーム（テナント管理者） */
     ADMIN_GRANT_NOTIFIER: '/adm/grant-notifier',
+    /** 情報掲示板（Notion の人事トレンド・助成金・AI最新情報） */
+    ADMIN_NOTION_INFO: '/adm/notion_info',
     /** 助成金情報配信 配信条件の設定 */
     ADMIN_GRANT_NOTIFIER_CONDITIONS: '/adm/grant-notifier/conditions',
     /** 助成金情報配信 配信アーカイブ一覧 */

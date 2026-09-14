@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ExternalLink } from 'lucide-react'
 import TenantBackLink from '@/components/common/TenantBackLink'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { APP_ROUTES } from '@/config/routes'
@@ -23,9 +23,11 @@ function ExternalUrl({ url }: { url: string | null }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+      aria-label="原文へ"
+      title={url}
+      className="inline-flex items-center text-blue-600 hover:text-blue-800"
     >
-      {url}
+      <ExternalLink className="h-4 w-4" strokeWidth={2} />
     </a>
   )
 }
@@ -71,12 +73,14 @@ export function NotionInfoBoardClient({
         <span className="line-clamp-3 whitespace-pre-line text-xs text-slate-600">{value}</span>
       ),
     },
-    {
-      key: 'url',
-      label: 'URL',
-      render: value => <ExternalUrl url={value} />,
-    },
   ]
+
+  const urlColumn: Column<NotionInfoItem> = {
+    key: 'url',
+    label: '原文へ',
+    width: 'w-20',
+    render: value => <ExternalUrl url={value} />,
+  }
 
   const grantColumns: Column<NotionInfoItem>[] = [
     {
@@ -115,7 +119,7 @@ export function NotionInfoBoardClient({
           onClick={() => setActive(item)}
           className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-[#FD7601] hover:text-[#FD7601] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-300 disabled:hover:text-slate-700"
         >
-          要約
+          本文
         </button>
       )
     },
@@ -123,8 +127,8 @@ export function NotionInfoBoardClient({
 
   const columns =
     tab === 'grant'
-      ? [...commonColumns, ...grantColumns, actionColumn]
-      : [...commonColumns, actionColumn]
+      ? [...commonColumns, ...grantColumns, actionColumn, urlColumn]
+      : [...commonColumns, actionColumn, urlColumn]
 
   const items = data.items[tab]
   const showWarning = !data.configured || Boolean(data.errorMessage)

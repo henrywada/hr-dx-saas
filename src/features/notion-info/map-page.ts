@@ -13,9 +13,7 @@ export function normalizeRichText(prop: unknown): string {
 
 /** HTML の br を改行に変換し、残りのタグを除去する（innerHTML は使わない） */
 export function stripUnsafeHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+  return html.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
 }
 
 /** プロパティから文字列値を取得する */
@@ -33,9 +31,7 @@ function readText(prop: unknown): string {
     case 'select':
       return (p.select as { name?: string } | null)?.name ?? ''
     case 'multi_select':
-      return ((p.multi_select as Array<{ name?: string }>) ?? [])
-        .map(s => s.name ?? '')
-        .join(', ')
+      return ((p.multi_select as Array<{ name?: string }>) ?? []).map(s => s.name ?? '').join(', ')
     default:
       return ''
   }
@@ -88,7 +84,8 @@ export function mapNotionPage(page: NotionQueryPage): NotionInfoItem {
   const { id, properties } = page
 
   const summaryRaw = readText(properties['要約'])
-  const bodyRaw = readText(properties['ページの本文（詳細）'])
+  // Notion 列名は「本文」。旧スキーマの「ページの本文（詳細）」も読む
+  const bodyRaw = readText(properties['本文']) || readText(properties['ページの本文（詳細）'])
 
   return {
     id,

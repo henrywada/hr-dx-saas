@@ -1,14 +1,14 @@
-'use client';
+'use client'
 
-import { Users, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Users, CheckCircle2, AlertCircle, Percent, ShieldCheck } from 'lucide-react'
 
 interface SummaryCardsProps {
-  totalEmployees: number;
-  submittedCount: number;
-  notSubmittedCount: number;
-  consentCount: number;
-  submissionRate: number;
-  consentRate: number;
+  totalEmployees: number
+  submittedCount: number
+  notSubmittedCount: number
+  consentCount: number
+  submissionRate: number
+  consentRate: number
 }
 
 const cards = [
@@ -34,7 +34,7 @@ const cards = [
     iconColor: 'text-emerald-600',
     getValue: (p: SummaryCardsProps) => p.submittedCount,
     getSuffix: () => '名',
-    getSub: (p: SummaryCardsProps) => `受検率 ${p.submissionRate}%`,
+    getSub: () => null,
   },
   {
     key: 'notSubmitted',
@@ -47,6 +47,18 @@ const cards = [
     getValue: (p: SummaryCardsProps) => p.notSubmittedCount,
     getSuffix: () => '名',
     getSub: () => null,
+  },
+  {
+    key: 'rate',
+    label: '受検率',
+    labelEn: 'Submission Rate',
+    icon: Percent,
+    color: 'from-sky-500 to-blue-600',
+    iconBg: 'bg-sky-100',
+    iconColor: 'text-sky-600',
+    getValue: (p: SummaryCardsProps) => p.submissionRate,
+    getSuffix: () => '%',
+    getSub: (p: SummaryCardsProps) => `${p.submittedCount}名 / ${p.totalEmployees}名`,
   },
   {
     key: 'consent',
@@ -65,16 +77,16 @@ const cards = [
         : `同意者 ${p.consentCount}名 / ${p.submittedCount}名`
     },
   },
-];
+]
 
 export default function SummaryCards(props: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        const value = card.getValue(props);
-        const suffix = card.getSuffix();
-        const sub = card.getSub(props);
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {cards.map(card => {
+        const Icon = card.icon
+        const value = card.getValue(props)
+        const suffix = card.getSuffix()
+        const sub = card.getSub(props)
 
         return (
           <div
@@ -90,7 +102,9 @@ export default function SummaryCards(props: SummaryCardsProps) {
                   <p className="text-sm font-semibold text-gray-500 tracking-wide">{card.label}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">{card.labelEn}</p>
                 </div>
-                <div className={`${card.iconBg} p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+                <div
+                  className={`${card.iconBg} p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-300`}
+                >
                   <Icon className={`w-5 h-5 ${card.iconColor}`} />
                 </div>
               </div>
@@ -102,16 +116,14 @@ export default function SummaryCards(props: SummaryCardsProps) {
                 <span className="text-sm font-medium text-gray-500">{suffix}</span>
               </div>
 
-              {sub && (
-                <p className="text-xs text-gray-400 mt-2 font-medium">{sub}</p>
-              )}
+              {sub && <p className="text-xs text-gray-400 mt-2 font-medium">{sub}</p>}
 
-              {/* 受検率プログレスバー（受検完了カードのみ） */}
-              {card.key === 'submitted' && (
+              {/* 受検率プログレスバー */}
+              {card.key === 'rate' && (
                 <div className="mt-3">
                   <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-700 ease-out"
+                      className="h-full bg-linear-to-r from-sky-400 to-blue-500 rounded-full transition-all duration-700 ease-out"
                       style={{ width: `${props.submissionRate}%` }}
                     />
                   </div>
@@ -119,8 +131,8 @@ export default function SummaryCards(props: SummaryCardsProps) {
               )}
             </div>
           </div>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

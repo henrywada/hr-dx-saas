@@ -24,10 +24,11 @@ type Props = {
   rows: EstablishmentProgressTableRow[]
 }
 
-/** 拠点別進捗：各拠点の1行目に実施期間（タイトル・年度・質問・状態・期間）、2行目に進捗指標 */
+/** 拠点別進捗：実施期間がある拠点は1行目に期間情報、続く行に進捗指標 */
 export default function EstablishmentProgressTable({ periodId, rows }: Props) {
   const [selectedEstablishment, setSelectedEstablishment] =
     useState<EstablishmentProgressTableRow | null>(null)
+  const hasPeriodRows = rows.some(row => row.stressCheckPeriod)
 
   if (rows.length === 0) {
     return (
@@ -43,53 +44,55 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-[#e2e6ec]">
           <thead className="bg-[#f6f8fa]">
-            <tr className="border-b border-[#e2e6ec]">
-              <th colSpan={8} className="p-0 text-left">
-                <table className="w-full table-fixed text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
-                  <thead>
-                    <tr className="bg-[#f6f8fa]">
-                      <th className="py-2 px-6 pr-2 font-semibold w-[28%] text-left">タイトル</th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
-                        年度
-                      </th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[3.5rem] text-left">
-                        質問
-                      </th>
-                      <th className="py-2 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
-                        状態
-                      </th>
-                      <th className="py-2 px-2 font-semibold min-w-0 text-left">期間</th>
-                      <th className="py-2 px-2 text-left" colSpan={3}>
-                        {' '}
-                      </th>
-                    </tr>
-                  </thead>
-                </table>
-              </th>
-            </tr>
+            {hasPeriodRows && (
+              <tr className="border-b border-[#e2e6ec]">
+                <th colSpan={8} className="p-0 text-left">
+                  <table className="w-full table-fixed text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+                    <thead>
+                      <tr className="bg-[#f6f8fa]">
+                        <th className="py-1 px-4 pr-2 font-semibold w-[28%] text-left">タイトル</th>
+                        <th className="py-1 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
+                          年度
+                        </th>
+                        <th className="py-1 px-2 font-semibold whitespace-nowrap w-[3.5rem] text-left">
+                          質問
+                        </th>
+                        <th className="py-1 px-2 font-semibold whitespace-nowrap w-[4.5rem] text-left">
+                          状態
+                        </th>
+                        <th className="py-1 px-2 font-semibold min-w-0 text-left">期間</th>
+                        <th className="py-1 px-2 text-left" colSpan={3}>
+                          {' '}
+                        </th>
+                      </tr>
+                    </thead>
+                  </table>
+                </th>
+              </tr>
+            )}
             <tr>
-              <th className="px-6 py-3 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-left text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 拠点
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 対象者
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 受検済み
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 未受検
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 否提出
               </th>
-              <th className="px-6 py-3 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-center text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 受検率
               </th>
-              <th className="px-6 py-3 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider w-56">
+              <th className="px-4 py-1 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider w-56">
                 進捗
               </th>
-              <th className="px-6 py-3 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
+              <th className="px-4 py-1 text-right text-[11px] font-bold text-[#57606a] uppercase tracking-wider">
                 未受検者
               </th>
             </tr>
@@ -99,71 +102,71 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
               const p = establishment.stressCheckPeriod
               return (
                 <Fragment key={establishment.id}>
-                  <tr className="bg-emerald-50/90 text-xs border-t border-emerald-100 align-top">
-                    <td colSpan={8} className="p-0 border-t border-emerald-100">
-                      <table className="w-full table-fixed">
-                        <tbody>
-                          <tr>
-                            <td className="py-2.5 px-6 pr-2 text-[#24292f] font-medium break-words w-[28%] align-top">
-                              {p?.title ?? '—'}
-                            </td>
-                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap w-[4.5rem] align-top">
-                              {p ? p.fiscal_year : '—'}
-                            </td>
-                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap w-[3.5rem] align-top">
-                              {p ? `${p.questionnaire_type}問` : '—'}
-                            </td>
-                            <td className="py-2.5 px-2 whitespace-nowrap w-[4.5rem] align-top">
-                              {p ? (
+                  {p && (
+                    <tr className="bg-emerald-50/90 text-xs border-t border-emerald-100">
+                      <td colSpan={8} className="p-0 border-t border-emerald-100">
+                        <table className="w-full table-fixed">
+                          <tbody>
+                            <tr>
+                              <td className="py-1 px-4 pr-2 text-[#24292f] font-medium break-words w-[28%]">
+                                {p.title}
+                              </td>
+                              <td className="py-1 px-2 text-[#57606a] whitespace-nowrap w-[4.5rem]">
+                                {p.fiscal_year}
+                              </td>
+                              <td className="py-1 px-2 text-[#57606a] whitespace-nowrap w-[3.5rem]">
+                                {`${p.questionnaire_type}問`}
+                              </td>
+                              <td className="py-1 px-2 whitespace-nowrap w-[4.5rem]">
                                 <span className={periodStatusClass(p.status)}>
                                   {periodStatusLabel[p.status] ?? p.status}
                                 </span>
-                              ) : (
-                                <span className="text-[#57606a]">—</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-2 text-[#57606a] whitespace-nowrap align-top">
-                              {p
-                                ? `${String(p.start_date).split('T')[0]} 〜 ${String(p.end_date).split('T')[0]}`
-                                : '—'}
-                            </td>
-                            <td className="py-2.5 px-2 align-top" colSpan={3} />
-                          </tr>
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
+                              </td>
+                              <td className="py-1 px-2 text-[#57606a] whitespace-nowrap">
+                                {`${String(p.start_date).split('T')[0]} 〜 ${String(p.end_date).split('T')[0]}`}
+                              </td>
+                              <td className="py-1 px-2" colSpan={3} />
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  )}
                   <tr className="hover:bg-[#f6f8fa] transition-colors border-b border-[#e2e6ec]">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-1">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
-                          <Building2 className="w-4 h-4" />
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-600">
+                          <Building2 className="w-3.5 h-3.5" />
                         </span>
                         <div>
-                          <p className="text-sm font-bold text-[#24292f]">{establishment.name}</p>
+                          <p className="text-sm font-bold text-[#24292f] leading-tight">
+                            {establishment.name}
+                          </p>
                           {establishment.id === 'unassigned' && (
-                            <p className="text-xs text-amber-600 mt-0.5">拠点設定の見直し対象</p>
+                            <p className="text-[11px] text-amber-600 leading-tight">
+                              拠点設定の見直し対象
+                            </p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-[#24292f] tabular-nums">
+                    <td className="px-4 py-1 text-sm text-center font-semibold text-[#24292f] tabular-nums">
                       {establishment.total}
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-emerald-600 tabular-nums">
+                    <td className="px-4 py-1 text-sm text-center font-semibold text-emerald-600 tabular-nums">
                       {establishment.submitted}
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-orange-500 tabular-nums">
+                    <td className="px-4 py-1 text-sm text-center font-semibold text-orange-500 tabular-nums">
                       {establishment.notSubmitted}
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-amber-600 tabular-nums">
+                    <td className="px-4 py-1 text-sm text-center font-semibold text-amber-600 tabular-nums">
                       {establishment.inProgress}
                     </td>
-                    <td className="px-6 py-4 text-sm text-center font-bold text-[#24292f] tabular-nums">
+                    <td className="px-4 py-1 text-sm text-center font-bold text-[#24292f] tabular-nums">
                       {establishment.rate}%
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-full h-2.5 bg-[#f6f8fa] rounded-full overflow-hidden">
+                    <td className="px-4 py-1">
+                      <div className="w-full h-2 bg-[#f6f8fa] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 ease-out ${
                             establishment.rate >= 80
@@ -176,14 +179,14 @@ export default function EstablishmentProgressTable({ periodId, rows }: Props) {
                         />
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-1 text-right">
                       <button
                         type="button"
                         disabled={establishment.notSubmitted === 0}
                         onClick={() => setSelectedEstablishment(establishment)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#e2e6ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#24292f] shadow-sm hover:bg-[#f6f8fa] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#e2e6ec] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#24292f] shadow-sm hover:bg-[#f6f8fa] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <Users className="w-3.5 h-3.5" />
+                        <Users className="w-3 h-3" />
                         一覧
                       </button>
                     </td>

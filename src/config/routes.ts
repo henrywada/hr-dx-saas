@@ -1,5 +1,7 @@
 export const APP_ROUTES = {
   PUBLIC: {
+    /** LINE 友だち招待（QR・メールリンク経由、認証不要） */
+    LINE_FRIEND_INVITE: (token: string) => `/p/line-friend-invite/${token}`,
     /** 匿名相談のステータス確認（認証不要） */
     CONSULTATION_STATUS: '/p/consultation/status',
     /** 製品ラベル QR 向け取扱説明書メニュー（購入客・認証不要） */
@@ -211,6 +213,8 @@ export const APP_ROUTES = {
     /** 定期健康診断結果参照（産業医・保健師） */
     ADMIN_HEALTH_CHECK_REVIEW: '/adm/health-check-review',
     ADMIN_HEALTH_CHECK_REVIEW_DETAIL: (recordId: string) => `/adm/health-check-review/${recordId}`,
+    /** LINE 友だち招待管理（テナント管理者） */
+    ADMIN_LINE_FRIEND_INVITES: '/adm/line-friend-invites',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',
@@ -234,6 +238,14 @@ export const APP_ROUTES = {
     GRANT_NOTIFIER: '/saas_adm/grant-notifier',
     /** 他システムからのデータ移行（組織・健診・ストレスチェック） */
     DATA_MIGRATION: '/saas_adm/data-migration',
+    /** LINE 連携設定（SaaS 管理者） */
+    LINE: '/saas_adm/line',
+  },
+  /** LIFF（LINE Front-end Framework）アプリ */
+  LIFF: {
+    ROOT: '/liff',
+    ENTRY: '/liff/entry',
+    FRIEND_LINK: (token: string) => `/liff/friend-link/${token}`,
   },
   EVALUATION: {
     /** 評価シート一覧（テナント管理者） */

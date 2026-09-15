@@ -164,3 +164,77 @@ export function buildScormContentCsp(): string {
 export function isScormContentPath(pathname: string): boolean {
   return /^\/el-courses\/[^/]+\/scorm-content(\/|$)/.test(pathname)
 }
+
+// --- LINE / LIFF 専用 CSP ---------------------------------------------------
+
+/** LINE CDN（静的アセット） */
+const LINE_STATIC = 'https://static.line-scdn.net'
+/** LIFF SDK 本体 */
+const LINE_LIFF_SDK = 'https://liffsdk.line-scdn.net'
+/** LINE API（友だち追加・プロフィール取得等） */
+const LINE_API = 'https://api.line.me'
+/** LINE 認可エンドポイント（LIFF ログインリダイレクト） */
+const LINE_ACCESS = 'https://access.line.me'
+
+/**
+ * LIFF ルートかどうかを判定する。
+ * `/liff` 単体または `/liff/` で始まるパスが対象。
+ */
+export function isLiffPath(pathname: string): boolean {
+  return pathname === '/liff' || pathname.startsWith('/liff/')
+}
+
+/**
+ * LIFF 専用の CSP を生成する。
+ *
+ * buildAppCsp と同じ構成をベースに、LINE SDK の読み込みと通信に必要なオリジンを追加する。
+ * アプリ全体の buildAppCsp には LINE オリジンを足さない（LIFF 以外への影響を避けるため）。
+ */
+export function buildLiffCsp(isDev: boolean): string {
+  const supabase = getSupabaseOrigins()
+  const supabaseHttp = supabase ? [supabase.http] : []
+  const supabaseWs = supabase ? [supabase.ws] : []
+
+  const directives: Record<string, string[]> = {
+    'default-src': ["'self'"],
+    'base-uri': ["'self'"],
+    'object-src': ["'none'"],
+    'frame-ancestors': ["'self'"],
+    'form-action': ["'self'"],
+    'script-src': [
+      "'self'",
+      "'unsafe-inline'",
+      STRIPE_JS,
+      // LIFF SDK（LINE が CDN 配信する JS）
+      LINE_STATIC,
+      LINE_LIFF_SDK,
+      ...(isDev ? ["'unsafe-eval'"] : []),
+    ],
+    'style-src': ["'self'", "'unsafe-inline'", GOOGLE_FONTS_CSS],
+    'font-src': ["'self'", 'data:', GOOGLE_FONTS_FILES],
+    'img-src': ["'self'", 'data:', 'blob:', ...supabaseHttp, STRIPE_IMG, YOUTUBE_IMG_ORIGIN],
+    'media-src': ["'self'", 'blob:', ...supabaseHttp],
+    'connect-src': [
+      "'self'",
+      ...supabaseHttp,
+      ...supabaseWs,
+      STRIPE_API,
+      // LINE API（友だち追加・プロフィール）
+      LINE_API,
+      // LINE 認可エンドポイント
+      LINE_ACCESS,
+      // LIFF SDK の内部通信
+      LINE_LIFF_SDK,
+      ...(isDev ? ['ws://localhost:*', 'ws://127.0.0.1:*'] : []),
+    ],
+    'frame-src': ["'self'", 'blob:', ...supabaseHttp, STRIPE_JS, STRIPE_HOOKS, ...YOUTUBE_ORIGINS],
+    'worker-src': ["'self'", 'blob:'],
+    'manifest-src': ["'self'"],
+  }
+
+  if (!isDev) {
+    directives['upgrade-insecure-requests'] = []
+  }
+
+  return serializeDirectives(directives)
+}

@@ -4,9 +4,11 @@ import { APP_ROUTES } from '@/config/routes'
 import {
   STATIC_SECURITY_HEADERS,
   buildAppCsp,
+  buildLiffCsp,
   buildScormContentCsp,
   getCspHeaderName,
   getCspMode,
+  isLiffPath,
   isScormContentPath,
 } from '@/lib/security/headers'
 
@@ -22,9 +24,14 @@ export async function middleware(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development'
   const cspMode = getCspMode()
 
-  // SCORM 教材（テナントがアップロードした第三者製 HTML/JS を同一オリジン配信）は
-  // 教材側のインライン script / eval が必須なため、専用の緩和 CSP を使う。
-  const csp = isScormContentPath(pathname) ? buildScormContentCsp() : buildAppCsp(isDev)
+  // CSP 選択：SCORM 教材 → LIFF → アプリ本体の順で専用 CSP を適用する。
+  // SCORM は第三者製 HTML/JS の eval が必須なため緩和 CSP。
+  // LIFF は LINE SDK オリジンを許可する専用 CSP（アプリ全体への影響を避けるため分離）。
+  const csp = isScormContentPath(pathname)
+    ? buildScormContentCsp()
+    : isLiffPath(pathname)
+      ? buildLiffCsp(isDev)
+      : buildAppCsp(isDev)
 
   const applySecurityHeaders = (target: NextResponse): NextResponse => {
     for (const { key, value } of STATIC_SECURITY_HEADERS) {
@@ -38,8 +45,13 @@ export async function middleware(request: NextRequest) {
   const { response, user, supabase } = await updateSession(request)
   applySecurityHeaders(response)
   const isCronApiRoute = CRON_API_PATHS.includes(pathname)
+  // LINE Webhook は未ログイン状態で呼ばれる外部リクエストのため、JSON 401 ガードから除外する
+  const isLineApiRoute = pathname.startsWith('/api/line/')
   const isApiRoute =
-    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && !isCronApiRoute
+    pathname.startsWith('/api/') &&
+    !pathname.startsWith('/api/auth') &&
+    !isCronApiRoute &&
+    !isLineApiRoute
 
   // アクセスログは GET（実際のページ表示）のみ。POST は Server Action / Form 送信がほとんどで、
   // Edge で毎回 await insert すると大きい multipart 時にタイムアウトし、RSC 以外の応答になり
@@ -116,7 +128,8 @@ export async function middleware(request: NextRequest) {
 
   // 未認証ユーザーが保護されたページにアクセス
   // （cron エンドポイントはルート側で x-cron-secret を検証するため /login へ飛ばさない）
-  if (!user && !isAuthPage && !isPublicPage && !isCronApiRoute) {
+  // （/liff は LIFF ブラウザ内で LINE 認証を行うため /login へリダイレクトしない）
+  if (!user && !isAuthPage && !isPublicPage && !isCronApiRoute && !isLiffPath(pathname)) {
     return applySecurityHeaders(NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url)))
   }
 

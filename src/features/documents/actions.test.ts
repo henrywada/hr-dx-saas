@@ -5,7 +5,9 @@ import {
   applyCompanyVisiblePolicy,
   deleteDocumentSchema,
   documentTypeSchema,
+  EXPORT_INACCESSIBLE_IDS_MESSAGE,
   exportDocumentsSchema,
+  findExportAccessError,
   updateDocumentSchema,
 } from './types'
 
@@ -87,6 +89,13 @@ test('exportDocumentsSchema: invoice / purchase_order のみ', () => {
     }).success,
     false
   )
+})
+
+test('findExportAccessError: 取得件数不足はエクスポート不可', () => {
+  const ids = [docId, '44444444-4444-4444-8444-444444444444']
+  assert.equal(findExportAccessError(ids, 0), '文書が見つかりません')
+  assert.equal(findExportAccessError(ids, 1), EXPORT_INACCESSIBLE_IDS_MESSAGE)
+  assert.equal(findExportAccessError(ids, 2), null)
 })
 
 test('exportDocumentsSchema: 空配列・101件超を拒否', () => {

@@ -151,6 +151,18 @@ export function parseAmountYen(value: number | string | null | undefined): numbe
   return Number.isFinite(parsed) ? parsed : null
 }
 
+export const EXPORT_INACCESSIBLE_IDS_MESSAGE = 'エクスポートできない文書が含まれています'
+
+/** CSV エクスポート: 要求 ID 数と RLS で読めた件数を照合 */
+export function findExportAccessError(
+  requestedIds: readonly string[],
+  readableCount: number
+): string | null {
+  if (readableCount === 0) return '文書が見つかりません'
+  if (readableCount !== requestedIds.length) return EXPORT_INACCESSIBLE_IDS_MESSAGE
+  return null
+}
+
 /** extracted jsonb を Record<string, string> に正規化 */
 export function asExtracted(value: unknown): Record<string, string> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

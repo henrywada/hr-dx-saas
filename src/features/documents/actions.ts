@@ -31,6 +31,7 @@ import {
   asExtracted,
   deleteDocumentSchema,
   exportDocumentsSchema,
+  findExportAccessError,
   parseAmountYen,
   updateDocumentSchema,
   type AnalyzeDuplicatePayload,
@@ -562,6 +563,7 @@ export async function createDocument(input: unknown): Promise<DocumentActionResu
         .update(values)
         .eq('id', savedDocumentId)
         .eq('tenant_id', user.tenant_id)
+        .eq('owner_user_id', user.id)
       if (error) throw new Error(error.message)
     }
 
@@ -724,6 +726,7 @@ export async function updateDocument(input: unknown): Promise<DocumentActionResu
     })
     .eq('id', row.id)
     .eq('tenant_id', user.tenant_id)
+    .eq('owner_user_id', user.id)
     .select('id')
     .maybeSingle()
 
@@ -942,8 +945,9 @@ export async function exportDocumentsCsv(
   }
 
   const readableRows = data ?? []
-  if (readableRows.length === 0) {
-    return { error: '文書が見つかりません' }
+  const exportAccessError = findExportAccessError(parsed.data.documentIds, readableRows.length)
+  if (exportAccessError) {
+    return { error: exportAccessError }
   }
 
   const readableIds = readableRows.map(row => row.id)

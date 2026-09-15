@@ -345,7 +345,7 @@ export function PictureReportForm({
             href={APP_ROUTES.TENANT.TOOL_PICTURE_REPORT_ALBUM}
             className="font-medium text-primary transition-colors hover:text-gray-900"
           >
-            アルバムを見る
+            写真レポートホルダー
           </Link>
           <Link
             href={APP_ROUTES.TENANT.PORTAL}

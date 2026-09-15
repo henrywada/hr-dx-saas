@@ -129,7 +129,15 @@ export async function middleware(request: NextRequest) {
   // 未認証ユーザーが保護されたページにアクセス
   // （cron エンドポイントはルート側で x-cron-secret を検証するため /login へ飛ばさない）
   // （/liff は LIFF ブラウザ内で LINE 認証を行うため /login へリダイレクトしない）
-  if (!user && !isAuthPage && !isPublicPage && !isCronApiRoute && !isLiffPath(pathname)) {
+  // （LINE Webhook は外部サービスからの POST のため /login へリダイレクトしない）
+  if (
+    !user &&
+    !isAuthPage &&
+    !isPublicPage &&
+    !isCronApiRoute &&
+    !isLineApiRoute &&
+    !isLiffPath(pathname)
+  ) {
     return applySecurityHeaders(NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url)))
   }
 

@@ -86,6 +86,9 @@ export function useSpeechToText({
   }, [getBaseText])
 
   useEffect(() => {
+    // SSR時点ではwindowにアクセスできないため、マウント後にSpeechRecognitionの有無を確認する。
+    // これはlocalStorageやAPI等「外部システムの状態を読み取る」effctの正当な用途。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupported(isSpeechToTextSupported())
   }, [])
 

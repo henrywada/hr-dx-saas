@@ -124,7 +124,6 @@ export function AlbumView({
     // SSR時点ではlocalStorageにアクセスできないため、これ自体がeffectの正しい用途
     // （react-hooks/set-state-in-effectはカスケードレンダーの警告だが、初回マウント時
     // のみ実行される外部システム同期のため許容する）
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setViewMode(readStoredViewMode())
     setViewModeReady(true)
   }, [])
@@ -147,7 +146,6 @@ export function AlbumView({
     // loadPage内部（非同期関数の先頭、await前）でsetLoading等を呼ぶため
     // react-hooks/set-state-in-effectが発火するが、scope/フィルタ変更時の
     // データ再取得というeffectの正しい用途であるため許容する
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPage(scope, 0, false)
   }, [scope, subjectFilter, highOnly, loadPage])
 

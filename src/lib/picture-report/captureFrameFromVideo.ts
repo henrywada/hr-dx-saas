@@ -178,6 +178,7 @@ export function captureHandheldFrame(
 }
 
 /** プレビュー枠は常に縦長。マウント向きは保存時の回転にのみ影響する */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function previewAspectClass(_mount?: MountOrientation): string {
   return 'aspect-[3/4]'
 }

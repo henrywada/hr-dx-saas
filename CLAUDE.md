@@ -143,8 +143,8 @@ npm run recalculate-stress-results                       # ストレス結果の
     (questionnaire)/       # アンケート
     (recurit)/             # 採用
 (saas-admin)/saas_adm/     # SaaS 運営者向け全体管理
-(admin)/                   # 内部管理
-p/                         # パブリックページ（認証不要）
+(admin)/                   # 内部管理（SaaS運営者よりさらに内部の開発者/運用担当向け想定領域。現状は tenants/users/menus/monitoring とも「開発中」のプレースホルダーのみで権限チェック未実装 → 実運用中のSaaS管理画面は (saas-admin)/saas_adm/ 側）
+p/                         # パブリックページ（認証不要。login 不要でアクセスされる URL：consultation, grant-notifier, myou（product-manuals・trace）, privacy-policy, terms, pulse/[id] 等）
 ```
 
 ### src/ ディレクトリ構成
@@ -156,7 +156,7 @@ src/
 │   ├── (tenant)/
 │   │   ├── (tenant-users)/       # ★ 一般従業員向け画面（白基調）
 │   │   └── (tenant-admin)/adm/   # ★ テナント管理者向け画面（テーマカラー）
-│   ├── (admin)/                  # 内部管理
+│   ├── (admin)/                  # 内部管理（未実装のプレースホルダーのみ。実運用は (saas-admin) 側）
 │   ├── (saas-admin)/saas_adm/    # ★ SaaS 運営者向け全体管理画面
 │   ├── api/                      # Webhook 等の外部連携のみ（原則 NG）
 │   └── p/                        # パブリックページ（認証不要）

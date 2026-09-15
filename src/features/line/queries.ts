@@ -77,12 +77,17 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
 /**
  * LINE連携状況の件数を集計して返す（SaaS管理者専用）
  *
- * developer ロール以外が呼び出した場合は例外をスローする。
+ * layout.tsx と同じ条件でガード:
+ *   - appRole === 'developer'（現行 SaaS 管理者ロール）
+ *   - user.role === 'supaUser'（レガシー user_metadata ロール）
+ * どちらか一方でも満たせば通過。
  */
 export async function getLineLinkStats(): Promise<LineLinkStats> {
   const user = await getServerUser()
   if (!user) throw new Error('Unauthorized')
-  if (user.appRole !== 'developer') throw new Error('Forbidden: developer ロールが必要です')
+  // layout.tsx と同様の OR ガード（レガシー supaUser も許可）
+  const isSaasAdmin = user.appRole === 'developer' || user.role === 'supaUser'
+  if (!isSaasAdmin) throw new Error('Forbidden: SaaS管理者権限が必要です')
 
   const supabase = await createClient()
 

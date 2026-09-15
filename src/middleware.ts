@@ -91,17 +91,37 @@ export async function middleware(request: NextRequest) {
           }
         }
 
+        // ── トークン含みパスのマスキング ──────────────────────────────
+        // 招待トークン・LIFF state に生トークンが含まれるパスはログに残さない。
+        // ルート自体（トラフィック確認用）は記録し、トークン部分のみ [token] に置換する。
+        const TOKEN_PREFIXES = ['/p/line-friend-invite/', '/liff/friend-link/'] as const
+        const matchedPrefix = TOKEN_PREFIXES.find(p => pathname.startsWith(p))
+        const isTokenPath = matchedPrefix !== undefined
+        const logPath = isTokenPath ? `${matchedPrefix}[token]` : pathname
+
+        // トークン含みパスでは search_params を一切保存しない（liff.state 等にトークンが混入するため）
+        // それ以外のパスでも liff.state キーは [redacted] に置換する
+        const rawSearchParams = Object.fromEntries(request.nextUrl.searchParams)
+        const logSearchParams: Record<string, string> = isTokenPath
+          ? {}
+          : Object.fromEntries(
+              Object.entries(rawSearchParams).map(([k, v]) =>
+                k === 'liff.state' ? [k, '[redacted]'] : [k, v]
+              )
+            )
+        // ─────────────────────────────────────────────────────────────
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await supabase.from('access_logs' as any).insert({
           action: 'PAGE_VIEW',
-          path: pathname,
+          path: logPath,
           method: request.method,
           ip_address: request.headers.get('x-forwarded-for') || null,
           user_agent: request.headers.get('user-agent') || null,
           tenant_id: tenant_id,
           user_id: user?.id || null,
           details: {
-            search_params: Object.fromEntries(request.nextUrl.searchParams),
+            search_params: logSearchParams,
           },
         })
 

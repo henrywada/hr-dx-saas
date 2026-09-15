@@ -18,6 +18,8 @@ export default async function SaasLinePage() {
     hasChannelSecret: Boolean(process.env.LINE_CHANNEL_SECRET),
     hasChannelAccessToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
     hasLiffId: Boolean(process.env.NEXT_PUBLIC_LIFF_ID),
+    // LINE Login チャネル ID（LIFF 連携 / ウェブログインフロー用）
+    hasLoginChannelId: Boolean(process.env.LINE_LOGIN_CHANNEL_ID),
   }
 
   return <SaasLineDashboard stats={stats} envFlags={envFlags} />

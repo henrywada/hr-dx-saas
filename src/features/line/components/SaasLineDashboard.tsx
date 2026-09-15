@@ -19,6 +19,8 @@ interface Props {
     hasChannelSecret: boolean
     hasChannelAccessToken: boolean
     hasLiffId: boolean
+    /** LINE Login チャネル ID（LIFF 連携 / ウェブログインフロー用） */
+    hasLoginChannelId: boolean
   }
 }
 
@@ -81,6 +83,7 @@ export default function SaasLineDashboard({ stats, envFlags }: Props) {
             <EnvRow label="LINE_CHANNEL_SECRET" isSet={envFlags.hasChannelSecret} />
             <EnvRow label="LINE_CHANNEL_ACCESS_TOKEN" isSet={envFlags.hasChannelAccessToken} />
             <EnvRow label="NEXT_PUBLIC_LIFF_ID" isSet={envFlags.hasLiffId} />
+            <EnvRow label="LINE_LOGIN_CHANNEL_ID" isSet={envFlags.hasLoginChannelId} />
           </div>
         </div>
 

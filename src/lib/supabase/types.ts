@@ -514,6 +514,193 @@ export type Database = {
           },
         ]
       }
+      captured_document_images: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          role: string
+          sort_order: number
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          role: string
+          sort_order: number
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          role?: string
+          sort_order?: number
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captured_document_images_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "captured_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captured_document_images_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      captured_document_line_items: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string
+          document_id: string
+          id: string
+          line_no: number
+          quantity: string
+          tax_rate: string
+          tenant_id: string
+          transaction_date: string | null
+          unit: string
+          unit_price: number | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description?: string
+          document_id: string
+          id?: string
+          line_no: number
+          quantity?: string
+          tax_rate?: string
+          tenant_id: string
+          transaction_date?: string | null
+          unit?: string
+          unit_price?: number | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string
+          document_id?: string
+          id?: string
+          line_no?: number
+          quantity?: string
+          tax_rate?: string
+          tenant_id?: string
+          transaction_date?: string | null
+          unit?: string
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captured_document_line_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "captured_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captured_document_line_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      captured_documents: {
+        Row: {
+          amount_yen: number | null
+          company_visible: boolean
+          context_date: string | null
+          counterparty: string
+          created_at: string
+          division_id: string
+          document_mode: string | null
+          document_type: string
+          extracted: Json
+          id: string
+          notes: string
+          owner_user_id: string
+          raw_ocr: string
+          tags: string[]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount_yen?: number | null
+          company_visible?: boolean
+          context_date?: string | null
+          counterparty?: string
+          created_at?: string
+          division_id: string
+          document_mode?: string | null
+          document_type: string
+          extracted?: Json
+          id?: string
+          notes?: string
+          owner_user_id: string
+          raw_ocr?: string
+          tags?: string[]
+          tenant_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_yen?: number | null
+          company_visible?: boolean
+          context_date?: string | null
+          counterparty?: string
+          created_at?: string
+          division_id?: string
+          document_mode?: string | null
+          document_type?: string
+          extracted?: Json
+          id?: string
+          notes?: string
+          owner_user_id?: string
+          raw_ocr?: string
+          tags?: string[]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captured_documents_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captured_documents_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "captured_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       career_discussion_appointments: {
         Row: {
           created_at: string

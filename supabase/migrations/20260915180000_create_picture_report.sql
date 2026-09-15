@@ -115,7 +115,9 @@ CREATE POLICY "picture_sends_select_own_or_manager" ON public.picture_sends
 
 CREATE POLICY "picture_sends_insert_own" ON public.picture_sends
   FOR INSERT WITH CHECK (
-    tenant_id = public.current_tenant_id() AND user_id = auth.uid()
+    tenant_id = public.current_tenant_id()
+    AND user_id = auth.uid()
+    AND division_id = public.current_employee_division_id()
   );
 
 CREATE POLICY "picture_sends_update_own" ON public.picture_sends
@@ -131,6 +133,11 @@ CREATE INDEX IF NOT EXISTS picture_sends_division_created_idx
   ON public.picture_sends (division_id, created_at DESC);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.picture_sends TO authenticated;
+
+-- picture_sends の UPDATE は body_text のみ許可する（tenant_id/division_id等の書き換えを
+-- RLSのWITH CHECKだけで防ぐのはOLD値参照ができず困難なため、カラム権限で防ぐ）
+REVOKE UPDATE ON public.picture_sends FROM authenticated;
+GRANT UPDATE (body_text) ON public.picture_sends TO authenticated;
 
 -- ============================================================
 -- 3. Storage バケット + RLS

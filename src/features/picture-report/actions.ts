@@ -12,7 +12,9 @@ import {
   updateSendBodySchema,
   deleteSendSchema,
   type PictureReportActionResult,
+  type AlbumScope,
 } from './types'
+import { getAlbumPage, getAlbumSubjectOptions } from './queries'
 
 const PICTURE_SENDS_BUCKET = 'picture-sends'
 
@@ -221,4 +223,20 @@ export async function deleteSend(input: unknown): Promise<PictureReportActionRes
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT_ALBUM)
   return { success: true }
+}
+
+/** アルバムのフィルタ変更・ページング用（Client ComponentからServer Action経由で呼ぶ） */
+export async function fetchAlbumPage(params: {
+  scope: AlbumScope
+  offset: number
+  limit: number
+  subjectFilter?: string
+  highOnly?: boolean
+}) {
+  return getAlbumPage(params)
+}
+
+/** アルバムの件名フィルタ選択肢取得用（Client ComponentからServer Action経由で呼ぶ） */
+export async function fetchAlbumSubjectOptions(scope: AlbumScope) {
+  return getAlbumSubjectOptions(scope)
 }

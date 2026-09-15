@@ -54,6 +54,7 @@ CREATE POLICY captured_documents_insert ON public.captured_documents
   FOR INSERT WITH CHECK (
     tenant_id = public.current_tenant_id()
     AND owner_user_id = auth.uid()
+    AND division_id = public.current_employee_division_id()
   );
 
 CREATE POLICY captured_documents_update ON public.captured_documents
@@ -85,6 +86,23 @@ CREATE INDEX IF NOT EXISTS captured_documents_division_created_idx
   ON public.captured_documents (division_id, created_at DESC);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.captured_documents TO authenticated;
+
+-- captured_documents の UPDATE は可変フィールドのみ許可（tenant_id/division_id等の書き換えを
+-- RLSのWITH CHECKだけで防ぐのはOLD値参照ができず困難なため、カラム権限で防ぐ）
+REVOKE UPDATE ON public.captured_documents FROM authenticated;
+GRANT UPDATE (
+  title,
+  counterparty,
+  context_date,
+  amount_yen,
+  notes,
+  tags,
+  extracted,
+  raw_ocr,
+  company_visible,
+  document_mode,
+  updated_at
+) ON public.captured_documents TO authenticated;
 
 -- ============================================================
 -- 2. captured_document_images（画像）

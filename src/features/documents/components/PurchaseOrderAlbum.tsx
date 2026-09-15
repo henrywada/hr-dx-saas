@@ -32,6 +32,7 @@ import type {
   DocumentListItem,
   DocumentListScope,
 } from '@/features/documents/types';
+import { filterDocumentListItems } from '@/features/documents/components/documentAlbumFilters';
 
 import type { InvoiceCsvExportMode } from "@/lib/documents/exportCsv";
 import type { LineItemDraft } from "@/lib/documents/pluginTypes";
@@ -186,7 +187,6 @@ export function PurchaseOrderAlbum({
   const [notesDraft, setNotesDraft] = useState("");
   const [tagsDraft, setTagsDraft] = useState("");
   const [contextDateDraft, setContextDateDraft] = useState("");
-  const [companyVisibleDraft, setCompanyVisibleDraft] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; label: string } | null>(
     null
   );
@@ -196,6 +196,20 @@ export function PurchaseOrderAlbum({
       a.localeCompare(b, "ja")
     );
   }, [items]);
+
+
+  const filteredItems = useMemo(
+    () =>
+      filterDocumentListItems(items, {
+        tagFilter,
+        fromDate,
+        toDate,
+        amountMin,
+        amountMax,
+        filterAmount: true,
+      }),
+    [items, tagFilter, fromDate, toDate, amountMin, amountMax]
+  );
 
   const selectedSummary = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -208,7 +222,6 @@ export function PurchaseOrderAlbum({
     setNotesDraft(doc.notes ?? "");
     setTagsDraft((doc.tags ?? []).join(", "));
     setContextDateDraft(doc.contextDate ?? "");
-    setCompanyVisibleDraft(doc.companyVisible);
   }, []);
 
   const loadPage = useCallback(
@@ -243,7 +256,7 @@ export function PurchaseOrderAlbum({
         setLoadingMore(false);
       }
     },
-    [appliedSearch, documentType, fromDate, scope, tagFilter, toDate, amountMin, amountMax]
+    [appliedSearch, documentType, scope]
   );
 
   const loadDetail = useCallback(
@@ -309,10 +322,10 @@ export function PurchaseOrderAlbum({
   }
 
   function toggleSelectAll() {
-    if (items.every((item) => selectedIds.has(item.id))) {
+    if (filteredItems.every((item) => selectedIds.has(item.id))) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(items.map((item) => item.id)));
+      setSelectedIds(new Set(filteredItems.map((item) => item.id)));
     }
   }
 
@@ -360,7 +373,6 @@ export function PurchaseOrderAlbum({
   async function patchDetail(
     id: string,
     body: {
-      companyVisible?: boolean
       notes?: string
       tags?: string[]
       contextDate?: string | null
@@ -413,7 +425,6 @@ export function PurchaseOrderAlbum({
       await patchDetail(
         detail.id,
         {
-          companyVisible: companyVisibleDraft,
           notes: notesDraft,
           tags: parseTagsInput(tagsDraft),
           contextDate: contextDateDraft || null,
@@ -524,7 +535,7 @@ export function PurchaseOrderAlbum({
   }
 
   const detailDisabled = saving || deleting || reanalyzing || !detail?.canMutate;
-  const allChecked = items.length > 0 && items.every((item) => selectedIds.has(item.id));
+  const allChecked = items.length > 0 && filteredItems.every((item) => selectedIds.has(item.id));
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8 pb-16">
@@ -692,7 +703,7 @@ export function PurchaseOrderAlbum({
       </div>
 
       {/* CSV Export Bar */}
-      {!loading && items.length > 0 && (
+      {!loading && filteredItems.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
             <input
@@ -702,7 +713,7 @@ export function PurchaseOrderAlbum({
               className="accent-signal"
               aria-label="すべて選択"
             />
-            すべて選択（{items.length}件）
+            すべて選択（{filteredItems.length}件）
           </label>
           {selectedIds.size > 0 && (
             <span className="text-sm text-ink-soft">{selectedIds.size} 件選択中</span>
@@ -750,14 +761,14 @@ export function PurchaseOrderAlbum({
 
       {loading && <p className="mt-8 text-sm text-ink-soft">読み込み中...</p>}
 
-      {!loading && items.length === 0 && (
+      {!loading && filteredItems.length === 0 && (
         <p className="mt-8 text-sm text-ink-soft">条件に合う発注書はありません。</p>
       )}
 
       {/* Thumbnail Grid */}
-      {!loading && items.length > 0 && viewMode === "thumbnail" && (
+      {!loading && filteredItems.length > 0 && viewMode === "thumbnail" && (
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <li key={item.id} className="relative">
               <label
                 className="absolute left-2 top-2 z-10 flex cursor-pointer items-center"
@@ -819,9 +830,9 @@ export function PurchaseOrderAlbum({
       )}
 
       {/* List View */}
-      {!loading && items.length > 0 && viewMode === "list" && (
+      {!loading && filteredItems.length > 0 && viewMode === "list" && (
         <ul className="mt-6 divide-y divide-line overflow-hidden rounded-md border border-line bg-white">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <li key={item.id} className="flex items-center gap-2 px-3 py-2.5">
               <input
                 type="checkbox"
@@ -992,7 +1003,7 @@ export function PurchaseOrderAlbum({
                       <p>作成: {formatTimestamp(detail.createdAt)}</p>
                       {!detail.canMutate && (
                         <p className="mt-2 text-alert">
-                          閲覧のみです。自分の文書、または編集権限のある会社公開文書だけ変更できます。
+                          閲覧のみです。編集・削除は本人の文書のみ可能です。
                         </p>
                       )}
                     </div>
@@ -1072,7 +1083,7 @@ export function PurchaseOrderAlbum({
                         <h3 className="text-sm font-bold text-ink">
                           明細（{lineItemsDraft.length} 行）
                         </h3>
-                        {!detailDisabled && (
+                        {detail.canMutate && (
                           <button
                             type="button"
                             onClick={addLineItem}
@@ -1100,7 +1111,7 @@ export function PurchaseOrderAlbum({
                                 <th className="pb-1.5 pr-2 font-medium">単価</th>
                                 <th className="pb-1.5 pr-2 font-medium">金額</th>
                                 <th className="pb-1.5 pr-2 font-medium">税率</th>
-                                {!detailDisabled && <th className="pb-1.5 font-medium" />}
+                                {detail.canMutate && <th className="pb-1.5 font-medium" />}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-line/50">
@@ -1191,7 +1202,7 @@ export function PurchaseOrderAlbum({
                                       <option value="8">8%</option>
                                     </select>
                                   </td>
-                                  {!detailDisabled && (
+                                  {detail.canMutate && (
                                     <td className="py-1">
                                       <button
                                         type="button"
@@ -1211,33 +1222,35 @@ export function PurchaseOrderAlbum({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveDetail()}
-                        disabled={detailDisabled}
-                        className="rounded-md bg-signal px-4 py-2 text-sm font-medium text-white transition hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {saving ? "保存中..." : "編集内容を保存"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleReanalyze()}
-                        disabled={detailDisabled}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-signal/50 disabled:opacity-50"
-                      >
-                        <RefreshCw className="h-4 w-4" strokeWidth={1.75} />
-                        {reanalyzing ? "読取中..." : "もう一度読む"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete()}
-                        disabled={detailDisabled}
-                        className="rounded-md bg-alert px-4 py-2 text-sm font-medium text-white transition hover:bg-alert/90 disabled:opacity-50"
-                      >
-                        {deleting ? "削除中..." : "削除"}
-                      </button>
-                    </div>
+                    {detail.canMutate && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveDetail()}
+                          disabled={detailDisabled}
+                          className="rounded-md bg-signal px-4 py-2 text-sm font-medium text-white transition hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {saving ? "保存中..." : "編集内容を保存"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleReanalyze()}
+                          disabled={detailDisabled}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-signal/50 disabled:opacity-50"
+                        >
+                          <RefreshCw className="h-4 w-4" strokeWidth={1.75} />
+                          {reanalyzing ? "読取中..." : "もう一度読む"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete()}
+                          disabled={detailDisabled}
+                          className="rounded-md bg-alert px-4 py-2 text-sm font-medium text-white transition hover:bg-alert/90 disabled:opacity-50"
+                        >
+                          {deleting ? "削除中..." : "削除"}
+                        </button>
+                      </div>
+                    )}
                   </section>
                 </div>
               </div>

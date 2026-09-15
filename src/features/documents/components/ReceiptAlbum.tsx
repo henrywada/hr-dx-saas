@@ -15,7 +15,6 @@ import {
 import { APP_ROUTES } from '@/config/routes';
 import {
   deleteDocument,
-  exportDocumentsCsv,
   fetchDocumentDetail,
   fetchDocumentsList,
   reanalyzeDocument,
@@ -34,6 +33,7 @@ import type {
   DocumentListItem,
   DocumentListScope,
 } from '@/features/documents/types';
+import { filterDocumentListItems } from '@/features/documents/components/documentAlbumFilters';
 
 
 const ALL_TAGS = "";
@@ -188,7 +188,6 @@ export function ReceiptAlbum({
   const [notesDraft, setNotesDraft] = useState("");
   const [tagsDraft, setTagsDraft] = useState("");
   const [contextDateDraft, setContextDateDraft] = useState("");
-  const [companyVisibleDraft, setCompanyVisibleDraft] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; label: string } | null>(
     null
   );
@@ -198,6 +197,20 @@ export function ReceiptAlbum({
       a.localeCompare(b, "ja")
     );
   }, [items]);
+
+
+  const filteredItems = useMemo(
+    () =>
+      filterDocumentListItems(items, {
+        tagFilter,
+        fromDate,
+        toDate,
+        amountMin,
+        amountMax,
+        filterAmount: true,
+      }),
+    [items, tagFilter, fromDate, toDate, amountMin, amountMax]
+  );
 
   const selectedSummary = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -214,7 +227,6 @@ export function ReceiptAlbum({
     setNotesDraft(doc.notes ?? "");
     setTagsDraft((doc.tags ?? []).join(", "));
     setContextDateDraft(doc.contextDate ?? "");
-    setCompanyVisibleDraft(doc.companyVisible);
   }, []);
 
   const loadPage = useCallback(
@@ -322,7 +334,6 @@ export function ReceiptAlbum({
     async function patchDetail(
     id: string,
     body: {
-      companyVisible?: boolean
       notes?: string
       tags?: string[]
       contextDate?: string | null
@@ -375,7 +386,6 @@ export function ReceiptAlbum({
       await patchDetail(
         detail.id,
         {
-          companyVisible: companyVisibleDraft,
           notes: notesDraft,
           tags: parseTagsInput(tagsDraft),
           contextDate: contextDateDraft || null,
@@ -654,14 +664,14 @@ export function ReceiptAlbum({
 
       {loading && <p className="mt-8 text-sm text-ink-soft">読み込み中...</p>}
 
-      {!loading && items.length === 0 && (
+      {!loading && filteredItems.length === 0 && (
         <p className="mt-8 text-sm text-ink-soft">条件に合う領収書はありません。</p>
       )}
 
       {/* Thumbnail Grid */}
-      {!loading && items.length > 0 && viewMode === "thumbnail" && (
+      {!loading && filteredItems.length > 0 && viewMode === "thumbnail" && (
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <li key={item.id} className="relative">
               <button
                 type="button"
@@ -711,9 +721,9 @@ export function ReceiptAlbum({
       )}
 
       {/* List View */}
-      {!loading && items.length > 0 && viewMode === "list" && (
+      {!loading && filteredItems.length > 0 && viewMode === "list" && (
         <ul className="mt-6 divide-y divide-line overflow-hidden rounded-md border border-line bg-white">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <li key={item.id}>
               <button
                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-signal-soft/40"
@@ -876,7 +886,7 @@ export function ReceiptAlbum({
                       <p>作成: {formatTimestamp(detail.createdAt)}</p>
                       {!detail.canMutate && (
                         <p className="mt-2 text-alert">
-                          閲覧のみです。自分の文書、または編集権限のある会社公開文書だけ変更できます。
+                          閲覧のみです。編集・削除は本人の文書のみ可能です。
                         </p>
                       )}
                     </div>
@@ -951,33 +961,35 @@ export function ReceiptAlbum({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveDetail()}
-                        disabled={detailDisabled}
-                        className="rounded-md bg-signal px-4 py-2 text-sm font-medium text-white transition hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {saving ? "保存中..." : "編集内容を保存"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleReanalyze()}
-                        disabled={detailDisabled}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-signal/50 disabled:opacity-50"
-                      >
-                        <RefreshCw className="h-4 w-4" strokeWidth={1.75} />
-                        {reanalyzing ? "読取中..." : "もう一度読む"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete()}
-                        disabled={detailDisabled}
-                        className="rounded-md bg-alert px-4 py-2 text-sm font-medium text-white transition hover:bg-alert/90 disabled:opacity-50"
-                      >
-                        {deleting ? "削除中..." : "削除"}
-                      </button>
-                    </div>
+                    {detail.canMutate && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveDetail()}
+                          disabled={detailDisabled}
+                          className="rounded-md bg-signal px-4 py-2 text-sm font-medium text-white transition hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {saving ? "保存中..." : "編集内容を保存"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleReanalyze()}
+                          disabled={detailDisabled}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-signal/50 disabled:opacity-50"
+                        >
+                          <RefreshCw className="h-4 w-4" strokeWidth={1.75} />
+                          {reanalyzing ? "読取中..." : "もう一度読む"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete()}
+                          disabled={detailDisabled}
+                          className="rounded-md bg-alert px-4 py-2 text-sm font-medium text-white transition hover:bg-alert/90 disabled:opacity-50"
+                        >
+                          {deleting ? "削除中..." : "削除"}
+                        </button>
+                      </div>
+                    )}
                   </section>
                 </div>
               </div>

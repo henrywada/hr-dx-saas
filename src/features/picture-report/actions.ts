@@ -16,10 +16,6 @@ import {
 
 const PICTURE_SENDS_BUCKET = 'picture-sends'
 
-function errorMessage(err: unknown, fallback: string): string {
-  return err instanceof Error ? err.message : fallback
-}
-
 /** 件名マスタを追加する（is_managerのみ許可。RLSでも二重に保護される） */
 export async function createSubject(input: unknown): Promise<PictureReportActionResult> {
   const user = await getServerUser()
@@ -39,7 +35,10 @@ export async function createSubject(input: unknown): Promise<PictureReportAction
     created_by: user.employee_id,
   })
 
-  if (error) return { success: false, error: errorMessage(error, '件名の追加に失敗しました') }
+  if (error) {
+    console.error('[picture-report] createSubject: 件名マスタの追加に失敗', error)
+    return { success: false, error: '件名の追加に失敗しました' }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT)
   return { success: true }
@@ -61,7 +60,10 @@ export async function updateSubject(input: unknown): Promise<PictureReportAction
     .update({ label: parsed.data.label, updated_at: new Date().toISOString() })
     .eq('id', parsed.data.id)
 
-  if (error) return { success: false, error: errorMessage(error, '件名の更新に失敗しました') }
+  if (error) {
+    console.error('[picture-report] updateSubject: 件名マスタの更新に失敗', error)
+    return { success: false, error: '件名の更新に失敗しました' }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT)
   return { success: true }
@@ -79,7 +81,10 @@ export async function deleteSubject(input: unknown): Promise<PictureReportAction
   const supabase = await createClient()
   const { error } = await supabase.from('picture_send_subjects').delete().eq('id', parsed.data.id)
 
-  if (error) return { success: false, error: errorMessage(error, '件名の削除に失敗しました') }
+  if (error) {
+    console.error('[picture-report] deleteSubject: 件名マスタの削除に失敗', error)
+    return { success: false, error: '件名の削除に失敗しました' }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT)
   return { success: true }
@@ -123,8 +128,10 @@ export async function sendPicture(formData: FormData): Promise<PictureReportActi
     .from(PICTURE_SENDS_BUCKET)
     .upload(storagePath, arrayBuffer, { contentType: image.type || 'image/jpeg' })
 
-  if (uploadError)
-    return { success: false, error: errorMessage(uploadError, '画像のアップロードに失敗しました') }
+  if (uploadError) {
+    console.error('[picture-report] sendPicture: 画像のアップロードに失敗', uploadError)
+    return { success: false, error: '画像のアップロードに失敗しました' }
+  }
 
   const { error: insertError } = await supabase.from('picture_sends').insert({
     tenant_id: user.tenant_id,
@@ -140,8 +147,9 @@ export async function sendPicture(formData: FormData): Promise<PictureReportActi
 
   if (insertError) {
     // INSERT失敗時はアップロード済みの画像を掃除する
+    console.error('[picture-report] sendPicture: picture_sends テーブルへの挿入に失敗', insertError)
     await supabase.storage.from(PICTURE_SENDS_BUCKET).remove([storagePath])
-    return { success: false, error: errorMessage(insertError, '送信に失敗しました') }
+    return { success: false, error: '送信に失敗しました' }
   }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT)
@@ -164,7 +172,10 @@ export async function updateSendBody(input: unknown): Promise<PictureReportActio
     .eq('id', parsed.data.id)
     .eq('user_id', user.id)
 
-  if (error) return { success: false, error: errorMessage(error, '本文の保存に失敗しました') }
+  if (error) {
+    console.error('[picture-report] updateSendBody: 本文の更新に失敗', error)
+    return { success: false, error: '本文の保存に失敗しました' }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT_ALBUM)
   return { success: true }
@@ -192,8 +203,10 @@ export async function deleteSend(input: unknown): Promise<PictureReportActionRes
   const { error: storageError } = await supabase.storage
     .from(PICTURE_SENDS_BUCKET)
     .remove([target.storage_path])
-  if (storageError)
-    return { success: false, error: errorMessage(storageError, '画像の削除に失敗しました') }
+  if (storageError) {
+    console.error('[picture-report] deleteSend: ストレージから画像の削除に失敗', storageError)
+    return { success: false, error: '画像の削除に失敗しました' }
+  }
 
   const { error: deleteError } = await supabase
     .from('picture_sends')
@@ -201,8 +214,10 @@ export async function deleteSend(input: unknown): Promise<PictureReportActionRes
     .eq('id', parsed.data.id)
     .eq('user_id', user.id)
 
-  if (deleteError)
-    return { success: false, error: errorMessage(deleteError, '投稿の削除に失敗しました') }
+  if (deleteError) {
+    console.error('[picture-report] deleteSend: picture_sends レコードの削除に失敗', deleteError)
+    return { success: false, error: '投稿の削除に失敗しました' }
+  }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT_ALBUM)
   return { success: true }

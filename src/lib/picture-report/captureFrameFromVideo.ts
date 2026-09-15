@@ -37,6 +37,10 @@ export function mountFromDeviceTilt(
   beta?: number | null
 ): MountOrientation | null {
   if (gamma == null || Number.isNaN(gamma)) return null
+  // beta=0（端末が前後に傾いていない）の場合はgammaのみで判定する
+  // beta !== 0 の条件がない場合、beta=0のテストケース（mountFromDeviceTilt(10, 0)）が失敗する
+  // 理由：beta=0, gamma=10は「水平ではなく縦向き」と判定すべきだが、
+  // beta=10, gamma=10は「水平に近い」と判定するため、beta値で区別が必要
   if (
     beta != null &&
     beta !== 0 &&

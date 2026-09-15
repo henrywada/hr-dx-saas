@@ -22,6 +22,10 @@ test('betaもgammaも小さい（端末が水平に近い）場合はnullを返�
   assert.equal(mountFromDeviceTilt(10, 10), null)
 })
 
+test('betaが0にごく近いが完全に0でない場合はambiguousと判定される', () => {
+  assert.equal(mountFromDeviceTilt(10, 0.001), null)
+})
+
 test('portraitの読み取りは即座に反映される', () => {
   const result = applyTiltReading('portrait', 0, 'landscape')
   assert.deepEqual(result, { tilt: 'portrait', landscapeStreak: 0 })

@@ -15,7 +15,6 @@ interface CaptureHostProps {
   userId: string
   documentType: DocumentType
   defaultContextDate: string
-  isManager: boolean
 }
 
 export function CaptureHost({

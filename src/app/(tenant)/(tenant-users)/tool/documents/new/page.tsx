@@ -38,7 +38,6 @@ export default async function NewDocumentPage({
       userId={user.id}
       documentType={type as (typeof ALLOWED)[number]}
       defaultContextDate={tokyoToday()}
-      isManager={Boolean(user.is_manager)}
     />
   )
 }

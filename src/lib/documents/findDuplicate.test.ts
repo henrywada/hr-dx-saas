@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { findDuplicate } from '@/lib/documents/findDuplicate'
-import { businessCardPlugin } from '@/lib/documents/types/business_card/plugin'
+import { businessCardPlugin } from '@/features/documents/plugins/business_card/plugin'
 
 type TestRow = {
   id: string

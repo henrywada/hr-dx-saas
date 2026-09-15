@@ -15,13 +15,17 @@ export function resolveServiceLinkHref(
   let normalized = routePath.trim()
   if (!normalized.startsWith('/')) normalized = `/${normalized}`
 
-  const segments = normalized.split('/').filter(Boolean)
+  const qIndex = normalized.indexOf('?')
+  const pathname = qIndex >= 0 ? normalized.slice(0, qIndex) : normalized
+  const search = qIndex >= 0 ? normalized.slice(qIndex) : ''
+
+  const segments = pathname.split('/').filter(Boolean)
   let staticSegments = segments.filter(segment => !DYNAMIC_SEGMENT.test(segment))
 
   while (staticSegments.length > 0) {
     const candidate = `/${staticSegments.join('/')}`
     if (resolvePageFilePath(candidate, appDir)) {
-      return candidate
+      return `${candidate}${search}`
     }
     staticSegments = staticSegments.slice(0, -1)
   }

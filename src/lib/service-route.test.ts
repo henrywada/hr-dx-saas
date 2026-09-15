@@ -16,6 +16,11 @@ test('静的 route_path はそのまま返す', () => {
   assert.equal(result, '/adm/job-positions')
 })
 
+test('pathname と search を分離してから解決する', () => {
+  const result = resolveServiceLinkHref('/adm/job-positions?type=x', appDir)
+  assert.equal(result, '/adm/job-positions?type=x')
+})
+
 test('空・未設定は # を返す', () => {
   assert.equal(resolveServiceLinkHref(null), '#')
   assert.equal(resolveServiceLinkHref(''), '#')

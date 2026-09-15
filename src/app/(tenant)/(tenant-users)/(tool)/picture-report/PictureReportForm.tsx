@@ -86,6 +86,13 @@ export function PictureReportForm({
   })
 
   const [subjects, setSubjects] = useState<PictureSendSubject[]>(initialSubjects)
+  // 件名マスタ保存後の router.refresh() で新しい initialSubjects が来たとき同期する。
+  // useEffect はカスケードレンダーになるため、レンダー中に props 変化を検知して調整する。
+  const [syncedInitialSubjects, setSyncedInitialSubjects] = useState(initialSubjects)
+  if (initialSubjects !== syncedInitialSubjects) {
+    setSyncedInitialSubjects(initialSubjects)
+    setSubjects(initialSubjects)
+  }
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [adHocSubject, setAdHocSubject] = useState('')
@@ -330,7 +337,7 @@ export function PictureReportForm({
   const showLiveCamera = cameraState === 'starting' || cameraState === 'ready'
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-5 p-6 pb-12">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 p-6 pb-12">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold text-gray-900">画像送信</h1>
         <div className="flex shrink-0 items-center gap-3 text-sm">
@@ -621,7 +628,6 @@ export function PictureReportForm({
           onClose={() => setModalOpen(false)}
           onSubjectsChanged={() => {
             router.refresh()
-            setSubjects(prev => prev)
           }}
         />
       )}

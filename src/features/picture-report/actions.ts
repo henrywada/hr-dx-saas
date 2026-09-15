@@ -119,6 +119,24 @@ export async function sendPicture(formData: FormData): Promise<PictureReportActi
 
   const supabase = await createClient()
 
+  // マスタ件名はアップロード前に自テナント・自部門所属を検証する（その他の自由入力は subjectId なし）
+  if (parsed.data.subjectId) {
+    const { data: subjectRow, error: subjectError } = await supabase
+      .from('picture_send_subjects')
+      .select('id, tenant_id, division_id')
+      .eq('id', parsed.data.subjectId)
+      .maybeSingle()
+
+    if (
+      subjectError ||
+      !subjectRow ||
+      subjectRow.tenant_id !== user.tenant_id ||
+      subjectRow.division_id !== user.division_id
+    ) {
+      return { success: false, error: '件名が不正です。' }
+    }
+  }
+
   // Asia/Tokyoの日付でストレージのパスを区切る
   const dateSegment = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(
     new Date()
@@ -202,14 +220,8 @@ export async function deleteSend(input: unknown): Promise<PictureReportActionRes
 
   if (fetchError || !target) return { success: false, error: '対象の投稿が見つかりません' }
 
-  const { error: storageError } = await supabase.storage
-    .from(PICTURE_SENDS_BUCKET)
-    .remove([target.storage_path])
-  if (storageError) {
-    console.error('[picture-report] deleteSend: ストレージから画像の削除に失敗', storageError)
-    return { success: false, error: '画像の削除に失敗しました' }
-  }
-
+  // DB行を先に削除する。Storage先行だとファイルだけ消え、画面に壊れた参照が残る。
+  // Storage削除が失敗しても孤児ファイルは許容し、欠落画像＋残存行よりマシとする。
   const { error: deleteError } = await supabase
     .from('picture_sends')
     .delete()
@@ -219,6 +231,16 @@ export async function deleteSend(input: unknown): Promise<PictureReportActionRes
   if (deleteError) {
     console.error('[picture-report] deleteSend: picture_sends レコードの削除に失敗', deleteError)
     return { success: false, error: '投稿の削除に失敗しました' }
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from(PICTURE_SENDS_BUCKET)
+    .remove([target.storage_path])
+  if (storageError) {
+    console.error(
+      '[picture-report] deleteSend: DB削除後のストレージ削除に失敗（孤児ファイル）',
+      storageError
+    )
   }
 
   revalidatePath(APP_ROUTES.TENANT.TOOL_PICTURE_REPORT_ALBUM)
@@ -233,7 +255,9 @@ export async function fetchAlbumPage(params: {
   subjectFilter?: string
   highOnly?: boolean
 }) {
-  return getAlbumPage(params)
+  const limit = Math.min(Math.max(1, params.limit), 100)
+  const offset = Math.max(0, params.offset)
+  return getAlbumPage({ ...params, limit, offset })
 }
 
 /** アルバムの件名フィルタ選択肢取得用（Client ComponentからServer Action経由で呼ぶ） */

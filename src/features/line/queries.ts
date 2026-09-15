@@ -2,11 +2,20 @@
  * LINE友だち招待 — 読み取り専用クエリ（page.tsx から呼ぶ）
  *
  * createClient() のみ使用。createAdminClient() は使わない。
+ *
+ * NOTE: line_friends / line_friend_invites は新規テーブルのため、
+ *       supabase gen types typescript --local を実行後に as any キャストは削除可能。
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import type { FriendInviteCandidate, LineLinkStats } from './types'
+
+/** line_friends の行型（型ファイル再生成まで仮定義） */
+type LineFriendRow = {
+  employee_id: string | null
+  status: string
+}
 
 /**
  * 友だち招待の送信候補一覧を返す
@@ -22,19 +31,19 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
   if (!user || !user.tenant_id) return []
 
   const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
 
   // 連携済みの employee_id を取得（除外リスト）
-  const { data: linkedRows } = await supabase
+  const { data: linkedRows } = (await db
     .from('line_friends')
     .select('employee_id')
     .eq('tenant_id', user.tenant_id)
     .eq('status', 'linked')
-    .not('employee_id', 'is', null)
+    .not('employee_id', 'is', null)) as { data: Array<{ employee_id: string | null }> | null }
 
   const linkedEmployeeIds = new Set<string>(
-    (linkedRows ?? [])
-      .map(r => r.employee_id as string | null)
-      .filter((id): id is string => id !== null)
+    (linkedRows ?? []).map(r => r.employee_id).filter((id): id is string => id !== null)
   )
 
   // user_id が存在する従業員を取得
@@ -85,9 +94,14 @@ export async function getLineLinkStats(): Promise<LineLinkStats> {
   if (user.appRole !== 'developer') throw new Error('Forbidden: developer ロールが必要です')
 
   const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
 
   // line_friends 全件を status 別に集計
-  const { data, error } = await supabase.from('line_friends').select('status')
+  const { data, error } = (await db.from('line_friends').select('status')) as {
+    data: LineFriendRow[] | null
+    error: unknown
+  }
 
   if (error) throw error
 

@@ -98,18 +98,23 @@ export function AlbumView({
         setError(null)
       }
 
-      const result = await fetchAlbumPage({
-        scope: targetScope,
-        offset,
-        limit: pageSize,
-        subjectFilter: subjectFilter || undefined,
-        highOnly,
-      })
+      try {
+        const result = await fetchAlbumPage({
+          scope: targetScope,
+          offset,
+          limit: pageSize,
+          subjectFilter: subjectFilter || undefined,
+          highOnly,
+        })
 
-      setItems(prev => (append ? [...prev, ...result.items] : result.items))
-      setHasMore(result.hasMore)
-      setLoading(false)
-      setLoadingMore(false)
+        setItems(prev => (append ? [...prev, ...result.items] : result.items))
+        setHasMore(result.hasMore)
+      } catch {
+        setError('データの取得に失敗しました。')
+      } finally {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     },
     [pageSize, subjectFilter, highOnly]
   )
@@ -185,21 +190,25 @@ export function AlbumView({
     setDetailError(null)
     setDetailMessage(null)
 
-    const result = await updateSendBody({ id: selected.id, bodyText: bodyDraft })
+    try {
+      const result = await updateSendBody({ id: selected.id, bodyText: bodyDraft })
 
-    setSavingBody(false)
+      // 注: tsconfig.json が strict: false（strictNullChecks 無効）のため
+      // `!result.success` による否定narrowingは正しく機能しない。明示的な比較で判定する。
+      if (result.success === false) {
+        setDetailError(result.error)
+        return
+      }
 
-    // 注: tsconfig.json が strict: false（strictNullChecks 無効）のため
-    // `!result.success` による否定narrowingは正しく機能しない。明示的な比較で判定する。
-    if (result.success === false) {
-      setDetailError(result.error)
-      return
+      setItems(prev =>
+        prev.map(item => (item.id === selected.id ? { ...item, body_text: bodyDraft } : item))
+      )
+      setDetailMessage('本文を保存しました。')
+    } catch {
+      setDetailError('予期しないエラーが発生しました。')
+    } finally {
+      setSavingBody(false)
     }
-
-    setItems(prev =>
-      prev.map(item => (item.id === selected.id ? { ...item, body_text: bodyDraft } : item))
-    )
-    setDetailMessage('本文を保存しました。')
   }
 
   async function handleDelete() {
@@ -211,19 +220,23 @@ export function AlbumView({
     setDetailError(null)
     setDetailMessage(null)
 
-    const result = await deleteSend({ id: selected.id })
+    try {
+      const result = await deleteSend({ id: selected.id })
 
-    setDeleting(false)
+      // 注: strict: false 環境では `!result.success` の否定narrowingが効かないため明示比較にする
+      if (result.success === false) {
+        setDetailError(result.error)
+        return
+      }
 
-    // 注: strict: false 環境では `!result.success` の否定narrowingが効かないため明示比較にする
-    if (result.success === false) {
-      setDetailError(result.error)
-      return
+      setItems(prev => prev.filter(item => item.id !== selected.id))
+      closeDetail()
+      void fetchAlbumSubjectOptions(scope).then(setSubjectOptions)
+    } catch {
+      setDetailError('予期しないエラーが発生しました。')
+    } finally {
+      setDeleting(false)
     }
-
-    setItems(prev => prev.filter(item => item.id !== selected.id))
-    closeDetail()
-    void fetchAlbumSubjectOptions(scope).then(setSubjectOptions)
   }
 
   return (

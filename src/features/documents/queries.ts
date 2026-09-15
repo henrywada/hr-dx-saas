@@ -126,6 +126,9 @@ export async function listDocuments(params: {
   } else if (params.scope === 'team') {
     // RLS が同部門マネージャーに絞る。本人は除外して「部門」タブ相当にする。
     query = query.neq('owner_user_id', user.id)
+    if (user.division_id) {
+      query = query.eq('division_id', user.division_id)
+    }
   } else if (params.scope === 'company') {
     query = query.eq('company_visible', true)
   }

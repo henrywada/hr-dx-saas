@@ -242,6 +242,9 @@ export async function analyzeDocument(input: unknown): Promise<AnalyzeResult> {
   if (!user?.tenant_id || !user.id) {
     return { success: false, error: '認証エラー' }
   }
+  if (!user.division_id) {
+    return { success: false, error: '所属部署が未設定です' }
+  }
 
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {

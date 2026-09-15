@@ -93,7 +93,11 @@ export async function sendFriendInvites(employeeIds: string[]): Promise<SendFrie
 
     // 招待メールを送信
     const inviteUrl = origin + APP_ROUTES.PUBLIC.LINE_FRIEND_INVITE(token)
-    const { subject, html } = buildFriendInviteEmail({ tenantName, inviteUrl })
+    const { subject, html } = buildFriendInviteEmail({
+      tenantName,
+      adminName: user.name || '管理者',
+      inviteUrl,
+    })
 
     try {
       await sendMail({ to: email, subject, html })

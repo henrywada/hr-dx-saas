@@ -16,6 +16,7 @@ import type { FriendInviteCandidate, LineLinkStats } from './types'
  *   2. line_friends に status='linked' で存在する employee_id を除外
  *   3. 各 user_id に get_tenant_employee_auth_email RPC でメールを解決
  *      （取得できない場合は email: '' としてリストに残す）
+ *   4. line_friend_invites の有無で inviteMailStatus（未送信 / 送信済）を付与
  */
 export async function listFriendInviteCandidates(): Promise<FriendInviteCandidate[]> {
   const user = await getServerUser()
@@ -37,6 +38,17 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
     (linkedRows ?? []).map(r => r.employee_id).filter((id): id is string => id !== null)
   )
 
+  // 招待メール送信済みの employee_id（1件でも招待レコードがあれば送信済）
+  const { data: inviteRows, error: inviteError } = await supabase
+    .from('line_friend_invites')
+    .select('employee_id')
+    .eq('tenant_id', user.tenant_id)
+  if (inviteError) throw new Error(`招待履歴の取得に失敗しました: ${inviteError.message}`)
+
+  const invitedEmployeeIds = new Set<string>(
+    (inviteRows ?? []).map(r => r.employee_id).filter((id): id is string => Boolean(id))
+  )
+
   // user_id が存在する従業員を取得
   const { data: employees, error } = await supabase
     .from('employees')
@@ -45,7 +57,8 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
     .not('user_id', 'is', null)
     .order('name')
 
-  if (error || !employees) return []
+  if (error) throw new Error(`従業員一覧の取得に失敗しました: ${error.message}`)
+  if (!employees) return []
 
   // 連携済みを除外し、メールを解決して候補リストを組み立てる
   const candidates: FriendInviteCandidate[] = []
@@ -68,6 +81,7 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
       userId: emp.user_id,
       name: emp.name ?? '',
       email,
+      inviteMailStatus: invitedEmployeeIds.has(emp.id) ? '送信済' : '未送信',
     })
   }
 

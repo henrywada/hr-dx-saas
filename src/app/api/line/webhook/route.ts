@@ -49,27 +49,51 @@ export async function POST(req: Request) {
 
       if (!existing) {
         // 初回フォロー: 未紐付け状態で新規作成
-        await supabase.from('line_friends').insert({
+        const { error: insertError } = await supabase.from('line_friends').insert({
           line_user_id: event.source.userId,
           status: 'unlinked',
         })
+        if (insertError) {
+          console.error(
+            '[LINE Webhook] line_friends insert 失敗:',
+            insertError.code,
+            insertError.message
+          )
+          return NextResponse.json({ error: 'db error' }, { status: 500 })
+        }
       } else if (existing.status === 'blocked') {
         // ブロック解除後の再フォロー:
         //   user_id が紐付いている → linked に復元
         //   user_id が無い        → unlinked に復元
-        await supabase
+        const { error: updateError } = await supabase
           .from('line_friends')
           .update({ status: existing.user_id ? 'linked' : 'unlinked' })
           .eq('id', existing.id)
+        if (updateError) {
+          console.error(
+            '[LINE Webhook] line_friends update (follow restore) 失敗:',
+            updateError.code,
+            updateError.message
+          )
+          return NextResponse.json({ error: 'db error' }, { status: 500 })
+        }
       }
       // 友だち追加時の案内メッセージは LINE 公式アカウント側の
       // 「あいさつメッセージ」機能が送信するため、ここでは送信しない
     } else if (event.type === 'unfollow') {
       // ブロック（アンフォロー）イベント: status を blocked に更新
-      await supabase
+      const { error: updateError } = await supabase
         .from('line_friends')
         .update({ status: 'blocked' })
         .eq('line_user_id', event.source.userId)
+      if (updateError) {
+        console.error(
+          '[LINE Webhook] line_friends update (unfollow) 失敗:',
+          updateError.code,
+          updateError.message
+        )
+        return NextResponse.json({ error: 'db error' }, { status: 500 })
+      }
     }
     // "message" イベントは自由対話を実装しないため無視する
   }

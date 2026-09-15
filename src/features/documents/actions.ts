@@ -37,7 +37,10 @@ import {
   type AnalyzeDuplicatePayload,
   type AnalyzeResult,
   type DocumentActionResult,
+  type DocumentDetail,
+  type ListDocumentsResult,
 } from './types'
+import { getDocumentDetail, listDocuments } from './queries'
 
 type DocumentRow = {
   id: string
@@ -987,4 +990,17 @@ export async function exportDocumentsCsv(
 
   const bodyBuffer = encodeCsvWithBom(csvRows)
   return { csv: bodyBuffer.toString('utf-8') }
+}
+
+
+/** Client から listDocuments を呼ぶラッパー */
+export async function fetchDocumentsList(
+  params: Parameters<typeof listDocuments>[0]
+): Promise<ListDocumentsResult> {
+  return listDocuments(params)
+}
+
+/** Client から getDocumentDetail を呼ぶラッパー */
+export async function fetchDocumentDetail(id: string): Promise<DocumentDetail | null> {
+  return getDocumentDetail(id)
 }

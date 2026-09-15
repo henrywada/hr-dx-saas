@@ -49,6 +49,10 @@ export const APP_ROUTES = {
     ADMIN_OVERTIME_SETTINGS: '/adm/overtime-settings',
     /** テレワーク端末登録申請（(tenant-users) ポータル、URL は /device-pairing） */
     PORTAL_DEVICE_PAIRING: '/device-pairing',
+    /** 画像送信（現場からの写真報告）— (tool)/picture-report */
+    TOOL_PICTURE_REPORT: '/tool/picture-report',
+    /** 写真レポートホルダー（自分の投稿一覧・マネージャーは部下の投稿も閲覧可） */
+    TOOL_PICTURE_REPORT_ALBUM: '/tool/picture-report/album',
     /** 悩み・相談窓口（本人向け） */
     CONSULTATION: '/consultation',
     CONSULTATION_DETAIL: (id: string) => `/consultation/${id}`,

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const channelId = process.env.LINE_LOGIN_CHANNEL_ID
   if (!channelId) {
     console.error('[friend-link-accept] LINE_LOGIN_CHANNEL_ID が未設定です')
-    return NextResponse.json({ error: 'server_error' }, { status: 500 })
+    return NextResponse.json({ error: 'link_failed' }, { status: 500 })
   }
 
   // リクエストボディのパース（バリデーション失敗は 400）

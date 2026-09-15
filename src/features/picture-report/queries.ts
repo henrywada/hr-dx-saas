@@ -32,7 +32,7 @@ export async function canViewTeamAlbum(): Promise<boolean> {
 export async function getPictureSendSubjects(): Promise<PictureSendSubject[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from('picture_send_subjects' as any)
+    .from('picture_send_subjects')
     .select('id, label, created_at, updated_at')
     .order('label')
 
@@ -40,7 +40,7 @@ export async function getPictureSendSubjects(): Promise<PictureSendSubject[]> {
     console.error('件名マスタの取得に失敗しました', error)
     return []
   }
-  return (data ?? []) as unknown as PictureSendSubject[]
+  return (data ?? []) as PictureSendSubject[]
 }
 
 /** 送信画面の「直近の送信」表示用（自分の投稿のみ、RLSでも自動的に絞られる） */
@@ -50,7 +50,7 @@ export async function getMyRecentSends(limit: number): Promise<AlbumItem[]> {
   if (!user?.id) return []
 
   const { data, error } = await supabase
-    .from('picture_sends' as any)
+    .from('picture_sends')
     .select('id, user_id, user_email, subject_text, body_text, priority, storage_path, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
@@ -61,7 +61,7 @@ export async function getMyRecentSends(limit: number): Promise<AlbumItem[]> {
     return []
   }
 
-  return attachSignedUrls(supabase, (data ?? []) as unknown as PictureSendRow[])
+  return attachSignedUrls(supabase, (data ?? []) as PictureSendRow[])
 }
 
 /**
@@ -81,8 +81,8 @@ export async function getAlbumPage(params: {
   const user = await getServerUser()
   if (!user?.id) return { items: [], hasMore: false }
 
-  let query: any = supabase
-    .from('picture_sends' as any)
+  let query = supabase
+    .from('picture_sends')
     .select('id, user_id, user_email, subject_text, body_text, priority, storage_path, created_at')
     .order('created_at', { ascending: false })
     .range(params.offset, params.offset + params.limit - 1)
@@ -120,10 +120,7 @@ export async function getAlbumSubjectOptions(scope: AlbumScope): Promise<string[
   const user = await getServerUser()
   if (!user?.id) return []
 
-  let query: any = supabase
-    .from('picture_sends' as any)
-    .select('subject_text')
-    .order('subject_text')
+  let query = supabase.from('picture_sends').select('subject_text').order('subject_text')
   query = scope === 'own' ? query.eq('user_id', user.id) : query.neq('user_id', user.id)
 
   const { data, error } = await query

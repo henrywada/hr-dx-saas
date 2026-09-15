@@ -6983,6 +6983,136 @@ export type Database = {
           },
         ]
       }
+      picture_send_subjects: {
+        Row: {
+          created_at: string
+          created_by: string
+          division_id: string
+          id: string
+          label: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          division_id: string
+          id?: string
+          label: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          division_id?: string
+          id?: string
+          label?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picture_send_subjects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picture_send_subjects_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picture_send_subjects_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "picture_send_subjects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      picture_sends: {
+        Row: {
+          body_text: string
+          created_at: string
+          division_id: string
+          id: string
+          priority: string
+          storage_path: string
+          subject_id: string | null
+          subject_text: string
+          tenant_id: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          body_text?: string
+          created_at?: string
+          division_id: string
+          id?: string
+          priority?: string
+          storage_path: string
+          subject_id?: string | null
+          subject_text: string
+          tenant_id: string
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          body_text?: string
+          created_at?: string
+          division_id?: string
+          id?: string
+          priority?: string
+          storage_path?: string
+          subject_id?: string | null
+          subject_text?: string
+          tenant_id?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picture_sends_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picture_sends_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "stress_group_analysis"
+            referencedColumns: ["division_id"]
+          },
+          {
+            foreignKeyName: "picture_sends_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "picture_send_subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picture_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_config: {
         Row: {
           available: boolean
@@ -12677,7 +12807,9 @@ export type Database = {
         Returns: string
       }
       current_employee_app_role: { Args: never; Returns: string }
+      current_employee_division_id: { Args: never; Returns: string }
       current_employee_id: { Args: never; Returns: string }
+      current_employee_is_manager: { Args: never; Returns: boolean }
       current_tenant_id: { Args: never; Returns: string }
       delete_auth_user: { Args: { p_user_id: string }; Returns: undefined }
       delete_division_safe: {

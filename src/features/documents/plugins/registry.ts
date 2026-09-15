@@ -15,3 +15,39 @@ const plugins: Record<string, DocumentTypePlugin> = {
 export function getDocumentPlugin(id: string): DocumentTypePlugin | null {
   return plugins[id] ?? null
 }
+
+export interface ResolvedDocumentPlugin {
+  plugin: DocumentTypePlugin
+  documentMode: string | null
+}
+
+/** 区分（mode）付き種別（領収書等）のプラグイン解決 */
+export function resolveDocumentPlugin(
+  documentType: string,
+  modeId: string | null
+): ResolvedDocumentPlugin | null {
+  const base = getDocumentPlugin(documentType)
+  if (!base) {
+    return null
+  }
+
+  if (!base.modes || base.modes.length === 0) {
+    return { plugin: base, documentMode: null }
+  }
+
+  const mode = base.modes.find(m => m.id === modeId)
+  if (!mode) {
+    return null
+  }
+
+  return {
+    plugin: {
+      ...base,
+      analyzePrompt: mode.analyzePrompt,
+      parseExtracted: mode.parseExtracted,
+      toIndexedFields: mode.toIndexedFields,
+      duplicateKeys: mode.duplicateKeys,
+    },
+    documentMode: mode.id,
+  }
+}

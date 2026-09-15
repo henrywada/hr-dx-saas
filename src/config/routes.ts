@@ -53,6 +53,10 @@ export const APP_ROUTES = {
     TOOL_PICTURE_REPORT: '/tool/picture-report',
     /** 写真レポートホルダー（自分の投稿一覧・マネージャーは部下の投稿も閲覧可） */
     TOOL_PICTURE_REPORT_ALBUM: '/tool/picture-report/album',
+    /** 文書ホルダー一覧（?type=business_card|invoice|purchase_order|receipt） */
+    TOOL_DOCUMENTS: '/tool/documents',
+    /** 文書撮影・登録 */
+    TOOL_DOCUMENTS_NEW: '/tool/documents/new',
     /** 悩み・相談窓口（本人向け） */
     CONSULTATION: '/consultation',
     CONSULTATION_DETAIL: (id: string) => `/consultation/${id}`,

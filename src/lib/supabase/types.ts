@@ -5871,6 +5871,108 @@ export type Database = {
           },
         ]
       }
+      line_friend_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          employee_id: string
+          expires_at: string
+          id: string
+          invite_token: string
+          tenant_id: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          employee_id: string
+          expires_at: string
+          id?: string
+          invite_token: string
+          tenant_id: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          employee_id?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          tenant_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_friend_invites_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_friend_invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_friends: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          employee_id: string | null
+          id: string
+          line_user_id: string
+          linked_at: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          employee_id?: string | null
+          id?: string
+          line_user_id: string
+          linked_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          employee_id?: string | null
+          id?: string
+          line_user_id?: string
+          linked_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_friends_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_friends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_employee_overtime: {
         Row: {
           approved_overtime_hours: number | null
@@ -10344,6 +10446,72 @@ export type Database = {
           },
         ]
       }
+      task_comment_one_on_one_links: {
+        Row: {
+          created_at: string
+          id: string
+          linked_by_employee_id: string
+          one_on_one_session_id: string | null
+          one_on_one_upcoming_id: string | null
+          task_comment_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_by_employee_id: string
+          one_on_one_session_id?: string | null
+          one_on_one_upcoming_id?: string | null
+          task_comment_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_by_employee_id?: string
+          one_on_one_session_id?: string | null
+          one_on_one_upcoming_id?: string | null
+          task_comment_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comment_one_on_one_links_linked_by_employee_id_fkey"
+            columns: ["linked_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comment_one_on_one_links_one_on_one_session_id_fkey"
+            columns: ["one_on_one_session_id"]
+            isOneToOne: false
+            referencedRelation: "one_on_one_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comment_one_on_one_links_one_on_one_upcoming_id_fkey"
+            columns: ["one_on_one_upcoming_id"]
+            isOneToOne: false
+            referencedRelation: "one_on_one_upcoming"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comment_one_on_one_links_task_comment_id_fkey"
+            columns: ["task_comment_id"]
+            isOneToOne: false
+            referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comment_one_on_one_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           body: string
@@ -12460,6 +12628,14 @@ export type Database = {
         Args: { p_task_group_id: string }
         Returns: boolean
       }
+      can_link_comment_to_one_on_one: {
+        Args: {
+          p_one_on_one_session_id: string
+          p_one_on_one_upcoming_id: string
+          p_task_comment_id: string
+        }
+        Returns: boolean
+      }
       can_log_work_on_task: { Args: { p_task_id: string }; Returns: boolean }
       can_moderate_task_comment: {
         Args: { p_task_id: string }
@@ -12467,6 +12643,14 @@ export type Database = {
       }
       can_send_advice: {
         Args: { p_target_employee_id: string; p_task_group_id: string }
+        Returns: boolean
+      }
+      can_send_general: {
+        Args: {
+          p_target_employee_id: string
+          p_task_group_id: string
+          p_task_id: string
+        }
         Returns: boolean
       }
       can_send_report: {

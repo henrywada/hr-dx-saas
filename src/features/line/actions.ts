@@ -29,9 +29,6 @@ export async function sendFriendInvites(employeeIds: string[]): Promise<SendFrie
   if (!user.tenant_id) throw new Error('Unauthorized')
 
   const supabase = await createClient()
-  // NOTE: line_friend_invites は新規テーブルのため、型ファイル再生成まで as any でキャスト
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
 
   // テナントの会社名を取得（招待メールの件名・本文に使用）
   const { data: tenantRow } = await supabase
@@ -68,7 +65,7 @@ export async function sendFriendInvites(employeeIds: string[]): Promise<SendFrie
     const token = generateInviteToken()
     const expiresAt = inviteExpiryDate().toISOString()
 
-    const { error: insertError } = await db.from('line_friend_invites').insert({
+    const { error: insertError } = await supabase.from('line_friend_invites').insert({
       tenant_id: user.tenant_id,
       employee_id: employeeId,
       invite_token: token,

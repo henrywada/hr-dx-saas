@@ -35,12 +35,17 @@ export async function listFriendInviteCandidates(): Promise<FriendInviteCandidat
   const db = supabase as any
 
   // 連携済みの employee_id を取得（除外リスト）
-  const { data: linkedRows } = (await db
+  // エラー時は throw して page の error boundary に委ねる（サイレントに空セットにしない）
+  const { data: linkedRows, error: linkedError } = (await db
     .from('line_friends')
     .select('employee_id')
     .eq('tenant_id', user.tenant_id)
     .eq('status', 'linked')
-    .not('employee_id', 'is', null)) as { data: Array<{ employee_id: string | null }> | null }
+    .not('employee_id', 'is', null)) as {
+    data: Array<{ employee_id: string | null }> | null
+    error: { message: string } | null
+  }
+  if (linkedError) throw new Error(`連携済み従業員の取得に失敗しました: ${linkedError.message}`)
 
   const linkedEmployeeIds = new Set<string>(
     (linkedRows ?? []).map(r => r.employee_id).filter((id): id is string => id !== null)

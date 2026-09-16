@@ -13,6 +13,7 @@ import type {
   ProductManualType,
   PublicTraceInfo,
 } from './types'
+import { PRODUCT_MANUAL_TYPES, isProductManualType } from './product-manuals-constants'
 
 /** UUID形式の簡易検証（公開ページのURLパラメータ検証用） */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -403,7 +404,6 @@ export async function getPublicTraceInfo(traceLabelId: string): Promise<PublicTr
   }
 }
 
-
 /**
  * 製品取扱説明書（画像メタデータ）一覧を取得する。
  * 公開 QR 向けのため環境ごとに種別1件（テナント非依存）。
@@ -434,7 +434,7 @@ export async function getProductManuals(): Promise<ProductManual[]> {
 export async function getPublicProductManual(
   manualType: ProductManualType
 ): Promise<ProductManual | null> {
-  if (manualType !== 'aircon' && manualType !== 'bathroom') return null
+  if (!isProductManualType(manualType)) return null
 
   // 公開 QR 向け。anon SELECT ポリシーがあるが、未ログインでも確実に読むため admin を使用
   const supabase = createAdminClient()
@@ -459,17 +459,20 @@ export async function getPublicProductManual(
 }
 
 /**
- * 公開メニュー用：エアコン・浴室の取扱説明書をまとめて取得する
+ * 公開メニュー用：種別に登録済みの取扱説明書をまとめて取得する
  */
 export async function getPublicProductManuals(): Promise<
   Partial<Record<ProductManualType, ProductManual>>
 > {
-  const [aircon, bathroom] = await Promise.all([
-    getPublicProductManual('aircon'),
-    getPublicProductManual('bathroom'),
-  ])
+  const entries = await Promise.all(
+    PRODUCT_MANUAL_TYPES.map(async type => {
+      const manual = await getPublicProductManual(type)
+      return [type, manual] as const
+    })
+  )
   const result: Partial<Record<ProductManualType, ProductManual>> = {}
-  if (aircon) result.aircon = aircon
-  if (bathroom) result.bathroom = bathroom
+  for (const [type, manual] of entries) {
+    if (manual) result[type] = manual
+  }
   return result
 }

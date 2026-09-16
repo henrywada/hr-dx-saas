@@ -2,11 +2,13 @@ import { Metadata } from 'next'
 import { BookOpen } from 'lucide-react'
 import { getProductManuals } from '@/features/myou/queries'
 import MyouBackLink from '../components/MyouBackLink'
+import ProductManualPublicQrButton from '../components/ProductManualPublicQrButton'
 import ProductManualUploadForm from '../components/ProductManualUploadForm'
 
 export const metadata: Metadata = {
   title: '取扱説明書画像のアップロード',
-  description: 'エアコン用・浴室用の取扱説明書画像をアップロードして公開ページに反映します。',
+  description:
+    'エアコン用・浴室用・物置・収納スペース用の取扱説明書画像をアップロードして公開ページに反映します。',
 }
 
 export default async function MyouProductManualsUploadPage() {
@@ -21,8 +23,8 @@ export default async function MyouProductManualsUploadPage() {
             取扱説明書画像のアップロード
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            画像をアップロードし、エアコン用または浴室用として保存します。公開
-            QR（テナント不要）に反映されます。
+            画像をアップロードし、エアコン用・浴室用・物置・収納スペース用として保存します。公開
+            QRコードに反映されます。
           </p>
         </div>
         <MyouBackLink />
@@ -30,6 +32,7 @@ export default async function MyouProductManualsUploadPage() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5">
         <ProductManualUploadForm initialManuals={manuals} />
+        <ProductManualPublicQrButton />
       </div>
     </div>
   )

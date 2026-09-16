@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { getPublicProductManual } from '@/features/myou/queries'
+import { isProductManualType } from '@/features/myou/product-manuals-constants'
 import type { ProductManualType } from '@/features/myou/types'
 import { PRODUCT_MANUAL_LABELS } from '@/features/myou/types'
 import { APP_ROUTES } from '@/config/routes'
@@ -14,7 +15,7 @@ type Props = {
 }
 
 function isManualType(value: string): value is ProductManualType {
-  return value === 'aircon' || value === 'bathroom'
+  return isProductManualType(value)
 }
 
 export async function generateMetadata({ params }: Props) {

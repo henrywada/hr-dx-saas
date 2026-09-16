@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bath, CheckCircle2, Upload, Wind, XCircle } from 'lucide-react'
+import { CheckCircle2, Upload, XCircle } from 'lucide-react'
 import { uploadProductManual } from '@/features/myou/product-manuals-upload'
 import type { ProductManual, ProductManualType } from '@/features/myou/types'
 import { PRODUCT_MANUAL_LABELS } from '@/features/myou/types'
 import {
   MYOU_PRODUCT_MANUAL_MAX_MB,
+  PRODUCT_MANUAL_ICONS,
   PRODUCT_MANUAL_TYPES,
 } from '@/features/myou/product-manuals-constants'
 
@@ -99,7 +100,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PRODUCT_MANUAL_TYPES.map(type => {
               const selected = manualType === type
-              const Icon = type === 'aircon' ? Wind : Bath
+              const Icon = PRODUCT_MANUAL_ICONS[type]
               return (
                 <label
                   key={type}
@@ -125,7 +126,7 @@ export default function ProductManualUploadForm({ initialManuals }: Props) {
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                     <Icon className="h-4 w-4" aria-hidden />
                   </span>
-                  <span className="text-xs font-semibold text-slate-800">
+                  <span className="text-xs font-semibold leading-snug text-slate-800">
                     {PRODUCT_MANUAL_LABELS[type]}
                   </span>
                 </label>

@@ -215,12 +215,13 @@ export interface PublicTraceInfo {
 }
 
 /** 製品取扱説明書の種別 */
-export type ProductManualType = 'aircon' | 'bathroom'
+export type ProductManualType = 'aircon' | 'bathroom' | 'storage'
 
 /** 製品取扱説明書の保存名称（ラジオ選択・Storage ファイル名に使用） */
 export const PRODUCT_MANUAL_LABELS: Record<ProductManualType, string> = {
   aircon: 'エアコン用取扱説明書',
   bathroom: '浴室用取扱説明書',
+  storage: '物置・収納スペース用取扱説明書',
 }
 
 /** 製品取扱説明書メタデータ */

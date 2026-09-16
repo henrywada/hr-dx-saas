@@ -3,6 +3,7 @@
  * 公開 QR 向けのためテナント非依存。実体は Supabase Storage（環境別）。
  * Git / public/ には置かない → ローカル検証画像は本番に混入しない。
  */
+import { Bath, Warehouse, Wind, type LucideIcon } from 'lucide-react'
 import type { ProductManualType } from './types'
 import { PRODUCT_MANUAL_LABELS } from './types'
 
@@ -18,7 +19,18 @@ export const MYOU_PRODUCT_MANUAL_ALLOWED_MIME = [
   'image/webp',
 ] as const
 
-export const PRODUCT_MANUAL_TYPES: ProductManualType[] = ['aircon', 'bathroom']
+export const PRODUCT_MANUAL_TYPES: ProductManualType[] = ['aircon', 'bathroom', 'storage']
+
+/** 種別ごとの表示アイコン（アップロード画面・公開メニューで共用） */
+export const PRODUCT_MANUAL_ICONS: Record<ProductManualType, LucideIcon> = {
+  aircon: Wind,
+  bathroom: Bath,
+  storage: Warehouse,
+}
+
+export function isProductManualType(value: string): value is ProductManualType {
+  return (PRODUCT_MANUAL_TYPES as readonly string[]).includes(value)
+}
 
 export function getProductManualLabel(type: ProductManualType): string {
   return PRODUCT_MANUAL_LABELS[type]
@@ -28,10 +40,7 @@ export function getProductManualLabel(type: ProductManualType): string {
  * Storage パス（テナント非依存）: {manual_type}.{ext}
  * DB の label / file_name は日本語名称を使用する
  */
-export function buildProductManualStoragePath(
-  manualType: ProductManualType,
-  ext: string
-): string {
+export function buildProductManualStoragePath(manualType: ProductManualType, ext: string): string {
   const safeExt = ext.replace(/^\./, '').toLowerCase() || 'png'
   return `${manualType}.${safeExt}`
 }

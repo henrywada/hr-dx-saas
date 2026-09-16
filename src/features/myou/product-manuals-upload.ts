@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import type { ProductManual, ProductManualType } from './types'
+import type { ProductManual } from './types'
 import { PRODUCT_MANUAL_LABELS } from './types'
 import {
   MYOU_PRODUCT_MANUALS_BUCKET,
@@ -13,6 +13,7 @@ import {
   MYOU_PRODUCT_MANUAL_MAX_MB,
   buildProductManualStoragePath,
   getProductManualLabel,
+  isProductManualType,
 } from './product-manuals-constants'
 
 export type UploadProductManualResult =
@@ -47,10 +48,10 @@ export async function uploadProductManual(formData: FormData): Promise<UploadPro
   }
 
   const manualTypeRaw = String(formData.get('manualType') ?? '')
-  if (manualTypeRaw !== 'aircon' && manualTypeRaw !== 'bathroom') {
+  if (!isProductManualType(manualTypeRaw)) {
     return { success: false, error: '取扱説明書の種別を選択してください。' }
   }
-  const manualType = manualTypeRaw as ProductManualType
+  const manualType = manualTypeRaw
   const label = getProductManualLabel(manualType)
 
   const file = formData.get('file')

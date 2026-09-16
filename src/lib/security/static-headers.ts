@@ -24,13 +24,15 @@ export const STATIC_SECURITY_HEADERS: ReadonlyArray<{ key: string; value: string
   { key: 'X-DNS-Prefetch-Control', value: 'off' },
   {
     key: 'Permissions-Policy',
-    // camera / geolocation は self を許可する必要がある：
+    // camera / geolocation / microphone は self を許可する必要がある：
     // - camera      … QR 打刻（html5-qrcode）、myou の QR スキャン
     // - geolocation … テレワーク勤怠の打刻位置取得（ジオフェンス）
+    // - microphone  … 画像送信の音声入力（Web Speech API）。空指定だと
+    //                 許可ダイアログ前に not-allowed になる
     value: [
       'camera=(self)',
       'geolocation=(self)',
-      'microphone=()',
+      'microphone=(self)',
       'payment=(self)',
       'usb=()',
       'serial=()',

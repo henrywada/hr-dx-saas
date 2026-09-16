@@ -115,3 +115,10 @@ body {
     inset: 0;
   }
 }
+
+/* 文書撮影画面: 親の overflow-x-auto で横スクロールが出ないようにする */
+@media (max-width: 767px) {
+  main:has(.capture-form-shell) > div > div {
+    overflow-x: hidden;
+  }
+}

@@ -439,7 +439,7 @@ export function PictureReportForm({
               if (speechListening) stopSpeech()
               setBodyText(e.target.value)
             }}
-            rows={4}
+            rows={7}
             placeholder="メモや報告内容を入力"
             disabled={sendStatus === 'sending'}
             className="w-full resize-y rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50"

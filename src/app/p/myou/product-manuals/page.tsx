@@ -1,6 +1,7 @@
-import { BookOpen, ChevronRight } from 'lucide-react'
+import { BookOpen, ChevronRight, Home } from 'lucide-react'
 import { PRODUCT_MANUALS } from './manuals'
 import { getPublicProductManuals } from '@/features/myou/queries'
+import { APP_ROUTES } from '@/config/routes'
 
 /** アップロード後も最新を返す（ビルド時の空状態キャッシュを防ぐ） */
 export const dynamic = 'force-dynamic'
@@ -78,8 +79,17 @@ export default async function MyouProductManualsPage() {
           </ul>
         </nav>
 
-        <footer className="border-t border-emerald-50 bg-emerald-50/40 px-6 py-4">
+        <footer className="flex items-center justify-between gap-3 border-t border-emerald-50 bg-emerald-50/40 px-6 py-4">
           <p className="text-xs text-slate-500">ミュー株式会社</p>
+          <a
+            href={APP_ROUTES.PUBLIC.MYOU_CORPORATE_SITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+          >
+            <Home className="h-3.5 w-3.5" aria-hidden />
+            ホームページへ
+          </a>
         </footer>
       </div>
     </div>

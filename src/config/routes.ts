@@ -14,6 +14,8 @@ export const APP_ROUTES = {
     PRIVACY_POLICY: '/p/privacy-policy',
     /** 利用規約（認証不要） */
     TERMS_OF_SERVICE: '/p/terms',
+    /** ミュー株式会社のコーポレートサイト（公開取扱説明書フッターから遷移） */
+    MYOU_CORPORATE_SITE: 'https://myou-co.net/',
   },
   AUTH: {
     LOGIN: '/login',

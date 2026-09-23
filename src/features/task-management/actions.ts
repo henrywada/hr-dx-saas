@@ -13,16 +13,6 @@ import {
   type CreateMilestoneInput,
   createTaskGroupSchema,
   type CreateTaskGroupInput,
-  updateTaskGroupSchema,
-  type UpdateTaskGroupInput,
-  assignManagerSchema,
-  type AssignManagerInput,
-  assignMemberSchema,
-  type AssignMemberInput,
-  removeMemberSchema,
-  type RemoveMemberInput,
-  createTaskSchema,
-  type CreateTaskInput,
   createSimpleTaskSchema,
   type CreateSimpleTaskInput,
   updateTaskStatusSchema,
@@ -253,174 +243,6 @@ export async function createTaskGroup(input: CreateTaskGroupInput): Promise<{ id
 }
 
 /**
- * タスクグループ（task_groups）の名前・説明・目標（達成基準）を更新する。
- * 更新可否（責任者・マネージャー）は RLS の task_groups UPDATE ポリシーが強制する
- * （Phase4要求18でマネージャーにも拡張済み）。0件更新時はエラーを投げる（updateTaskStatus等と同じパターン）。
- */
-export async function updateTaskGroup(input: UpdateTaskGroupInput): Promise<void> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const parsed = updateTaskGroupSchema.parse(input)
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('task_groups')
-    .update({
-      name: parsed.name,
-      description: parsed.description ?? null,
-      goal_summary: parsed.goalSummary ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', parsed.taskGroupId)
-    .select('id')
-
-  if (error) throw error
-  if (data === null || data.length === 0) {
-    throw new Error('このタスクグループを編集する権限がありません')
-  }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
-}
-
-/**
- * タスクグループ（task_groups）にマネージャーを割り当てる。
- *
- * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
- * 従業員レコードが無いユーザーは undefined になりうる）。
- * task_group_managers.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
- * 実際の割当可否（責任者のみ）は RLS の INSERT ポリシーが強制する
- * （`is_task_group_owner`）。`canAssignManager`（Task5）は UI 表示制御用。
- */
-export async function assignManager(input: AssignManagerInput): Promise<void> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-  if (!user.tenant_id) {
-    throw new Error('テナント情報が取得できませんでした')
-  }
-
-  const parsed = assignManagerSchema.parse(input)
-  const supabase = await createClient()
-
-  const { error } = await supabase.from('task_group_managers').insert({
-    tenant_id: user.tenant_id,
-    task_group_id: parsed.taskGroupId,
-    employee_id: parsed.employeeId,
-  })
-
-  if (error) throw error
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
-}
-
-/**
- * タスクグループ（task_groups）にメンバーを追加する。
- *
- * 注意: AppUser.tenant_id は optional（`src/types/auth.ts` 参照。
- * 従業員レコードが無いユーザーは undefined になりうる）。
- * task_group_members.tenant_id は NOT NULL のため、ここで欠落を検出して早期に弾く。
- * 実際の割当可否（責任者またはマネージャー）は RLS の INSERT ポリシーが強制する
- * （`is_task_group_owner` / `is_task_group_manager`）。`canAssignMember`（Task5）は UI 表示制御用。
- */
-export async function assignMember(input: AssignMemberInput): Promise<void> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-  if (!user.tenant_id) {
-    throw new Error('テナント情報が取得できませんでした')
-  }
-
-  const parsed = assignMemberSchema.parse(input)
-  const supabase = await createClient()
-
-  const { error } = await supabase.from('task_group_members').insert({
-    tenant_id: user.tenant_id,
-    task_group_id: parsed.taskGroupId,
-    employee_id: parsed.employeeId,
-  })
-
-  if (error) throw error
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
-}
-
-/**
- * タスクグループ（task_groups）からメンバーを解除する。
- *
- * この操作は tenant_id を書き込みに使用しないため（DELETE の絞り込みは
- * task_group_id / employee_id のみ、テナント分離は RLS の USING 句が担保する）、
- * user.tenant_id の欠落チェックは不要。
- * 実際の解除可否（責任者またはマネージャー）は RLS の DELETE ポリシーが強制する。
- */
-export async function removeMember(input: RemoveMemberInput): Promise<void> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const parsed = removeMemberSchema.parse(input)
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('task_group_members')
-    .delete()
-    .eq('task_group_id', parsed.taskGroupId)
-    .eq('employee_id', parsed.employeeId)
-
-  if (error) throw error
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
-}
-
-/**
- * タスク（tasks）を新規作成する。
- *
- * 注意: AppUser.tenant_id / employee_id は共に optional
- * （`src/types/auth.ts` 参照。従業員レコードが無いユーザーは undefined になりうる）。
- * tasks.tenant_id / created_by_employee_id は NOT NULL のため、
- * ここで欠落を検出して早期に弾く。
- */
-export async function createTask(input: CreateTaskInput): Promise<{ id: string }> {
-  const user = await getServerUser()
-  if (!user) throw new Error('Unauthorized')
-  if (!user.tenant_id || !user.employee_id) {
-    throw new Error('テナントまたは従業員情報が取得できませんでした')
-  }
-
-  const parsed = createTaskSchema.parse(input)
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({
-      tenant_id: user.tenant_id,
-      task_group_id: parsed.taskGroupId,
-      title: parsed.title,
-      description: parsed.description ?? null,
-      goal_summary: parsed.goalSummary ?? null,
-      priority: parsed.priority,
-      due_date: parsed.dueDate ?? null,
-      created_by_employee_id: user.employee_id,
-    })
-    .select('id')
-    .single()
-
-  if (error) throw error
-
-  if (parsed.assigneeEmployeeIds.length > 0) {
-    const { error: assigneeError } = await supabase.from('task_assignees').insert(
-      parsed.assigneeEmployeeIds.map(employeeId => ({
-        tenant_id: user.tenant_id!,
-        task_id: data.id,
-        employee_id: employeeId,
-      }))
-    )
-    if (assigneeError) throw assigneeError
-  }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(parsed.taskGroupId))
-
-  return { id: data.id }
-}
-
-/**
  * Phase5のシンプルUI専用: タスクを作成し、同時にタスク責任者を task_assignees（role='responsible'）
  * および task_group_managers に登録する。
  * task_group_managers への同期登録は、責任者・メンバーが既存RLS（task_objectives_select等の
@@ -496,14 +318,6 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<vo
   const parsed = updateTaskStatusSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: task, error: fetchError } = await supabase
-    .from('tasks')
-    .select('task_group_id')
-    .eq('id', parsed.taskId)
-    .single()
-
-  if (fetchError) throw fetchError
-
   const { data, error } = await supabase
     .from('tasks')
     .update({ status: parsed.status, updated_at: new Date().toISOString() })
@@ -514,8 +328,6 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<vo
   if (data === null || data.length === 0) {
     throw new Error('このタスクを更新する権限がありません')
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**
@@ -532,14 +344,6 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
   const parsed = updateTaskProgressSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: task, error: fetchError } = await supabase
-    .from('tasks')
-    .select('task_group_id')
-    .eq('id', parsed.taskId)
-    .single()
-
-  if (fetchError) throw fetchError
-
   const { data, error } = await supabase
     .from('tasks')
     .update({ progress_percent: parsed.progressPercent, updated_at: new Date().toISOString() })
@@ -550,8 +354,6 @@ export async function updateTaskProgress(input: UpdateTaskProgressInput): Promis
   if (data === null || data.length === 0) {
     throw new Error('このタスクを更新する権限がありません')
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**
@@ -638,8 +440,6 @@ export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void
     )
     if (managerError) throw managerError
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**
@@ -651,7 +451,7 @@ export async function addTaskAssignee(input: AddTaskAssigneeInput): Promise<void
  * task_group_managers/task_group_members への同期登録と対になる後片付けとして、
  * 解除したロールで同一タスクグループ内の他タスクに割当が残っていなければ、
  * そのグループの task_group_managers/task_group_members からも解除する
- * （`removeMember` と同じ「削除して終わり」のスタイルに合わせ、行数チェックは行わない）。
+ * （「削除して終わり」のスタイルとし、行数チェックは行わない）。
  */
 export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promise<void> {
   const user = await getServerUser()
@@ -712,8 +512,6 @@ export async function removeTaskAssignee(input: RemoveTaskAssigneeInput): Promis
       if (memberCleanupError) throw memberCleanupError
     }
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**
@@ -783,20 +581,6 @@ export async function createComment(input: CreateCommentInput): Promise<{ id: st
   const parsed = createCommentSchema.parse(input)
   const supabase = await createClient()
 
-  // revalidatePath 用に対象タスクグループのIDを解決する
-  let taskGroupIdForRevalidate: string
-  if (parsed.taskGroupId) {
-    taskGroupIdForRevalidate = parsed.taskGroupId
-  } else {
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('task_group_id')
-      .eq('id', parsed.taskId)
-      .single()
-    if (taskError) throw taskError
-    taskGroupIdForRevalidate = task.task_group_id
-  }
-
   const { data, error } = await supabase
     .from('task_comments')
     .insert({
@@ -813,8 +597,6 @@ export async function createComment(input: CreateCommentInput): Promise<{ id: st
     .single()
 
   if (error) throw error
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
 
   return { id: data.id }
 }
@@ -834,14 +616,6 @@ export async function updateComment(input: UpdateCommentInput): Promise<void> {
   const parsed = updateCommentSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: comment, error: fetchError } = await supabase
-    .from('task_comments')
-    .select('task_id, task_group_id')
-    .eq('id', parsed.commentId)
-    .single()
-
-  if (fetchError) throw fetchError
-
   const { data, error } = await supabase
     .from('task_comments')
     .update({ body: parsed.body, updated_at: new Date().toISOString() })
@@ -851,15 +625,6 @@ export async function updateComment(input: UpdateCommentInput): Promise<void> {
   if (error) throw error
   if (data === null || data.length === 0) {
     throw new Error('このコメントを編集する権限がありません')
-  }
-
-  const taskGroupIdForRevalidate =
-    comment.task_group_id ??
-    (await supabase.from('tasks').select('task_group_id').eq('id', comment.task_id!).single()).data
-      ?.task_group_id
-
-  if (taskGroupIdForRevalidate) {
-    revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
   }
 }
 
@@ -875,14 +640,6 @@ export async function deleteComment(input: DeleteCommentInput): Promise<void> {
   const parsed = deleteCommentSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: comment, error: fetchError } = await supabase
-    .from('task_comments')
-    .select('task_id, task_group_id')
-    .eq('id', parsed.commentId)
-    .single()
-
-  if (fetchError) throw fetchError
-
   const { data, error } = await supabase
     .from('task_comments')
     .delete()
@@ -892,15 +649,6 @@ export async function deleteComment(input: DeleteCommentInput): Promise<void> {
   if (error) throw error
   if (data === null || data.length === 0) {
     throw new Error('このコメントを削除する権限がありません')
-  }
-
-  const taskGroupIdForRevalidate =
-    comment.task_group_id ??
-    (await supabase.from('tasks').select('task_group_id').eq('id', comment.task_id!).single()).data
-      ?.task_group_id
-
-  if (taskGroupIdForRevalidate) {
-    revalidatePath(APP_ROUTES.tasks.groupDetail(taskGroupIdForRevalidate))
   }
 }
 
@@ -928,7 +676,7 @@ export async function getTaskCommentsAction(
  *
  * 注意: AppUser.tenant_id / employee_id は共に optional のため早期に弾く。
  * 記録可否（対象タスクへの記録権限）は RLS の INSERT ポリシーが強制する
- * （`can_log_work_on_task`）。revalidatePath 用に対象タスクの task_group_id を先に引く。
+ * （`can_log_work_on_task`）。
  */
 export async function createWorkLog(input: CreateWorkLogInput): Promise<{ id: string }> {
   const user = await getServerUser()
@@ -939,14 +687,6 @@ export async function createWorkLog(input: CreateWorkLogInput): Promise<{ id: st
 
   const parsed = createWorkLogSchema.parse(input)
   const supabase = await createClient()
-
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .select('task_group_id')
-    .eq('id', parsed.taskId)
-    .single()
-
-  if (taskError) throw taskError
 
   const { data, error } = await supabase
     .from('task_work_logs')
@@ -962,8 +702,6 @@ export async function createWorkLog(input: CreateWorkLogInput): Promise<{ id: st
     .single()
 
   if (error) throw error
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 
   return { id: data.id }
 }
@@ -983,22 +721,6 @@ export async function updateWorkLog(input: UpdateWorkLogInput): Promise<void> {
   const parsed = updateWorkLogSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: log, error: fetchError } = await supabase
-    .from('task_work_logs')
-    .select('task_id')
-    .eq('id', parsed.workLogId)
-    .single()
-
-  if (fetchError) throw fetchError
-
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .select('task_group_id')
-    .eq('id', log.task_id)
-    .single()
-
-  if (taskError) throw taskError
-
   const { data, error } = await supabase
     .from('task_work_logs')
     .update({
@@ -1014,8 +736,6 @@ export async function updateWorkLog(input: UpdateWorkLogInput): Promise<void> {
   if (data === null || data.length === 0) {
     throw new Error('この工数記録を編集する権限がありません')
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**
@@ -1030,22 +750,6 @@ export async function deleteWorkLog(input: DeleteWorkLogInput): Promise<void> {
   const parsed = deleteWorkLogSchema.parse(input)
   const supabase = await createClient()
 
-  const { data: log, error: fetchError } = await supabase
-    .from('task_work_logs')
-    .select('task_id')
-    .eq('id', parsed.workLogId)
-    .single()
-
-  if (fetchError) throw fetchError
-
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .select('task_group_id')
-    .eq('id', log.task_id)
-    .single()
-
-  if (taskError) throw taskError
-
   const { data, error } = await supabase
     .from('task_work_logs')
     .delete()
@@ -1056,8 +760,6 @@ export async function deleteWorkLog(input: DeleteWorkLogInput): Promise<void> {
   if (data === null || data.length === 0) {
     throw new Error('この工数記録を削除する権限がありません')
   }
-
-  revalidatePath(APP_ROUTES.tasks.groupDetail(task.task_group_id))
 }
 
 /**

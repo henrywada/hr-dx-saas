@@ -17,9 +17,9 @@ const MAX_COMMENT_ITEMS = 20
 export interface AssignedTaskRow {
   id: string
   title: string
-  task_group_id: string
   due_date: string | null
   created_at: string
+  task_group: { milestone: { objective_id: string } | null } | null
 }
 
 function computeAssignmentSeverity(dueDate: string | null, todayYmd: string): FeedItemSeverity {
@@ -45,23 +45,29 @@ export function toTaskAssignmentFeedItems(
   rows: AssignedTaskRow[],
   todayYmd: string = toJSTDateString()
 ): RawFeedItem[] {
-  return rows.map(row => ({
-    dedupeKey: `task_management:assignment:${row.id}`,
-    kind: 'action_prompt',
-    category: 'task_management',
-    severity: computeAssignmentSeverity(row.due_date, todayYmd),
-    title: `担当タスク: ${row.title}`,
-    body: null,
-    actionLabel: null,
-    href: APP_ROUTES.tasks.groupDetail(row.task_group_id),
-    occurredAt: row.created_at,
-    dueDate: row.due_date,
-    dismissible: false,
-  }))
+  return rows
+    .map((row): RawFeedItem | null => {
+      const objectiveId = row.task_group?.milestone?.objective_id
+      if (!objectiveId) return null
+      return {
+        dedupeKey: `task_management:assignment:${row.id}`,
+        kind: 'action_prompt',
+        category: 'task_management',
+        severity: computeAssignmentSeverity(row.due_date, todayYmd),
+        title: `担当タスク: ${row.title}`,
+        body: null,
+        actionLabel: null,
+        href: APP_ROUTES.tasks.objectiveDetail(objectiveId),
+        occurredAt: row.created_at,
+        dueDate: row.due_date,
+        dismissible: false,
+      }
+    })
+    .filter((item): item is RawFeedItem => item !== null)
 }
 
-/** `task_comments` を `employee:employee_id(name)` / `task:task_id(title, task_group_id)` /
- * `taskGroup:task_group_id(name)` の埋め込み付きで取得した際の1行の形（Supabaseの
+/** `task_comments` を `employee:employee_id(name)` / `task:task_id(title, task_group→milestone)` /
+ * `taskGroup:task_group_id(name, milestone)` の埋め込み付きで取得した際の1行の形（Supabaseの
  * 埋め込みリレーションは多対一のため単一オブジェクトで返る）。 */
 export interface RawTaskCommentRow {
   id: string
@@ -70,8 +76,11 @@ export interface RawTaskCommentRow {
   employee: { name: string | null } | null
   task_id: string | null
   task_group_id: string | null
-  task: { title: string; task_group_id: string } | null
-  taskGroup: { name: string } | null
+  task: {
+    title: string
+    task_group: { milestone: { objective_id: string } | null } | null
+  } | null
+  taskGroup: { name: string; milestone: { objective_id: string } | null } | null
 }
 
 /** フィードアイテムへの変換に必要な情報だけを持つ、コンテキスト解決済みの行 */
@@ -94,22 +103,26 @@ export function resolveTaskCommentContext(row: RawTaskCommentRow): TaskCommentFe
   const employeeName = row.employee?.name ?? '（名前未設定）'
 
   if (row.task_id && row.task) {
+    const objectiveId = row.task.task_group?.milestone?.objective_id
+    if (!objectiveId) return null
     return {
       id: row.id,
       body: row.body,
       employeeName,
-      href: APP_ROUTES.tasks.groupDetail(row.task.task_group_id),
+      href: APP_ROUTES.tasks.objectiveDetail(objectiveId),
       contextLabel: `タスク「${row.task.title}」`,
       createdAt: row.created_at,
     }
   }
 
   if (row.task_group_id && row.taskGroup) {
+    const objectiveId = row.taskGroup.milestone?.objective_id
+    if (!objectiveId) return null
     return {
       id: row.id,
       body: row.body,
       employeeName,
-      href: APP_ROUTES.tasks.groupDetail(row.task_group_id),
+      href: APP_ROUTES.tasks.objectiveDetail(objectiveId),
       contextLabel: `タスクグループ「${row.taskGroup.name}」`,
       createdAt: row.created_at,
     }
@@ -153,7 +166,9 @@ export const taskManagementFeedProvider: FeedProvider = {
     const [assignedResult, commentResult] = await Promise.all([
       supabase
         .from('tasks')
-        .select('id, title, task_group_id, due_date, created_at, task_assignees!inner(employee_id)')
+        .select(
+          'id, title, due_date, created_at, task_assignees!inner(employee_id), task_group:task_group_id(milestone:milestone_id(objective_id))'
+        )
         .eq('task_assignees.employee_id', ctx.employeeId)
         .neq('status', 'done')
         .order('due_date', { ascending: true, nullsFirst: false })
@@ -161,7 +176,7 @@ export const taskManagementFeedProvider: FeedProvider = {
       supabase
         .from('task_comments')
         .select(
-          'id, body, created_at, employee:employee_id(name), task_id, task_group_id, task:task_id(title, task_group_id), taskGroup:task_group_id(name)'
+          'id, body, created_at, employee:employee_id(name), task_id, task_group_id, task:task_id(title, task_group:task_group_id(milestone:milestone_id(objective_id))), taskGroup:task_group_id(name, milestone:milestone_id(objective_id))'
         )
         .neq('employee_id', ctx.employeeId)
         .gte('created_at', lookbackIso)

@@ -1,5 +1,3 @@
-import Link from 'next/link'
-import { APP_ROUTES } from '@/config/routes'
 import { TaskGroupForm } from './TaskGroupForm'
 import { ProgressBar } from './ProgressBar'
 import type { TaskMilestone, TaskGroup } from '../types'
@@ -33,13 +31,8 @@ export function MilestoneList({
           </div>
           <ul className="mt-2 space-y-1">
             {(taskGroupsByMilestoneId[milestone.id] ?? []).map(group => (
-              <li key={group.id}>
-                <Link
-                  href={APP_ROUTES.tasks.groupDetail(group.id)}
-                  className="text-xs text-[#FD7601] underline"
-                >
-                  {group.name}
-                </Link>
+              <li key={group.id} className="text-xs text-slate-700">
+                {group.name}
               </li>
             ))}
           </ul>

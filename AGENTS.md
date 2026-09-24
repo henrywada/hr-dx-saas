@@ -16,7 +16,8 @@
 
 | 内容 | ファイル |
 |------|---------|
-| アーキテクチャ・禁止事項・環境変数 | `CLAUDE.md` |
+| 常時索引 | `CLAUDE.md` |
+| アーキテクチャ・禁止事項・環境変数（詳細） | `docs/agent/project-guide.md` |
 | 常時適用ルール（Cursor） | `.agent/rules/basic.md` |
 | UI モーダルデザインルール | `.cursor/rules/help-modal-style.mdc` |
 | UI 管理者カード／テーブル（一覧レイアウト・全文規約） | `docs/ui/admin-card-and-table.md` |

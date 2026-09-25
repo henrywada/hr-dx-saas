@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 function pad2(n: number) {
   return String(n).padStart(2, '0')
@@ -16,6 +16,7 @@ interface LoginLogPeriodSelectorProps {
 export function LoginLogPeriodSelector({ yearMonth }: LoginLogPeriodSelectorProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   const now = new Date()
   const curY = now.getFullYear()
@@ -36,7 +37,12 @@ export function LoginLogPeriodSelector({ yearMonth }: LoginLogPeriodSelectorProp
       value={value}
       onChange={e => {
         const v = e.target.value
-        router.push(v === ALL_VALUE ? pathname : `${pathname}?ym=${v}`)
+        // 他のクエリ（tenant 等）を保持したまま ym のみ更新する
+        const params = new URLSearchParams(searchParams.toString())
+        if (v === ALL_VALUE) params.delete('ym')
+        else params.set('ym', v)
+        const qs = params.toString()
+        router.push(qs ? `${pathname}?${qs}` : pathname)
       }}
       className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[9rem]"
     >

@@ -231,6 +231,8 @@ export const APP_ROUTES = {
   SAAS: {
     DASHBOARD: '/saas_adm',
     TENANTS: '/saas_adm/tenants',
+    /** 全テナント ログイン履歴 */
+    LOGIN_LOGS: '/saas_adm/login-logs',
     SYSTEM_MASTER: '/saas_adm/system-master',
     /** Echoテンプレート管理（設問テンプレートのCRUD） */
     ECHO_TEMPLATE: '/saas_adm/echo_template',

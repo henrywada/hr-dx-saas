@@ -217,6 +217,51 @@ BEGIN
   INSERT INTO tst_result VALUES ('developer re-delete returns 0', v_del = 0, v_del::text);
 END $$;
 
+-- ===== テナント選択肢 =====
+DO $$
+DECLARE n int; v_raised boolean; v_first text; v_sorted text;
+BEGIN
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options() WHERE id IN ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2');
+  INSERT INTO tst_result VALUES ('options: developer sees both test tenants (2)', n = 2, n::text);
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options() WHERE name = 'TST-TENANT-A';
+  INSERT INTO tst_result VALUES ('options: name populated', n = 1, n::text);
+  RESET ROLE;
+
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a4', 'supaUser');
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options() WHERE id IN ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2');
+  INSERT INTO tst_result VALUES ('options: supaUser sees both test tenants (2)', n = 2, n::text);
+  RESET ROLE;
+
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a2', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options();
+  INSERT INTO tst_result VALUES ('options: tenant admin gets empty', n = 0, n::text);
+  RESET ROLE;
+
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a3', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options();
+  INSERT INTO tst_result VALUES ('options: employee gets empty', n = 0, n::text);
+  RESET ROLE;
+
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a5', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_login_log_tenant_options();
+  INSERT INTO tst_result VALUES ('options: user without employee row gets empty (fail-closed)', n = 0, n::text);
+  RESET ROLE;
+
+  PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
+  SET LOCAL ROLE anon;
+  v_raised := false;
+  BEGIN PERFORM * FROM public.get_login_log_tenant_options(); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  INSERT INTO tst_result VALUES ('anon cannot EXECUTE get_login_log_tenant_options', v_raised, v_raised::text);
+  RESET ROLE;
+END $$;
+
 SELECT CASE WHEN ok THEN 'PASS' ELSE 'FAIL' END AS result, name, detail FROM tst_result ORDER BY ok, name;
 SELECT CASE WHEN count(*) FILTER (WHERE NOT ok) = 0 THEN 'ALL PASS' ELSE 'SOME FAILED' END AS summary,
        count(*) AS total, count(*) FILTER (WHERE NOT ok) AS failed FROM tst_result;

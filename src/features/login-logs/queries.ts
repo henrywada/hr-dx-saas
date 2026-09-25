@@ -56,17 +56,20 @@ export async function getAllTenantLoginLogs(
 }
 
 /**
- * テナント絞り込み用の選択肢（名前昇順、テンプレートも含む）
+ * テナント絞り込み用の選択肢（名前昇順、テンプレートも含む。RLS を避けるため SECURITY DEFINER RPC 経由）
  */
 export async function getLoginLogTenantOptions(): Promise<{ id: string; name: string }[]> {
   if (!(await isSaasAdmin())) return []
 
   const supabase = await createClient()
-  const { data, error } = await supabase.from('tenants').select('id, name').order('name')
+  const { data, error } = await callRpc(supabase, 'get_login_log_tenant_options', {})
 
   if (error) {
     console.error('getLoginLogTenantOptions error:', error)
     return []
   }
-  return (data ?? []).map(t => ({ id: t.id as string, name: (t.name as string | null) ?? '' }))
+  return ((data ?? []) as { id: string; name: string | null }[]).map(t => ({
+    id: t.id,
+    name: t.name ?? '',
+  }))
 }

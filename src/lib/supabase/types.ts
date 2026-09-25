@@ -13173,6 +13173,15 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: string
       }
+      get_tenant_login_logs: {
+        Args: { p_year_month?: string }
+        Returns: {
+          email: string
+          employee_name: string
+          id: string
+          logged_in_at: string
+        }[]
+      }
       health_check_org_analysis: {
         Args: { p_campaign_id: string; p_layer?: string }
         Returns: {

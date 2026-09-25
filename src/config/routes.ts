@@ -225,6 +225,8 @@ export const APP_ROUTES = {
     ADMIN_HEALTH_CHECK_REVIEW_DETAIL: (recordId: string) => `/adm/health-check-review/${recordId}`,
     /** LINE 友だち招待管理（テナント管理者） */
     ADMIN_LINE_FRIEND_INVITES: '/adm/line-friend-invites',
+    /** ログイン履歴（システム設定/基本設定） */
+    ADMIN_LOGIN_LOGS: '/adm/login-logs',
   },
   SAAS: {
     DASHBOARD: '/saas_adm',

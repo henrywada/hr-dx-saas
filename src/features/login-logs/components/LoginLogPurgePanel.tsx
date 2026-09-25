@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react'
 import { previewPurgeLoginLogs, purgeLoginLogs } from '../actions'
 
 const PURGE_MONTH_COUNT = 24
+const ERR_NETWORK = '通信に失敗しました。ページを再読み込みして結果を確認してください。'
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000
 
 /** 当月（JST）を除く過去24ヶ月の選択肢（新しい順） */
@@ -46,12 +47,17 @@ export function LoginLogPurgePanel() {
     setMessage(null)
     resetPreview()
     startTransition(async () => {
-      const res = await previewPurgeLoginLogs(ym)
-      if (res.success) {
-        setPreviewCount(res.count ?? 0)
-        setPreviewYm(ym)
-      } else {
-        setMessage({ type: 'error', text: res.error ?? '対象件数の取得に失敗しました。' })
+      try {
+        const res = await previewPurgeLoginLogs(ym)
+        if (res.success) {
+          setPreviewCount(res.count ?? 0)
+          setPreviewYm(ym)
+        } else {
+          setMessage({ type: 'error', text: res.error ?? '対象件数の取得に失敗しました。' })
+        }
+      } catch {
+        resetPreview()
+        setMessage({ type: 'error', text: ERR_NETWORK })
       }
     })
   }
@@ -60,17 +66,24 @@ export function LoginLogPurgePanel() {
     if (isPending || !previewYm) return
     const target = previewYm
     startTransition(async () => {
-      const res = await purgeLoginLogs(target)
-      setIsDialogOpen(false)
-      setTyped('')
-      resetPreview()
-      if (res.success) {
-        setMessage({
-          type: 'success',
-          text: `${formatLabel(target)}より前のログイン履歴を ${(res.count ?? 0).toLocaleString()} 件削除しました。`,
-        })
-      } else {
-        setMessage({ type: 'error', text: res.error ?? 'ログイン履歴の削除に失敗しました。' })
+      try {
+        const res = await purgeLoginLogs(target)
+        setIsDialogOpen(false)
+        setTyped('')
+        resetPreview()
+        if (res.success) {
+          setMessage({
+            type: 'success',
+            text: `${formatLabel(target)}より前のログイン履歴を ${(res.count ?? 0).toLocaleString()} 件削除しました。`,
+          })
+        } else {
+          setMessage({ type: 'error', text: res.error ?? 'ログイン履歴の削除に失敗しました。' })
+        }
+      } catch {
+        setIsDialogOpen(false)
+        setTyped('')
+        resetPreview()
+        setMessage({ type: 'error', text: ERR_NETWORK })
       }
     })
   }

@@ -8,7 +8,8 @@ INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000000a1', 'tst-dev@example.test'),
   ('00000000-0000-0000-0000-0000000000a2', 'tst-admin@example.test'),
   ('00000000-0000-0000-0000-0000000000a3', 'tst-emp@example.test'),
-  ('00000000-0000-0000-0000-0000000000a4', 'tst-supa@example.test');
+  ('00000000-0000-0000-0000-0000000000a4', 'tst-supa@example.test'),
+  ('00000000-0000-0000-0000-0000000000a5', 'tst-none@example.test');
 
 INSERT INTO public.tenants (id, name) VALUES
   ('00000000-0000-0000-0000-0000000000b1', 'TST-TENANT-A'),
@@ -30,7 +31,7 @@ INSERT INTO public.access_logs (tenant_id, user_id, action, path, created_at) VA
   ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a3', 'OTHER_ACTION',  '/x', '2019-11-16 03:00:00+00');
 
 CREATE TEMP TABLE tst_result (name text, ok boolean, detail text);
-GRANT ALL ON tst_result TO authenticated;
+GRANT ALL ON tst_result TO authenticated, anon;
 
 -- ロール切替ヘルパー（SET LOCAL ROLE + JWT claims）
 CREATE FUNCTION pg_temp.as_user(p_uid text, p_role_meta text) RETURNS void LANGUAGE plpgsql AS $$
@@ -99,24 +100,72 @@ DECLARE
     ['00000000-0000-0000-0000-0000000000a1', '', 'dev: future month', '2999-01'],
     ['00000000-0000-0000-0000-0000000000a1', '', 'dev: 2026-13', '2026-13'],
     ['00000000-0000-0000-0000-0000000000a1', '', 'dev: abc', 'abc'],
-    ['00000000-0000-0000-0000-0000000000a4', 'supaUser', 'supa: current month', to_char(now() AT TIME ZONE 'Asia/Tokyo','YYYY-MM')]
+    ['00000000-0000-0000-0000-0000000000a4', 'supaUser', 'supaUser only (valid month)', '2019-12'],
+    ['00000000-0000-0000-0000-0000000000a5', '', 'no employee row nor supaUser', '2019-12']
   ];
-  i int; fn text;
+  i int; fn text; v_msg text; v_perm boolean;
 BEGIN
   FOR i IN 1..array_length(cases, 1) LOOP
     FOREACH fn IN ARRAY ARRAY['count_login_logs_before', 'delete_login_logs_before'] LOOP
       PERFORM pg_temp.as_user(cases[i][1], NULLIF(cases[i][2], ''));
       SET LOCAL ROLE authenticated;
-      v_raised := false;
+      v_raised := false; v_msg := NULL;
       BEGIN
         EXECUTE format('SELECT public.%I(%L)', fn, cases[i][4]);
       EXCEPTION WHEN OTHERS THEN
-        v_raised := true;
+        v_raised := true; v_msg := SQLERRM;
       END;
       RESET ROLE;
-      INSERT INTO tst_result VALUES (fn || ' raises: ' || cases[i][3] || ' [' || cases[i][4] || ']', v_raised, v_raised::text);
+      -- 権限系ケース(先頭4グループ以外の権限拒否)は 'permission denied'、それ以外は形式/月エラーを期待
+      v_perm := cases[i][3] IN ('tenant admin','employee','supaUser only (valid month)','no employee row nor supaUser');
+      INSERT INTO tst_result VALUES (fn || ' raises: ' || cases[i][3] || ' [' || cases[i][4] || ']',
+        v_raised AND ((v_perm AND v_msg = 'permission denied') OR (NOT v_perm AND v_msg <> 'permission denied')), coalesce(v_msg,'no error'));
     END LOOP;
   END LOOP;
+END $$;
+
+-- ===== 拒否時に副作用なし / anon / 上限 =====
+DO $$
+DECLARE n int; p0 int; l0 int; v_raised boolean;
+BEGIN
+  SELECT count(*) INTO p0 FROM public.access_logs WHERE action='LOGIN_LOGS_PURGED';
+  SELECT count(*) INTO l0 FROM public.access_logs WHERE action='LOGIN_SUCCESS';
+  -- supaUser のみ・employees無し・一般管理者の delete 後も行数不変（上のループで実行済み）
+  SELECT count(*) INTO n FROM public.access_logs WHERE action='LOGIN_LOGS_PURGED' AND user_id::text LIKE '00000000-0000-0000-0000-0000000000a%';
+  INSERT INTO tst_result VALUES ('rejected callers left no PURGED row', n = 0, n::text);
+  SELECT count(*) INTO n FROM public.access_logs WHERE action='LOGIN_SUCCESS' AND tenant_id IN ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2');
+  INSERT INTO tst_result VALUES ('rejected callers deleted nothing (5 seeded LOGIN_SUCCESS)', n = 5, n::text);
+
+  -- 認証なしユーザー(a5)は一覧も空
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a5', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_all_tenant_login_logs();
+  RESET ROLE;
+  INSERT INTO tst_result VALUES ('list: no employee/no supaUser gets empty', n = 0, n::text);
+
+  -- 上限: developer で p_limit 巨大値でも 5000 以内、NULL でも 5000 以内
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', NULL);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.get_all_tenant_login_logs(NULL, NULL, 1000000);
+  INSERT INTO tst_result VALUES ('list: p_limit 1000000 capped to <=5000', n <= 5000, n::text);
+  SELECT count(*) INTO n FROM public.get_all_tenant_login_logs(NULL, NULL, NULL);
+  INSERT INTO tst_result VALUES ('list: p_limit NULL capped to <=5000', n <= 5000, n::text);
+  RESET ROLE;
+
+  -- anon は3関数を EXECUTE できない
+  PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
+  SET LOCAL ROLE anon;
+  v_raised := false;
+  BEGIN PERFORM * FROM public.get_all_tenant_login_logs(); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  INSERT INTO tst_result VALUES ('anon cannot EXECUTE get_all_tenant_login_logs', v_raised, v_raised::text);
+  v_raised := false;
+  BEGIN PERFORM public.count_login_logs_before('2020-01'); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  INSERT INTO tst_result VALUES ('anon cannot EXECUTE count_login_logs_before', v_raised, v_raised::text);
+  v_raised := false;
+  BEGIN PERFORM public.delete_login_logs_before('2020-01'); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  INSERT INTO tst_result VALUES ('anon cannot EXECUTE delete_login_logs_before', v_raised, v_raised::text);
+  RESET ROLE;
 END $$;
 
 -- ===== 正常系: count と delete の一致・残存確認（developer） =====
@@ -160,12 +209,12 @@ BEGIN
                 AND path='/saas_adm/login-logs' AND method='POST' AND user_id='00000000-0000-0000-0000-0000000000a1'),
     v_details::text);
 
-  -- supaUser でも削除可能（残りは対象外のため 0 件、PURGED は +1）
-  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a4', 'supaUser');
+  -- developer 再実行: 残り0件
+  PERFORM pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', NULL);
   SET LOCAL ROLE authenticated;
   v_del := public.delete_login_logs_before('2020-01');
   RESET ROLE;
-  INSERT INTO tst_result VALUES ('supaUser delete allowed (0 rows left)', v_del = 0, v_del::text);
+  INSERT INTO tst_result VALUES ('developer re-delete returns 0', v_del = 0, v_del::text);
 END $$;
 
 SELECT CASE WHEN ok THEN 'PASS' ELSE 'FAIL' END AS result, name, detail FROM tst_result ORDER BY ok, name;

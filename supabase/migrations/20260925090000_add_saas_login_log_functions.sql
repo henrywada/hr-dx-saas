@@ -1,8 +1,11 @@
 -- SaaS管理者向けログイン履歴（全テナント横断）用の SECURITY DEFINER 関数
 --
--- アクセス権: SaaS管理者のみ
---   public.current_employee_app_role() = 'developer'
---   または auth.jwt()->'user_metadata'->>'role' = 'supaUser'
+-- アクセス権:
+--   一覧（読み取り）: developer または JWT user_metadata.role='supaUser'
+--     （既存RLS「SaaS admins can view all access logs」と同等）
+--   件数プレビュー・削除: current_employee_app_role()='developer' のみ
+--     理由: user_metadata はユーザー自身が書き換え可能なため、破壊的操作の根拠にしない。
+--     DB 由来の app_role のみを信頼する。
 -- 権限判定は引数ではなくセッション（auth.uid() / JWT）から行う。
 -- access_logs には DELETE ポリシーが無いが、関数オーナー権限（SECURITY DEFINER）で削除する。
 
@@ -47,10 +50,10 @@ AS $$
       OR to_char(al.created_at AT TIME ZONE 'Asia/Tokyo', 'YYYY-MM') = p_year_month
     )
   ORDER BY al.created_at DESC
-  LIMIT p_limit;
+  LIMIT LEAST(COALESCE(p_limit, 5000), 5000);
 $$;
 
-REVOKE ALL ON FUNCTION public.get_all_tenant_login_logs(text, uuid, int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_all_tenant_login_logs(text, uuid, int) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_all_tenant_login_logs(text, uuid, int) TO authenticated;
 
 -- 2. 削除対象件数のプレビュー（指定月の1日 0:00 JST より前の LOGIN_SUCCESS）
@@ -64,12 +67,9 @@ AS $$
 DECLARE
   v_count bigint;
 BEGIN
-  -- 判定が NULL（employees 行なし・JWT 無し等）でも拒否されるよう COALESCE で false に寄せる
-  IF NOT COALESCE(
-    public.current_employee_app_role() = 'developer'
-    OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'supaUser',
-    false
-  ) THEN
+  -- user_metadata.role はユーザー自身が書き換え可能なため、破壊的/件数系の操作の根拠にしない。
+  -- DB 由来の app_role（developer）のみ許可する。NULL（employees 行なし等）も拒否。
+  IF NOT COALESCE(public.current_employee_app_role() = 'developer', false) THEN
     RAISE EXCEPTION 'permission denied';
   END IF;
 
@@ -90,7 +90,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.count_login_logs_before(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.count_login_logs_before(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.count_login_logs_before(text) TO authenticated;
 
 -- 3. 削除（削除件数を返し、実行記録 LOGIN_LOGS_PURGED を同一トランザクションで残す）
@@ -104,12 +104,9 @@ AS $$
 DECLARE
   v_count bigint;
 BEGIN
-  -- 判定が NULL（employees 行なし・JWT 無し等）でも拒否されるよう COALESCE で false に寄せる
-  IF NOT COALESCE(
-    public.current_employee_app_role() = 'developer'
-    OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'supaUser',
-    false
-  ) THEN
+  -- user_metadata.role はユーザー自身が書き換え可能なため、破壊的/件数系の操作の根拠にしない。
+  -- DB 由来の app_role（developer）のみ許可する。NULL（employees 行なし等）も拒否。
+  IF NOT COALESCE(public.current_employee_app_role() = 'developer', false) THEN
     RAISE EXCEPTION 'permission denied';
   END IF;
 
@@ -143,5 +140,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.delete_login_logs_before(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_login_logs_before(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.delete_login_logs_before(text) TO authenticated;

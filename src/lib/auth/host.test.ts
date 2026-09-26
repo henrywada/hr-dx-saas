@@ -63,3 +63,12 @@ test('ホスト振り分けのリダイレクトはクエリ文字列を保持�
   assert.equal(u.search, '?token=abc&email=a%40b.jp')
   assert.equal(u.host, 'myou.hr-dx.jp')
 })
+
+test('myou ホストでは /login-* を /login-myou へ寄せる（/login-myou 自体は null）', () => {
+  assert.equal(resolveHostRedirect('/login-stitches', true, false), '/login-myou')
+  assert.equal(resolveHostRedirect('/login-stitches', true, true), '/login-myou')
+  assert.equal(resolveHostRedirect('/login-foo/', true, false), '/login-myou')
+  assert.equal(resolveHostRedirect('/login-myou', true, false), null)
+  assert.equal(resolveHostRedirect('/login-myou', true, true), null)
+  assert.equal(resolveHostRedirect('/login-stitches', false, false), null)
+})

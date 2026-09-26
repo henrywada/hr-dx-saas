@@ -27,6 +27,7 @@ export function resolveHostRedirect(
     if (!hasUser && (p === '/' || p === '/login')) return '/login-myou'
     if (p === '/forgot-password') return '/forgot-password-myou'
     if (p === '/reset-password') return '/reset-password-myou'
+    if (p.startsWith('/login-') && p !== '/login-myou') return '/login-myou'
     if (p === '/signup' || p.startsWith('/signup/')) return '/login-myou'
     return null
   }

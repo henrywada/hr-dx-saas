@@ -105,11 +105,24 @@ export async function signInAction(
 /**
  * パスワードリセット要求処理（Server Action）
  */
-export async function resetPasswordAction(email: string) {
+export async function resetPasswordAction(email: string, audience: LoginAudience = 'default') {
+  // Host ヘッダーと画面種別の整合をサーバー側で検証
+  const host = (await headers()).get('host');
+  if (!isHostAudienceConsistent(host, audience)) {
+    return { success: false, error: 'このページからはご利用いただけません。' };
+  }
+
   const supabase = await createClient();
 
+  // Host ヘッダーは信用せず、audience から固定のベース URL を選ぶ
+  const baseUrl =
+    audience === 'myou'
+      ? process.env.MYOU_SITE_URL || 'https://myou.hr-dx.jp'
+      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const path = audience === 'myou' ? '/reset-password-myou' : '/reset-password';
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password`,
+    redirectTo: `${baseUrl}${path}`,
   });
 
   if (error) {

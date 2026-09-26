@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { APP_ROUTES } from '@/config/routes'
 import { Eye, EyeOff, Loader2, Mail, Lock, Zap, ArrowRight, LogIn } from 'lucide-react'
 import { signInAction } from '@/lib/auth/actions'
 
@@ -92,7 +93,7 @@ export default function LoginMyouPage() {
               パスワード
             </label>
             <Link
-              href="/forgot-password-myou"
+              href={APP_ROUTES.AUTH.FORGOT_PASSWORD_MYOU}
               className="text-xs font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
               パスワードをお忘れですか？

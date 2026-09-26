@@ -24,6 +24,9 @@ export const APP_ROUTES = {
     SIGNUP: '/signup',
     RESET_PASSWORD: '/reset-password',
     FORGOT_PASSWORD: '/forgot-password',
+    /** myou.hr-dx.jp 用パスワード再設定 */
+    FORGOT_PASSWORD_MYOU: '/forgot-password-myou',
+    RESET_PASSWORD_MYOU: '/reset-password-myou',
   },
   TENANT: {
     PORTAL: '/top',

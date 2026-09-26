@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
-import { getLoginLogs } from '@/features/login-logs/queries'
+import { getLoginSessions } from '@/features/login-logs/queries'
 import { LoginLogsView } from '@/features/login-logs/components/LoginLogsView'
 
 const YEAR_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
@@ -23,11 +23,11 @@ export default async function LoginLogsPage({
   const sp = await searchParams
   const yearMonth = parseYearMonth(sp.ym)
 
-  const logs = await getLoginLogs(yearMonth)
+  const sessions = await getLoginSessions(yearMonth)
 
   return (
     <div className="mx-auto w-full max-w-[1600px]">
-      <LoginLogsView logs={logs} yearMonth={yearMonth} />
+      <LoginLogsView sessions={sessions} yearMonth={yearMonth} />
     </div>
   )
 }

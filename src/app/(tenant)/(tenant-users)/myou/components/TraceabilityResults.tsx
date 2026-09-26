@@ -11,7 +11,7 @@ import {
   Warehouse,
   Hash,
 } from 'lucide-react'
-import { formatDateTimeInJST } from '@/lib/datetime'
+import { formatDateInJST } from '@/lib/datetime'
 import { getTraceExpirationDisplay } from '@/features/myou/lib/trace-expiration'
 import {
   MYOU_LOT_STATUS_LABELS,
@@ -151,7 +151,8 @@ export default function TraceabilityResults({
                       </h4>
                       <div className="text-sm font-medium text-blue-600 flex items-center mt-1 md:mt-0">
                         <Calendar className="h-3.5 w-3.5 mr-1" />
-                        出荷日: {formatDateTimeInJST(log.delivery_date)}
+                        {/* delivery_date は日付のみ（date 型）。時刻付きで整形すると UTC 0時扱いで 9:00 と表示されるため日付のみ表示する */}
+                        出荷日: {formatDateInJST(log.delivery_date)}
                       </div>
                     </div>
 

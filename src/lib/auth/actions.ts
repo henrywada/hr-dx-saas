@@ -66,7 +66,8 @@ export async function signInAction(
 
     // 画面種別とテナントの整合チェック（不許可ならセッションを破棄して拒否）
     if (!isTenantAllowedForAudience(audience, tenant_id, getMyouTenantIds())) {
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) console.error('[signInAction] signOut 失敗:', signOutError.message);
       return {
         success: false,
         error:

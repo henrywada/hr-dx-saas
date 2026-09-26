@@ -5,7 +5,7 @@ import { getHelpMarkdown, HELP_CONTENT_IDS, MYOU_TRACEABILITY_DISPLAY_TITLE } fr
 import { HelpMarkdownModal } from '@/components/help/HelpMarkdownModal'
 
 const MYOU_TRACEABILITY_SR_DESCRIPTION =
-  'トレーサビリティ検索（流通経路上での照会）画面の使い方の説明です。'
+  'トレーサビリティ検索（流通経路の照会）画面の使い方の説明です。'
 
 /** トレーサビリティ検索画面：画面の説明モーダル（本文は src/content/help/markdown/myou/myou-traceability-guide.md） */
 export function TraceabilityHelpModalTrigger() {

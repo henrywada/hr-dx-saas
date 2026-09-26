@@ -7,7 +7,7 @@ import MyouBackLink from '../components/MyouBackLink'
 import { TraceabilityHelpModalTrigger } from '../components/TraceabilityHelpModalTrigger'
 import { getLotTrace } from '@/features/myou/actions'
 import type { LotTraceResult } from '@/features/myou/types'
-import { PackageSearch, ArrowRight, History, ShieldCheck, AlertCircle } from 'lucide-react'
+import { PackageSearch, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function TraceabilityPage() {
   const [isPending, startTransition] = useTransition()
@@ -54,35 +54,12 @@ export default function TraceabilityPage() {
             </nav>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight flex items-center text-white">
               <PackageSearch className="h-10 w-10 md:h-12 md:w-12 mr-4 text-blue-300" />
-              流通経路上での照会
+              流通経路の照会
             </h1>
             <p className="max-w-2xl text-lg text-blue-100/80 leading-relaxed font-medium">
-              ロット番号またはTraceNoを入力・QRコードをスキャンして、ロットの有効期限・入荷日・
-              出荷先・出荷日といった流通データを即座に照会できます。
+              ロット番号 or
+              TraceNoを入力・QRコードをスキャンして、ロットの有効期限・入荷日・出荷先・出荷日といった流通データを即座に照会。
             </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl pt-4">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex flex-col items-center">
-                <ShieldCheck className="h-6 w-6 text-green-400 mb-2" />
-                <span className="text-[10px] text-blue-200 font-bold uppercase">正規ルート</span>
-                <p className="text-sm font-bold mt-1">即時判定</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex flex-col items-center">
-                <History className="h-6 w-6 text-yellow-400 mb-2" />
-                <span className="text-[10px] text-blue-200 font-bold uppercase">全履歴</span>
-                <p className="text-sm font-bold mt-1">時系列表示</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hidden md:flex flex-col items-center">
-                <PackageSearch className="h-6 w-6 text-blue-300 mb-2" />
-                <span className="text-[10px] text-blue-200 font-bold uppercase">スキャン</span>
-                <p className="text-sm font-bold mt-1">簡単入力</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hidden md:flex flex-col items-center">
-                <ShieldCheck className="h-6 w-6 text-indigo-300 mb-2" />
-                <span className="text-[10px] text-blue-200 font-bold uppercase">履歴保全</span>
-                <p className="text-sm font-bold mt-1">全件記録</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

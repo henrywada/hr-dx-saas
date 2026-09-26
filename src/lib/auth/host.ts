@@ -35,3 +35,10 @@ export function resolveHostRedirect(
   if (p === '/reset-password-myou') return '/reset-password'
   return null
 }
+
+/** リダイレクト先 URL を組み立てる。クエリ文字列（token / email / error 等）を引き継ぐ */
+export function buildHostRedirectUrl(requestUrl: string | URL, path: string): URL {
+  const url = new URL(requestUrl)
+  url.pathname = path
+  return url
+}

@@ -1,6 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isHostAudienceConsistent, isMyouHost, resolveHostRedirect } from './host'
+import {
+  buildHostRedirectUrl,
+  isHostAudienceConsistent,
+  isMyouHost,
+  resolveHostRedirect,
+} from './host'
 
 test('myou.hr-dx.jp を判定（ポート・大文字を許容）', () => {
   assert.equal(isMyouHost('myou.hr-dx.jp'), true)
@@ -47,4 +52,14 @@ test('その他のパスは null', () => {
   assert.equal(resolveHostRedirect('/top', true, false), null)
   assert.equal(resolveHostRedirect('/login', false, false), null)
   assert.equal(resolveHostRedirect('/login-myou', true, false), null)
+})
+
+test('ホスト振り分けのリダイレクトはクエリ文字列を保持する', () => {
+  const u = buildHostRedirectUrl(
+    'https://myou.hr-dx.jp/reset-password?token=abc&email=a%40b.jp',
+    '/reset-password-myou'
+  )
+  assert.equal(u.pathname, '/reset-password-myou')
+  assert.equal(u.search, '?token=abc&email=a%40b.jp')
+  assert.equal(u.host, 'myou.hr-dx.jp')
 })

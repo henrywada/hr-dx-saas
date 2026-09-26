@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { APP_ROUTES } from '@/config/routes'
-import { isMyouHost, resolveHostRedirect } from '@/lib/auth/host'
+import { buildHostRedirectUrl, isMyouHost, resolveHostRedirect } from '@/lib/auth/host'
 import {
   STATIC_SECURITY_HEADERS,
   buildAppCsp,
@@ -141,7 +141,10 @@ export async function middleware(request: NextRequest) {
   // ホストと画面の組み合わせ補正（app ↔ myou の画面を混在させない）
   const hostRedirect = resolveHostRedirect(pathname, isMyou, !!user)
   if (hostRedirect) {
-    return applySecurityHeaders(NextResponse.redirect(new URL(hostRedirect, request.url)))
+    // クエリ文字列を保持する（reset-password の token/email や /login?error= を失わないため）
+    return applySecurityHeaders(
+      NextResponse.redirect(buildHostRedirectUrl(request.url, hostRedirect))
+    )
   }
 
   // API は JSON で 401 を返す（fetch が HTML ログインページを受け取り「不正な応答」になるのを防ぐ）

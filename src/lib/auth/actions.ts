@@ -3,14 +3,31 @@
 // createServerClient を createClient に変更
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { AuthSession } from '@/types/auth';
 import { getRedirectPath } from './helpers';
 import { writeAuditLog } from '@/lib/log/actions';
+import {
+  getMyouTenantIds,
+  isTenantAllowedForAudience,
+  type LoginAudience,
+} from './tenant-audience';
+import { isHostAudienceConsistent } from './host';
 
 /**
  * ログイン処理（Server Action）
  */
-export async function signInAction(email: string, password: string) {
+export async function signInAction(
+  email: string,
+  password: string,
+  audience: LoginAudience = 'default'
+) {
+  // Host ヘッダーと画面種別の整合をサーバー側で検証（不一致ならセッションを作らず拒否）
+  const host = (await headers()).get('host');
+  if (!isHostAudienceConsistent(host, audience)) {
+    return { success: false, error: 'このログイン画面からはご利用いただけません。' };
+  }
+
   // ここも createClient() に変更
   const supabase = await createClient();
 
@@ -47,6 +64,18 @@ export async function signInAction(email: string, password: string) {
       if (ar?.app_role) appRole = ar.app_role;
     }
 
+    // 画面種別とテナントの整合チェック（不許可ならセッションを破棄して拒否）
+    if (!isTenantAllowedForAudience(audience, tenant_id, getMyouTenantIds())) {
+      await supabase.auth.signOut();
+      return {
+        success: false,
+        error:
+          audience === 'myou'
+            ? 'このアカウントはこのログイン画面からはご利用いただけません。'
+            : 'このアカウントはこのログイン画面からはご利用いただけません。お客様専用のログイン画面（https://myou.hr-dx.jp）からログインしてください。',
+      };
+    }
+
     const session: AuthSession = {
       user: {
         id: data.user.id,
@@ -61,7 +90,7 @@ export async function signInAction(email: string, password: string) {
     // アクセスログにログイン成功を記録
     await writeAuditLog({
       action: 'LOGIN_SUCCESS',
-      path: '/login',
+      path: audience === 'myou' ? '/login-myou' : '/login',
     });
 
     // リダイレクト先の判定

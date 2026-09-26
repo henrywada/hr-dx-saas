@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { APP_ROUTES } from '@/config/routes'
+import { isMyouHost, resolveHostRedirect } from '@/lib/auth/host'
 import {
   STATIC_SECURITY_HEADERS,
   buildAppCsp,
@@ -44,6 +45,7 @@ export async function middleware(request: NextRequest) {
   // Supabase セッション更新とUser情報の取得 (Edge Runtime)
   const { response, user, supabase } = await updateSession(request)
   applySecurityHeaders(response)
+  const isMyou = isMyouHost(request.headers.get('host'))
   const isCronApiRoute = CRON_API_PATHS.includes(pathname)
   // LINE Webhook は未ログイン状態で呼ばれる外部リクエストのため、JSON 401 ガードから除外する
   const isLineApiRoute = pathname.startsWith('/api/line/')
@@ -136,6 +138,12 @@ export async function middleware(request: NextRequest) {
     await insertLog()
   }
 
+  // ホストと画面の組み合わせ補正（app ↔ myou の画面を混在させない）
+  const hostRedirect = resolveHostRedirect(pathname, isMyou, !!user)
+  if (hostRedirect) {
+    return applySecurityHeaders(NextResponse.redirect(new URL(hostRedirect, request.url)))
+  }
+
   // API は JSON で 401 を返す（fetch が HTML ログインページを受け取り「不正な応答」になるのを防ぐ）
   if (!user && isApiRoute) {
     return applySecurityHeaders(
@@ -158,7 +166,11 @@ export async function middleware(request: NextRequest) {
     !isLineApiRoute &&
     !isLiffPath(pathname)
   ) {
-    return applySecurityHeaders(NextResponse.redirect(new URL(APP_ROUTES.AUTH.LOGIN, request.url)))
+    return applySecurityHeaders(
+      NextResponse.redirect(
+        new URL(isMyou ? APP_ROUTES.AUTH.LOGIN_MYOU : APP_ROUTES.AUTH.LOGIN, request.url)
+      )
+    )
   }
 
   // 認証済みユーザーのルーティング

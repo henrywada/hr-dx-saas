@@ -19,6 +19,8 @@ export const APP_ROUTES = {
   },
   AUTH: {
     LOGIN: '/login',
+    /** myou.hr-dx.jp 用ログイン画面 */
+    LOGIN_MYOU: '/login-myou',
     SIGNUP: '/signup',
     RESET_PASSWORD: '/reset-password',
     FORGOT_PASSWORD: '/forgot-password',

@@ -133,7 +133,6 @@ function ResetPasswordContent() {
           <h1
             className="text-2xl font-bold tracking-tight text-slate-950 leading-none"
             style={{
-              fontFamily: "'Yu Mincho', 'Noto Serif JP', serif",
               letterSpacing: '-0.01em',
             }}
           >

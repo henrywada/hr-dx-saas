@@ -9,6 +9,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getServerUser } from '@/lib/auth/server-user'
+import { isLineEnabledForTenant } from '@/lib/line/line-enabled'
+import { getMyouTenantIds } from '@/lib/auth/tenant-audience'
 import { generateInviteToken, inviteExpiryDate } from '@/lib/line/inviteToken'
 import { buildFriendInviteEmail } from '@/lib/mail/build-line-friend-invite-email'
 import { sendMail } from '@/lib/mail/send'
@@ -27,6 +29,10 @@ export async function sendFriendInvites(employeeIds: string[]): Promise<SendFrie
   if (!user) throw new Error('Unauthorized')
   if (user.appRole === 'employee') throw new Error('Forbidden')
   if (!user.tenant_id) throw new Error('Unauthorized')
+  // MYOU テナントは LINE 連携を使わないため招待を作成しない
+  if (!isLineEnabledForTenant(user.tenant_id, getMyouTenantIds())) {
+    throw new Error('この会社ではLINE連携をご利用いただけません')
+  }
 
   const supabase = await createClient()
 

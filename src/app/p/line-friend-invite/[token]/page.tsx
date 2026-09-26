@@ -9,6 +9,8 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildFriendInviteLiffUrl } from '@/lib/line/friendInviteLiffUrl'
+import { isLineEnabledForTenant } from '@/lib/line/line-enabled'
+import { getMyouTenantIds } from '@/lib/auth/tenant-audience'
 import { LineFriendInviteQr } from '@/features/line/components/LineFriendInviteQr'
 
 // SSR 毎回実行（トークンの使用状況をリアルタイムで反映する）
@@ -48,7 +50,7 @@ export default async function LineFriendInvitePage({
   const admin = createAdminClient()
   const { data: invite, error } = await admin
     .from('line_friend_invites')
-    .select('id, expires_at, used_at')
+    .select('id, tenant_id, expires_at, used_at')
     .eq('invite_token', token)
     .maybeSingle()
 
@@ -70,6 +72,11 @@ export default async function LineFriendInvitePage({
         body="このリンクは存在しないか、すでに削除されています。担当者にお問い合わせください。"
       />
     )
+  }
+
+  // MYOU テナントは LINE 連携を使わない（既存招待が残っていても QR を表示しない）
+  if (!isLineEnabledForTenant(invite.tenant_id, getMyouTenantIds())) {
+    return <MessageCard title="ご利用いただけません" body="現在この機能はご利用いただけません。" />
   }
 
   // 使用済み

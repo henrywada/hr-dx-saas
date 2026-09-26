@@ -7,6 +7,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { parseLiffAuthBody } from '@/lib/line/parseLiffBodies'
 import { verifyLineIdToken } from '@/lib/line/verifyLineIdToken'
+import { isLineEnabledForTenant } from '@/lib/line/line-enabled'
+import { getMyouTenantIds } from '@/lib/auth/tenant-audience'
 import { establishSupabaseSession } from '@/lib/line/establishSupabaseSession'
 
 export async function POST(req: Request) {
@@ -68,6 +70,11 @@ export async function POST(req: Request) {
       console.error('LINE liff-auth: employees 照会失敗', employeeError)
     }
     return NextResponse.json({ error: 'not_linked' }, { status: 401 })
+  }
+
+  // MYOU テナントは LINE 経由のセッションを確立しない
+  if (!isLineEnabledForTenant(friend.tenant_id, getMyouTenantIds())) {
+    return NextResponse.json({ error: 'line_disabled' }, { status: 403 })
   }
 
   // auth.admin.getUserById でメールアドレスを取得する

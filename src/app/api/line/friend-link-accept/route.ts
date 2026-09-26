@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseFriendLinkAcceptBody } from '@/lib/line/parseLiffBodies'
+import { isLineEnabledForTenant } from '@/lib/line/line-enabled'
+import { getMyouTenantIds } from '@/lib/auth/tenant-audience'
 import { verifyLineIdToken } from '@/lib/line/verifyLineIdToken'
 
 export async function POST(req: Request) {
@@ -47,6 +49,11 @@ export async function POST(req: Request) {
 
   if (inviteError || !invite) {
     return NextResponse.json({ error: 'token_invalid' }, { status: 401 })
+  }
+
+  // MYOU テナントは LINE 連携を使わないため紐付けを行わない
+  if (!isLineEnabledForTenant(invite.tenant_id, getMyouTenantIds())) {
+    return NextResponse.json({ error: 'line_disabled' }, { status: 403 })
   }
 
   // 使用済みチェック（原子的 update の前の早期リターン）

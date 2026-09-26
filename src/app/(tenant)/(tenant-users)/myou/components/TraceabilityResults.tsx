@@ -12,6 +12,7 @@ import {
   Hash,
 } from 'lucide-react'
 import { formatDateTimeInJST } from '@/lib/datetime'
+import { getTraceExpirationDisplay } from '@/features/myou/lib/trace-expiration'
 import {
   MYOU_LOT_STATUS_LABELS,
   type LotTraceResult,
@@ -21,6 +22,8 @@ import {
 interface TraceabilityResultsProps {
   data: LotTraceResult | null
   searched: boolean
+  /** 照会に使ったロット番号または TraceNo（有効期限の表示対象を決めるために使う） */
+  identifier: string
 }
 
 /** ステータスに応じたバッジ配色を返す */
@@ -37,7 +40,11 @@ function statusBadgeClass(status: MyouLotStatus): string {
   }
 }
 
-export default function TraceabilityResults({ data, searched }: TraceabilityResultsProps) {
+export default function TraceabilityResults({
+  data,
+  searched,
+  identifier,
+}: TraceabilityResultsProps) {
   if (!searched) return null
 
   if (!data) {
@@ -55,6 +62,8 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
 
   const { lot, history } = data
   const status = lot.status
+  // 有効期限はロットではなく出荷登録時の値（出荷履歴）から取得する
+  const expiration = getTraceExpirationDisplay(history, identifier)
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -75,13 +84,13 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">有効期限</p>
             <p
               className={`text-lg font-bold flex items-center ${
-                lot.expiration_date && new Date(lot.expiration_date) < new Date()
+                expiration.date && new Date(expiration.date) < new Date()
                   ? 'text-red-600'
                   : 'text-gray-900'
               }`}
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              {lot.expiration_date ?? '未設定'}
+              <Calendar className="h-4 w-4 mr-2 shrink-0" />
+              {expiration.text}
             </p>
           </div>
           <div className="space-y-1">
@@ -157,6 +166,13 @@ export default function TraceabilityResults({ data, searched }: TraceabilityResu
                         登録担当者:{' '}
                         <span className="font-semibold text-gray-900 ml-1">
                           {log.delivered_by || 'システム登録'}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        有効期限:{' '}
+                        <span className="font-semibold text-gray-900 ml-1">
+                          {log.expiration_date ?? '未設定'}
                         </span>
                       </div>
                       {log.customer_order_no && (

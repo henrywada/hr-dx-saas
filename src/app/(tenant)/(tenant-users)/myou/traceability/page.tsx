@@ -13,10 +13,12 @@ export default function TraceabilityPage() {
   const [isPending, startTransition] = useTransition()
   const [searchResult, setSearchResult] = useState<LotTraceResult | null>(null)
   const [searched, setSearched] = useState(false)
+  const [searchedIdentifier, setSearchedIdentifier] = useState('')
   const [searchError, setSearchError] = useState<string | null>(null)
 
   const handleSearch = (identifier: string) => {
     setSearched(true)
+    setSearchedIdentifier(identifier)
     setSearchError(null)
     startTransition(async () => {
       // Server Action が throw してもルートの error.tsx に飛ばさず、
@@ -101,6 +103,7 @@ export default function TraceabilityPage() {
         <TraceabilityResults
           data={searchResult}
           searched={searched && !isPending && !searchError}
+          identifier={searchedIdentifier}
         />
 
         {/* ガイド・補足 */}

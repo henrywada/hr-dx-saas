@@ -3,21 +3,41 @@
 import { LogIn } from 'lucide-react'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { formatDateTimeInJST } from '@/lib/datetime'
-import type { LoginLog } from '../queries'
+import type { LoginSession } from '../queries'
+import { formatStayDuration, toStaySeconds } from '../session'
 import { LoginLogPeriodSelector } from './LoginLogPeriodSelector'
 
 interface LoginLogsViewProps {
-  logs: LoginLog[]
+  sessions: LoginSession[]
   yearMonth: string | null
 }
 
-export function LoginLogsView({ logs, yearMonth }: LoginLogsViewProps) {
-  const columns: Column<LoginLog>[] = [
+type LoginSessionRow = LoginSession & { stay_seconds: number | null }
+
+export function LoginLogsView({ sessions, yearMonth }: LoginLogsViewProps) {
+  const rows: LoginSessionRow[] = sessions.map(s => ({
+    ...s,
+    stay_seconds: toStaySeconds(s.logged_in_at, s.last_activity_at),
+  }))
+
+  const columns: Column<LoginSessionRow>[] = [
     {
       key: 'logged_in_at',
-      label: '日時',
+      label: 'ログイン日時',
       sortable: true,
       render: val => <span className="text-[#24292f]">{formatDateTimeInJST(val)}</span>,
+    },
+    {
+      key: 'last_activity_at',
+      label: '最終操作時刻',
+      sortable: true,
+      render: val => <span className="text-[#24292f]">{formatDateTimeInJST(val)}</span>,
+    },
+    {
+      key: 'stay_seconds',
+      label: '滞在時間（推定）',
+      sortable: true,
+      render: val => <span className="text-[#24292f]">{formatStayDuration(val)}</span>,
     },
     {
       key: 'employee_name',
@@ -39,7 +59,7 @@ export function LoginLogsView({ logs, yearMonth }: LoginLogsViewProps) {
         <div>
           <h1 className="text-2xl font-bold text-[#24292f] tracking-tight">ログイン履歴</h1>
           <p className="text-sm text-[#57606a] mt-1">
-            誰が・いつログインしたかを年月で絞り込んで確認できます
+            誰が・いつログインし、どのくらい利用したか（推定）を年月で絞り込んで確認できます
           </p>
         </div>
       </div>
@@ -56,11 +76,14 @@ export function LoginLogsView({ logs, yearMonth }: LoginLogsViewProps) {
           <LogIn className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-[#57606a]">
             ログイン履歴一覧
-            <span className="text-xs text-[#57606a] ml-2">({logs.length}件)</span>
+            <span className="text-xs text-[#57606a] ml-2">({rows.length}件)</span>
           </span>
         </div>
+        <p className="text-xs text-[#57606a]">
+          滞在時間は、ログイン後の最後の操作時刻までの推定値です（ログアウトしない場合や、30分を超える無操作は、その手前までを集計）。
+        </p>
         <div className="overflow-x-auto">
-          <DataTable columns={columns} data={logs} getRowId={item => item.id} />
+          <DataTable columns={columns} data={rows} getRowId={item => item.id} />
         </div>
       </div>
     </div>

@@ -25,3 +25,11 @@ function currentYearMonthJst(now: Date): string {
 export function isPastYearMonth(ym: string, now: Date = new Date()): boolean {
   return YEAR_MONTH_RE.test(ym) && ym < currentYearMonthJst(now)
 }
+
+/** 表示種別: sessions=Log in/out（既定）, pages=ページ閲覧 */
+export type LogView = 'sessions' | 'pages'
+
+/** view クエリ。'pages' のみ許可し、それ以外は既定の 'sessions' */
+export function parseLogView(raw: unknown): LogView {
+  return raw === 'pages' ? 'pages' : 'sessions'
+}

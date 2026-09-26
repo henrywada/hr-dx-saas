@@ -13,6 +13,7 @@ import {
   type LoginAudience,
 } from './tenant-audience';
 import { isHostAudienceConsistent } from './host';
+import { resolveTenantId } from './resolve-tenant-id';
 
 /**
  * ログイン処理（Server Action）
@@ -49,23 +50,28 @@ export async function signInAction(
   }
 
   if (data.session) {
-    // employees テーブルから tenant_id と app_role を取得（リダイレクト先判定用）
-    let tenant_id = data.user.user_metadata?.tenant_id;
+    // テナントは employees のみから決定する（user_metadata は本人が書き換え可能なため使わない）
+    const resolved = await resolveTenantId(supabase, data.user);
+    const tenant_id = resolved.tenantId ?? undefined;
+
+    // app_role はリダイレクト先判定用に取得
     let appRole: string | undefined;
     const { data: employee } = await supabase
       .from('employees')
-      .select('tenant_id, app_role:app_role_id(app_role)')
+      .select('app_role:app_role_id(app_role)')
       .eq('user_id', data.user.id)
-      .single();
-
-    if (employee) {
-      if (employee.tenant_id) tenant_id = employee.tenant_id;
-      const ar = employee.app_role as { app_role?: string } | null | undefined;
-      if (ar?.app_role) appRole = ar.app_role;
-    }
+      .maybeSingle();
+    const ar = employee?.app_role as { app_role?: string } | null | undefined;
+    if (ar?.app_role) appRole = ar.app_role;
 
     // 画面種別とテナントの整合チェック（不許可ならセッションを破棄して拒否）
-    if (!isTenantAllowedForAudience(audience, tenant_id, getMyouTenantIds())) {
+    // myou は判定不能（failed）でも fail closed。default は従来どおり許可（middleware が再判定）
+    const isDenied =
+      audience === 'myou' && resolved.failed
+        ? true
+        : !resolved.failed &&
+          !isTenantAllowedForAudience(audience, resolved.tenantId, getMyouTenantIds());
+    if (isDenied) {
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) console.error('[signInAction] signOut 失敗:', signOutError.message);
       return {

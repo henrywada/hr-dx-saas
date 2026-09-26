@@ -12,7 +12,7 @@ export default function MyouAuthLayout({ children }: { children: React.ReactNode
           width={400}
           height={800}
           priority
-          className="h-auto max-h-screen w-auto max-w-full object-contain"
+          className="h-auto max-h-[80vh] w-auto max-w-full object-contain"
         />
       </div>
       <div className="flex-1 flex items-center justify-center bg-white px-6 py-12 sm:px-10 lg:px-16 xl:px-20">

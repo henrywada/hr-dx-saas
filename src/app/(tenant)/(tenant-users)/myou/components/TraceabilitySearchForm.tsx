@@ -38,18 +38,20 @@ export default function TraceabilitySearchForm({
         <h2 className="text-sm font-semibold text-gray-700">ロット番号／TraceNoで検索</h2>
         <button
           onClick={() => setShowScanner(!showScanner)}
-          className={`flex items-center space-x-1 text-xs px-3 py-1.5 rounded-full transition-colors ${
-            showScanner ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+          className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-lg shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+            showScanner
+              ? 'bg-red-100 text-red-600 hover:bg-red-200 focus-visible:ring-red-400'
+              : 'bg-primary text-white hover:bg-primary-dark hover:shadow-lg active:scale-95 focus-visible:ring-primary'
           }`}
         >
           {showScanner ? (
             <>
-              <XCircle className="h-3.5 w-3.5" />
+              <XCircle className="h-5 w-5" />
               <span>キャンセル</span>
             </>
           ) : (
             <>
-              <QrCode className="h-3.5 w-3.5" />
+              <QrCode className="h-5 w-5" />
               <span>QRスキャン</span>
             </>
           )}

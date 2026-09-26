@@ -7,7 +7,7 @@ import MyouBackLink from '../components/MyouBackLink'
 import { TraceabilityHelpModalTrigger } from '../components/TraceabilityHelpModalTrigger'
 import { getLotTrace } from '@/features/myou/actions'
 import type { LotTraceResult } from '@/features/myou/types'
-import { PackageSearch, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
+import { PackageSearch, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function TraceabilityPage() {
   const [isPending, startTransition] = useTransition()
@@ -47,11 +47,6 @@ export default function TraceabilityPage() {
             <MyouBackLink variant="light" />
           </div>
           <div className="flex flex-col items-center text-center space-y-6">
-            <nav className="flex items-center space-x-2 text-blue-200 text-xs font-bold uppercase tracking-widest bg-white/10 px-4 py-1.5 rounded-full">
-              <span>製品トレーサビリティ</span>
-              <ArrowRight className="h-3 w-3" />
-              <span className="text-white">トレース照会</span>
-            </nav>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight flex items-center text-white">
               <PackageSearch className="h-10 w-10 md:h-12 md:w-12 mr-4 text-blue-300" />
               流通経路の照会

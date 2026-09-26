@@ -6,6 +6,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { revalidatePath } from 'next/cache'
 import { APP_ROUTES } from '@/config/routes'
 import { sendMail, formatExpiryDate } from '@/lib/mail/send'
+import { buildRecoveryLink, lookupTenantIdForUser } from '@/lib/auth/recovery-link'
 import { createLifecycleInstance, ensureOffboardingInstance } from '@/features/lifecycle/actions'
 import { toJSTDateString } from '@/lib/datetime'
 
@@ -57,8 +58,6 @@ const INVITE_EXPIRY_HOURS = 336
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendInviteEmailToEmployee(supabase: any, email: string, userId: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
   // GoTrue をバイパス: RPC でリカバリートークンを生成
   const { data: token, error: tokenError } = await supabase.rpc('generate_recovery_token', {
     p_user_id: userId,
@@ -69,7 +68,8 @@ async function sendInviteEmailToEmployee(supabase: any, email: string, userId: s
     throw new Error(`リカバリートークン生成失敗: ${tokenError.message}`)
   }
 
-  const actionLink = `${appUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`
+  const tenantId = await lookupTenantIdForUser(supabase, userId)
+  const actionLink = buildRecoveryLink({ tenantId, token, email })
   const expiryFormatted = formatExpiryDate(INVITE_EXPIRY_HOURS * 3600)
 
   await sendMail({

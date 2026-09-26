@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendMail, formatExpiryDate } from '@/lib/mail/send'
+import { buildRecoveryLink, lookupTenantIdForUser } from '@/lib/auth/recovery-link'
 import { contractEndDayYmdToUtcIso } from '@/lib/datetime'
 import type { TenantActionResult, TenantFormData, TenantUpdateData } from './types'
 
@@ -20,8 +21,6 @@ type SupabaseAdmin = any
  * nodemailer（Inbucket SMTP）経由で有効期限付きのカスタムメールを送信する。
  */
 async function sendInviteEmailToManager(supabase: SupabaseAdmin, email: string, userId: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
   // RPC関数でリカバリートークンを生成（GoTrue バイパス）
   const { data: recoveryToken, error: tokenError } = await supabase.rpc('generate_recovery_token', {
     p_user_id: userId,
@@ -34,8 +33,8 @@ async function sendInviteEmailToManager(supabase: SupabaseAdmin, email: string, 
     )
   }
 
-  const actionLink =
-    appUrl + '/reset-password?token=' + recoveryToken + '&email=' + encodeURIComponent(email)
+  const tenantId = await lookupTenantIdForUser(supabase, userId)
+  const actionLink = buildRecoveryLink({ tenantId, token: recoveryToken, email })
 
   // 有効期限を計算
   const expiryFormatted = formatExpiryDate(OTP_EXPIRY_SECONDS)

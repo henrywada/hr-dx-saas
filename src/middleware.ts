@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { APP_ROUTES } from '@/config/routes'
 import { buildHostRedirectUrl, isMyouHost, resolveHostRedirect } from '@/lib/auth/host'
+import { resolveTenantId } from '@/lib/auth/resolve-tenant-id'
+import { getMyouTenantIds, isTenantAllowedForAudience } from '@/lib/auth/tenant-audience'
 import {
   STATIC_SECURITY_HEADERS,
   buildAppCsp,
@@ -73,25 +75,37 @@ export async function middleware(request: NextRequest) {
   const isPublicPortalPage = pathname.startsWith('/p/')
   const isPublicPage = isMarketingRoot || isPublicPortalPage
 
+  // ホスト⇔テナント整合チェック（多層防御）。
+  // どの経路でセッションが作られても、app と myou のユーザーがドメインを跨げないようにする。
+  let resolvedTenantId: string | null = null
+  if (user) {
+    const { tenantId, failed } = await resolveTenantId(supabase, user)
+    resolvedTenantId = tenantId
+    const audience = isMyou ? 'myou' : 'default'
+    // DB エラー時は判定を保留（一時的な障害で全員をログアウトさせない）
+    if (!failed && !isTenantAllowedForAudience(audience, tenantId, getMyouTenantIds())) {
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) {
+        console.error('[Middleware] signOut error:', signOutError.message)
+      }
+      const loginPath = isMyou ? APP_ROUTES.AUTH.LOGIN_MYOU : APP_ROUTES.AUTH.LOGIN
+      const denied = pathname.startsWith('/api/')
+        ? NextResponse.json({ ok: false, error: 'アクセス権がありません' }, { status: 403 })
+        : NextResponse.redirect(new URL(loginPath, request.url))
+      // updateSession の response は setAll 内で作り直されるため、sb-* Cookie を明示的に削除する
+      request.cookies
+        .getAll()
+        .filter(c => c.name.startsWith('sb-'))
+        .forEach(c => denied.cookies.set(c.name, '', { maxAge: 0, path: '/' }))
+      return applySecurityHeaders(denied)
+    }
+  }
+
   if (shouldRecordPageView) {
     const insertLog = async () => {
       try {
-        let tenant_id = user?.user_metadata?.tenant_id || null
-
-        // user_metadata に tenant_id が無い場合（大半の従業員用）、employees テーブルから裏で非同期補完
-        if (!tenant_id && user?.id) {
-          const { data } = await supabase
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .from('employees' as any)
-            .select('tenant_id')
-            .eq('user_id', user.id)
-            .single()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const emp = data as any
-          if (emp?.tenant_id) {
-            tenant_id = emp.tenant_id
-          }
-        }
+        // テナント ID は認証済みリクエストごとに 1 回だけ解決した結果を共有する
+        const tenant_id = resolvedTenantId
 
         // ── トークン含みパスのマスキング ──────────────────────────────
         // 招待トークン・LIFF state に生トークンが含まれるパスはログに残さない。

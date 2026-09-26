@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { APP_ROUTES } from '@/config/routes'
 import { buildHostRedirectUrl, isMyouHost, resolveHostRedirect } from '@/lib/auth/host'
-import { resolveTenantId } from '@/lib/auth/resolve-tenant-id'
-import { getMyouTenantIds, isTenantAllowedForAudience } from '@/lib/auth/tenant-audience'
+import { resolveTenantId, shouldDenyForHost } from '@/lib/auth/resolve-tenant-id'
+import { getMyouTenantIds } from '@/lib/auth/tenant-audience'
 import {
   STATIC_SECURITY_HEADERS,
   buildAppCsp,
@@ -79,12 +79,15 @@ export async function middleware(request: NextRequest) {
   // どの経路でセッションが作られても、app と myou のユーザーがドメインを跨げないようにする。
   let resolvedTenantId: string | null = null
   if (user) {
-    const { tenantId, failed } = await resolveTenantId(supabase, user)
-    resolvedTenantId = tenantId
-    const audience = isMyou ? 'myou' : 'default'
+    const resolved = await resolveTenantId(supabase, user)
+    resolvedTenantId = resolved.tenantId
     // DB エラー時は判定を保留（一時的な障害で全員をログアウトさせない）
-    if (!failed && !isTenantAllowedForAudience(audience, tenantId, getMyouTenantIds())) {
-      const { error: signOutError } = await supabase.auth.signOut()
+    if (resolved.failed) {
+      console.warn('[Middleware] テナント解決失敗のためホスト整合チェックを保留')
+    }
+    if (shouldDenyForHost(isMyou, resolved, getMyouTenantIds())) {
+      // scope: 'local' で今のセッションだけ破棄する（他端末の正当なセッションを巻き込まない）
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
       if (signOutError) {
         console.error('[Middleware] signOut error:', signOutError.message)
       }

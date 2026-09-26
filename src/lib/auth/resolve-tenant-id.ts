@@ -1,7 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-/** PostgREST の「行が見つからない」エラーコード（.single() で 0 件のとき） */
-const NO_ROWS_ERROR_CODE = 'PGRST116'
+import { isTenantAllowedForAudience } from './tenant-audience'
 
 export interface TenantResolveResult {
   tenantId: string | null
@@ -11,32 +9,38 @@ export interface TenantResolveResult {
 
 interface TenantUser {
   id: string
-  user_metadata?: { tenant_id?: string | null } | null
+  /** 型互換のため受け取るが、書き換え可能なので参照しない */
+  user_metadata?: unknown
 }
 
 /**
  * ユーザーのテナント ID を解決する。
- * user_metadata.tenant_id を優先し、無ければ employees.tenant_id を参照する。
+ * user_metadata はユーザー自身が書き換え可能なため信用せず、employees.tenant_id のみを正とする。
  */
 export async function resolveTenantId(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any, any, any>,
   user: TenantUser
 ): Promise<TenantResolveResult> {
-  const metaTenantId = user.user_metadata?.tenant_id
-  if (metaTenantId) return { tenantId: metaTenantId, failed: false }
-
   const { data, error } = await supabase
     .from('employees')
     .select('tenant_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (error) {
-    // 行なしは「テナント不明」、それ以外は DB 障害として failed
-    const isNoRow = (error as { code?: string }).code === NO_ROWS_ERROR_CODE
-    return { tenantId: null, failed: !isNoRow }
-  }
+  // 複数行エラーを含む全ての DB エラーは判定不能として扱う
+  if (error) return { tenantId: null, failed: true }
   const tenantId = (data as { tenant_id?: string | null } | null)?.tenant_id ?? null
   return { tenantId, failed: false }
+}
+
+/** ホストとテナントが不整合でセッションを拒否すべきか。判定不能（failed）のときは拒否しない */
+export function shouldDenyForHost(
+  isMyou: boolean,
+  resolved: TenantResolveResult,
+  myouTenantIds: string[]
+): boolean {
+  if (resolved.failed) return false
+  const audience = isMyou ? 'myou' : 'default'
+  return !isTenantAllowedForAudience(audience, resolved.tenantId, myouTenantIds)
 }

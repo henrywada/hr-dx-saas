@@ -28,13 +28,11 @@ interface CommentThreadProps {
   /**
    * 閲覧者が「提案」を送信できる相手（メンバーなら責任者、責任者ならオーナー）。
    * 空配列（または省略）なら提案の選択肢自体を表示しない。
-   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可。
    */
   suggestionTargets?: EmployeeOption[]
   /**
    * 閲覧者が「報告」を送信できる相手（責任者ならオーナーのみ）。
    * 空配列（または省略）なら報告の選択肢自体を表示しない。
-   * KanbanBoard（/tasks/groups/[id]、Phase5対象外）は未配線のため省略可。
    */
   reportTargets?: EmployeeOption[]
   /**

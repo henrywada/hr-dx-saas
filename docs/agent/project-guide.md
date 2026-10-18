@@ -3,7 +3,6 @@
 > この文書は `CLAUDE.md` から移した詳細ガイドです。エージェントは必要な節だけ読んでください。
 > 常時読む索引はリポジトリ直下の `CLAUDE.md` です。
 
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ---
@@ -533,15 +532,18 @@ ALTER TABLE public.new_table ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_isolation" ON public.new_table
   FOR ALL USING (tenant_id = public.current_tenant_id());
+
+COMMENT ON TABLE public.new_table IS '[ドメイン名] 1行説明';
 ```
 
 **テンプレートの各要素の理由（変更するときは必ず読むこと）:**
 
-| 要素                         | 理由                                                                                                                                                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CREATE TABLE IF NOT EXISTS` | 上の「絶対禁止」表のとおり。`IF NOT EXISTS` の無い `CREATE TABLE` は既存テーブルの定義上書き・データ消失につながる                                                                                                            |
-| `ON DELETE CASCADE`          | 付け忘れるとテナント削除時にトランザクションデータが取り残される。過去にこれが原因で本番に孤児レコードが残った                                                                                                                |
-| `public.current_tenant_id()` | `employees` から `tenant_id` を1件引くヘルパー（`STABLE SECURITY DEFINER`、`SET search_path = public`）。`SECURITY DEFINER` により `employees` 自身の RLS への再帰を避けられ、`STABLE` なのでプランナが結果をキャッシュできる |
+| 要素                         | 理由                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CREATE TABLE IF NOT EXISTS` | 上の「絶対禁止」表のとおり。`IF NOT EXISTS` の無い `CREATE TABLE` は既存テーブルの定義上書き・データ消失につながる                                                                                                                                                                                                          |
+| `ON DELETE CASCADE`          | 付け忘れるとテナント削除時にトランザクションデータが取り残される。過去にこれが原因で本番に孤児レコードが残った                                                                                                                                                                                                              |
+| `COMMENT ON TABLE`           | 237テーブルを超えて全体像が追えなくなったため必須。テーブル名はドメイン prefix（`stress_` など）で始め、`[ドメイン名]` は `scripts/generate_table_catalog.ts` の `DOMAIN_RULES` と揃える。追加後は `npx tsx scripts/generate_table_catalog.ts` で [docs/db/table-catalog.md](../db/table-catalog.md) を再生成する |
+| `public.current_tenant_id()` | `employees` から `tenant_id` を1件引くヘルパー（`STABLE SECURITY DEFINER`、`SET search_path = public`）。`SECURITY DEFINER` により `employees` 自身の RLS への再帰を避けられ、`STABLE` なのでプランナが結果をキャッシュできる                                                                                               |
 
 ⚠️ **`employees` のカラム名は `user_id` です。`auth_user_id` は存在しません。**
 生のサブクエリを書く場合は `WHERE user_id = auth.uid()` としてください。

@@ -87,7 +87,7 @@ export function ObjectiveTaskBoard({
         // 最終レビュー Finding 5: ここで例外を投げっぱなしにすると、startTransition内の
         // 未捕捉エラーが最も近いError Boundary（route の error.tsx）まで伝播し、
         // 目標詳細ページ全体がエラー画面に置き換わってしまう（RLSが権限なしで拒否した場合等）。
-        // 他のコンポーネント（TaskDetailModal等）と同じ try/catch + setError パターンに揃える。
+        // 他のコンポーネント（TaskActionModal等）と同じ try/catch + setError パターンに揃える。
         setDeleteError(err instanceof Error ? err.message : 'タスクの削除に失敗しました')
       }
     })

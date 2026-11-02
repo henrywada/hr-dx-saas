@@ -43,15 +43,15 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
 
   const descriptionText = (() => {
     if (aiChatEnabled && hrMailEnabled) {
-      return '登録された制度文書に基づく AI による回答、または人事担当へのメール送信ができます。'
+      return '法令情報（公的）に基づく AI による回答、または人事担当へのメール送信ができます。'
     }
     if (aiChatEnabled && !hrMailEnabled) {
-      return '登録された制度文書に基づく AI による回答ができます。メール送信は管理画面の「基本設定」で宛先を登録するとご利用いただけます。'
+      return '法令情報（公的）に基づく AI による回答ができます。メール送信は管理画面の「基本設定」で宛先を登録するとご利用いただけます。'
     }
     if (!aiChatEnabled && hrMailEnabled) {
-      return '人事担当へのメール送信ができます。（制度文書が登録されると AI チャットもご利用いただけます）'
+      return '人事担当へのメール送信ができます。（法令情報が公開されると法令情報（公的）検索もご利用いただけます）'
     }
-    return '現在、AI チャット・人事メールのいずれもご利用いただけません。管理者に制度文書の登録や「基本設定」でのメール宛先登録をご確認ください。'
+    return '現在、法令情報（公的）検索・人事メールのいずれもご利用いただけません。管理者に「基本設定」でのメール宛先登録をご確認ください。'
   })()
 
   return (
@@ -81,7 +81,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
                 <button
                   type="button"
                   disabled={!aiChatEnabled}
-                  title={!aiChatEnabled ? '制度文書が登録されるまでご利用いただけません' : undefined}
+                  title={!aiChatEnabled ? '法令情報が公開されるまでご利用いただけません' : undefined}
                   onClick={() => aiChatEnabled && setTab('chat')}
                   className={cn(
                     'rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
@@ -91,7 +91,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
                       : aiChatEnabled && 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
                   )}
                 >
-                  AIチャット
+                  法令情報（公的）検索
                 </button>
                 <button
                   type="button"
@@ -144,7 +144,7 @@ export function HrInquiryModal({ aiChatEnabled = true, hrMailEnabled = false }: 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6 [scrollbar-gutter:stable]">
             <p className="text-sm leading-relaxed text-neutral-600">{descriptionText}</p>
             <p className="mt-3 text-sm leading-relaxed text-[#57606a]">
-              制度文書（AI チャット）の登録、または「基本設定」での人事宛メールの登録が必要です。
+              法令情報の公開、または「基本設定」での人事宛メールの登録が必要です。
             </p>
           </div>
         )}

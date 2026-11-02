@@ -11,7 +11,12 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { APP_ROUTES } from '@/config/routes'
 import { chunkPlainText } from './chunk'
 import { embedChunks, embedQueryText, formatVectorForPg } from './embedding'
-import { CHAT_MODEL, MAX_HISTORY_TURNS, RAG_TOP_K } from './constants'
+import { CHAT_MODEL, LAW_RAG_TOP_K, MAX_HISTORY_TURNS } from './constants'
+import {
+  formatLawCitations,
+  formatLawContextBlocks,
+  type LawChunkRow,
+} from '@/features/hr-assistant/law-context'
 import { getGeminiClient } from '@/lib/ai/gemini'
 import {
   computeContentHash,
@@ -567,7 +572,7 @@ export async function deleteRagDocumentAction(
   return { ok: true }
 }
 
-export type InquiryCitation = { title: string; snippet: string }
+export type InquiryCitation = { title: string; snippet: string; sourceUrl?: string }
 
 export async function sendInquiryMessage(input: {
   sessionId?: string | null
@@ -623,31 +628,25 @@ export async function sendInquiryMessage(input: {
     return { ok: false, error: msg }
   }
 
-  const { data: hits, error: rpcErr } = await supabase.rpc('match_tenant_rag_chunks', {
+  // 法令情報（公的）のみを検索対象とする。テナント固有の制度文書は参照しない
+  const { data: lawHits, error: lawErr } = await supabase.rpc('match_hr_law_chunks', {
     query_embedding: formatVectorForPg(queryEmbedding),
-    match_count: RAG_TOP_K,
+    match_count: LAW_RAG_TOP_K,
   })
 
-  if (rpcErr) {
-    console.error('[inquiry-chat] rpc', rpcErr)
+  if (lawErr) {
+    console.error('[inquiry-chat] rpc law', lawErr)
     return { ok: false, error: '検索に失敗しました' }
   }
 
-  const rows = (hits ?? []) as {
-    id: string
-    content: string
-    metadata: { document_title?: string }
-  }[]
+  const lawRows = (lawHits ?? []) as LawChunkRow[]
+  const contextBlocks = formatLawContextBlocks(lawRows)
 
-  const contextBlocks = rows.map((r, i) => {
-    const title = r.metadata?.document_title || '文書'
-    return `【資料${i + 1}: ${title}】\n${r.content}`
-  })
-
-  const systemPrompt = `あなたは社内の人事・制度に関する問合せに答えるアシスタントです。
-以下の「参照資料」に書かれている内容のみを根拠に回答してください。
-参照資料にないことは推測せず、「登録された資料には記載がありません」と述べてください。
-回答は日本語で簡潔に。最後に「重要: 最終的な判断は必ず人事担当へご確認ください」と一文入れてください。`
+  const systemPrompt = `あなたは人事・労務に関する法令情報（公的情報）の問合せに答えるアシスタントです。
+以下の「参照資料」に書かれている法令情報のみを根拠に回答してください。
+参照資料にないことは推測せず、「登録された法令情報には記載がありません」と述べてください。
+会社固有の就業規則や社内制度については回答できないため、人事担当へ確認するよう案内してください。
+回答は日本語で簡潔に。最後に「重要: 最終的な判断は必ず人事担当・社会保険労務士へご確認ください」と一文入れてください。`
 
   const { data: historyRows } = await supabase
     .from('tenant_inquiry_chat_messages')
@@ -708,12 +707,13 @@ export async function sendInquiryMessage(input: {
 
   if (!answer) return { ok: false, error: 'AI からの応答が空でした' }
 
-  const citations: InquiryCitation[] = rows.slice(0, 5).map(r => ({
-    title: (r.metadata?.document_title as string) || '文書',
-    snippet: r.content.slice(0, 200) + (r.content.length > 200 ? '…' : ''),
+  const citations: InquiryCitation[] = formatLawCitations(lawRows).map(c => ({
+    title: c.title,
+    snippet: c.snippet,
+    sourceUrl: c.sourceUrl,
   }))
 
-  const citedIds = rows.map(r => r.id)
+  const citedIds = lawRows.map(r => r.id)
 
   const { error: aErr } = await supabase.from('tenant_inquiry_chat_messages').insert({
     tenant_id: user.tenant_id,

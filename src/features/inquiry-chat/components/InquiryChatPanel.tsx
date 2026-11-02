@@ -47,6 +47,16 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 <li key={i} className="text-xs text-[#57606a]">
                   <span className="font-medium text-[#24292f]">{c.title}</span>
                   <p className="mt-0.5 line-clamp-2">{c.snippet}</p>
+                  {c.sourceUrl && (
+                    <a
+                      href={c.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-0.5 inline-block text-[#FD7601] hover:underline"
+                    >
+                      出典を開く
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -143,9 +153,9 @@ export function InquiryChatPanel({ variant = 'page' }: Props) {
           isModal ? 'p-2.5 text-xs' : 'p-4 text-sm',
         )}
       >
-        <p className="mb-0.5 font-semibold">社内情報の取り扱いについて</p>
+        <p className="mb-0.5 font-semibold">ご利用にあたって</p>
         <p>
-          回答は登録された制度文書に基づきます。内容の最終確認は人事担当までお問い合わせください。AI
+          回答は公的な法令情報に基づきます。会社固有の制度は含まれません。内容の最終確認は人事担当・社会保険労務士までお問い合わせください。AI
           の解釈ミスがある場合があります。
         </p>
       </div>
@@ -162,12 +172,12 @@ export function InquiryChatPanel({ variant = 'page' }: Props) {
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-xs">
                 <span className="text-xl">💬</span>
               </div>
-              <h3 className="text-sm font-semibold text-[#24292f]">人事制度について質問してください</h3>
+              <h3 className="text-sm font-semibold text-[#24292f]">法令・人事労務について質問してください</h3>
               <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-[#57606a]">
-                管理画面で登録された就業規則・社内規程などを参照して AI が回答します。
+                公的な法令・人事アップデート情報を参照して AI が回答します。
               </p>
               <p className="mt-3 text-xs text-[#57606a]">
-                例：有給休暇の申請期限はいつまでですか？
+                例：時間外労働の上限規制を教えてください
               </p>
             </div>
           )}

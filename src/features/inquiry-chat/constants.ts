@@ -9,5 +9,8 @@ export const CHUNK_MAX_CHARS = 900
 export const CHUNK_OVERLAP_CHARS = 100
 export const RAG_TOP_K = 8
 
+/** 法令ナレッジ（hr_law_chunks）の検索件数 */
+export const LAW_RAG_TOP_K = 4
+
 /** チャット応答に含める直近の会話ターン数（user + assistant のペア） */
 export const MAX_HISTORY_TURNS = 6

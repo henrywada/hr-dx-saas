@@ -66,7 +66,8 @@ node --import tsx --test src/features/info-bank/ingest.integration.test.ts
 - **Gemini API の残高**: RAG 検索と回答生成は Gemini を使う。残高が尽きると（HTTP 402）、RAG・回答生成・資料の埋め込みが動かない。`auto` はテキスト検索へ切り替わるが、回答の文章生成はできない。
 - **HNSW インデックス**: ベクトル検索はテナント内の厳密検索（`ORDER BY ... + 0`）にしているため、`info_bank_chunks_embedding_hnsw_idx` は使われない。1 チャンク約 6KB を占めるので、削除を検討する（DROP は承認が必要なため未実施）。
 - **容量の目安**: 1 チャンクあたり約 14〜15KB（ベクトル + 本文 + トライグラム索引）。約 3 万チャンクで DB 500MB に近づく。改訂の取り込み中は旧版と新版が共存して一時的に増える。
-- **利用回数の制限なし**: 質問ごとに Gemini を 1〜2 回呼ぶ。コストが問題になれば `src/lib/ai/usage-limit.ts` の仕組みを入れる（既存の上限は無料プラン月 10 回で、この機能には厳しすぎるため未適用）。
+- **質問の回数制限**: 1 人あたり直近 1 分で 5 回まで（`INFO_BANK_ASK_LIMIT_PER_MINUTE`）。`try_consume_info_bank_ask()` が `info_bank_ask_logs` で数え、同時実行は advisory lock で直列化する。確認自体に失敗したときは許可しない。1 日あたり・テナントあたりの上限は未実装（Gemini の API キーは全テナント共有なので、必要なら追加する）。
+- **未対応のセキュリティ指摘**: `xlsx` 0.18.5 の既知の脆弱性（既存機能と共用のため別作業で更新）、docx/xlsx の zip 展開後サイズの事前検査。
 - **メニュー配置**: `20261105100100_info_bank_menu.sql` は両方のサービスをカテゴリ「情報バンク」（クラス「便利ツール」配下）に置き、全テナントに有効化する。実画面で従業員・管理者それぞれのメニュー表示を確認すること。
 - **類似度のしきい値**: `INFO_BANK_MIN_SIMILARITY = 0.55` は暫定値。実資料と質問で調整する。
-- **本番反映**: migration 3 本（schema / menu / hardening）は未適用。対象 DB を宣言して承認を取ってから `supabase db push` する。
+- **本番反映**: migration 4 本（schema / menu / hardening / ask_rate_limit）は未適用。対象 DB を宣言して承認を取ってから `supabase db push` する。

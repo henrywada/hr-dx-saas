@@ -13521,6 +13521,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      try_consume_info_bank_ask: {
+        Args: { p_limit: number; p_window_seconds: number }
+        Returns: boolean
+      }
       update_user_password: {
         Args: { p_new_password: string; p_user_id: string }
         Returns: undefined

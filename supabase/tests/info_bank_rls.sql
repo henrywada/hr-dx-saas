@@ -247,6 +247,52 @@ BEGIN
           WHERE id = 'a2000000-0000-4000-8000-000000000002'), '初回公開で ready になる';
 END $$;
 
+-- ---- 5. 質問の回数制限（1 分あたり 5 回、ユーザーごと） ----
+RESET ROLE;
+SELECT set_config('request.jwt.claims', json_build_object('sub', emp_a, 'role', 'authenticated')::text, true) FROM _ids;
+SET LOCAL ROLE authenticated;
+
+DO $$
+DECLARE i integer;
+BEGIN
+  FOR i IN 1..5 LOOP
+    ASSERT public.try_consume_info_bank_ask(5, 60), format('%s 回目は許可される', i);
+  END LOOP;
+  ASSERT NOT public.try_consume_info_bank_ask(5, 60), '6 回目は拒否される';
+  ASSERT NOT public.try_consume_info_bank_ask(5, 60), '拒否された呼び出しは枠を消費しない（続けて拒否）';
+
+  BEGIN
+    PERFORM 1 FROM public.info_bank_ask_logs;
+    RAISE EXCEPTION '利用者が記録テーブルを直接読めてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END $$;
+
+-- 別のユーザー（テナント B の従業員）の枠は影響を受けない
+RESET ROLE;
+SELECT set_config('request.jwt.claims', json_build_object('sub', emp_b, 'role', 'authenticated')::text, true) FROM _ids;
+SET LOCAL ROLE authenticated;
+
+DO $$
+BEGIN
+  ASSERT public.try_consume_info_bank_ask(5, 60), '別ユーザーは自分の枠を使える';
+END $$;
+
+-- 未ログイン（anon）は呼べない
+RESET ROLE;
+SET LOCAL ROLE anon;
+
+DO $$
+BEGIN
+  BEGIN
+    PERFORM public.try_consume_info_bank_ask(5, 60);
+    RAISE EXCEPTION 'anon が回数制限の関数を実行できてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END $$;
+
 RESET ROLE;
 -- ここまでの DO ブロックのアサーションがすべて通ったときだけ到達する
 SELECT 'info_bank_rls: ALL OK' AS result;

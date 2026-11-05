@@ -9,6 +9,7 @@ import { getGeminiClient } from '@/lib/ai/gemini'
 import { buildAnswerPrompt, parseAnswer } from './answer'
 import { requestAnswer, type AnswerClient } from './answer-llm'
 import { INFO_BANK_NO_ANSWER_TEXT } from './constants'
+import { consumeAskQuota } from './rate-limit'
 import { createSearchDeps, runSearch } from './search'
 import type { InfoBankAnswer } from './types'
 
@@ -43,6 +44,11 @@ export async function askInfoBankAction(input: {
 
   try {
     const supabase = await createClient()
+
+    // 検索・埋め込み・回答生成のいずれよりも先に枠を消費する（Gemini のコスト暴走対策）
+    const quota = await consumeAskQuota((fn, args) => supabase.rpc(fn, args))
+    if (quota.ok === false) return { ok: false, error: quota.error }
+
     const { hits, modeUsed } = await runSearch(createSearchDeps(supabase), { question, mode })
 
     if (hits.length === 0) {

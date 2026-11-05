@@ -19,6 +19,10 @@ export const INFO_BANK_MAX_TEXT_CHARS = 1_000_000
 /** 1 資料あたりのチャンク数の上限 */
 export const INFO_BANK_MAX_CHUNKS = 1500
 
+/** 質問の回数制限: 1 人あたり直近 INFO_BANK_ASK_WINDOW_SECONDS 秒に何回まで */
+export const INFO_BANK_ASK_LIMIT_PER_MINUTE = 5
+export const INFO_BANK_ASK_WINDOW_SECONDS = 60
+
 /** 質問から抽出するキーワードの最大数 */
 export const INFO_BANK_MAX_TERMS = 8
 

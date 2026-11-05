@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 
-type Extractor = (buffer: Buffer, mime: string, filename: string) => Promise<string>
+export type Extractor = (buffer: Buffer, mime: string, filename: string) => Promise<string>
 
 interface ExtractDeps {
   /** テスト用に差し替え可能な本文抽出（既定は inquiry-chat の共通抽出） */

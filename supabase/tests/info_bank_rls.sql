@@ -69,6 +69,15 @@ BEGIN
     '一致しない語は 0 件';
   ASSERT (SELECT count(*) FROM public.search_info_bank_text(ARRAY['100%_'], 10)) = 0,
     'LIKE のワイルドカード文字はエスケープされる';
+  ASSERT (SELECT count(*) FROM public.search_info_bank_text(ARRAY[' 育休 '], 10)) = 1,
+    '語の前後の空白は無視される';
+  ASSERT (SELECT count(*) FROM public.search_info_bank_text(ARRAY['育休'], NULL)) = 1,
+    'p_limit が NULL でも例外にならず上限内で返る';
+  ASSERT (SELECT count(*) FROM public.search_info_bank_text(ARRAY['a\b'], 10)) = 0,
+    'バックスラッシュを含む語もエスケープされる';
+  ASSERT (SELECT count(*) FROM public.search_info_bank_text(
+            ARRAY(SELECT 'x' || g FROM generate_series(1, 1000) AS g), 10)) = 0,
+    '語が極端に多くても例外にならない（先頭 10 語まで）';
   ASSERT public.count_info_bank_chunks() = 1, '検索対象チャンク数は公開版の 1 件';
   ASSERT (SELECT count(*) FROM public.match_info_bank_chunks((SELECT v FROM _vec), 10)) = 1,
     'ベクトル検索も公開版の 1 件だけ';
@@ -76,6 +85,20 @@ BEGIN
     '従業員が見える資料は公開済みの自テナント分だけ';
   ASSERT (SELECT count(*) FROM public.info_bank_chunks) = 1,
     '従業員が直接読めるチャンクは公開版だけ';
+
+  -- 取り込み中の版・エラー詳細・Storage パスは従業員から読めない（列単位の権限）
+  BEGIN
+    PERFORM pending_storage_path FROM public.info_bank_documents;
+    RAISE EXCEPTION '従業員が pending_storage_path を読めてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+  BEGIN
+    PERFORM error_message FROM public.info_bank_documents;
+    RAISE EXCEPTION '従業員が error_message を読めてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
 
   BEGIN
     INSERT INTO public.info_bank_documents (tenant_id, title) SELECT tenant_a, 'x' FROM _ids;
@@ -115,6 +138,47 @@ BEGIN
   ASSERT (SELECT count(*) FROM public.search_info_bank_text(ARRAY['育休'], 10)) = 1
      AND (SELECT content FROM public.search_info_bank_text(ARRAY['育休'], 10)) LIKE 'テナントB%',
     '他テナントの資料が見えてはいけない';
+END $$;
+
+-- ---- 3.5 anon（未ログイン）は検索も公開もできない ----
+RESET ROLE;
+SET LOCAL ROLE anon;
+
+DO $$
+BEGIN
+  BEGIN
+    PERFORM public.publish_info_bank_revision('a1000000-0000-4000-8000-000000000001', 3);
+    RAISE EXCEPTION 'anon が publish を実行できてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+  BEGIN
+    PERFORM * FROM public.search_info_bank_text(ARRAY['育休'], 10);
+    RAISE EXCEPTION 'anon が検索 RPC を実行できてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+  BEGIN
+    PERFORM 1 FROM public.info_bank_chunks;
+    RAISE EXCEPTION 'anon がチャンクを読めてしまった';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END $$;
+
+RESET ROLE;
+DO $$
+BEGIN
+  ASSERT NOT has_function_privilege('anon', 'public.publish_info_bank_revision(uuid,integer)', 'EXECUTE'),
+    'anon に publish の EXECUTE が残っている';
+  ASSERT NOT has_function_privilege('authenticated', 'public.publish_info_bank_revision(uuid,integer)', 'EXECUTE'),
+    'authenticated に publish の EXECUTE が残っている';
+  ASSERT has_function_privilege('service_role', 'public.publish_info_bank_revision(uuid,integer)', 'EXECUTE'),
+    'service_role に publish の EXECUTE が無い';
+  ASSERT NOT has_table_privilege('authenticated', 'public.info_bank_documents', 'INSERT'),
+    'authenticated に documents の INSERT 権限が残っている';
+  ASSERT NOT has_table_privilege('authenticated', 'public.info_bank_chunks', 'TRUNCATE'),
+    'authenticated に chunks の全消去権限が残っている';
 END $$;
 
 -- ---- 4. 版の切替（service_role） ----
@@ -161,6 +225,16 @@ BEGIN
   ASSERT (SELECT array_agg(revision ORDER BY revision) FROM public.info_bank_chunks
           WHERE document_id = 'a1000000-0000-4000-8000-000000000001') = ARRAY[3],
     '旧版のチャンクが削除される';
+
+  -- 公開中の版以前への切替は拒否する
+  UPDATE public.info_bank_documents SET pending_revision = 2
+  WHERE id = 'a1000000-0000-4000-8000-000000000001';
+  BEGIN
+    PERFORM public.publish_info_bank_revision('a1000000-0000-4000-8000-000000000001', 2);
+    RAISE EXCEPTION '現行より古い版へ切り替えできてしまった';
+  EXCEPTION WHEN raise_exception THEN
+    ASSERT SQLERRM LIKE '%以前の版には切り替えられません%', '期待外のエラー: ' || SQLERRM;
+  END;
 
   -- 新規資料（A2）の初回公開: 旧ファイル無し → NULL、published_at が入る
   UPDATE public.info_bank_chunks SET embedding = (SELECT v FROM _vec)

@@ -5377,6 +5377,140 @@ export type Database = {
           },
         ]
       }
+      info_bank_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          revision: number
+          tenant_id: string
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          revision: number
+          tenant_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          revision?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "info_bank_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "info_bank_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "info_bank_chunks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      info_bank_documents: {
+        Row: {
+          byte_size: number | null
+          category: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          keywords: string[]
+          mime_type: string | null
+          original_filename: string | null
+          pending_byte_size: number | null
+          pending_filename: string | null
+          pending_mime_type: string | null
+          pending_revision: number | null
+          pending_storage_path: string | null
+          published_at: string | null
+          revision: number
+          status: string
+          storage_path: string | null
+          summary: string
+          tags: string[]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          byte_size?: number | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          keywords?: string[]
+          mime_type?: string | null
+          original_filename?: string | null
+          pending_byte_size?: number | null
+          pending_filename?: string | null
+          pending_mime_type?: string | null
+          pending_revision?: number | null
+          pending_storage_path?: string | null
+          published_at?: string | null
+          revision?: number
+          status?: string
+          storage_path?: string | null
+          summary?: string
+          tags?: string[]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          byte_size?: number | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          keywords?: string[]
+          mime_type?: string | null
+          original_filename?: string | null
+          pending_byte_size?: number | null
+          pending_filename?: string | null
+          pending_mime_type?: string | null
+          pending_revision?: number | null
+          pending_storage_path?: string | null
+          published_at?: string | null
+          revision?: number
+          status?: string
+          storage_path?: string | null
+          summary?: string
+          tags?: string[]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "info_bank_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_event_attendees: {
         Row: {
           employee_id: string
@@ -12989,6 +13123,7 @@ export type Database = {
         }[]
       }
       cleanup_hr_law_unsearchable_chunks: { Args: never; Returns: number }
+      count_info_bank_chunks: { Args: never; Returns: number }
       create_auth_user: {
         Args: { p_email: string; p_password: string }
         Returns: string
@@ -13255,6 +13390,16 @@ export type Database = {
           similarity: number
         }[]
       }
+      match_info_bank_chunks: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          chunk_id: string
+          content: string
+          document_id: string
+          similarity: number
+          title: string
+        }[]
+      }
       match_tenant_rag_chunks: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {
@@ -13313,6 +13458,10 @@ export type Database = {
         Args: { p_kudos_id: string; p_recipient_employee_id: string }
         Returns: string
       }
+      publish_info_bank_revision: {
+        Args: { p_document_id: string; p_revision: number }
+        Returns: string
+      }
       rag_session_tenant_id: { Args: never; Returns: string }
       resolve_active_period_for_employee_v2: {
         Args: { p_employee_id: string }
@@ -13325,6 +13474,16 @@ export type Database = {
       resolve_division_establishment_for_employee: {
         Args: { p_employee_id: string }
         Returns: string
+      }
+      search_info_bank_text: {
+        Args: { p_limit?: number; p_terms: string[] }
+        Returns: {
+          chunk_id: string
+          content: string
+          document_id: string
+          score: number
+          title: string
+        }[]
       }
       stress_group_analysis_for_layer: {
         Args: { p_layer: number; p_tenant_id: string }

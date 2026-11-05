@@ -31,6 +31,20 @@ test('他テナントのパスは拒否する', () => {
   assert.equal(isTenantOwnedPath(TENANT, buildStoragePath(OTHER, 'a.pdf')), false)
 })
 
+test('発行した形式（UUID + 英数字の拡張子）以外のファイル名は拒否する', () => {
+  assert.equal(isTenantOwnedPath(TENANT, `${TENANT}/secret.pdf`), false)
+  assert.equal(isTenantOwnedPath(TENANT, `${TENANT}/sub/${TENANT}.pdf`), false)
+  assert.equal(
+    isTenantOwnedPath(TENANT, `${TENANT}/0b8c1a52-6f0e-4d0a-9a3e-2a9d1f7c4b11.p df`),
+    false
+  )
+  assert.equal(
+    isTenantOwnedPath(TENANT, `${TENANT}/0b8c1a52-6f0e-4d0a-9a3e-2a9d1f7c4b11.pdf`),
+    true
+  )
+  assert.equal(isTenantOwnedPath(TENANT, `${TENANT}/0b8c1a52-6f0e-4d0a-9a3e-2a9d1f7c4b11`), true)
+})
+
 test('パストラバーサルや空のパスは拒否する', () => {
   assert.equal(isTenantOwnedPath(TENANT, `${TENANT}/../${OTHER}/a.pdf`), false)
   assert.equal(isTenantOwnedPath(TENANT, `/${TENANT}/a.pdf`), false)

@@ -5,7 +5,7 @@ import type { Database } from '@/lib/supabase/types'
 import { chunkPlainText } from '@/features/inquiry-chat/chunk'
 import { formatVectorForPg } from '@/features/inquiry-chat/embedding'
 
-import { INFO_BANK_EMBED_BATCH } from './constants'
+import { INFO_BANK_EMBED_BATCH, INFO_BANK_MAX_CHUNKS } from './constants'
 import { extractInfoBankText, type Extractor } from './extract'
 
 /** チャンク INSERT 1 回あたりの行数（リクエストサイズ対策） */
@@ -87,6 +87,9 @@ export async function extractAndStoreChunks(
     )
     const chunks = chunkPlainText(text)
     if (chunks.length === 0) throw new Error('本文が空のため登録できませんでした')
+    if (chunks.length > INFO_BANK_MAX_CHUNKS) {
+      throw new Error('資料が大きすぎます。分割して登録してください')
+    }
 
     // 途中で失敗して再実行された場合に備え、この版のチャンクを作り直す
     const { error: delErr } = await deps.supabase
@@ -171,7 +174,11 @@ export async function embedNextBatch(
       p_document_id: documentId,
       p_revision: revision,
     })
-    if (pubErr) throw new Error(pubErr.message)
+    if (pubErr) {
+      // DB の例外文（資料 ID・版番号を含む）は画面に出さず、ログにだけ残す
+      console.error('[info-bank] publish_info_bank_revision', pubErr.message)
+      throw new Error('公開版への切り替えに失敗しました。もう一度「再実行」してください')
+    }
 
     // 旧ファイルの削除失敗は公開自体を失敗にしない（孤児ファイルが残るだけ）
     if (oldPath) {

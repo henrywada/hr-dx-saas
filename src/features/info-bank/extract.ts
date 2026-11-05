@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer'
 
+import { INFO_BANK_MAX_TEXT_CHARS } from './constants'
+
 export type Extractor = (buffer: Buffer, mime: string, filename: string) => Promise<string>
 
 interface ExtractDeps {
@@ -54,6 +56,11 @@ export async function extractInfoBankText(
   const input = isTextLike(mime, filename) ? Buffer.from(decodeTextBuffer(buffer), 'utf8') : buffer
 
   const text = (await extract(input, mime, filename)).trim()
+  if (text.length > INFO_BANK_MAX_TEXT_CHARS) {
+    throw new Error(
+      `資料が大きすぎます（本文が${INFO_BANK_MAX_TEXT_CHARS.toLocaleString('ja-JP')}文字を超えています）。分割して登録してください`
+    )
+  }
   if (text.length > 0) return text
 
   const isPdf = mime === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')

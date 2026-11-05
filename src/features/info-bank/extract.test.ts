@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import test from 'node:test'
 
+import { INFO_BANK_MAX_TEXT_CHARS } from './constants'
 import { decodeTextBuffer, extractInfoBankText } from './extract'
 
 // Shift_JIS で「氏名,部署\n山田,総務」を表すバイト列
@@ -37,6 +38,16 @@ test('PDF からテキストが取れなければスキャン画像の可能性�
         extract: async () => '   ',
       }),
     /スキャン/
+  )
+})
+
+test('抽出した文字数が上限を超えたら失敗にする（巨大ファイル・展開爆弾対策）', async () => {
+  await assert.rejects(
+    () =>
+      extractInfoBankText(Buffer.from('x'), 'text/plain', 'big.txt', {
+        extract: async () => 'あ'.repeat(INFO_BANK_MAX_TEXT_CHARS + 1),
+      }),
+    /大きすぎ/
   )
 })
 

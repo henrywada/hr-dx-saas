@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto'
 
 const MAX_EXT_LENGTH = 8
 
+const SERVER_ISSUED_FILE_NAME =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9]{1,8})?$/
+
 /** 非 ASCII を含む object key は Storage で Invalid key になるため、拡張子だけを英数字で残す */
 function safeExtension(filename: string): string {
   const dot = filename.lastIndexOf('.')
@@ -24,7 +27,8 @@ export function buildStoragePath(tenantId: string, filename: string): string {
  * 他テナントのファイルを自分の資料として登録・取得されないための防御。
  */
 export function isTenantOwnedPath(tenantId: string, path: string): boolean {
-  if (!path || path.startsWith('/') || path.includes('..')) return false
   const prefix = `${tenantId}/`
-  return path.startsWith(prefix) && path.length > prefix.length
+  if (!path.startsWith(prefix)) return false
+  // buildStoragePath が発行した形式（UUID + 英数字の拡張子）だけを受け付ける
+  return SERVER_ISSUED_FILE_NAME.test(path.slice(prefix.length))
 }

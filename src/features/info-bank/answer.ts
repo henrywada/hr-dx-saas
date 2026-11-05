@@ -46,7 +46,7 @@ export function buildAnswerPrompt(
     .join('\n')
   return {
     system: SYSTEM_PROMPT,
-    prompt: `${docs}\n\n質問: ${question}`,
+    prompt: `${docs}\n\n質問: ${neutralizeMarkup(question)}`,
   }
 }
 

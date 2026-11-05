@@ -13,6 +13,12 @@ export const INFO_BANK_MIN_SIMILARITY = 0.55
 /** 1 回の埋め込み呼び出しで処理するチャンク数（Vercel Hobby の実行時間対策） */
 export const INFO_BANK_EMBED_BATCH = 64
 
+/** 1 資料から取り出す本文の最大文字数（展開後に巨大化するファイル・埋め込み課金の暴走対策） */
+export const INFO_BANK_MAX_TEXT_CHARS = 1_000_000
+
+/** 1 資料あたりのチャンク数の上限 */
+export const INFO_BANK_MAX_CHUNKS = 1500
+
 /** 質問から抽出するキーワードの最大数 */
 export const INFO_BANK_MAX_TERMS = 8
 

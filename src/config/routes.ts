@@ -108,6 +108,10 @@ export const APP_ROUTES = {
     OVERTIME_APPLICATION: '/application',
     /** 管理：人事ナレッジ（文書取り込み） */
     ADMIN_INQUIRY_KNOWLEDGE: '/adm/inquiry-chat-knowledge',
+    /** 社内AI情報バンク（従業員向け検索） */
+    INFO_BANK: '/info_bank',
+    /** 社内AI情報バンク（管理者向け資料管理） */
+    ADMIN_INFO_BANK_MNT: '/adm/info_bank_mnt',
     /** アンケート管理（作成・設問編集・アサイン） */
     ADMIN_SURVEY: '/adm/Survey',
     /** アンケート実施期間管理 */

@@ -4,7 +4,8 @@ import React, { useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
 
-import { getSourceDownloadUrlAction } from '../actions'
+import { DocumentListModal } from './DocumentListModal'
+import { SourcePreviewModal } from './SourcePreviewModal'
 import { askInfoBankAction } from '../ask-action'
 import type { InfoBankAnswer, InfoBankHit, ModeUsed, SearchMode } from '../types'
 
@@ -46,7 +47,10 @@ export function InfoBankSearchClient() {
   const [error, setError] = useState<string | null>(null)
   const [answer, setAnswer] = useState<InfoBankAnswer | null>(null)
   const [asked, setAsked] = useState('')
-  const [openingId, setOpeningId] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const previewExcerpts = (answer?.citations ?? [])
+    .filter(c => c.documentId === previewId)
+    .map(c => c.content)
 
   async function ask(e: React.FormEvent) {
     e.preventDefault()
@@ -69,26 +73,21 @@ export function InfoBankSearchClient() {
     }
   }
 
-  async function openSource(documentId: string) {
-    setOpeningId(documentId)
-    try {
-      const res = await getSourceDownloadUrlAction(documentId)
-      if (res.ok === false) setError(res.error)
-      else window.open(res.url, '_blank', 'noopener,noreferrer')
-    } finally {
-      setOpeningId(null)
-    }
-  }
-
   return (
     <div className="space-y-4">
       <form
         onSubmit={ask}
         className="space-y-3 rounded-lg border border-slate-200 bg-white p-5 shadow-xs"
       >
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-700">質問</span>
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="info-bank-question" className="text-xs font-medium text-slate-700">
+            質問
+          </label>
+          <DocumentListModal />
+        </div>
+        <div>
           <textarea
+            id="info-bank-question"
             value={question}
             onChange={e => setQuestion(e.target.value)}
             rows={2}
@@ -96,7 +95,7 @@ export function InfoBankSearchClient() {
             placeholder="社内の資料について質問してください"
             className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-        </label>
+        </div>
 
         <fieldset className="space-y-1.5">
           <legend className="text-xs font-medium text-slate-700">検索方式</legend>
@@ -188,8 +187,8 @@ export function InfoBankSearchClient() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={openingId === c.documentId}
-                        onClick={() => openSource(c.documentId)}
+                        className="shrink-0 whitespace-nowrap"
+                        onClick={() => setPreviewId(c.documentId)}
                       >
                         元ファイル
                       </Button>
@@ -205,6 +204,11 @@ export function InfoBankSearchClient() {
           </p>
         </section>
       ) : null}
+      <SourcePreviewModal
+        documentId={previewId}
+        excerpts={previewExcerpts}
+        onClose={() => setPreviewId(null)}
+      />
     </div>
   )
 }

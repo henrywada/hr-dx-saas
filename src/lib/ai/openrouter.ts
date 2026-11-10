@@ -63,7 +63,7 @@ function defaultHeaders(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://app.hr-dx.jp',
+    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://portal.hr-dx.jp',
     'X-Title': 'HR-DX SaaS',
   }
 }

@@ -37,7 +37,7 @@ function headers(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
-    'HTTP-Referer': 'https://app.hr-dx.jp',
+    'HTTP-Referer': 'https://portal.hr-dx.jp',
     'X-Title': 'HR-DX SaaS hr-law-refresh',
   }
 }

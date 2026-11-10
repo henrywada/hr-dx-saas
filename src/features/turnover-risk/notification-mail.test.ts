@@ -70,7 +70,7 @@ test('buildManagerAlertEmail: 件名・本文に必要な情報が含まれる',
     departmentName: '営業部',
     riskScore: 65,
     topFactors: ['ストレスチェックで高ストレス判定', '残業時間の増加'],
-    dashboardUrl: 'https://app.hr-dx.jp/adm/turnover-risk',
+    dashboardUrl: 'https://portal.hr-dx.jp/adm/turnover-risk',
   })
   assert.equal(subject, '【要対応】山田太郎さんの離職リスクが「高」に上昇しました')
   assert.match(html, /山田太郎/)
@@ -78,7 +78,7 @@ test('buildManagerAlertEmail: 件名・本文に必要な情報が含まれる',
   assert.match(html, /65/)
   assert.match(html, /ストレスチェックで高ストレス判定/)
   assert.match(html, /残業時間の増加/)
-  assert.match(html, /https:\/\/app\.hr-dx\.jp\/adm\/turnover-risk/)
+  assert.match(html, /https:\/\/portal\.hr-dx\.jp\/adm\/turnover-risk/)
 })
 
 test('buildManagerAlertEmail: 部署未配属の場合はフォールバック文言を使う', () => {
@@ -87,7 +87,7 @@ test('buildManagerAlertEmail: 部署未配属の場合はフォールバック�
     departmentName: null,
     riskScore: 60,
     topFactors: [],
-    dashboardUrl: 'https://app.hr-dx.jp/adm/turnover-risk',
+    dashboardUrl: 'https://portal.hr-dx.jp/adm/turnover-risk',
   })
   assert.match(html, /未配属/)
 })
@@ -98,7 +98,7 @@ test('buildManagerAlertEmail: 氏名・部署名の特殊文字はHTMLエスケ�
     departmentName: 'A&B部',
     riskScore: 60,
     topFactors: [],
-    dashboardUrl: 'https://app.hr-dx.jp/adm/turnover-risk',
+    dashboardUrl: 'https://portal.hr-dx.jp/adm/turnover-risk',
   })
   assert.doesNotMatch(html, /<script>/)
   assert.match(html, /&lt;script&gt;/)
@@ -111,7 +111,7 @@ test('buildHrDigestEmail: 件名に対象人数、本文に全員分の情報が
       { employeeName: '山田太郎', departmentName: '営業部', riskScore: 65 },
       { employeeName: '佐藤次郎', departmentName: null, riskScore: 72 },
     ],
-    dashboardUrl: 'https://app.hr-dx.jp/adm/turnover-risk',
+    dashboardUrl: 'https://portal.hr-dx.jp/adm/turnover-risk',
   })
   assert.equal(subject, '【離職リスクアラート】新たに2名が高リスクに該当しました')
   assert.match(html, /山田太郎/)
@@ -120,5 +120,5 @@ test('buildHrDigestEmail: 件名に対象人数、本文に全員分の情報が
   assert.match(html, /佐藤次郎/)
   assert.match(html, /72/)
   assert.match(html, /未配属/)
-  assert.match(html, /https:\/\/app\.hr-dx\.jp\/adm\/turnover-risk/)
+  assert.match(html, /https:\/\/portal\.hr-dx\.jp\/adm\/turnover-risk/)
 })

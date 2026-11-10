@@ -89,7 +89,7 @@ async function handlePaymentSucceeded(
         subject: '【HR-DX】ご入金を確認しました・ご利用開始のご案内',
         html: `<p>${escapeHtml(existing.applicant_name)} 様</p>
 <p>ご入金を確認いたしました。HR-DX をご利用いただけます。</p>
-<p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.hr-dx.jp'}/login">ログイン画面へ</a></p>
+<p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://portal.hr-dx.jp'}/login">ログイン画面へ</a></p>
 <p>よろしくお願いいたします。<br>HR-DX サポートチーム</p>`,
       })
     } catch (e) {

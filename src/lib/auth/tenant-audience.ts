@@ -1,4 +1,4 @@
-/** ログイン画面の種別。default = app.hr-dx.jp/login、myou = myou.hr-dx.jp/login-myou */
+/** ログイン画面の種別。default = portal.hr-dx.jp/login、myou = myou.hr-dx.jp/login-myou */
 export type LoginAudience = 'default' | 'myou'
 
 /** 環境変数から MYOU 系テナント ID 一覧を取得（未設定・空は除外） */

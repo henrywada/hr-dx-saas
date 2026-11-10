@@ -41,7 +41,7 @@ interface DigestTransition {
 }
 
 function dashboardUrl(): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://app.hr-dx.jp'
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.hr-dx.jp'
   return `${base}${APP_ROUTES.TENANT.ADMIN_TURNOVER_RISK}`
 }
 

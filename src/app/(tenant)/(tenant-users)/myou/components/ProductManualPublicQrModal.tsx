@@ -15,7 +15,7 @@ interface ProductManualPublicQrModalProps {
 
 /**
  * 製品ラベル向け公開取扱説明書ページのQRコードを表示する。
- * 埋め込みURLは現在開いているホスト基準（本番は app.hr-dx.jp）。
+ * 埋め込みURLは現在開いているホスト基準（本番は portal.hr-dx.jp）。
  */
 export default function ProductManualPublicQrModal({
   open,

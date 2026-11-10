@@ -11,7 +11,7 @@ HR-DX SaaS の常時コンテキストは、この索引だけを読む。詳細
 - **画面**: 従業員 `src/app/(tenant)/(tenant-users)/` ・テナント管理者 `src/app/(tenant)/(tenant-admin)/adm/` ・SaaS管理者 `src/app/(saas-admin)/saas_adm/`
 
 **スタック:** Next.js 16 App Router / React 19 / TypeScript（strict: false）/ Supabase / Tailwind v4 / Zod v4  
-**本番:** `https://app.hr-dx.jp`（Vercel、リポジトリ `henrywada/hr-dx-saas`）
+**本番:** `https://portal.hr-dx.jp`（Vercel、リポジトリ `henrywada/hr-dx-saas`）
 
 詳細（権限テーブル、メニュー制御、組織階層）: [docs/agent/project-guide.md](docs/agent/project-guide.md)
 

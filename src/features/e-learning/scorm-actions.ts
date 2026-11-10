@@ -141,7 +141,7 @@ async function emitXapiCompletedStatement(input: {
     actor: { name: input.employeeName, mbox: `mailto:employee-${input.employeeId}@hr-dx.local` },
     verb: { id: XAPI_VERB_COMPLETED, display: { 'ja-JP': '完了した' } },
     object: {
-      id: `https://app.hr-dx.jp/el/courses/${input.courseId}`,
+      id: `https://portal.hr-dx.jp/el/courses/${input.courseId}`,
       definition: { name: { 'ja-JP': input.courseTitle } },
     },
     result: input.scoreRaw ? { score: { raw: Number(input.scoreRaw) || undefined } } : undefined,

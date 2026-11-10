@@ -16,13 +16,13 @@ test('ローカル検証用 myou.localhost を判定', () => {
 })
 test('ホストと audience の整合（サーバー側で Host ヘッダーを検証する）', () => {
   assert.equal(isHostAudienceConsistent('myou.hr-dx.jp', 'myou'), true)
-  assert.equal(isHostAudienceConsistent('app.hr-dx.jp', 'default'), true)
-  assert.equal(isHostAudienceConsistent('app.hr-dx.jp', 'myou'), false)
+  assert.equal(isHostAudienceConsistent('portal.hr-dx.jp', 'default'), true)
+  assert.equal(isHostAudienceConsistent('portal.hr-dx.jp', 'myou'), false)
   assert.equal(isHostAudienceConsistent('myou.hr-dx.jp', 'default'), false)
   assert.equal(isHostAudienceConsistent(null, 'myou'), false)
 })
 test('app / localhost / null は false', () => {
-  assert.equal(isMyouHost('app.hr-dx.jp'), false)
+  assert.equal(isMyouHost('portal.hr-dx.jp'), false)
   assert.equal(isMyouHost('evil-myou.hr-dx.jp'), false)
   assert.equal(isMyouHost('myou.hr-dx.jp.evil.com'), false)
   assert.equal(isMyouHost('localhost:3000'), false)

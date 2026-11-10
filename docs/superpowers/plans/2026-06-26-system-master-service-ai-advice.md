@@ -653,7 +653,7 @@ git commit -m "feat: wire ServiceTab to real AI advice generation and rename but
       bodySizeLimit: "50mb",
       // 本番カスタムドメイン・Vercel ホスト・ローカルで Server Action の Origin 検証を通す
       allowedOrigins: [
-        "https://app.hr-dx.jp",
+        "https://portal.hr-dx.jp",
         ...(vercelOrigin ? [vercelOrigin] : []),
         "http://localhost:3000",
         "http://127.0.0.1:3000",

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `app.hr-dx.jp/login` は MYOU テナント（`MYOU_PUBLIC_TENANT_ID` / `MYOU_LOCAL_TENANT_ID`）のユーザーを拒否し、`myou.hr-dx.jp`（入口は `/login-myou`）は MYOU テナントのユーザーのみ受け入れる。
+**Goal:** `portal.hr-dx.jp/login` は MYOU テナント（`MYOU_PUBLIC_TENANT_ID` / `MYOU_LOCAL_TENANT_ID`）のユーザーを拒否し、`myou.hr-dx.jp`（入口は `/login-myou`）は MYOU テナントのユーザーのみ受け入れる。
 
 **Architecture:** 認証は共通の `signInAction` を使い、引数 `audience: 'default' | 'myou'` で「許可テナント判定」を追加する。判定は純粋関数（`src/lib/auth/tenant-audience.ts`）に切り出しテスト可能にする。不許可なら `signOut()` してセッションを破棄しエラーを返す（リダイレクト前に判定）。`myou.hr-dx.jp` のホストで未ログインの場合、middleware が `/` と `/login`（および保護ページからの未認証リダイレクト）を `/login-myou` へ redirect する（正規 URL は `https://myou.hr-dx.jp/login-myou`）。`/login-myou` の左パネルは `(auth)/layout.tsx` を使わず専用レイアウトで `login.png` を中央表示する。
 
@@ -43,7 +43,7 @@
 - **`audience` はクライアントが渡す値**であり信用しない：`signInAction` / `resetPasswordAction` がサーバー側で Host ヘッダーと照合し、不一致なら**セッション作成前に**拒否すること
 - myou ドメインから `/signup`（新規テナント作成）に入れないこと
 - 【許容する残余リスク】テナントの特定に失敗した場合（`employees` 照会エラーかつ `user_metadata.tenant_id` なし）、app ドメイン側の判定は保留（従来動作）になる。MYOU ユーザーは通常 `employees` 行を持つため実害は想定しにくい。myou ドメイン側はテナント不明を拒否（fail closed）
-- Cookie は `domain` 未指定のためホスト別（確認済み）。`app.hr-dx.jp` のセッションは `myou.hr-dx.jp` に送られず、逆も同様
+- Cookie は `domain` 未指定のためホスト別（確認済み）。`portal.hr-dx.jp` のセッションは `myou.hr-dx.jp` に送られず、逆も同様
 - middleware の認証済みユーザーの `/login` アクセス→`/top` リダイレクトが myou でも動く（`isAuthPage` は `startsWith('/login')` なので `/login-myou` も該当）
 
 ## File Structure
@@ -126,7 +126,7 @@ test('getMyouTenantIds: 空文字・未設定を除外、前後空白を除去',
 - [ ] **Step 3: 実装**
 
 ```ts
-/** ログイン画面の種別。default = app.hr-dx.jp/login、myou = myou.hr-dx.jp/login-myou */
+/** ログイン画面の種別。default = portal.hr-dx.jp/login、myou = myou.hr-dx.jp/login-myou */
 export type LoginAudience = 'default' | 'myou'
 
 /** 環境変数から MYOU 系テナント ID 一覧を取得（未設定・空は除外） */
@@ -241,13 +241,13 @@ test('ローカル検証用 myou.localhost を判定', () => {
 })
 test('ホストと audience の整合（サーバー側で Host ヘッダーを検証する）', () => {
   assert.equal(isHostAudienceConsistent('myou.hr-dx.jp', 'myou'), true)
-  assert.equal(isHostAudienceConsistent('app.hr-dx.jp', 'default'), true)
-  assert.equal(isHostAudienceConsistent('app.hr-dx.jp', 'myou'), false)
+  assert.equal(isHostAudienceConsistent('portal.hr-dx.jp', 'default'), true)
+  assert.equal(isHostAudienceConsistent('portal.hr-dx.jp', 'myou'), false)
   assert.equal(isHostAudienceConsistent('myou.hr-dx.jp', 'default'), false)
   assert.equal(isHostAudienceConsistent(null, 'myou'), false)
 })
 test('app / localhost / null は false', () => {
-  assert.equal(isMyouHost('app.hr-dx.jp'), false)
+  assert.equal(isMyouHost('portal.hr-dx.jp'), false)
   assert.equal(isMyouHost('evil-myou.hr-dx.jp'), false)
   assert.equal(isMyouHost('myou.hr-dx.jp.evil.com'), false)
   assert.equal(isMyouHost('localhost:3000'), false)

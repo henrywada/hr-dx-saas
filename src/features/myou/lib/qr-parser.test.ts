@@ -119,19 +119,19 @@ test('getMaxTraceSequence は当日分の最大通番を返す（該当なしは
 
 test('buildTraceQrPayload は公開ページURL（?traceNo=...付き）を組み立てる', () => {
   const payload = buildTraceQrPayload(
-    'https://app.hr-dx.jp',
+    'https://portal.hr-dx.jp',
     '3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e',
     '20260718-0001'
   )
   assert.equal(
     payload,
-    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
+    'https://portal.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
   )
 })
 
 test('parseTraceQrContent は新形式（公開ページURL）からTraceNoを取り出す', () => {
   const result = parseTraceQrContent(
-    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
+    'https://portal.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
   )
   assert.equal(result.traceNo, '20260718-0001')
   assert.equal(result.lotNo, '')
@@ -169,7 +169,7 @@ test('extractSearchIdentifier はトレーサビリティQRからTraceNoを優�
 
 test('extractSearchIdentifier は新形式（公開ページURL）からもTraceNoを取り出せる', () => {
   const id = extractSearchIdentifier(
-    'https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
+    'https://portal.hr-dx.jp/p/myou/trace/3f6b1c2e-8a4d-4f0b-9c5e-7d2a1b3c4d5e?traceNo=20260718-0001'
   )
   assert.equal(id, '20260718-0001')
 })

@@ -7,7 +7,7 @@
  *
  * トレーサビリティQR（客先出荷単位）: 一般客がスマホでスキャンした際に案内ページが
  * 開くよう、公開ページ（/p/myou/trace/[id]）へのURLを埋め込む。
- * 例: https://app.hr-dx.jp/p/myou/trace/3f6b1c2e-...?traceNo=20260718-0001
+ * 例: https://portal.hr-dx.jp/p/myou/trace/3f6b1c2e-...?traceNo=20260718-0001
  * ※ 旧形式「LOT:...,ShipTo:...,TraceNo:...,QTY:...,EXP:...」で既に発行済みの
  *   物理ラベルも、社内のトレーサビリティ検索で引き続きスキャンできるよう
  *   parseTraceQrContent は両形式を解釈できるようにしている。

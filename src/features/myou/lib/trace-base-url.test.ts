@@ -6,7 +6,7 @@ test('MYOU_SITE_URL があればそれを最優先で使う', () => {
   assert.equal(
     resolveTraceBaseUrl({
       MYOU_SITE_URL: 'https://myou.hr-dx.jp',
-      NEXT_PUBLIC_APP_URL: 'https://app.hr-dx.jp',
+      NEXT_PUBLIC_APP_URL: 'https://portal.hr-dx.jp',
       VERCEL_URL: 'x.vercel.app',
     }),
     'https://myou.hr-dx.jp'
@@ -19,12 +19,12 @@ test('末尾スラッシュと前後の空白を除去する', () => {
 
 test('MYOU_SITE_URL が未設定・空なら NEXT_PUBLIC_APP_URL を使う', () => {
   assert.equal(
-    resolveTraceBaseUrl({ NEXT_PUBLIC_APP_URL: 'https://app.hr-dx.jp/' }),
-    'https://app.hr-dx.jp'
+    resolveTraceBaseUrl({ NEXT_PUBLIC_APP_URL: 'https://portal.hr-dx.jp/' }),
+    'https://portal.hr-dx.jp'
   )
   assert.equal(
-    resolveTraceBaseUrl({ MYOU_SITE_URL: '  ', NEXT_PUBLIC_APP_URL: 'https://app.hr-dx.jp' }),
-    'https://app.hr-dx.jp'
+    resolveTraceBaseUrl({ MYOU_SITE_URL: '  ', NEXT_PUBLIC_APP_URL: 'https://portal.hr-dx.jp' }),
+    'https://portal.hr-dx.jp'
   )
 })
 

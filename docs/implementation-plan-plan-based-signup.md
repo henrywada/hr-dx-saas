@@ -5,7 +5,7 @@
 ## 1. 問題定義
 
 LP（https://hr-dx.jp/pricing/）の料金プランページは現在「Coming Soon」のままで、
-見込み顧客がプランを選択して SaaS（https://app.hr-dx.jp）の利用を開始する導線が存在しない。
+見込み顧客がプランを選択して SaaS（https://portal.hr-dx.jp）の利用を開始する導線が存在しない。
 また SaaS 側の既存セルフサインアップ（`src/features/signup/`）はテナント作成後に
 利用可能サービス（`tenant_service`）を一切付与しないため、登録直後のテナントは
 メニューに機能が表示されない状態になる。
@@ -60,7 +60,7 @@ LP → SaaS の連携は `{PUBLIC_APP_URL}/signup?plan=free` へのリンクの�
 
 1. 本番 Supabase へマイグレーション適用（コードデプロイと同時。事前確認必須）
 2. システムマスタ画面で各テンプレートテナント（まず PlanFree）に有効サービスを割当
-3. LP 本番ビルド環境に `PUBLIC_APP_URL=https://app.hr-dx.jp` を設定
+3. LP 本番ビルド環境に `PUBLIC_APP_URL=https://portal.hr-dx.jp` を設定
 
 ## 7. 成功指標
 

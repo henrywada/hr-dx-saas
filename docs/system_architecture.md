@@ -287,7 +287,7 @@ sequenceDiagram
 serverActions: {
   bodySizeLimit: '50mb',
   allowedOrigins: [
-    'https://app.hr-dx.jp',
+    'https://portal.hr-dx.jp',
     ...(vercelOrigin ? [vercelOrigin] : []),
     'http://localhost:3000',
     'http://127.0.0.1:3000',
@@ -299,7 +299,7 @@ serverActions: {
 
 Next.js は CSRF 攻撃から Server Actions を保護するため、Host ヘッダーとリクエストの `Origin` ヘッダーが一致しているかを検証します。
 Vercel などのホスティング環境でリバースプロキシ経由で接続される場合や、プレビューブランチで一時ドメイン（`*.vercel.app`）が割り当てられた場合、この検証が誤検知されて `Invalid post request` エラーが発生することがあります。
-これを回避するため、本番用のカスタムドメイン（`https://app.hr-dx.jp`）、Vercel から動的に提供されるホストドメイン（`process.env.VERCEL_URL`）、およびローカル開発用（`localhost:3000` / `127.0.0.1:3000`）を明示的にホワイトリストに登録しています。
+これを回避するため、本番用のカスタムドメイン（`https://portal.hr-dx.jp`）、Vercel から動的に提供されるホストドメイン（`process.env.VERCEL_URL`）、およびローカル開発用（`localhost:3000` / `127.0.0.1:3000`）を明示的にホワイトリストに登録しています。
 
 ---
 

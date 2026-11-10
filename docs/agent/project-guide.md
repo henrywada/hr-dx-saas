@@ -78,7 +78,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **ソース管理 / インフラ：**
 
 - **GitHub**：リポジトリ `henrywada/hr-dx-saas`（ソース管理）。`.github/workflows/` は未配置のため GitHub Actions CI/CD は設定なし（ビルド・デプロイは Vercel の Git 連携に委譲）
-- **Vercel**：本番ホスティング / デプロイ。本番カスタムドメイン `https://app.hr-dx.jp`。GitHub へのプッシュをトリガーに自動ビルド・デプロイ（webpack モード）。Server Actions の `allowedOrigins` で本番ドメイン・Vercel ホスト（`VERCEL_URL`）・ローカルの Origin を許可（`next.config.ts` 参照）
+- **Vercel**：本番ホスティング / デプロイ。本番カスタムドメイン `https://portal.hr-dx.jp`。GitHub へのプッシュをトリガーに自動ビルド・デプロイ（webpack モード）。Server Actions の `allowedOrigins` で本番ドメイン・Vercel ホスト（`VERCEL_URL`）・ローカルの Origin を許可（`next.config.ts` 参照）
 
 ---
 
@@ -249,7 +249,7 @@ Edge Runtime で動作。全 GET リクエストで `access_logs` に PAGE_VIEW 
 `next.config.ts` の設定値：
 
 - `serverActions.bodySizeLimit: "50mb"`（ファイルアップロード対応）
-- `allowedOrigins`: `https://app.hr-dx.jp`, Vercel URL, `http://localhost:3000`
+- `allowedOrigins`: `https://portal.hr-dx.jp`, Vercel URL, `http://localhost:3000`
 
 ---
 

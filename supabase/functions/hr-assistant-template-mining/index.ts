@@ -120,7 +120,7 @@ serve(async req => {
           headers: {
             Authorization: `Bearer ${openRouterKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://app.hr-dx.jp',
+            'HTTP-Referer': 'https://portal.hr-dx.jp',
             'X-Title': 'HR-DX template-mining',
           },
           body: JSON.stringify({

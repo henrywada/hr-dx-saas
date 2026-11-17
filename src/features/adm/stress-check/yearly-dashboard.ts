@@ -5,6 +5,7 @@
  */
 
 import { calcJobStressHealthRisk } from '@/features/stress-check/job-stress-chart'
+import { MHLW_57_SCALES, type StressCategory } from '@/features/stress-check/mhlw-scales'
 
 /** 集団分析の下限人数（マニュアル：受検者 10 人未満の集団の分析結果は事業者に提供しない） */
 export const YEARLY_MIN_N = 10
@@ -64,12 +65,28 @@ export type HealthRiskBlock = {
   total: number | null
 }
 
+/**
+ * 尺度別プロフィール（1尺度分）。
+ * avgEval は素点換算表の評価点（1=ストレスが高い 〜 5=ストレスが低い）の集団平均。
+ * 素点換算表は標準集団の分布から作られているため、標準集団の平均はおおよそ 3 になる。
+ */
+export type ScaleProfileRow = {
+  scaleName: string
+  category: StressCategory
+  avgEval: number | null
+}
+
+/** 標準集団（全国）の評価点の目安。素点換算表の「普通」の列 */
+export const SCALE_PROFILE_NORM = 3
+
 export type YearlyDashboardYear = {
   fiscalYear: number
   n: number
   suppressed: boolean
   responseLevels: Record<ResponseLevel, number>
   itemAverages: Record<ItemKey, number | null>
+  /** 全19尺度の評価点平均（マニュアル P86：判定図以外の尺度も集団平均を全国平均と比べる） */
+  scaleProfile: ScaleProfileRow[]
   healthRisk: {
     male: HealthRiskBlock
     female: HealthRiskBlock
@@ -205,6 +222,17 @@ function round1Mean(vals: number[]): number | null {
   return m == null ? null : round1(m)
 }
 
+function buildScaleProfile(rows: YearlyPersonRow[], suppressed: boolean): ScaleProfileRow[] {
+  return MHLW_57_SCALES.map(scale => {
+    const vals = suppressed
+      ? []
+      : rows
+          .map(p => p.scaleScores.find(s => s.scaleName === scale.name)?.evalPoint)
+          .filter((v): v is number => typeof v === 'number')
+    return { scaleName: scale.name, category: scale.category, avgEval: round1Mean(vals) }
+  })
+}
+
 export function aggregateYearlyDashboard(
   people: YearlyPersonRow[],
   minN = YEARLY_MIN_N
@@ -261,6 +289,7 @@ export function aggregateYearlyDashboard(
         suppressed,
         responseLevels,
         itemAverages,
+        scaleProfile: buildScaleProfile(rows, suppressed),
         healthRisk: {
           male: maleRisk,
           female: femaleRisk,

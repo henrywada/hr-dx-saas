@@ -1,51 +1,33 @@
 /**
- * ストレスチェック採点ロジック（厚労省マニュアル準拠）
- * stress_check_responses から score_a/b/c/d, is_high_stress を算出
+ * ストレスチェック採点ロジック（厚労省「ストレスチェック制度実施マニュアル」準拠）
+ *
+ * - 個人プロフィール: 素点換算表（P40）で尺度ごとに 5 段階評価（ストレスが高いほど 1）
+ * - 高ストレス判定: 評価基準の例（その1）単純合計方式（P43）
+ *     ㋐ 心身のストレス反応（29項目）の合計が 77 点以上
+ *     ㋑ 仕事のストレス要因（17項目）＋周囲のサポート（9項目）の合計が 76 点以上
+ *        かつ 心身のストレス反応の合計が 63 点以上
+ *   ※ 合計点は「ストレスが高い方を 4 点、低い方を 1 点」として数える。満足度（D）は含めない。
+ *
+ * 回答値は調査票の選択肢番号（1〜4）。尺度定義は mhlw-scales.ts を参照。
  */
 
-// ============================================================
-// 厚労省公式 57項目 男性用 換算マッピング（素点合計値 -> 評価点1〜5）
-// 出典: 職業性ストレス簡易調査票を用いたストレスチェック実施マニュアル（第3版）別表2
-// ============================================================
-const MALE_EVAL_MAP: Record<string, (sum: number) => number> = {
-  // === A領域 (原因) ===
-  '心理的な仕事の負担（量）': s => (s <= 3 ? 1 : s === 4 ? 2 : s <= 6 ? 3 : s <= 8 ? 4 : 5),
-  '心理的な仕事の負担（質）': s => (s <= 3 ? 1 : s === 4 ? 2 : s <= 6 ? 3 : s <= 8 ? 4 : 5),
-  自覚的な身体的負担度: s => (s === 1 ? 1 : s === 2 ? 2 : s === 3 ? 3 : 5),
-  仕事のコントロール度: s => (s <= 5 ? 5 : s <= 7 ? 4 : s <= 9 ? 3 : s <= 11 ? 2 : 1),
-  技能の活用度: s => (s === 1 ? 1 : s === 2 ? 2 : s === 3 ? 3 : 5),
-  職場の対人関係でのストレス: s => (s <= 5 ? 1 : s <= 7 ? 2 : s <= 9 ? 3 : s <= 11 ? 4 : 5),
-  職場環境によるストレス: s => (s === 1 ? 1 : s === 2 ? 2 : s === 3 ? 3 : 5),
-  仕事の適性度: s => (s === 1 ? 5 : s === 2 ? 3 : s === 3 ? 2 : 1),
-  働きがい: s => (s === 1 ? 5 : s === 2 ? 3 : s === 3 ? 2 : 1),
+import {
+  MHLW_57_SCALES,
+  toEvalPoint,
+  toStressPoint,
+  type StressCategory,
+  type StressGender,
+} from './mhlw-scales'
 
-  // === B領域 (心身の反応) ===
-  活気: s => (s <= 4 ? 1 : s <= 6 ? 2 : s <= 8 ? 3 : s <= 10 ? 4 : 5),
-  イライラ感: s => (s <= 4 ? 5 : s === 5 ? 4 : s <= 7 ? 3 : s <= 9 ? 2 : 1),
-  疲労感: s => (s <= 4 ? 5 : s <= 6 ? 4 : s <= 8 ? 3 : s <= 10 ? 2 : 1),
-  不安感: s => (s <= 4 ? 5 : s <= 6 ? 4 : s === 7 ? 3 : s <= 9 ? 2 : 1),
-  抑うつ感: s => (s === 6 ? 5 : s <= 8 ? 4 : s <= 12 ? 3 : s <= 16 ? 2 : 1),
-  身体愁訴: s => (s === 11 ? 5 : s <= 15 ? 4 : s <= 21 ? 3 : s <= 26 ? 2 : 1),
-
-  // === C領域 (サポート) ===
-  上司からのサポート: s => (s <= 4 ? 5 : s <= 6 ? 4 : s <= 8 ? 3 : s <= 10 ? 2 : 1),
-  同僚からのサポート: s => (s <= 5 ? 5 : s <= 7 ? 4 : s <= 9 ? 3 : s <= 11 ? 2 : 1),
-  '家族・友人からのサポート': s => (s <= 6 ? 5 : s <= 8 ? 4 : s === 9 ? 3 : s <= 11 ? 2 : 1),
-
-  // === D領域 (満足度) ===
-  仕事や生活の満足度: s => (s <= 3 ? 5 : s === 4 ? 4 : s <= 6 ? 3 : s === 7 ? 2 : 1),
-}
-
-// ============================================================
-// 厚労省公式 57項目 女性用 換算マッピング（素点合計値 -> 評価点1〜5）
-// 出典: 同上 別表3
-// 男性と異なるのは「活気」「身体愁訴」の2尺度のみ
-// ============================================================
-const FEMALE_EVAL_MAP: Record<string, (sum: number) => number> = {
-  ...MALE_EVAL_MAP,
-  活気: s => (s <= 3 ? 1 : s <= 5 ? 2 : s <= 7 ? 3 : s <= 9 ? 4 : 5),
-  身体愁訴: s => (s <= 12 ? 5 : s <= 16 ? 4 : s <= 22 ? 3 : s <= 27 ? 2 : 1),
-}
+/** 高ストレス判定の基準点（評価基準の例その1・57項目） */
+export const HIGH_STRESS_CRITERIA = {
+  /** ㋐ 心身のストレス反応の合計 */
+  reactionOnly: 77,
+  /** ㋑ 要因＋サポートの合計 */
+  stressorAndSupport: 76,
+  /** ㋑ のときの心身のストレス反応の合計 */
+  reactionWithStressor: 63,
+} as const
 
 /** マージ済み回答の1件の型（question 情報付き） */
 export interface MergedResponse {
@@ -63,91 +45,124 @@ export interface MergedResponse {
   } | null
 }
 
+/** 尺度ごとの採点結果 */
+export interface CalculatedScaleScore {
+  scaleName: string
+  /** 素点換算表の「得点」（マニュアルの計算欄の値。判定図の入力にもなる） */
+  rawScore: number
+  /** 5 段階評価点（1=ストレスが高い 〜 5=ストレスが低い） */
+  evalPoint: number
+  questionCount: number
+  /** 単純合計方式の点数（ストレスが高い方を 4 点）の尺度内合計 */
+  sumAnswers: number
+  category: StressCategory
+}
+
 /** 採点結果（stress_check_results 保存用） */
 export interface CalculatedScores {
+  /** 仕事のストレス要因（17項目）の単純合計 */
   score_a: number
+  /** 心身のストレス反応（29項目）の単純合計 */
   score_b: number
+  /** 周囲のサポート（9項目）の単純合計 */
   score_c: number
+  /** 満足度（2項目）の単純合計（高ストレス判定には使わない） */
   score_d: number
   is_high_stress: boolean
-  scale_scores: Array<{
-    scaleName: string
-    rawScore: number
-    evalPoint: number
-    questionCount: number
-    sumAnswers: number
-    category: string
-  }>
+  scale_scores: CalculatedScaleScore[]
+}
+
+const CATEGORIES: readonly StressCategory[] = ['A', 'B', 'C', 'D']
+
+function isCategory(value: unknown): value is StressCategory {
+  return typeof value === 'string' && (CATEGORIES as readonly string[]).includes(value)
+}
+
+function isValidAnswer(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 4
+}
+
+/** 回答を「領域 → 設問番号 → 回答値」に整理する。範囲外の回答は捨てる */
+function indexAnswers(responses: MergedResponse[]): Record<StressCategory, Map<number, number>> {
+  const index: Record<StressCategory, Map<number, number>> = {
+    A: new Map(),
+    B: new Map(),
+    C: new Map(),
+    D: new Map(),
+  }
+  for (const resp of responses) {
+    const q = resp.stress_check_questions
+    if (!q || !isCategory(q.category) || typeof q.question_no !== 'number') continue
+    if (!isValidAnswer(resp.answer)) continue
+    index[q.category].set(q.question_no, resp.answer)
+  }
+  return index
+}
+
+/**
+ * employees.sex を採点用の性別に変換する。
+ * employees.sex は「男性」「女性」等の表記揺れがあるため、女性を表す値だけを 'female' にする。
+ * 不明・未設定は 'male'（マニュアルは性別を区別しない場合に男性基準を使う運用）。
+ */
+export function toStressGender(sex: string | null | undefined): StressGender {
+  const s = (sex ?? '').trim()
+  return ['female', 'Female', '女', '女性', 'F', 'f'].includes(s) ? 'female' : 'male'
+}
+
+export function isHighStress(scoreA: number, scoreB: number, scoreC: number): boolean {
+  const c = HIGH_STRESS_CRITERIA
+  return (
+    scoreB >= c.reactionOnly ||
+    (scoreA + scoreC >= c.stressorAndSupport && scoreB >= c.reactionWithStressor)
+  )
 }
 
 /**
  * マージ済み回答データから採点を計算
- * 厚労省マニュアル P42 素点合計方式で高ストレス判定
- * @param gender employees.sex から導出。未設定時は 'male' にフォールバック
+ * @param gender employees.sex から導出。未設定時は 'male'（マニュアルは性別不明時に男性基準を使う運用）
  */
 export function calculateScoresFromResponses(
   mergedResponses: MergedResponse[],
-  gender: 'male' | 'female' = 'male'
+  gender: StressGender = 'male'
 ): CalculatedScores {
-  const evalMap = gender === 'female' ? FEMALE_EVAL_MAP : MALE_EVAL_MAP
-  const categoryAgg: Record<string, { total: number; max: number; count: number }> = {}
-  const scaleAgg: Record<string, { sumAnswers: number; count: number; category: string }> = {}
+  const answers = indexAnswers(mergedResponses)
 
-  for (const resp of mergedResponses) {
-    const question = resp.stress_check_questions
-    if (!question) continue
-
-    const cat = question.category as string
-    const scaleName = (question.scale_name as string) || ''
-
-    let val = resp.answer
-    const qText = question.question_text || ''
-    // 厚労省公式：職場の対人関係（A14）の反転処理
-    if (
-      scaleName === '職場の対人関係でのストレス' &&
-      (qText.includes('親しみ') || qText.includes('友好的'))
-    ) {
-      val = 5 - val
+  // 単純合計（領域ごと）
+  const totals: Record<StressCategory, number> = { A: 0, B: 0, C: 0, D: 0 }
+  for (const category of CATEGORIES) {
+    for (const [no, answer] of answers[category]) {
+      totals[category] += toStressPoint(category, no, answer)
     }
-
-    if (!categoryAgg[cat]) categoryAgg[cat] = { total: 0, max: 0, count: 0 }
-    categoryAgg[cat].total += val
-    categoryAgg[cat].max += 4
-    categoryAgg[cat].count += 1
-
-    if (!scaleAgg[scaleName]) scaleAgg[scaleName] = { sumAnswers: 0, count: 0, category: cat }
-    scaleAgg[scaleName].sumAnswers += val
-    scaleAgg[scaleName].count += 1
   }
 
-  const scaleScores = Object.entries(scaleAgg).map(([scaleName, agg]) => {
-    const rawScore = agg.sumAnswers
-    const evalFunc = evalMap[scaleName]
-    const evalPoint = evalFunc ? evalFunc(rawScore) : 3
-    return {
-      scaleName,
+  // 素点換算（尺度ごと）。設問が1つでも欠けた尺度は評価しない
+  const scaleScores: CalculatedScaleScore[] = []
+  for (const scale of MHLW_57_SCALES) {
+    const map = answers[scale.category]
+    if (!scale.items.every(no => map.has(no))) continue
+    const answerOf = (no: number) => map.get(no) as number
+    const rawScore = scale.score(answerOf)
+    const evalPoint = toEvalPoint(scale, rawScore, gender)
+    if (evalPoint === null) continue
+    scaleScores.push({
+      scaleName: scale.name,
       rawScore,
       evalPoint,
-      questionCount: agg.count,
-      sumAnswers: agg.sumAnswers,
-      category: agg.category,
-    }
-  })
-
-  const scoreA = categoryAgg['A']?.total ?? 0
-  const scoreB = categoryAgg['B']?.total ?? 0
-  const scoreC = categoryAgg['C']?.total ?? 0
-  const scoreD = categoryAgg['D']?.total ?? 0
-
-  // 高ストレス判定（マニュアル P42）
-  const isHighStress = scoreB >= 77 || (scoreA + scoreC >= 76 && scoreB >= 63)
+      questionCount: scale.items.length,
+      sumAnswers: scale.items.reduce(
+        (acc, no) => acc + toStressPoint(scale.category, no, answerOf(no)),
+        0
+      ),
+      category: scale.category,
+    })
+  }
 
   return {
-    score_a: scoreA,
-    score_b: scoreB,
-    score_c: scoreC,
-    score_d: scoreD,
-    is_high_stress: isHighStress,
+    score_a: totals.A,
+    score_b: totals.B,
+    score_c: totals.C,
+    score_d: totals.D,
+    is_high_stress: isHighStress(totals.A, totals.B, totals.C),
     scale_scores: scaleScores,
   }
 }

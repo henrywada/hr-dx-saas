@@ -135,13 +135,8 @@ export interface GroupAnalysisDepartment {
   respondentCount: number
   /** 10名未満の場合 true: マスキング対象 */
   isMasked: boolean
-  /** 主要尺度の平均評価点（1〜5段階） */
+  /** 仕事のストレス判定図の4尺度の平均得点（各3〜12点。量・コントロール・上司・同僚） */
   scaleAverages: ScaleAverages
-  /** カテゴリ別平均素点 */
-  avgScoreA: number | null // ストレス要因
-  avgScoreB: number | null // 心身の反応
-  avgScoreC: number | null // サポート
-  avgScoreD: number | null // 満足度
   /** 高ストレス者数 */
   highStressCount: number
   /** 高ストレス者率（%） */

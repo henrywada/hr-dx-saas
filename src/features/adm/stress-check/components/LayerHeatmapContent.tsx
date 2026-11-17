@@ -165,7 +165,7 @@ export default function LayerHeatmapContent({
           )}
           {mainTab === 'yearly' && (
             <p className="text-xs text-[#FD7601]">
-              全社の実施回を年度ごとに最終回で集計しています。対象5名未満の年度・性別は非表示です。
+              全社の実施回を年度ごとに最終回で集計しています。対象10名未満の年度・性別は非表示です。
             </p>
           )}
         </div>

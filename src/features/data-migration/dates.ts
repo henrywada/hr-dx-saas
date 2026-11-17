@@ -1,4 +1,5 @@
 import { parseYyyymmdd } from '@/features/health-check/csv-parse'
+import { toStressGender } from '@/features/stress-check/score-calculator'
 
 /** 日本の会計年度（4月始まり）。YYYY-MM-DD を渡す */
 export function japaneseFiscalYear(ymd: string): number {
@@ -32,9 +33,5 @@ export function mapEmployeeSex(raw: string): string | null {
   return s
 }
 
-/** ストレス採点用。女性系以外は male */
-export function sexForStressScoring(sex: string | null | undefined): 'male' | 'female' {
-  const s = (sex ?? '').trim()
-  if (s === 'female' || s === '女' || s === '女性' || s === 'F' || s === 'f') return 'female'
-  return 'male'
-}
+/** ストレス採点用。女性系以外は male（実装は採点モジュールと共通） */
+export const sexForStressScoring = toStressGender

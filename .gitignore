@@ -74,3 +74,6 @@ docs/manual/*
 
 # ローカル実行環境（Playwright MCP用chromiumへのシンボリックリンク等）
 .local/
+
+# 厚労省ストレスチェック資料（参照用の大容量PDF。リポジトリには含めない）
+docs/stress/

@@ -4,7 +4,10 @@
  * 健康リスクは仕事のストレス判定図（全国平均=100、総合=(A)×(B)/100）。
  */
 
-export const YEARLY_MIN_N = 5
+import { calcJobStressHealthRisk } from '@/features/stress-check/job-stress-chart'
+
+/** 集団分析の下限人数（マニュアル：受検者 10 人未満の集団の分析結果は事業者に提供しない） */
+export const YEARLY_MIN_N = 10
 
 export type ResponseLevel = 'urgent' | 'interview' | 'consider' | 'observe' | 'good'
 
@@ -89,37 +92,26 @@ export function classifyResponseLevel(input: {
   return 'good'
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n))
-}
-
 function round1(n: number) {
   return Math.round(n * 10) / 10
 }
 
 /**
- * 仕事のストレス判定図の近似（全国平均=100）。
- * 量的負担・コントロール・上司支援・同僚支援は各3問の素点合計（3〜12）の集団平均。
+ * 仕事のストレス判定図（全国平均=100）。
+ * 量的負担・コントロール・上司支援・同僚支援は各3問の得点（3〜12）の集団平均。
+ * 男女とも男性（男女共通）の判定図を使う（マニュアル P86。女性用の係数は手元資料にないため）。
  */
 export function computeHanteizu(
   demand: number,
   control: number,
   supervisor: number,
-  coworker: number,
-  female: boolean
+  coworker: number
 ): { riskA: number; riskB: number; total: number } {
-  const means = female ? { d: 8.6, c: 7.8, s: 7.9, co: 8.5 } : { d: 8.7, c: 7.9, s: 7.5, co: 8.2 }
-  const sd = 2.3
-  const zd = (demand - means.d) / sd
-  const zc = (control - means.c) / sd
-  const zs = (supervisor - means.s) / sd
-  const zco = (coworker - means.co) / sd
-  const riskA = clamp(100 * Math.exp(0.28 * zd - 0.25 * zc), 50, 250)
-  const riskB = clamp(100 * Math.exp(-0.22 * zs - 0.22 * zco), 50, 250)
+  const r = calcJobStressHealthRisk({ workload: demand, control, supervisor, colleague: coworker })
   return {
-    riskA: round1(riskA),
-    riskB: round1(riskB),
-    total: round1((riskA * riskB) / 100),
+    riskA: round1(r.riskA),
+    riskB: round1(r.riskB),
+    total: round1(r.total),
   }
 }
 
@@ -176,7 +168,7 @@ function emptyRisk(n: number, suppressed: boolean): HealthRiskBlock {
   }
 }
 
-function riskFromPeople(people: YearlyPersonRow[], female: boolean, minN: number): HealthRiskBlock {
+function riskFromPeople(people: YearlyPersonRow[], minN: number): HealthRiskBlock {
   const n = people.length
   if (n < minN) return emptyRisk(n, true)
   const demand = mean(
@@ -194,7 +186,7 @@ function riskFromPeople(people: YearlyPersonRow[], female: boolean, minN: number
   if (demand == null || control == null || supervisor == null || coworker == null) {
     return emptyRisk(n, false)
   }
-  const h = computeHanteizu(demand, control, supervisor, coworker, female)
+  const h = computeHanteizu(demand, control, supervisor, coworker)
   return {
     n,
     suppressed: false,
@@ -211,31 +203,6 @@ function riskFromPeople(people: YearlyPersonRow[], female: boolean, minN: number
 function round1Mean(vals: number[]): number | null {
   const m = mean(vals)
   return m == null ? null : round1(m)
-}
-
-function combinedRisk(male: HealthRiskBlock, female: HealthRiskBlock, n: number, minN: number) {
-  if (n < minN) return emptyRisk(n, true)
-  const parts = [male, female].filter(b => !b.suppressed && b.total != null && b.n > 0)
-  if (parts.length === 0) return emptyRisk(n, false)
-  const w = (
-    key: keyof Pick<HealthRiskBlock, 'demand' | 'control' | 'supervisor' | 'coworker' | 'total'>
-  ) => {
-    const ok = parts.filter(b => b[key] != null)
-    if (ok.length === 0) return null
-    const tm = ok.reduce((s, b) => s + b.n, 0)
-    return round1(ok.reduce((s, b) => s + (b[key] as number) * b.n, 0) / tm)
-  }
-  return {
-    n,
-    suppressed: false,
-    demand: w('demand'),
-    control: w('control'),
-    supervisor: w('supervisor'),
-    coworker: w('coworker'),
-    riskA: null,
-    riskB: null,
-    total: w('total'),
-  }
 }
 
 export function aggregateYearlyDashboard(
@@ -281,12 +248,10 @@ export function aggregateYearlyDashboard(
 
       const maleRisk = riskFromPeople(
         rows.filter(p => !p.female),
-        false,
         minN
       )
       const femaleRisk = riskFromPeople(
         rows.filter(p => p.female),
-        true,
         minN
       )
 
@@ -299,7 +264,7 @@ export function aggregateYearlyDashboard(
         healthRisk: {
           male: maleRisk,
           female: femaleRisk,
-          all: combinedRisk(maleRisk, femaleRisk, n, minN),
+          all: riskFromPeople(rows, minN),
         },
       }
     })

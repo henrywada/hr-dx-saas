@@ -10,7 +10,7 @@ import type {
   CategoryCode,
 } from './types'
 import { CATEGORY_LABELS } from './types'
-import { calculateScoresFromResponses } from './score-calculator'
+import { calculateScoresFromResponses, toStressGender } from './score-calculator'
 import type { MergedResponse } from './score-calculator'
 
 // --------------------------------------------------
@@ -139,7 +139,7 @@ export async function getStressCheckResult(
   if (!employee) return null
 
   const employeeId = employee.id
-  const gender: 'male' | 'female' = employee.sex === 'female' ? 'female' : 'male'
+  const gender = toStressGender(employee.sex)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any

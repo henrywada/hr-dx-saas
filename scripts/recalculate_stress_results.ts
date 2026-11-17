@@ -6,12 +6,14 @@
  *   npx tsx scripts/recalculate_stress_results.ts            # 再計算して保存
  *   npx tsx scripts/recalculate_stress_results.ts --dry-run  # 保存せず、高ストレス判定の変化だけ表示
  *
- * 接続先は .env.local の NEXT_PUBLIC_SUPABASE_URL。本番に向けて実行する場合は事前に承認を取ること。
+ * 接続先は .env.local の NEXT_PUBLIC_SUPABASE_URL。ENV_FILE=.env.prod.local のように別ファイルも指定できる。
+ * 本番に向けて実行する場合は事前に承認を取ること。
  *
  * 前提: .env.local に NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY が設定されていること
  */
 import dotenv from 'dotenv'
-dotenv.config({ path: '.env.local' })
+// ENV_FILE で接続先を切り替える（既定はローカル用の .env.local）
+dotenv.config({ path: process.env.ENV_FILE ?? '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -40,7 +42,10 @@ const PAGE_SIZE = 1000
 
 /** Supabase の 1 リクエスト上限（既定 1000 行）を超えて全件取得する */
 async function fetchAll<T>(
-  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+  build: (
+    from: number,
+    to: number
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 ): Promise<T[]> {
   const rows: T[] = []
   for (let from = 0; ; from += PAGE_SIZE) {
@@ -91,13 +96,16 @@ async function main() {
   )
 
   // 変化の比較用に、保存済みの高ストレス判定を取得する
-  const existing = await fetchAll<{ period_id: string; employee_id: string; is_high_stress: boolean | null }>(
-    (from, to) =>
-      admin
-        .from('stress_check_results')
-        .select('period_id, employee_id, is_high_stress')
-        .order('id')
-        .range(from, to)
+  const existing = await fetchAll<{
+    period_id: string
+    employee_id: string
+    is_high_stress: boolean | null
+  }>((from, to) =>
+    admin
+      .from('stress_check_results')
+      .select('period_id, employee_id, is_high_stress')
+      .order('id')
+      .range(from, to)
   )
   const storedHighStress = new Map(
     existing.map(r => [`${r.period_id}:${r.employee_id}`, r.is_high_stress])

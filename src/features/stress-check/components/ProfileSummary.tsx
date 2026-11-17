@@ -255,6 +255,12 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
             産業医による面接指導を受けることができます。
             面接指導は労働者の申出により行われ、申出を理由とした不利益な取り扱いは法律で禁止されています。
           </p>
+          {!interviewRequested && (
+            <p className="mt-2 text-xs text-red-700 leading-relaxed">
+              ※
+              申出を行うと、あなたのストレスチェック結果を事業者（会社）に提供することに同意したものとみなされます。
+            </p>
+          )}
           {interviewRequested ? (
             <div className="mt-4 p-4 rounded-xl bg-emerald-100 border border-emerald-200">
               <p className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
@@ -276,7 +282,7 @@ export default function ProfileSummary({ result }: ProfileSummaryProps) {
                     送信中...
                   </>
                 ) : (
-                  '面談希望を申し出す'
+                  '面談希望を申し出る'
                 )}
               </button>
             </div>

@@ -6,7 +6,7 @@ import { getServerUser } from '@/lib/auth/server-user'
 import { toJSTISOString } from '@/lib/datetime'
 import { revalidatePath } from 'next/cache'
 import { getMergedResponses, checkStressCheckEligibility } from './queries'
-import { calculateScoresFromResponses } from './score-calculator'
+import { calculateScoresFromResponses, toStressGender } from './score-calculator'
 import type { MergedResponse } from './score-calculator'
 
 interface AnswerInput {
@@ -61,7 +61,7 @@ export async function submitStressCheckAnswers(
     }
 
     const employeeId = employee.id
-    const gender: 'male' | 'female' = employee.sex === 'female' ? 'female' : 'male'
+    const gender = toStressGender(employee.sex)
 
     // 3. 回答済みチェック（submissions テーブル）
     const { count: existingCount } = await db
@@ -101,7 +101,9 @@ export async function submitStressCheckAnswers(
         employee_id: employeeId,
         status: 'submitted',
         submitted_at: now,
-        consent_to_employer: true,
+        // 事業者への結果提供の同意は、受検時ではなく結果通知後に本人が個別に行う
+        // （ストレスチェック指針：事前や実施時の同意取得は不可）
+        consent_to_employer: false,
       },
       { onConflict: 'period_id, employee_id' }
     ) // 重複防止
@@ -168,7 +170,7 @@ export async function updateConsentStatus(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('stress_check_submissions')
-    .update({ consent_to_employer: consent })
+    .update({ consent_to_employer: consent, consent_at: consent ? toJSTISOString() : null })
     .eq('period_id', periodId)
     .eq('employee_id', employee.id)
 
@@ -242,6 +244,20 @@ export async function requestInterview(
 
     if (updErr) {
       console.error('requestInterview update results error:', updErr)
+      return { success: false, error: '更新に失敗しました。もう一度お試しください。' }
+    }
+
+    // 面接指導の申出をもって、事業者への結果提供に同意したものとみなす（ストレスチェック指針）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: consentErr } = await (supabase as any)
+      .from('stress_check_submissions')
+      .update({ consent_to_employer: true, consent_at: now })
+      .eq('period_id', periodId)
+      .eq('employee_id', employeeId)
+      .eq('consent_to_employer', false)
+
+    if (consentErr) {
+      console.error('requestInterview update consent error:', consentErr)
       return { success: false, error: '更新に失敗しました。もう一度お試しください。' }
     }
 

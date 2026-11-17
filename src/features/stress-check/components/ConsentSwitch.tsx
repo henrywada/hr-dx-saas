@@ -1,30 +1,30 @@
-'use client';
+'use client'
 
-import React, { useState, useTransition } from 'react';
-import { ShieldCheck, Loader2 } from 'lucide-react';
-import { updateConsentStatus } from '@/features/stress-check/actions';
+import React, { useState, useTransition } from 'react'
+import { ShieldCheck, Loader2 } from 'lucide-react'
+import { updateConsentStatus } from '@/features/stress-check/actions'
 
 interface ConsentSwitchProps {
-  periodId: string;
-  initialConsent: boolean;
+  periodId: string
+  initialConsent: boolean
 }
 
 export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitchProps) {
-  const [consented, setConsented] = useState(initialConsent);
-  const [isPending, startTransition] = useTransition();
+  const [consented, setConsented] = useState(initialConsent)
+  const [isPending, startTransition] = useTransition()
 
   const handleToggle = () => {
-    const newValue = !consented;
-    setConsented(newValue);
+    const newValue = !consented
+    setConsented(newValue)
     startTransition(async () => {
-      const result = await updateConsentStatus(periodId, newValue);
+      const result = await updateConsentStatus(periodId, newValue)
       if (!result.success) {
         // 失敗時は元に戻す
-        setConsented(!newValue);
-        console.error('Consent update failed:', result.error);
+        setConsented(!newValue)
+        console.error('Consent update failed:', result.error)
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -36,8 +36,9 @@ export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitc
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-gray-900">事業者（会社）への結果提供</h3>
             <p className="text-xs text-gray-500 leading-relaxed max-w-md">
-              あなたのストレスチェック結果を事業者に提供し、職場環境の改善に役立てることに同意します。
-              提供を希望しない場合は、スイッチをOFFに切り替えてください。
+              あなた個人のストレスチェック結果を事業者（会社）に提供することに同意する場合は、スイッチをONにしてください。
+              同意しなくても、不利益な取扱いを受けることはありません。
+              個人が特定されない集団ごとの集計・分析は、同意の有無にかかわらず職場環境の改善に使われます。
             </p>
           </div>
         </div>
@@ -65,5 +66,5 @@ export default function ConsentSwitch({ periodId, initialConsent }: ConsentSwitc
         </div>
       )}
     </div>
-  );
+  )
 }

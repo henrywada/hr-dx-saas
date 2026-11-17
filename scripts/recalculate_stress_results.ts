@@ -3,15 +3,23 @@
  * stress_check_results を再計算して投入するスクリプト
  *
  * 使用方法:
- *   npx tsx scripts/recalculate_stress_results.ts
+ *   npx tsx scripts/recalculate_stress_results.ts            # 再計算して保存
+ *   npx tsx scripts/recalculate_stress_results.ts --dry-run  # 保存せず、高ストレス判定の変化だけ表示
+ *
+ * 接続先は .env.local の NEXT_PUBLIC_SUPABASE_URL。ENV_FILE=.env.prod.local のように別ファイルも指定できる。
+ * 本番に向けて実行する場合は事前に承認を取ること。
  *
  * 前提: .env.local に NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY が設定されていること
  */
 import dotenv from 'dotenv'
-dotenv.config({ path: '.env.local' })
+// ENV_FILE で接続先を切り替える（既定はローカル用の .env.local）
+dotenv.config({ path: process.env.ENV_FILE ?? '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
-import { calculateScoresFromResponses } from '../src/features/stress-check/score-calculator'
+import {
+  calculateScoresFromResponses,
+  toStressGender,
+} from '../src/features/stress-check/score-calculator'
 import type { MergedResponse } from '../src/features/stress-check/score-calculator'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ''
@@ -24,9 +32,29 @@ if (!supabaseUrl || !serviceRoleKey) {
   process.exit(1)
 }
 
+const isDryRun = process.argv.includes('--dry-run')
+
 const admin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
+
+const PAGE_SIZE = 1000
+
+/** Supabase の 1 リクエスト上限（既定 1000 行）を超えて全件取得する */
+async function fetchAll<T>(
+  build: (
+    from: number,
+    to: number
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const rows: T[] = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1)
+    if (error) throw new Error(error.message)
+    rows.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) return rows
+  }
+}
 
 async function getMergedResponses(
   periodId: string,
@@ -60,19 +88,47 @@ async function getMergedResponses(
 }
 
 async function main() {
-  console.log('stress_check_results の再計算を開始します...\n')
+  console.log(`接続先: ${new URL(supabaseUrl).host}`)
+  console.log(
+    isDryRun
+      ? 'stress_check_results の再計算を試算します（保存しません）...\n'
+      : 'stress_check_results の再計算を開始します...\n'
+  )
 
-  const { data: submissions, error: subError } = await admin
-    .from('stress_check_submissions')
-    .select('id, tenant_id, period_id, employee_id, employees(sex)')
-    .eq('status', 'submitted')
+  // 変化の比較用に、保存済みの高ストレス判定を取得する
+  const existing = await fetchAll<{
+    period_id: string
+    employee_id: string
+    is_high_stress: boolean | null
+  }>((from, to) =>
+    admin
+      .from('stress_check_results')
+      .select('period_id, employee_id, is_high_stress')
+      .order('id')
+      .range(from, to)
+  )
+  const storedHighStress = new Map(
+    existing.map(r => [`${r.period_id}:${r.employee_id}`, r.is_high_stress])
+  )
+  let becameHigh = 0
+  let becameNotHigh = 0
+  let newHighTotal = 0
 
-  if (subError) {
-    console.error('提出データの取得に失敗:', subError.message)
-    process.exit(1)
-  }
+  const submissions = await fetchAll<{
+    id: string
+    tenant_id: string
+    period_id: string
+    employee_id: string
+  }>((from, to) =>
+    admin
+      .from('stress_check_submissions')
+      .select('id, tenant_id, period_id, employee_id, employees(sex)')
+      .eq('status', 'submitted')
+      .order('id')
+      .range(from, to)
+  )
 
-  if (!submissions || submissions.length === 0) {
+  if (submissions.length === 0) {
     console.log('提出済みデータがありません。終了します。')
     return
   }
@@ -93,8 +149,18 @@ async function main() {
     }
 
     const empData = (sub as unknown as { employees: { sex: string | null } | null }).employees
-    const gender: 'male' | 'female' = empData?.sex === 'female' ? 'female' : 'male'
+    const gender = toStressGender(empData?.sex)
     const calculated = calculateScoresFromResponses(merged, gender)
+    const before = storedHighStress.get(`${sub.period_id}:${sub.employee_id}`)
+    if (calculated.is_high_stress) newHighTotal++
+    if (before === false && calculated.is_high_stress) becameHigh++
+    if (before === true && !calculated.is_high_stress) becameNotHigh++
+
+    if (isDryRun) {
+      successCount++
+      continue
+    }
+
     const now = new Date().toISOString()
 
     const { error: upsertError } = await admin.from('stress_check_results').upsert(
@@ -129,7 +195,10 @@ async function main() {
   }
 
   console.log('\n========================================')
-  console.log(`完了: 成功 ${successCount} 件, スキップ ${skipCount} 件`)
+  console.log(`${isDryRun ? '試算' : '完了'}: 対象 ${successCount} 件, スキップ ${skipCount} 件`)
+  console.log(`再計算後の高ストレス者: ${newHighTotal} 件`)
+  console.log(`  非該当 → 高ストレス: ${becameHigh} 件`)
+  console.log(`  高ストレス → 非該当: ${becameNotHigh} 件`)
   console.log('========================================')
 }
 

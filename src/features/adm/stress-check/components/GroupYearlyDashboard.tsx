@@ -20,6 +20,7 @@ import {
   type HealthRiskBlock,
   type YearlyDashboardYear,
 } from '../yearly-dashboard'
+import ScaleProfilePanel from './ScaleProfilePanel'
 
 const YEAR_LINE_COLORS = [
   '#3366CC',
@@ -288,6 +289,12 @@ export default function GroupYearlyDashboard({ years }: Props) {
               </ResponsiveContainer>
             </div>
           )}
+        </Panel>
+      </div>
+
+      <div className="xl:col-span-2">
+        <Panel title="尺度別プロフィール（全19尺度・標準集団との比較）">
+          <ScaleProfilePanel years={visible} />
         </Panel>
       </div>
     </div>

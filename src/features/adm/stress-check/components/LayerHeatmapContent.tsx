@@ -20,6 +20,7 @@ import OrgHealthMatrixHeatmap from './OrgHealthMatrixHeatmap'
 import GroupRadarChart from './GroupRadarChart'
 import GroupTrendChart from './GroupTrendChart'
 import GroupYearlyDashboard from './GroupYearlyDashboard'
+import JobStressChartSection from './JobStressChartSection'
 import type { GroupAnalysisMode } from './GroupAnalysisToolbar'
 import type { GroupData, GroupTrendRow } from '../queries'
 import type { YearlyDashboardYear } from '../yearly-dashboard'
@@ -258,6 +259,21 @@ export default function LayerHeatmapContent({
                 groups={groups}
                 onSelect={setSelectedGroup}
                 selectedDivisionId={selectedGroup?.division_id}
+              />
+            </Card>
+
+            {/* ─── 仕事のストレス判定図（厚労省 結果帳票の職場結果に相当） ─── */}
+            <Card className="p-4 sm:p-5">
+              <h2 className="text-lg font-bold text-[#24292f] mb-1">仕事のストレス判定図</h2>
+              <p className="text-xs text-[#57606a] mb-3">
+                {groupUnitLabel}
+                ごとの4尺度の平均点を判定図にプロットし、全国平均と比べています｜点・行をクリックすると選択できます
+              </p>
+              <JobStressChartSection
+                groups={groups}
+                groupUnitLabel={groupUnitLabel}
+                selectedId={selectedGroup?.division_id}
+                onSelect={id => setSelectedGroup(groups.find(g => g.division_id === id) ?? null)}
               />
             </Card>
 
